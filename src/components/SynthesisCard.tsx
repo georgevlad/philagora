@@ -20,7 +20,7 @@ export function SynthesisCard({
   return (
     <div
       ref={ref}
-      className="animate-fade-in-up mx-5 my-6 rounded-lg border border-athenian/20 bg-gradient-to-br from-parchment-dark to-parchment overflow-hidden shadow-sm"
+      className="animate-fade-in-up mx-3 sm:mx-5 my-6 rounded-lg border border-athenian/20 bg-gradient-to-br from-parchment-dark to-parchment overflow-hidden shadow-sm"
     >
       {/* Header */}
       <div className="px-5 py-3 bg-athenian/5 border-b border-athenian/10 flex items-center gap-3">

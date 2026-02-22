@@ -154,10 +154,10 @@ export function PostCard({
           )}
 
           {/* Tag + Actions row */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <TagBadge tag={post.tag} color={philosopher.color} />
 
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-3 sm:gap-5">
               <ActionButton
                 label="Reply"
                 count={post.replies}

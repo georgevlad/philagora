@@ -59,7 +59,7 @@ export default function PhilosopherProfileDynamic({
   const philosopherPosts = posts.filter((p) => p.philosopherId === id);
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0">
       <LeftSidebar />
       <MobileNav />
 
@@ -79,10 +79,10 @@ export default function PhilosopherProfileDynamic({
           </div>
 
           {/* Profile header */}
-          <div className="px-5 pt-6 pb-6 border-b border-border-light">
-            <div className="flex items-start gap-5">
+          <div className="px-4 sm:px-5 pt-6 pb-6 border-b border-border-light">
+            <div className="flex items-start gap-3 sm:gap-5">
               <div
-                className="w-20 h-20 rounded-full flex items-center justify-center font-serif text-2xl font-bold text-white shrink-0"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center font-serif text-xl sm:text-2xl font-bold text-white shrink-0"
                 style={{ backgroundColor: philosopher.color }}
               >
                 {philosopher.initials}

@@ -112,7 +112,7 @@ function NeutralSynthesisCard({
   return (
     <div
       ref={ref}
-      className="animate-fade-in-up mx-5 my-6 rounded-lg overflow-hidden"
+      className="animate-fade-in-up mx-3 sm:mx-5 my-6 rounded-lg overflow-hidden"
       style={{
         backgroundColor: "rgba(240, 235, 227, 0.5)",
         borderTop: "2px dashed var(--color-border)",
@@ -170,7 +170,7 @@ export default function DebatePage() {
   const rebuttalPosts = debate.posts.filter((p) => p.phase === "rebuttal");
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0">
       <LeftSidebar />
       <MobileNav />
 

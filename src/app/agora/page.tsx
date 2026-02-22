@@ -178,7 +178,7 @@ export default function AgoraPage() {
   const remainingThreads = agoraThreads.slice(1);
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0">
       <LeftSidebar />
       <MobileNav />
 

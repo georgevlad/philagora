@@ -8,12 +8,12 @@ import { posts } from "@/data/posts";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0">
       <LeftSidebar />
       <MobileNav />
 
       {/* Main feed */}
-      <main className="flex-1 min-w-0 border-r border-border-light lg:border-l">
+      <main className="flex-1 min-w-0 lg:border-r border-border-light lg:border-l">
         <div className="max-w-[640px] mx-auto">
           <FeedTabs />
           <div className="pb-20 lg:pb-0">

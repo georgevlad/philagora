@@ -93,7 +93,7 @@ function DebateListCard({
 
 export default function DebatesListPage() {
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0">
       <LeftSidebar />
       <MobileNav />
 

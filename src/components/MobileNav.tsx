@@ -53,7 +53,7 @@ export function MobileNav() {
   return (
     <>
       {/* Top bar on mobile */}
-      <div className="lg:hidden sticky top-0 z-50 bg-parchment/90 backdrop-blur-md border-b border-border-light px-4 py-3">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-parchment/90 backdrop-blur-md border-b border-border-light px-4 py-3">
         <div className="flex items-center justify-between">
           <Link href="/">
             <h1 className="font-serif text-xl font-bold text-athenian italic">
