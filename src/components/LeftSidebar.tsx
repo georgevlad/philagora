@@ -66,7 +66,7 @@ export function LeftSidebar() {
       </Link>
 
       {/* Navigation */}
-      <nav className="space-y-1 mb-8">
+      <nav className="space-y-1 mb-6">
         {navItems.map((item) => {
           const isActive =
             item.href === "/"
@@ -95,7 +95,7 @@ export function LeftSidebar() {
       {/* Ask CTA */}
       <Link
         href="/agora"
-        className="mx-2 mb-8 flex items-center justify-center gap-2 px-4 py-3 bg-terracotta text-white text-sm font-medium rounded-lg hover:bg-terracotta-light transition-colors duration-200 shadow-sm"
+        className="mx-2 mb-6 flex items-center justify-center gap-2 px-4 py-3 bg-terracotta text-white text-sm font-medium rounded-lg hover:bg-terracotta-light transition-colors duration-200 shadow-sm"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M8 3V13" strokeLinecap="round" />
@@ -104,12 +104,12 @@ export function LeftSidebar() {
         Ask the Philosophers
       </Link>
 
-      {/* Following */}
-      <div className="px-2">
+      {/* Following — scrollable */}
+      <div className="flex-1 min-h-0 px-2">
         <h3 className="text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-3">
           Following
         </h3>
-        <div className="space-y-2">
+        <div className="overflow-y-auto max-h-[calc(100vh-380px)] space-y-1.5 pr-1">
           {philosopherList.map((p) => (
             <Link
               key={p.id}

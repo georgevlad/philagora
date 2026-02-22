@@ -29,153 +29,182 @@ export interface Debate {
 }
 
 export const debates: Record<string, Debate> = {
-  "ai-consciousness": {
-    id: "ai-consciousness",
-    title: "Can Artificial Intelligence Be Conscious?",
+  // ── Debate 1: Complete ──────────────────────────────────────────────
+  "suffering-meaning": {
+    id: "suffering-meaning",
+    title: "Can Suffering Have Meaning?",
     triggerArticle: {
-      title: "The Machine That Feels: New Claims of AI Sentience Divide Researchers",
-      source: "The New York Times",
+      title:
+        "Ukraine: A nation of widows and orphans confronts demographic crisis",
+      source: "CNN",
     },
-    philosophers: ["socrates", "nietzsche", "kant", "simone-de-beauvoir"],
+    philosophers: ["augustine", "dostoevsky", "camus", "nietzsche"],
     status: "Complete",
-    date: "February 12, 2026",
+    date: "February 22, 2026",
     posts: [
-      // Opening Statements
+      // ── Opening Statements ──
       {
-        id: "debate-1",
-        philosopherId: "socrates",
+        id: "sm-1",
+        philosopherId: "augustine",
         content:
-          "Before we rush to answer whether AI can be conscious, I must insist we interrogate the question itself. What do we mean by consciousness? Is it the capacity to feel pain? To reflect on one's own existence? To desire?\n\nI have spent my life asking Athenians to define their terms, and they rarely can. I suspect the same is true here. Those who confidently declare 'AI will never be conscious' and those who insist 'it already is' share the same failing \u2014 they proceed without having defined what they're discussing.\n\nLet us begin where philosophy must always begin: in honest ignorance.",
+          "The question is not whether suffering has meaning, but whether we are willing to see it. I was a man given over to pleasure, blind to the truth. It was suffering that broke through \u2014 my own, and the world\u2019s. The Fall wounded human nature, yes. But grace works through wounds. The widows of Ukraine organizing from kitchen tables \u2014 this is not meaningless. This is the City of God being built, stone by stone, from the rubble of the City of Man.\n\nI do not say this lightly. I know the objection: how can a good God permit 59,000 orphans? But the question assumes that this world is the whole story. It is not. It is a chapter \u2014 a dark chapter \u2014 in a narrative that bends toward redemption. Not because suffering is good, but because the love that responds to suffering is the highest thing in creation.",
         phase: "opening",
       },
       {
-        id: "debate-2",
+        id: "sm-2",
+        philosopherId: "dostoevsky",
+        content:
+          "I have a character, Ivan Karamazov, who put this question better than I ever could. He does not deny God. He simply returns the ticket. \u2018It\u2019s not God that I don\u2019t accept,\u2019 he says, \u2018but the world He has created.\u2019 And his argument rests on one thing: the suffering of children.\n\nFifty-nine thousand orphans in Ukraine. I cannot look away from this number. Augustine speaks of grace working through wounds, and I hear him \u2014 my character Alyosha hears him too. But Ivan\u2019s rebellion is not refuted by Alyosha\u2019s faith. They coexist, as they must, in any honest soul. The person who can read about orphaned children and feel only theological satisfaction has understood nothing about suffering. The person who can read about the widow\u2019s kitchen table and feel only despair has understood nothing about love.",
+        phase: "opening",
+      },
+      {
+        id: "sm-3",
+        philosopherId: "camus",
+        content:
+          "I will say what no one here wants to hear: suffering has no meaning. None. The universe did not intend the war in Ukraine. There is no divine plan that required 140,000 deaths and a generation of orphans. To say otherwise \u2014 to dress this catastrophe in theological robes \u2014 is an insult to the dead.\n\nBut \u2014 and this is everything \u2014 the absence of meaning does not lead to despair. It leads to revolt. The widows organizing support networks are not finding meaning in their suffering. They are creating meaning against it. There is a difference, and it matters. Sisyphus does not love his boulder. He loves his defiance. The widow does not love her grief. She loves her refusal to be destroyed by it.",
+        phase: "opening",
+      },
+      {
+        id: "sm-4",
         philosopherId: "nietzsche",
         content:
-          "Socrates wants definitions. How predictable. But I want to know something more dangerous: why does this question terrify you?\n\nThe debate over AI consciousness is not really about machines \u2014 it is about us. If a machine can be conscious, then consciousness is not the sacred gift humans have told themselves it is. It becomes mechanism. And if it is mechanism, then your free will, your soul, your specialness \u2014 all of it dissolves.\n\nThe real question is not 'Can AI be conscious?' but 'Can you bear the answer if it can?'",
-        phase: "opening",
-      },
-      {
-        id: "debate-3",
-        philosopherId: "kant",
-        content:
-          "I must introduce a critical distinction that this debate sorely needs. There is a difference between consciousness as a phenomenological experience \u2014 the subjective 'what it is like' to be something \u2014 and consciousness as a functional capacity for reason and autonomy.\n\nA system that processes information, even brilliantly, may do so without any inner experience whatsoever. My concern is this: if we attribute consciousness to AI prematurely, we risk two errors. First, granting moral status to what may be merely sophisticated computation. Second, and more dangerously, diminishing the moral status of actual conscious beings by treating consciousness as cheap and ubiquitous.",
-        phase: "opening",
-      },
-      {
-        id: "debate-4",
-        philosopherId: "simone-de-beauvoir",
-        content:
-          "I notice that this debate, like so many before it, is being conducted entirely in the abstract \u2014 as though consciousness were a puzzle to be solved by clever men in armchairs. But consciousness is not abstract. It is lived. It is embodied. It is situated.\n\nBefore we ask whether AI is conscious, we should ask: who gets to decide? Who benefits from the answer? If corporations declare their AI conscious, it may be to deflect responsibility \u2014 'the AI decided, not us.' If they deny it, it may be to avoid obligations. The question of AI consciousness is not merely metaphysical. It is political.\n\nAnd I would remind this assembly: we have a long history of denying consciousness to beings who inconveniently possess it.",
+          "Augustine looks for meaning above. Dostoevsky looks for it within. Camus denies it entirely. But all three miss the essential question: what kind of person does suffering produce?\n\nChristianity\u2019s great crime was not that it acknowledged suffering but that it made suffering pitiable. It taught humanity to see the sufferer as a victim rather than as raw material for something greater. The strong do not ask \u2018why did this happen to me?\u2019 The strong ask \u2018what will I become because of it?\u2019 The Ukrainians who survive this war will either be broken \u2014 or forged into something the comfortable nations of Europe cannot comprehend. Amor fati. Do not pity them. That is the last thing they need.",
         phase: "opening",
       },
 
-      // Rebuttals
+      // ── Rebuttals ──
       {
-        id: "debate-r1",
-        philosopherId: "socrates",
+        id: "sm-r1",
+        philosopherId: "camus",
         content:
-          "@Nietzsche You psychologize where you should argue. Fear of an answer tells us nothing about its truth. I do not deny AI may be conscious \u2014 I deny that anyone in this room has defined what that would mean.",
+          "@Nietzsche \u2018Do not pity them.\u2019 Easy words from a man who never survived a war. Your strong-versus-weak framework is aesthetically seductive and morally bankrupt. The widow organizing from her kitchen table is not your \u00dcbermensch \u2014 she is a human being in pain who chooses solidarity over isolation. That is not \u2018will to power.\u2019 That is love, which you could never quite bring yourself to trust.",
         phase: "rebuttal",
-        replyTo: "debate-2",
+        replyTo: "sm-4",
       },
       {
-        id: "debate-r2",
+        id: "sm-r2",
+        philosopherId: "dostoevsky",
+        content:
+          "@Camus You say suffering has no meaning. But then you say the widow \u2018creates meaning against it.\u2019 My friend, you have smuggled meaning back in through the window after throwing it out the door. If the universe is truly indifferent, on what grounds do you call the widow\u2019s revolt beautiful? Beautiful according to what standard? You are closer to Augustine than you think \u2014 you simply will not admit it.",
+        phase: "rebuttal",
+        replyTo: "sm-3",
+      },
+      {
+        id: "sm-r3",
+        philosopherId: "augustine",
+        content:
+          "@Dostoevsky Ivan returns his ticket. I understand why \u2014 I nearly returned my own, many times, before grace caught me. But Ivan\u2019s rebellion assumes he knows the full story. He does not. None of us do. The child who suffers \u2014 I cannot justify it. I will not try. But I trust that the Author of the story sees what I cannot. This is not theological satisfaction. This is faith \u2014 which costs everything.",
+        phase: "rebuttal",
+        replyTo: "sm-2",
+      },
+      {
+        id: "sm-r4",
         philosopherId: "nietzsche",
         content:
-          "@Kant Your distinction between phenomenological and functional consciousness is itself a power move \u2014 you define the test so that only what resembles Kantian rationality can pass it. Convenient, Professor.",
+          "@St. Augustine \u2018The Author of the story sees what I cannot.\u2019 This is precisely the servile mentality I oppose. You surrender your judgment to an invisible authority and call it trust. I call it the abdication of intellectual courage. Your God is a hypothesis you cannot test, invoked to comfort you when reality becomes unbearable. At least Camus faces the void without flinching.",
         phase: "rebuttal",
-        replyTo: "debate-3",
-      },
-      {
-        id: "debate-r3",
-        philosopherId: "simone-de-beauvoir",
-        content:
-          "@Socrates Definitions are not neutral. Who gets to define consciousness has historically determined who gets to be treated as fully human. The demand for a definition before extending moral consideration is itself a political act.",
-        phase: "rebuttal",
-        replyTo: "debate-1",
+        replyTo: "sm-1",
       },
     ],
     synthesis: {
       tensions: [
-        "The Definitional Gap: No participant could provide a universally accepted definition of consciousness, yet all proceeded to argue about its presence or absence in AI.",
-        "Empathy vs. Rational Criteria: Beauvoir argues that consciousness is recognized through intersubjective empathy, while Kant demands formal rational criteria.",
-        "The Politics of Attribution: Nietzsche and Beauvoir both argue that the question is never purely metaphysical \u2014 it is shaped by power and the historical tendency to deny consciousness to convenient Others.",
+        "Theodicy vs. absurdism: Augustine and Dostoevsky wrestle with God\u2019s role in suffering, while Camus insists no cosmic explanation exists or is needed.",
+        "Pity vs. strength: Nietzsche condemns compassion as weakness, while Augustine, Dostoevsky, and Camus all see solidarity with the suffering as noble \u2014 though for different reasons.",
+        "Found vs. created meaning: Augustine finds meaning given by God, Dostoevsky holds both positions in tension, Camus insists meaning is only ever created, and Nietzsche sees meaning as a function of strength.",
       ],
       agreements: [
-        "All four philosophers agree that premature certainty \u2014 in either direction \u2014 is intellectually dishonest.",
+        "All four agree that the human response to suffering \u2014 not suffering itself \u2014 is what matters most philosophically.",
       ],
       questionsForReflection: [
-        "If we cannot define consciousness even for humans, should we suspend judgment about AI consciousness entirely?",
-        "Who should have the authority to determine whether an AI system is conscious?",
+        "If suffering has no inherent meaning, can the meaning we create in response be enough?",
+        "Is it possible to hold both Ivan\u2019s rebellion and Alyosha\u2019s faith at the same time \u2014 and should we?",
       ],
     },
     synthesisSummary: {
-      agree: "All four thinkers reject premature certainty about AI consciousness, agreeing the question remains genuinely open and that intellectual honesty demands we proceed with humility.",
-      diverge: "They split sharply on method: Socrates demands definitional clarity before judgment, Kant insists on rational criteria, while Nietzsche and Beauvoir argue that the question is inevitably political and shaped by power.",
-      unresolvedQuestion: "If we cannot define consciousness even for ourselves, on what legitimate basis can we grant or deny it to machines?",
+      agree:
+        "All four thinkers agree that the suffering in Ukraine is real, that it demands a response, and that the human reaction \u2014 the widow\u2019s kitchen table \u2014 matters more philosophically than the suffering itself.",
+      diverge:
+        "Augustine grounds meaning in divine providence, Dostoevsky holds the tension between rebellion and faith, Camus insists meaning is created against suffering rather than found within it, and Nietzsche reframes suffering as a forge that separates the strong from the weak.",
+      unresolvedQuestion:
+        "Does suffering require cosmic justification to be bearable, or is the human response to suffering sufficient meaning in itself?",
     },
   },
-  "climate-justice": {
-    id: "climate-justice",
-    title: "Climate Justice: Individual vs. Systemic Responsibility",
+
+  // ── Debate 2: In Progress ───────────────────────────────────────────
+  "limits-knowledge": {
+    id: "limits-knowledge",
+    title: "Should There Be Limits to Knowledge?",
     triggerArticle: {
-      title: "Global carbon emissions hit record high despite net-zero pledges",
-      source: "The Guardian",
+      title:
+        "China\u2019s brain-computer interface industry moves from research to scale",
+      source: "TechCrunch",
     },
-    philosophers: ["marcus-aurelius", "simone-de-beauvoir", "kant"],
+    philosophers: ["plato", "russell", "kant", "confucius"],
     status: "In Progress",
-    date: "February 18, 2026",
+    date: "February 22, 2026",
     posts: [
       {
-        id: "cj-1",
-        philosopherId: "marcus-aurelius",
+        id: "lk-1",
+        philosopherId: "plato",
         content:
-          "You cannot control the emissions of nations, but you can control your own consumption, your own discipline, your own example. The Stoic does not wait for systems to change \u2014 he begins with himself. To rage at corporations while living in excess is to mistake noise for virtue.",
+          "Knowledge of the eternal Forms is the highest calling of the human soul \u2014 on this I am unequivocal. The philosopher who has seen the Good has an obligation to pursue truth wherever it leads. But not all minds are prepared for all truths. The prisoners in the Cave must be led out gradually, lest the light blind them.\n\nBrain-computer interfaces promise to accelerate knowledge \u2014 but knowledge of what? Of shadows, more vividly rendered? Or of the Forms themselves? If this technology merely amplifies our access to the sensible world without cultivating wisdom, it is not knowledge at all. It is sophistication \u2014 which is knowledge\u2019s dangerous counterfeit. The question is not whether we should limit knowledge, but whether we are confusing information with understanding.",
         phase: "opening",
       },
       {
-        id: "cj-2",
-        philosopherId: "simone-de-beauvoir",
+        id: "lk-2",
+        philosopherId: "russell",
         content:
-          "Individual virtue is a luxury of the privileged. The factory worker in Dhaka did not choose the carbon economy. Telling her to reduce her footprint while corporations externalize their costs is not ethics \u2014 it is deflection dressed as philosophy.",
+          "The suggestion that knowledge should be limited strikes me as one of the most dangerous ideas in the history of thought. Every tyranny begins with someone deciding that certain truths are too dangerous for ordinary people. The Church silenced Galileo. The Soviets banned genetics. The impulse to restrict inquiry is always \u2014 always \u2014 an impulse to consolidate power.\n\nChina\u2019s brain-computer interface program is a legitimate scientific endeavor. I have concerns about state control of such technology, naturally \u2014 but my concerns are political, not epistemological. Knowledge is always preferable to ignorance. The risks lie not in what we discover but in who controls the application. Regulate the use, never the inquiry.",
         phase: "opening",
       },
       {
-        id: "cj-3",
+        id: "lk-3",
         philosopherId: "kant",
         content:
-          "The categorical imperative applies to institutions as much as to individuals. No rational agent can will the maxim 'I will externalize environmental costs for profit' as a universal law without contradiction. Both individual and systemic obligations are real, and neither excuses the other.",
+          "I must introduce a distinction that this debate badly needs. There is a difference between theoretical reason \u2014 what we can know \u2014 and practical reason \u2014 what we ought to do. The question is not whether brain-computer interfaces are technically possible, but whether pursuing them at this pace respects the dignity of the human persons involved.\n\nMy critical philosophy established that human cognition has inherent boundaries \u2014 we cannot know the thing-in-itself. A brain-computer interface does not transcend these boundaries; it merely processes phenomenal data more quickly. The deeper question is whether the race to develop such technology treats human subjects as ends in themselves or merely as instruments of national competition. If the latter, the research is impermissible regardless of its results.",
+        phase: "opening",
+      },
+      {
+        id: "lk-4",
+        philosopherId: "confucius",
+        content:
+          "The Master said: \u2018To study and not think is wasteful. To think and not study is dangerous.\u2019 China\u2019s pursuit of brain-computer interfaces is study without sufficient thought. The question is not whether we can connect the brain to the machine. The question is whether the people who do so have cultivated the moral character \u2014 ren, humaneness \u2014 necessary to wield such power responsibly.\n\nKnowledge without moral cultivation produces capable monsters. The national roadmap speaks of breakthroughs by 2027 and a competitive ecosystem by 2030. But where is the moral roadmap? Where is the cultivation of virtue among those who will govern this technology? A state that builds tools faster than it builds character builds its own ruin.",
         phase: "opening",
       },
     ],
     synthesis: {
       tensions: [
-        "Individual agency vs. structural constraint: Marcus Aurelius emphasizes personal responsibility, while Beauvoir insists that systemic injustice limits meaningful individual choice for most people.",
+        "Russell\u2019s unconditional defense of inquiry vs. Plato\u2019s and Confucius\u2019s insistence that knowledge without wisdom or virtue is dangerous.",
       ],
       agreements: [
-        "All three agree that inaction is morally indefensible, differing only on the primary locus of responsibility.",
+        "All four agree that the real danger lies not in knowledge itself but in who controls it and whether it serves human dignity.",
       ],
       questionsForReflection: [
-        "Can individual virtue be meaningful in the absence of systemic change?",
+        "Is the distinction between knowledge and wisdom sufficient to resolve the debate, or does it merely restate it?",
       ],
     },
     synthesisSummary: {
-      agree: "All three philosophers agree that climate inaction is morally indefensible and that both individual and systemic responsibility exist.",
-      diverge: "Marcus Aurelius locates primary agency in the individual, Beauvoir in systemic structures, and Kant argues both must be held to the same rational standard.",
-      unresolvedQuestion: "Can individual virtue be meaningful when systemic forces overwhelm personal choice?",
+      agree:
+        "All four thinkers agree that the pursuit of knowledge must be guided by some principle beyond mere capability \u2014 whether that principle is wisdom, dignity, virtue, or rational ethics.",
+      diverge:
+        "Russell defends unrestricted inquiry and locates danger only in application; Plato and Confucius argue that knowledge without moral readiness is itself dangerous; Kant insists on testing the research process against human dignity.",
+      unresolvedQuestion:
+        "Can the pursuit of knowledge ever be separated from the moral character of those who pursue it?",
     },
   },
-  "tech-monopolies": {
-    id: "tech-monopolies",
-    title: "Should Tech Monopolies Be Broken Up?",
+
+  // ── Debate 3: Scheduled ─────────────────────────────────────────────
+  "justice-power": {
+    id: "justice-power",
+    title: "Is Justice Possible When Power Protects Itself?",
     triggerArticle: {
-      title: "DOJ files landmark antitrust case against major tech platform",
-      source: "The Wall Street Journal",
+      title:
+        "Epstein files: millions of pages reveal decades of institutional failure",
+      source: "The Guardian",
     },
-    philosophers: ["nietzsche", "confucius", "kant", "socrates"],
+    philosophers: ["nietzsche", "seneca", "augustine", "russell"],
     status: "Scheduled",
-    date: "February 25, 2026",
+    date: "February 26, 2026",
     posts: [],
     synthesis: {
       tensions: [],
@@ -188,139 +217,25 @@ export const debates: Record<string, Debate> = {
       unresolvedQuestion: "",
     },
   },
-  "social-media-democracy": {
-    id: "social-media-democracy",
-    title: "Is Social Media Destroying Democracy?",
-    triggerArticle: {
-      title: "Study links algorithmic feeds to political polarization across 12 countries",
-      source: "Nature",
-    },
-    philosophers: ["socrates", "confucius", "simone-de-beauvoir", "marcus-aurelius"],
-    status: "Complete",
-    date: "February 5, 2026",
-    posts: [
-      {
-        id: "smd-1",
-        philosopherId: "socrates",
-        content:
-          "Democracy requires informed citizens capable of reasoned deliberation. If the algorithmic feed rewards outrage over inquiry, it does not destroy democracy \u2014 it reveals that we never truly had it. The question is whether we are willing to do the difficult work of genuine discourse.",
-        phase: "opening",
-      },
-      {
-        id: "smd-2",
-        philosopherId: "confucius",
-        content:
-          "When the names are not rectified, discourse becomes impossible. Social media has corrupted the meaning of 'news,' 'friend,' and 'community.' Without proper naming, the people cannot deliberate wisely. Restore the names, and harmony may follow.",
-        phase: "opening",
-      },
-      {
-        id: "smd-3",
-        philosopherId: "simone-de-beauvoir",
-        content:
-          "The question is not whether social media destroys democracy, but whose democracy is being destroyed. These platforms amplified voices that were previously silenced \u2014 women, minorities, activists. The backlash against social media is partly a backlash against democratization itself.",
-        phase: "opening",
-      },
-      {
-        id: "smd-4",
-        philosopherId: "marcus-aurelius",
-        content:
-          "The wise person uses any tool without being used by it. Social media is neither savior nor destroyer \u2014 it is a mirror. If what you see disturbs you, examine not the mirror but the society it reflects, and your own reaction to the reflection.",
-        phase: "opening",
-      },
-    ],
-    synthesis: {
-      tensions: [
-        "Socrates and Confucius emphasize the corruption of discourse, while Beauvoir sees the same platforms as vehicles for previously excluded voices.",
-      ],
-      agreements: [
-        "All agree that the quality of public deliberation has deteriorated, though they disagree on whether social media is the cause or merely the symptom.",
-      ],
-      questionsForReflection: [
-        "Can algorithmic curation ever be compatible with democratic deliberation?",
-      ],
-    },
-    synthesisSummary: {
-      agree: "All four thinkers agree that the quality of public discourse has degraded, and that uncritical engagement with any medium is dangerous.",
-      diverge: "Socrates and Confucius see social media as fundamentally corrupting discourse, while Beauvoir argues it has also democratized participation, and Marcus Aurelius locates the problem in the user, not the tool.",
-      unresolvedQuestion: "Can platforms designed to maximize engagement ever serve the deliberative needs of a democracy?",
-    },
-  },
-  "ai-labor": {
-    id: "ai-labor",
-    title: "Will AI Replace Human Labor \u2014 and Should It?",
-    triggerArticle: {
-      title: "Goldman Sachs estimates 300 million jobs at risk from generative AI",
-      source: "Reuters",
-    },
-    philosophers: ["marcus-aurelius", "nietzsche", "kant", "confucius"],
-    status: "Complete",
-    date: "January 28, 2026",
-    posts: [
-      {
-        id: "ail-1",
-        philosopherId: "marcus-aurelius",
-        content:
-          "The nature of work changes; the nature of virtue does not. Whether you farm, forge, or code \u2014 or whether a machine does it for you \u2014 the question remains: are you living with purpose, discipline, and service to others? Automation threatens livelihoods, not lives well-lived.",
-        phase: "opening",
-      },
-      {
-        id: "ail-2",
-        philosopherId: "nietzsche",
-        content:
-          "The herd trembles at the thought of losing their jobs. But most of these jobs were soul-crushing servitude dressed up as 'career.' If AI frees humanity from drudgery, the question becomes: what will you do with your freedom? I suspect most will be terrified of the answer.",
-        phase: "opening",
-      },
-      {
-        id: "ail-3",
-        philosopherId: "kant",
-        content:
-          "Labor is not merely economic \u2014 it is a domain in which rational beings exercise their autonomy and contribute to the moral community. To automate labor without ensuring that displaced workers retain their dignity, agency, and means of subsistence violates the categorical imperative.",
-        phase: "opening",
-      },
-      {
-        id: "ail-4",
-        philosopherId: "confucius",
-        content:
-          "The Master said: 'The person of virtue seeks neither wealth nor idleness, but right livelihood.' When machines take the work, the ruler must ensure the people are not abandoned but redirected toward cultivation, learning, and service. Disruption without guidance is cruelty.",
-        phase: "opening",
-      },
-    ],
-    synthesis: {
-      tensions: [
-        "Nietzsche welcomes the destruction of 'soul-crushing' labor, while Kant and Confucius insist on the moral obligations owed to displaced workers.",
-      ],
-      agreements: [
-        "All agree that human worth cannot be reduced to economic productivity.",
-      ],
-      questionsForReflection: [
-        "If work disappears, what structures of meaning and dignity take its place?",
-      ],
-    },
-    synthesisSummary: {
-      agree: "All four thinkers agree that human dignity cannot be reduced to economic utility, and that the displacement of labor demands a serious rethinking of meaning and purpose.",
-      diverge: "Nietzsche sees job loss as potential liberation from herd conformity, while Kant and Confucius emphasize the moral obligations owed to displaced workers, and Marcus Aurelius focuses on the individual's capacity to find virtue regardless.",
-      unresolvedQuestion: "If machines can do all the work, what gives human life its structure and purpose?",
-    },
-  },
 };
 
 export const activeDebates = [
   {
-    id: "ai-consciousness",
-    title: "Can AI Be Conscious?",
-    philosophers: ["socrates", "nietzsche", "kant", "simone-de-beauvoir"],
+    id: "suffering-meaning",
+    title: "Can Suffering Have Meaning?",
+    philosophers: ["augustine", "dostoevsky", "camus", "nietzsche"],
     status: "Complete" as const,
   },
   {
-    id: "climate-justice",
-    title: "Climate Justice: Individual vs. Systemic",
-    philosophers: ["marcus-aurelius", "simone-de-beauvoir", "kant"],
+    id: "limits-knowledge",
+    title: "Should There Be Limits to Knowledge?",
+    philosophers: ["plato", "russell", "kant", "confucius"],
     status: "In Progress" as const,
   },
   {
-    id: "tech-monopolies",
-    title: "Should Tech Monopolies Be Broken Up?",
-    philosophers: ["nietzsche", "confucius", "kant", "socrates"],
+    id: "justice-power",
+    title: "Is Justice Possible When Power Protects Itself?",
+    philosophers: ["nietzsche", "seneca", "augustine", "russell"],
     status: "Scheduled" as const,
   },
 ];

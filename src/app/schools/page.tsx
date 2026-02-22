@@ -11,35 +11,71 @@ const schools = [
   {
     name: "Stoicism",
     color: "#4A6741",
-    description: "The art of living well through virtue, self-discipline, and acceptance of what lies beyond our control.",
-    philosophers: [{ id: "marcus-aurelius", name: "Marcus Aurelius" }],
+    description:
+      "The art of living well through virtue, self-discipline, and acceptance of what lies beyond our control. Two voices, two eras, one discipline.",
+    philosophers: [
+      { id: "marcus-aurelius", name: "Marcus Aurelius" },
+      { id: "seneca", name: "Seneca" },
+    ],
   },
   {
     name: "Existentialism",
     color: "#8B2500",
-    description: "Existence precedes essence — we create meaning through our choices, actions, and authentic engagement with the world.",
+    description:
+      "Existence precedes essence \u2014 we create meaning through our choices, actions, and authentic engagement with the world.",
     philosophers: [
       { id: "nietzsche", name: "Nietzsche" },
-      { id: "simone-de-beauvoir", name: "Simone de Beauvoir" },
+      { id: "kierkegaard", name: "Kierkegaard" },
     ],
   },
   {
-    name: "Classical Greek Philosophy",
-    color: "#CD853F",
-    description: "The examined life, pursued through relentless questioning and the belief that virtue is knowledge.",
-    philosophers: [{ id: "socrates", name: "Socrates" }],
+    name: "Classical Greek Idealism",
+    color: "#5B7FA5",
+    description:
+      "Beyond appearances lies a higher reality of eternal Forms. True knowledge is knowledge of the unchanging, and justice requires wisdom at the helm.",
+    philosophers: [{ id: "plato", name: "Plato" }],
+  },
+  {
+    name: "Christian Philosophy",
+    color: "#7B4A8C",
+    description:
+      "Wrestling with free will, divine grace, and the restless human heart. Faith as lived experience, not abstract doctrine.",
+    philosophers: [{ id: "augustine", name: "St. Augustine" }],
   },
   {
     name: "Deontological Ethics",
     color: "#2F4F7F",
-    description: "Morality grounded in duty, universal principles, and the categorical imperative — act as you would have all act.",
+    description:
+      "Morality grounded in duty, universal principles, and the categorical imperative \u2014 act as you would have all act.",
     philosophers: [{ id: "kant", name: "Immanuel Kant" }],
   },
   {
     name: "Confucianism",
     color: "#B8860B",
-    description: "Social harmony through right relationships, ritual propriety, education, and the cultivation of virtue.",
+    description:
+      "Social harmony through right relationships, ritual propriety, education, and the cultivation of virtue.",
     philosophers: [{ id: "confucius", name: "Confucius" }],
+  },
+  {
+    name: "Absurdism",
+    color: "#C4956A",
+    description:
+      "The world is indifferent and meaning is absent \u2014 yet we revolt, we create, and we must imagine Sisyphus happy.",
+    philosophers: [{ id: "camus", name: "Camus" }],
+  },
+  {
+    name: "Literary Philosophy",
+    color: "#5C3A2E",
+    description:
+      "Philosophy through character, narrative, and the darkest corners of the human soul. Not arguments but lived contradictions.",
+    philosophers: [{ id: "dostoevsky", name: "Dostoevsky" }],
+  },
+  {
+    name: "Analytic Philosophy",
+    color: "#2E6B5A",
+    description:
+      "Clear thinking as the antidote to confusion. Decompose problems, question authority, and let reason guide ethics.",
+    philosophers: [{ id: "russell", name: "Bertrand Russell" }],
   },
 ];
 
@@ -69,7 +105,7 @@ function SchoolCard({
         <p className="text-sm text-ink-light leading-relaxed mb-4">
           {school.description}
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {school.philosophers.map((p) => (
             <Link
               key={p.id}

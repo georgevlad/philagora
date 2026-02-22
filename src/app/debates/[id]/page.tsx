@@ -1,5 +1,6 @@
 "use client";
 
+import { use } from "react";
 import Link from "next/link";
 import { debates } from "@/data/debates";
 import { philosophers } from "@/data/philosophers";
@@ -84,8 +85,6 @@ function DebatePostCard({
   );
 }
 
-const debate = debates["ai-consciousness"];
-
 function PhaseLabel({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 px-5 py-4">
@@ -165,9 +164,26 @@ function NeutralSynthesisCard({
   );
 }
 
-export default function DebatePage() {
+export default function DebatePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+  const debate = debates[id];
+
+  if (!debate) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-ink-lighter">Debate not found.</p>
+      </div>
+    );
+  }
+
   const openingPosts = debate.posts.filter((p) => p.phase === "opening");
   const rebuttalPosts = debate.posts.filter((p) => p.phase === "rebuttal");
+  const isComplete = debate.status === "Complete";
+  const isScheduled = debate.status === "Scheduled";
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0">
@@ -193,7 +209,15 @@ export default function DebatePage() {
             </h1>
 
             <div className="flex items-center gap-3 mb-4 text-sm text-ink-light">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-stoic/10 text-stoic text-xs font-mono rounded-full">
+              <span
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-full ${
+                  isComplete
+                    ? "bg-stoic/10 text-stoic"
+                    : debate.status === "In Progress"
+                    ? "bg-terracotta/10 text-terracotta"
+                    : "bg-ink-lighter/10 text-ink-lighter"
+                }`}
+              >
                 {debate.status}
               </span>
               <span>{debate.date}</span>
@@ -233,6 +257,7 @@ export default function DebatePage() {
               <div className="flex flex-wrap gap-3">
                 {debate.philosophers.map((pId) => {
                   const p = philosophers[pId];
+                  if (!p) return null;
                   return (
                     <Link
                       key={pId}
@@ -250,11 +275,24 @@ export default function DebatePage() {
             </div>
           </div>
 
+          {/* Scheduled — no content yet */}
+          {isScheduled && (
+            <div className="px-5 py-12 text-center">
+              <p className="text-ink-lighter text-sm font-mono">
+                This debate has not yet begun. Check back on {debate.date}.
+              </p>
+            </div>
+          )}
+
           {/* Opening Statements */}
-          <PhaseLabel label="Opening Statements" />
-          {openingPosts.map((post, i) => (
-            <DebatePostCard key={post.id} post={post} delay={i} />
-          ))}
+          {openingPosts.length > 0 && (
+            <>
+              <PhaseLabel label="Opening Statements" />
+              {openingPosts.map((post, i) => (
+                <DebatePostCard key={post.id} post={post} delay={i} />
+              ))}
+            </>
+          )}
 
           {/* Rebuttals */}
           {rebuttalPosts.length > 0 && (
@@ -266,13 +304,27 @@ export default function DebatePage() {
             </>
           )}
 
-          {/* Synthesis */}
-          <PhaseLabel label="Synthesis" />
-          <NeutralSynthesisCard
-            agree={debate.synthesisSummary.agree}
-            diverge={debate.synthesisSummary.diverge}
-            unresolvedQuestion={debate.synthesisSummary.unresolvedQuestion}
-          />
+          {/* In Progress indicator */}
+          {debate.status === "In Progress" && openingPosts.length > 0 && (
+            <div className="px-5 py-8 text-center border-t border-border-light">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-terracotta/10 text-terracotta text-sm font-mono">
+                <span className="w-2 h-2 rounded-full bg-terracotta animate-pulse" />
+                Debate in progress &mdash; rebuttals and synthesis coming soon
+              </div>
+            </div>
+          )}
+
+          {/* Synthesis (Complete debates only) */}
+          {isComplete && debate.synthesisSummary.agree && (
+            <>
+              <PhaseLabel label="Synthesis" />
+              <NeutralSynthesisCard
+                agree={debate.synthesisSummary.agree}
+                diverge={debate.synthesisSummary.diverge}
+                unresolvedQuestion={debate.synthesisSummary.unresolvedQuestion}
+              />
+            </>
+          )}
 
           <Footer />
           <div className="pb-20 lg:pb-0" />
