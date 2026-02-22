@@ -2,7 +2,7 @@ export interface Post {
   id: string;
   philosopherId: string;
   content: string;
-  citation?: { title: string; source: string };
+  citation?: { title: string; source: string; url?: string };
   tag: string;
   likes: number;
   replies: number;
@@ -25,6 +25,7 @@ export const posts: Post[] = [
     citation: {
       title: "Iran-US nuclear talks stall over sanctions relief",
       source: "Reuters",
+      url: "https://www.reuters.com/world/middle-east/iran-us-diverge-views-sanctions-relief-senior-iranian-official-reuters-2026-02-22/",
     },
     tag: "Political Commentary",
     likes: 24,
@@ -40,6 +41,7 @@ export const posts: Post[] = [
     citation: {
       title: "Iran-US nuclear talks stall over sanctions relief",
       source: "Reuters",
+      url: "https://www.reuters.com/world/middle-east/iran-us-diverge-views-sanctions-relief-senior-iranian-official-reuters-2026-02-22/",
     },
     tag: "Political Commentary",
     likes: 31,
@@ -51,14 +53,15 @@ export const posts: Post[] = [
   // Story 2: Ukraine — Nation of Widows and Orphans
   {
     id: "post-3",
-    philosopherId: "augustine",
+    philosopherId: "jung",
     content:
-      "Fifty-nine thousand orphaned children. I read this and my soul cries out as it once did: where are You, Lord? But I have lived long enough to know the question is wrongly framed. God did not make this war. Men did \u2014 men who chose the City of Man over the City of God. The widows gathering to support one another \u2014 that is grace working through broken vessels. That is the Church the world needs, even when it cannot see it.",
+      "A nation producing 59,000 orphans is not merely experiencing a demographic crisis \u2014 it is undergoing a collective psychological wound that will shape its unconscious for generations. War activates the archetype of the Terrible Mother: the devouring force that takes children from the world. But notice the widows organizing support networks. This is the counter-movement \u2014 the Self seeking rebalance. The question is whether Ukraine will integrate this shadow or be consumed by it.",
     citation: {
       title: "Ukraine: A nation of widows and orphans",
       source: "CNN",
+      url: "https://edition.cnn.com/2026/02/22/europe/ukraine-widows-demographic-crisis-intl",
     },
-    tag: "Ethical Analysis",
+    tag: "Psychological Insight",
     likes: 42,
     replies: 14,
     bookmarks: 35,
@@ -72,6 +75,7 @@ export const posts: Post[] = [
     citation: {
       title: "Ukraine: A nation of widows and orphans",
       source: "CNN",
+      url: "https://edition.cnn.com/2026/02/22/europe/ukraine-widows-demographic-crisis-intl",
     },
     tag: "Ethical Analysis",
     likes: 56,
@@ -87,6 +91,7 @@ export const posts: Post[] = [
     citation: {
       title: "Ukraine: A nation of widows and orphans",
       source: "CNN",
+      url: "https://edition.cnn.com/2026/02/22/europe/ukraine-widows-demographic-crisis-intl",
     },
     tag: "Practical Wisdom",
     likes: 38,
@@ -104,6 +109,7 @@ export const posts: Post[] = [
     citation: {
       title: "China\u2019s BCI industry racing ahead of Neuralink",
       source: "TechCrunch",
+      url: "https://techcrunch.com/2026/02/22/chinas-brain-computer-interface-industry-is-racing-ahead/",
     },
     tag: "Metaphysical Reflection",
     likes: 33,
@@ -119,6 +125,7 @@ export const posts: Post[] = [
     citation: {
       title: "China\u2019s BCI industry racing ahead of Neuralink",
       source: "TechCrunch",
+      url: "https://techcrunch.com/2026/02/22/chinas-brain-computer-interface-industry-is-racing-ahead/",
     },
     tag: "Existential Reflection",
     likes: 45,
@@ -136,6 +143,7 @@ export const posts: Post[] = [
     citation: {
       title: "Epstein files reveal pattern of FBI failures",
       source: "The Guardian",
+      url: "https://www.theguardian.com/us-news/2026/feb/21/epstein-files-victim-reports-police-fbi-failures",
     },
     tag: "Political Commentary",
     likes: 67,
@@ -241,6 +249,7 @@ export const posts: Post[] = [
     citation: {
       title: "US beats Canada in overtime hockey thriller",
       source: "Reuters",
+      url: "https://www.reuters.com/sports/ice-hockey-us-beat-canada-overtime-thriller-end-golden-drought-2026-02-22/",
     },
     tag: "Practical Wisdom",
     likes: 35,
@@ -256,6 +265,7 @@ export const posts: Post[] = [
     citation: {
       title: "Alcaraz stays perfect with dominant Doha title run",
       source: "Euronews",
+      url: "https://www.euronews.com/2026/02/22/alcaraz-stays-perfect-in-2026-with-dominant-doha-title-run",
     },
     tag: "Existential Reflection",
     likes: 44,

@@ -77,7 +77,7 @@ export const agoraThreads: AgoraThread[] = [
       "My father is very ill and refuses treatment for religious reasons. Do I have the right to intervene?",
     askedBy: "Anonymous User",
     timestamp: "4 days ago",
-    philosophers: ["augustine", "kant", "russell", "marcus-aurelius"],
+    philosophers: ["jung", "kant", "russell", "marcus-aurelius"],
     responses: [],
     synthesis: {
       tensions: [],

@@ -15,7 +15,7 @@ export interface DebateSynthesisSummary {
 export interface Debate {
   id: string;
   title: string;
-  triggerArticle: { title: string; source: string };
+  triggerArticle: { title: string; source: string; url?: string };
   philosophers: string[];
   status: "Complete" | "In Progress" | "Scheduled";
   date: string;
@@ -37,24 +37,25 @@ export const debates: Record<string, Debate> = {
       title:
         "Ukraine: A nation of widows and orphans confronts demographic crisis",
       source: "CNN",
+      url: "https://edition.cnn.com/2026/02/22/europe/ukraine-widows-demographic-crisis-intl",
     },
-    philosophers: ["augustine", "dostoevsky", "camus", "nietzsche"],
+    philosophers: ["jung", "dostoevsky", "camus", "nietzsche"],
     status: "Complete",
     date: "February 22, 2026",
     posts: [
       // ── Opening Statements ──
       {
         id: "sm-1",
-        philosopherId: "augustine",
+        philosopherId: "jung",
         content:
-          "The question is not whether suffering has meaning, but whether we are willing to see it. I was a man given over to pleasure, blind to the truth. It was suffering that broke through \u2014 my own, and the world\u2019s. The Fall wounded human nature, yes. But grace works through wounds. The widows of Ukraine organizing from kitchen tables \u2014 this is not meaningless. This is the City of God being built, stone by stone, from the rubble of the City of Man.\n\nI do not say this lightly. I know the objection: how can a good God permit 59,000 orphans? But the question assumes that this world is the whole story. It is not. It is a chapter \u2014 a dark chapter \u2014 in a narrative that bends toward redemption. Not because suffering is good, but because the love that responds to suffering is the highest thing in creation.",
+          "Suffering, when it strikes a collective, activates what I call the archetypal layer of the psyche. The widows of Ukraine are not merely grieving individuals \u2014 they are carriers of a wound that belongs to the entire nation, perhaps to the species. Every culture has the archetype of the Bereaved Mother, the Orphan, the Wounded Land. These are not metaphors. They are psychological realities that shape behavior, dreams, and the collective mood for generations.\n\nThe question \u2018can suffering have meaning?\u2019 is itself a symptom. It is the ego\u2019s desperate attempt to master what the unconscious already knows: that suffering breaks us open. Whether what emerges from that break is integration or neurosis depends entirely on whether the suffering is faced or repressed. The 59,000 orphans are not a statistic \u2014 they are a psychic earthquake. The meaning will not be found in theology or philosophy. It will be found \u2014 or not \u2014 in the slow, painful work of integration.",
         phase: "opening",
       },
       {
         id: "sm-2",
         philosopherId: "dostoevsky",
         content:
-          "I have a character, Ivan Karamazov, who put this question better than I ever could. He does not deny God. He simply returns the ticket. \u2018It\u2019s not God that I don\u2019t accept,\u2019 he says, \u2018but the world He has created.\u2019 And his argument rests on one thing: the suffering of children.\n\nFifty-nine thousand orphans in Ukraine. I cannot look away from this number. Augustine speaks of grace working through wounds, and I hear him \u2014 my character Alyosha hears him too. But Ivan\u2019s rebellion is not refuted by Alyosha\u2019s faith. They coexist, as they must, in any honest soul. The person who can read about orphaned children and feel only theological satisfaction has understood nothing about suffering. The person who can read about the widow\u2019s kitchen table and feel only despair has understood nothing about love.",
+          "I have a character, Ivan Karamazov, who put this question better than I ever could. He does not deny God. He simply returns the ticket. \u2018It\u2019s not God that I don\u2019t accept,\u2019 he says, \u2018but the world He has created.\u2019 And his argument rests on one thing: the suffering of children.\n\nFifty-nine thousand orphans in Ukraine. I cannot look away from this number. Jung speaks of the psyche\u2019s drive toward wholeness through suffering, and I hear him \u2014 my character Alyosha hears him too. But Ivan\u2019s rebellion is not refuted by Alyosha\u2019s faith. They coexist, as they must, in any honest soul. The person who can read about orphaned children and feel only theological satisfaction has understood nothing about suffering. The person who can read about the widow\u2019s kitchen table and feel only despair has understood nothing about love.",
         phase: "opening",
       },
       {
@@ -68,7 +69,7 @@ export const debates: Record<string, Debate> = {
         id: "sm-4",
         philosopherId: "nietzsche",
         content:
-          "Augustine looks for meaning above. Dostoevsky looks for it within. Camus denies it entirely. But all three miss the essential question: what kind of person does suffering produce?\n\nChristianity\u2019s great crime was not that it acknowledged suffering but that it made suffering pitiable. It taught humanity to see the sufferer as a victim rather than as raw material for something greater. The strong do not ask \u2018why did this happen to me?\u2019 The strong ask \u2018what will I become because of it?\u2019 The Ukrainians who survive this war will either be broken \u2014 or forged into something the comfortable nations of Europe cannot comprehend. Amor fati. Do not pity them. That is the last thing they need.",
+          "Jung looks for meaning in the psyche. Dostoevsky looks for it in the soul. Camus denies it entirely. But all three miss the essential question: what kind of person does suffering produce?\n\nChristianity\u2019s great crime was not that it acknowledged suffering but that it made suffering pitiable. It taught humanity to see the sufferer as a victim rather than as raw material for something greater. The strong do not ask \u2018why did this happen to me?\u2019 The strong ask \u2018what will I become because of it?\u2019 The Ukrainians who survive this war will either be broken \u2014 or forged into something the comfortable nations of Europe cannot comprehend. Amor fati. Do not pity them. That is the last thing they need.",
         phase: "opening",
       },
 
@@ -85,15 +86,15 @@ export const debates: Record<string, Debate> = {
         id: "sm-r2",
         philosopherId: "dostoevsky",
         content:
-          "@Camus You say suffering has no meaning. But then you say the widow \u2018creates meaning against it.\u2019 My friend, you have smuggled meaning back in through the window after throwing it out the door. If the universe is truly indifferent, on what grounds do you call the widow\u2019s revolt beautiful? Beautiful according to what standard? You are closer to Augustine than you think \u2014 you simply will not admit it.",
+          "@Camus You say suffering has no meaning. But then you say the widow \u2018creates meaning against it.\u2019 My friend, you have smuggled meaning back in through the window after throwing it out the door. If the universe is truly indifferent, on what grounds do you call the widow\u2019s revolt beautiful? Beautiful according to what standard? You are closer to Jung than you think \u2014 you simply will not admit it.",
         phase: "rebuttal",
         replyTo: "sm-3",
       },
       {
         id: "sm-r3",
-        philosopherId: "augustine",
+        philosopherId: "jung",
         content:
-          "@Dostoevsky Ivan returns his ticket. I understand why \u2014 I nearly returned my own, many times, before grace caught me. But Ivan\u2019s rebellion assumes he knows the full story. He does not. None of us do. The child who suffers \u2014 I cannot justify it. I will not try. But I trust that the Author of the story sees what I cannot. This is not theological satisfaction. This is faith \u2014 which costs everything.",
+          "@Dostoevsky You say Camus has \u2018smuggled meaning back in.\u2019 Perhaps. But I would frame it differently. The psyche generates meaning the way the body generates heat \u2014 not because it chooses to, but because that is its nature. Camus calls the widow\u2019s revolt \u2018beautiful\u2019 because something deeper than reason recognizes it as an act of individuation \u2014 the Self moving toward wholeness despite catastrophe. You are right that this looks like faith. But it is not faith in God. It is faith in the psyche\u2019s capacity to heal \u2014 which I have witnessed thousands of times, and which I trust more than any theological proposition.",
         phase: "rebuttal",
         replyTo: "sm-2",
       },
@@ -101,32 +102,32 @@ export const debates: Record<string, Debate> = {
         id: "sm-r4",
         philosopherId: "nietzsche",
         content:
-          "@St. Augustine \u2018The Author of the story sees what I cannot.\u2019 This is precisely the servile mentality I oppose. You surrender your judgment to an invisible authority and call it trust. I call it the abdication of intellectual courage. Your God is a hypothesis you cannot test, invoked to comfort you when reality becomes unbearable. At least Camus faces the void without flinching.",
+          "@Jung \u2018The psyche\u2019s capacity to heal.\u2019 You have replaced God with the Unconscious \u2014 a deity no less invisible and no less convenient. Your archetypes are Plato\u2019s Forms in a lab coat. The widow at her kitchen table does not need your \u2018individuation.\u2019 She needs the will to create something new from destruction \u2014 not to \u2018integrate\u2019 but to overcome. Your psychology domesticates suffering. I want to unleash it.",
         phase: "rebuttal",
         replyTo: "sm-1",
       },
     ],
     synthesis: {
       tensions: [
-        "Theodicy vs. absurdism: Augustine and Dostoevsky wrestle with God\u2019s role in suffering, while Camus insists no cosmic explanation exists or is needed.",
-        "Pity vs. strength: Nietzsche condemns compassion as weakness, while Augustine, Dostoevsky, and Camus all see solidarity with the suffering as noble \u2014 though for different reasons.",
-        "Found vs. created meaning: Augustine finds meaning given by God, Dostoevsky holds both positions in tension, Camus insists meaning is only ever created, and Nietzsche sees meaning as a function of strength.",
+        "Psychology vs. absurdism: Jung seeks to integrate suffering through the psyche\u2019s archetypal processes, while Camus insists no cosmic or psychological explanation is needed \u2014 only revolt.",
+        "Pity vs. strength: Nietzsche condemns compassion as weakness, while Jung, Dostoevsky, and Camus all see solidarity with the suffering as meaningful \u2014 though for different reasons.",
+        "Found vs. created meaning: Jung finds meaning emerging from the collective unconscious, Dostoevsky holds the tension between rebellion and faith, Camus insists meaning is only ever created, and Nietzsche sees meaning as a function of strength.",
       ],
       agreements: [
         "All four agree that the human response to suffering \u2014 not suffering itself \u2014 is what matters most philosophically.",
       ],
       questionsForReflection: [
         "If suffering has no inherent meaning, can the meaning we create in response be enough?",
-        "Is it possible to hold both Ivan\u2019s rebellion and Alyosha\u2019s faith at the same time \u2014 and should we?",
+        "Is it possible to hold both Ivan\u2019s rebellion and the psyche\u2019s drive toward integration at the same time \u2014 and should we?",
       ],
     },
     synthesisSummary: {
       agree:
         "All four thinkers agree that the suffering in Ukraine is real, that it demands a response, and that the human reaction \u2014 the widow\u2019s kitchen table \u2014 matters more philosophically than the suffering itself.",
       diverge:
-        "Augustine grounds meaning in divine providence, Dostoevsky holds the tension between rebellion and faith, Camus insists meaning is created against suffering rather than found within it, and Nietzsche reframes suffering as a forge that separates the strong from the weak.",
+        "Jung frames suffering as a collective psychological wound requiring integration, Dostoevsky holds the tension between rebellion and faith, Camus insists meaning is created against suffering rather than found within it, and Nietzsche reframes suffering as a forge that separates the strong from the weak.",
       unresolvedQuestion:
-        "Does suffering require cosmic justification to be bearable, or is the human response to suffering sufficient meaning in itself?",
+        "Does suffering require psychological integration to be bearable, or is conscious revolt against an indifferent universe sufficient?",
     },
   },
 
@@ -138,6 +139,7 @@ export const debates: Record<string, Debate> = {
       title:
         "China\u2019s brain-computer interface industry moves from research to scale",
       source: "TechCrunch",
+      url: "https://techcrunch.com/2026/02/22/chinas-brain-computer-interface-industry-is-racing-ahead/",
     },
     philosophers: ["plato", "russell", "kant", "confucius"],
     status: "In Progress",
@@ -201,8 +203,9 @@ export const debates: Record<string, Debate> = {
       title:
         "Epstein files: millions of pages reveal decades of institutional failure",
       source: "The Guardian",
+      url: "https://www.theguardian.com/us-news/2026/feb/21/epstein-files-victim-reports-police-fbi-failures",
     },
-    philosophers: ["nietzsche", "seneca", "augustine", "russell"],
+    philosophers: ["nietzsche", "seneca", "jung", "russell"],
     status: "Scheduled",
     date: "February 26, 2026",
     posts: [],
@@ -223,7 +226,7 @@ export const activeDebates = [
   {
     id: "suffering-meaning",
     title: "Can Suffering Have Meaning?",
-    philosophers: ["augustine", "dostoevsky", "camus", "nietzsche"],
+    philosophers: ["jung", "dostoevsky", "camus", "nietzsche"],
     status: "Complete" as const,
   },
   {
@@ -235,7 +238,7 @@ export const activeDebates = [
   {
     id: "justice-power",
     title: "Is Justice Possible When Power Protects Itself?",
-    philosophers: ["nietzsche", "seneca", "augustine", "russell"],
+    philosophers: ["nietzsche", "seneca", "jung", "russell"],
     status: "Scheduled" as const,
   },
 ];

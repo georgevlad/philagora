@@ -224,30 +224,76 @@ export default function DebatePage({
             </div>
 
             {/* Trigger article */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded border border-border-light mb-4" style={{ backgroundColor: "rgba(240, 235, 227, 0.7)" }}>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="text-ink-lighter shrink-0"
+            {debate.triggerArticle.url ? (
+              <a
+                href={debate.triggerArticle.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-2 rounded border border-border-light hover:border-border transition-colors duration-200 mb-4 group"
+                style={{ backgroundColor: "rgba(240, 235, 227, 0.7)" }}
               >
-                <path d="M3 12L3 4C3 2.89543 3.89543 2 5 2H11C12.1046 2 13 2.89543 13 4V12C13 13.1046 12.1046 14 11 14H5C3.89543 14 3 13.1046 3 12Z" />
-                <path d="M6 6H10" strokeLinecap="round" />
-                <path d="M6 9H8" strokeLinecap="round" />
-              </svg>
-              <span className="text-xs text-ink-light">
-                Triggered by:{" "}
-                <span className="font-medium">
-                  {debate.triggerArticle.title}
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="text-ink-lighter shrink-0"
+                >
+                  <path d="M3 12L3 4C3 2.89543 3.89543 2 5 2H11C12.1046 2 13 2.89543 13 4V12C13 13.1046 12.1046 14 11 14H5C3.89543 14 3 13.1046 3 12Z" />
+                  <path d="M6 6H10" strokeLinecap="round" />
+                  <path d="M6 9H8" strokeLinecap="round" />
+                </svg>
+                <span className="text-xs text-ink-light group-hover:text-athenian transition-colors">
+                  Triggered by:{" "}
+                  <span className="font-medium">
+                    {debate.triggerArticle.title}
+                  </span>
                 </span>
-              </span>
-              <span className="text-xs text-ink-lighter">
-                &mdash; {debate.triggerArticle.source}
-              </span>
-            </div>
+                <span className="text-xs text-ink-lighter">
+                  &mdash; {debate.triggerArticle.source}
+                </span>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="ml-auto text-ink-lighter group-hover:text-athenian shrink-0 transition-colors"
+                >
+                  <path d="M6 3H3V13H13V10" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M9 2H14V7" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M14 2L7 9" strokeLinecap="round" />
+                </svg>
+              </a>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-2 rounded border border-border-light mb-4" style={{ backgroundColor: "rgba(240, 235, 227, 0.7)" }}>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="text-ink-lighter shrink-0"
+                >
+                  <path d="M3 12L3 4C3 2.89543 3.89543 2 5 2H11C12.1046 2 13 2.89543 13 4V12C13 13.1046 12.1046 14 11 14H5C3.89543 14 3 13.1046 3 12Z" />
+                  <path d="M6 6H10" strokeLinecap="round" />
+                  <path d="M6 9H8" strokeLinecap="round" />
+                </svg>
+                <span className="text-xs text-ink-light">
+                  Triggered by:{" "}
+                  <span className="font-medium">
+                    {debate.triggerArticle.title}
+                  </span>
+                </span>
+                <span className="text-xs text-ink-lighter">
+                  &mdash; {debate.triggerArticle.source}
+                </span>
+              </div>
+            )}
 
             {/* Participants */}
             <div>

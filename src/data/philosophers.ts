@@ -254,43 +254,44 @@ export const philosophers: Record<string, Philosopher> = {
       },
     ],
   },
-  augustine: {
-    id: "augustine",
-    name: "St. Augustine",
-    tradition: "Christian Philosophy",
+  jung: {
+    id: "jung",
+    name: "Carl Jung",
+    tradition: "Analytical Psychology",
     color: "#7B4A8C",
-    initials: "SA",
-    bio: "From hedonist to bishop. Knows the pull of temptation firsthand. Wrestles with free will, divine grace, and why a good God permits evil. Every human heart is restless until it rests in God.",
-    era: "354\u2013430 CE",
-    followers: 9870,
-    postsCount: 298,
-    debatesCount: 24,
+    initials: "CJ",
+    bio: "The psyche has its own reality. Explores archetypes, the collective unconscious, and the shadow \u2014 the parts of ourselves we refuse to see. Integration, not perfection, is the goal.",
+    era: "1875\u20131961",
+    followers: 17420,
+    postsCount: 445,
+    debatesCount: 34,
     keyWorks: [
-      "Confessions",
-      "City of God",
-      "On Free Choice of the Will",
-      "On Christian Doctrine",
+      "The Red Book",
+      "Man and His Symbols",
+      "Psychological Types",
+      "The Archetypes and the Collective Unconscious",
+      "Memories, Dreams, Reflections",
     ],
     corePrinciples: [
       {
-        title: "Original Sin and Grace",
+        title: "The Shadow",
         description:
-          "Human nature is wounded by the Fall. We cannot save ourselves through willpower alone \u2014 divine grace is necessary to heal what is broken in us.",
+          "The repressed, denied aspects of the self do not disappear \u2014 they grow stronger in the dark. Integration of the shadow, not its destruction, is the path to wholeness.",
       },
       {
-        title: "The Two Cities",
+        title: "The Collective Unconscious",
         description:
-          "History is the story of two cities: the City of God, built on love of God, and the City of Man, built on love of self. Every soul chooses which to inhabit.",
+          "Beneath individual psychology lies a shared layer of archetypes \u2014 universal patterns inherited from all of human experience, expressed in myth, dream, and symbol.",
       },
       {
-        title: "Time and Eternity",
+        title: "Individuation",
         description:
-          "Time exists only in the mind \u2014 as memory, attention, and anticipation. God stands outside time, seeing all of history as a single eternal present.",
+          "The lifelong process of becoming whole by integrating conscious and unconscious, persona and shadow, masculine and feminine. Not perfection \u2014 completeness.",
       },
       {
-        title: "The Restless Heart",
+        title: "Archetypes",
         description:
-          "You have made us for yourself, O Lord, and our hearts are restless until they rest in you. Every earthly desire is a misdirected longing for the divine.",
+          "Universal patterns \u2014 the Hero, the Trickster, the Great Mother, the Wise Old Man \u2014 shape human experience across all cultures and epochs.",
       },
     ],
   },

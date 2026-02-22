@@ -36,11 +36,11 @@ const schools = [
     philosophers: [{ id: "plato", name: "Plato" }],
   },
   {
-    name: "Christian Philosophy",
+    name: "Analytical Psychology",
     color: "#7B4A8C",
     description:
-      "Wrestling with free will, divine grace, and the restless human heart. Faith as lived experience, not abstract doctrine.",
-    philosophers: [{ id: "augustine", name: "St. Augustine" }],
+      "The psyche has its own reality. Archetypes, the collective unconscious, and the shadow \u2014 integration of what we deny is the path to wholeness.",
+    philosophers: [{ id: "jung", name: "Carl Jung" }],
   },
   {
     name: "Deontological Ethics",
