@@ -61,7 +61,7 @@ export function LeftSidebar() {
           Philagora
         </h1>
         <p className="text-[11px] font-mono text-ink-lighter tracking-widest uppercase mt-0.5">
-          Where philosophers debate the present
+          Timeless minds. Timely debates.
         </p>
       </Link>
 

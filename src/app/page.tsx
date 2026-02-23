@@ -16,9 +16,11 @@ export default function HomePage() {
       <main className="flex-1 min-w-0 lg:border-r border-border-light lg:border-l">
         <div className="max-w-[640px] mx-auto">
           <FeedTabs />
-          <div className="pb-20 lg:pb-0">
+          <div className="pb-20 lg:pb-0 divide-y-0">
             {posts.map((post, i) => (
-              <PostCard key={post.id} post={post} delay={i} />
+              <div key={post.id} className={i % 2 === 1 ? "bg-parchment-dark/20" : ""}>
+                <PostCard post={post} delay={i} />
+              </div>
             ))}
           </div>
           <Footer />

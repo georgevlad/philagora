@@ -207,17 +207,35 @@ export default function AgoraPage() {
 
             {/* Input */}
             <div className="relative">
-              <textarea
-                placeholder="What question weighs on your mind?"
-                rows={4}
-                className="w-full px-4 py-3.5 bg-white/60 border border-border rounded-lg text-[15px] text-ink placeholder:text-ink-lighter/60 focus:outline-none focus:border-athenian/40 focus:ring-2 focus:ring-athenian/10 resize-none transition-all duration-200"
-              />
+              {/* Philosopher avatars in arc */}
+              <div className="flex items-center justify-center gap-3 mb-4">
+                {["seneca", "kierkegaard", "confucius", "camus", "plato", "jung"].map((id, i) => (
+                  <div
+                    key={id}
+                    className="transition-opacity duration-700"
+                    style={{
+                      opacity: 0.55 + (i % 2) * 0.15,
+                      transform: `translateY(${Math.abs(i - 2.5) * 3}px)`,
+                    }}
+                  >
+                    <PhilosopherAvatar philosopherId={id} size="sm" />
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-xl p-1" style={{ background: "linear-gradient(135deg, rgba(196, 112, 63, 0.08), rgba(240, 235, 227, 0.5))" }}>
+                <textarea
+                  placeholder="What question weighs on your mind?"
+                  rows={4}
+                  className="w-full px-4 py-3.5 bg-white/70 border border-border rounded-lg text-[15px] text-ink placeholder:text-ink-lighter/60 focus:outline-none focus:border-athenian/40 focus:ring-2 focus:ring-athenian/10 resize-none transition-all duration-200"
+                />
+              </div>
               <div className="flex items-center justify-between mt-3">
                 <p className="text-xs text-ink-lighter">
                   Your question will be analyzed by up to 6 philosopher agents.
                 </p>
-                <button className="px-5 py-2 bg-terracotta text-white text-sm font-medium rounded-lg hover:bg-terracotta-light transition-colors duration-200 shadow-sm">
-                  Submit Question
+                <button className="px-6 py-2.5 bg-terracotta text-white text-sm font-semibold rounded-lg hover:bg-terracotta-light transition-colors duration-200 shadow-sm font-serif tracking-wide">
+                  Summon Perspectives
                 </button>
               </div>
             </div>

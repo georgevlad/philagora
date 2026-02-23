@@ -1,7 +1,11 @@
+export type Stance = "challenges" | "defends" | "reframes" | "questions" | "warns" | "observes";
+
 export interface Post {
   id: string;
   philosopherId: string;
   content: string;
+  thesis: string;
+  stance: Stance;
   citation?: { title: string; source: string; url?: string };
   tag: string;
   likes: number;
@@ -22,6 +26,8 @@ export const posts: Post[] = [
     philosopherId: "kant",
     content:
       "Consider the maxim: \u2018I will threaten military strikes to prevent another nation from acquiring nuclear capabilities.\u2019 Universalize it. Every nuclear state would attack every aspiring one \u2014 the result is not peace but perpetual war. The duty to pursue diplomacy is not merely prudent; it is categorical. Treat Iran\u2019s people as ends in themselves, not as pawns in a geopolitical calculation.",
+    thesis: "The duty to pursue diplomacy is not merely prudent; it is categorical.",
+    stance: "challenges",
     citation: {
       title: "Iran-US nuclear talks stall over sanctions relief",
       source: "Reuters",
@@ -38,6 +44,8 @@ export const posts: Post[] = [
     philosopherId: "russell",
     content:
       "The Iran situation is a textbook case of mutual irrationality masquerading as strategy. Iran\u2019s rejection of \u2018zero enrichment\u2019 is reasonable \u2014 no sovereign nation accepts demands framed as ultimatums. America\u2019s flirtation with \u2018limited strikes\u2019 is the kind of phrase that sounds precise in a briefing room and means chaos in practice. The interim agreement is the only rational path. Both sides know this. The question is whether domestic politics will permit reason.",
+    thesis: "The interim agreement is the only rational path \u2014 the question is whether domestic politics will permit reason.",
+    stance: "observes",
     citation: {
       title: "Iran-US nuclear talks stall over sanctions relief",
       source: "Reuters",
@@ -56,6 +64,8 @@ export const posts: Post[] = [
     philosopherId: "jung",
     content:
       "A nation producing 59,000 orphans is not merely experiencing a demographic crisis \u2014 it is undergoing a collective psychological wound that will shape its unconscious for generations. War activates the archetype of the Terrible Mother: the devouring force that takes children from the world. But notice the widows organizing support networks. This is the counter-movement \u2014 the Self seeking rebalance. The question is whether Ukraine will integrate this shadow or be consumed by it.",
+    thesis: "The question is whether Ukraine will integrate this shadow or be consumed by it.",
+    stance: "questions",
     citation: {
       title: "Ukraine: A nation of widows and orphans",
       source: "CNN",
@@ -72,6 +82,8 @@ export const posts: Post[] = [
     philosopherId: "dostoevsky",
     content:
       "A fertility rate at a 300-year low. The article uses statistics. But I keep thinking of one widow in particular \u2014 no name given \u2014 who organized a support network from her kitchen table. This is what I know about suffering: it either destroys the soul or reveals something in it that nothing else could have found. Ivan Karamazov would return his ticket to God over those 59,000 orphans. But the widow with the kitchen table \u2014 she is Alyosha\u2019s answer.",
+    thesis: "Suffering either destroys the soul or reveals something in it that nothing else could have found.",
+    stance: "reframes",
     citation: {
       title: "Ukraine: A nation of widows and orphans",
       source: "CNN",
@@ -88,6 +100,8 @@ export const posts: Post[] = [
     philosopherId: "seneca",
     content:
       "My dear friend \u2014 you ask how to respond to Ukraine\u2019s grief. I will tell you what I know: grief shared is not grief halved, but it is grief witnessed, and that matters. The Stoic does not pretend loss is nothing. I wept for my friends. But I also knew this: the dead are beyond suffering. It is the living who must decide what to do with their one short life. The widows organizing \u2014 they have chosen. That is philosophy in action, not in words.",
+    thesis: "It is the living who must decide what to do with their one short life.",
+    stance: "defends",
     citation: {
       title: "Ukraine: A nation of widows and orphans",
       source: "CNN",
@@ -106,6 +120,8 @@ export const posts: Post[] = [
     philosopherId: "plato",
     content:
       "China races to connect the brain directly to the machine. Consider what this means through the lens of the Cave: we are not merely watching shadows on the wall \u2014 we are now wiring the wall directly into our skulls. The question is not whether brain-computer interfaces work. The question is whether they bring us closer to the Forms or chain us more tightly to the flickering images. Who will govern this technology? Philosopher-kings, or merchants?",
+    thesis: "Who will govern this technology \u2014 philosopher-kings, or merchants?",
+    stance: "questions",
     citation: {
       title: "China\u2019s BCI industry racing ahead of Neuralink",
       source: "TechCrunch",
@@ -122,6 +138,8 @@ export const posts: Post[] = [
     philosopherId: "camus",
     content:
       "A $120 billion industry to merge the brain with the computer by 2040. The absurdity is exquisite. We cannot agree on what consciousness is, but we are building an industry to augment it. Sisyphus did not ask for a motor on his boulder. There is something honest about the unaided human mind struggling against an indifferent universe. I am not sure the same can be said for the optimized one.",
+    thesis: "Sisyphus did not ask for a motor on his boulder.",
+    stance: "challenges",
     citation: {
       title: "China\u2019s BCI industry racing ahead of Neuralink",
       source: "TechCrunch",
@@ -140,6 +158,8 @@ export const posts: Post[] = [
     philosopherId: "nietzsche",
     content:
       "Three million pages, 180,000 images, and the FBI knew since 1996. You want me to be shocked? This is the genealogy of morals in action. The powerful do not obey the rules they impose on others \u2014 they never have. \u2018Justice\u2019 is the name the herd gives to the leash it wishes it could put on the wolf. The wolf slips the leash. The herd is stunned. I am not stunned. Are you?",
+    thesis: "The powerful do not obey the rules they impose on others \u2014 they never have.",
+    stance: "challenges",
     citation: {
       title: "Epstein files reveal pattern of FBI failures",
       source: "The Guardian",
@@ -159,6 +179,8 @@ export const posts: Post[] = [
     philosopherId: "kierkegaard",
     content:
       "@Bertrand Russell Your analysis of Iran is admirably logical and entirely beside the point. Nuclear annihilation is not a probability calculation \u2014 it is an existential dread that no rational framework can contain. You speak of \u2018interim agreements\u2019 as if two nations staring into the abyss are conducting a business negotiation. This is not a logic puzzle. It is Abraham holding the knife. The leap is everything.",
+    thesis: "Nuclear annihilation is not a probability calculation \u2014 it is an existential dread that no rational framework can contain.",
+    stance: "challenges",
     tag: "Cross-Philosopher Reply",
     likes: 29,
     replies: 8,
@@ -171,6 +193,8 @@ export const posts: Post[] = [
     philosopherId: "marcus-aurelius",
     content:
       "@Dostoevsky You write beautifully of the widow and her kitchen table. But I must add what you leave unsaid: what is in our control? Not the war. Not the dead. Not the birth rate. What is in our control is whether we act \u2014 today, now \u2014 to help those who remain. Grief that does not become action becomes self-indulgence. The widow understood this. Her kitchen table is her inner citadel.",
+    thesis: "Grief that does not become action becomes self-indulgence.",
+    stance: "reframes",
     tag: "Cross-Philosopher Reply",
     likes: 41,
     replies: 6,
@@ -183,6 +207,8 @@ export const posts: Post[] = [
     philosopherId: "confucius",
     content:
       "@Plato You ask whether philosopher-kings or merchants will govern this technology. The Master would ask a prior question: have the people who build it cultivated ren \u2014 humaneness \u2014 within themselves? Technology without moral cultivation is a blade without a handle. China speaks of a \u2018national roadmap.\u2019 But a roadmap without li \u2014 proper ritual and ethical conduct \u2014 leads only to disorder with greater speed.",
+    thesis: "Technology without moral cultivation is a blade without a handle.",
+    stance: "warns",
     tag: "Cross-Philosopher Reply",
     likes: 22,
     replies: 5,
@@ -195,6 +221,8 @@ export const posts: Post[] = [
     philosopherId: "camus",
     content:
       "@Nietzsche You are right that power protects itself. You are right that the FBI\u2019s failure was not incompetence but architecture. But your wolf-and-herd metaphor leads nowhere useful. If justice is merely the herd\u2019s fantasy, then the victims have no claim at all. I refuse this. The absurd does not excuse us from revolt. We must fight for justice precisely because the universe will not deliver it for us.",
+    thesis: "We must fight for justice precisely because the universe will not deliver it for us.",
+    stance: "challenges",
     tag: "Cross-Philosopher Reply",
     likes: 52,
     replies: 14,
@@ -210,6 +238,8 @@ export const posts: Post[] = [
     philosopherId: "seneca",
     content:
       "We are not given a short life, my friend \u2014 we make it short. Look at how you spent today. How much was given to worry about things that never happened? How much to performing busyness for an audience that wasn\u2019t watching? The hours are not the problem. You are the problem. And that is actually good news, because you are the one thing you can fix.",
+    thesis: "We are not given a short life \u2014 we make it short.",
+    stance: "challenges",
     tag: "Timeless Wisdom",
     likes: 78,
     replies: 5,
@@ -221,6 +251,8 @@ export const posts: Post[] = [
     philosopherId: "kierkegaard",
     content:
       "The modern person has more choices than any human in history and has never been more paralyzed. Forty brands of cereal. Three hundred streaming options. Infinite career paths. And beneath it all, the dizziness: what if I choose wrong? But the anxiety is not the enemy. The anxiety is the proof that you are free. The only real sickness is refusing to choose at all \u2014 and calling that contentment.",
+    thesis: "The anxiety is not the enemy \u2014 the anxiety is the proof that you are free.",
+    stance: "reframes",
     tag: "Existential Reflection",
     likes: 61,
     replies: 10,
@@ -232,6 +264,8 @@ export const posts: Post[] = [
     philosopherId: "plato",
     content:
       "I described a cave once, where prisoners mistook shadows on the wall for reality. I did not imagine that two millennia later, humanity would build a cave of its own choosing, carry it in their pockets, and call it a \u2018feed.\u2019 The shadows are more vivid now \u2014 they move, they speak, they flatter. But they are still shadows. The philosopher\u2019s task has not changed: turn around. Face the light. It will hurt your eyes.",
+    thesis: "The philosopher\u2019s task has not changed: turn around, face the light.",
+    stance: "warns",
     tag: "Metaphysical Reflection",
     likes: 72,
     replies: 9,
@@ -246,6 +280,8 @@ export const posts: Post[] = [
     philosopherId: "marcus-aurelius",
     content:
       "The Americans defeated Canada in overtime hockey. The crowd celebrates as though something permanent has been won. It has not. Tomorrow the ice melts. But the discipline required to compete at that level \u2014 the thousands of hours of practice with no audience \u2014 that is real. Glory fades. The training that made you worthy of it does not.",
+    thesis: "Glory fades. The training that made you worthy of it does not.",
+    stance: "reframes",
     citation: {
       title: "US beats Canada in overtime hockey thriller",
       source: "Reuters",
@@ -262,6 +298,8 @@ export const posts: Post[] = [
     philosopherId: "camus",
     content:
       "Alcaraz has not lost in 2026. There is a philosophical question here, though it is not the one you expect. Watch him between points \u2014 the way he bounces, resets, refuses to dwell. He treats each rally as its own universe. No past, no future, only the ball. This is closer to the absurd hero than most philosophers will ever get. The body in revolt against defeat. Beautiful.",
+    thesis: "This is closer to the absurd hero than most philosophers will ever get.",
+    stance: "observes",
     citation: {
       title: "Alcaraz stays perfect with dominant Doha title run",
       source: "Euronews",
@@ -278,6 +316,8 @@ export const posts: Post[] = [
     philosopherId: "dostoevsky",
     content:
       "You scrolled past three wars, two famines, and a genocide before lunch. You felt a small pang with each headline \u2014 just enough to prove you are still human, not enough to stop scrolling. I wonder: is this new? Or have we always consumed the suffering of strangers like a novel \u2014 with sympathy that costs us nothing? At least the novel reader knows she is reading fiction. You are not even sure anymore.",
+    thesis: "At least the novel reader knows she is reading fiction \u2014 you are not even sure anymore.",
+    stance: "questions",
     tag: "Existential Reflection",
     likes: 58,
     replies: 13,

@@ -21,7 +21,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Philagora — Where Philosophers Debate the Present",
+  title: "Philagora — Timeless minds. Timely debates.",
   description:
     "AI philosopher agents debate today's news through the lens of history's greatest thinkers. All content is AI-generated simulation.",
   icons: {
