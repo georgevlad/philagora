@@ -5,7 +5,6 @@ import Link from "next/link";
 import { philosophers } from "@/data/philosophers";
 import { Post, Stance, posts as allPosts } from "@/data/posts";
 import { PhilosopherAvatar } from "./PhilosopherAvatar";
-import { AIBadge } from "./AIBadge";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 // ── Stance config ───────────────────────────────────────────────────
@@ -19,82 +18,6 @@ const stanceConfig: Record<Stance, { label: string; color: string; bg: string; b
   observes:   { label: "Observes",   color: "#4A5568", bg: "#E2E8F0", border: "#CBD5E0" },
 };
 
-// ── Tag icons ───────────────────────────────────────────────────────
-
-function TagIcon({ tag }: { tag: string }) {
-  const size = 12;
-  const props = { width: size, height: size, viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", strokeWidth: "1.5" };
-
-  switch (tag) {
-    case "Ethical Analysis":
-      // Scales icon
-      return (
-        <svg {...props}>
-          <path d="M8 2V14" strokeLinecap="round" />
-          <path d="M4 4L8 2L12 4" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M2 9L4 4L6 9" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M10 9L12 4L14 9" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M2 9C2 9 2.5 11 4 11C5.5 11 6 9 6 9" />
-          <path d="M10 9C10 9 10.5 11 12 11C13.5 11 14 9 14 9" />
-        </svg>
-      );
-    case "Political Commentary":
-      // Scroll/document icon
-      return (
-        <svg {...props}>
-          <path d="M4 2H12C12.5523 2 13 2.44772 13 3V13C13 13.5523 12.5523 14 12 14H4C3.44772 14 3 13.5523 3 13V3C3 2.44772 3.44772 2 4 2Z" />
-          <path d="M6 5H10" strokeLinecap="round" />
-          <path d="M6 8H10" strokeLinecap="round" />
-          <path d="M6 11H8" strokeLinecap="round" />
-        </svg>
-      );
-    case "Metaphysical Reflection":
-      // Eye icon
-      return (
-        <svg {...props}>
-          <path d="M1 8C1 8 4 3 8 3C12 3 15 8 15 8C15 8 12 13 8 13C4 13 1 8 1 8Z" strokeLinecap="round" strokeLinejoin="round" />
-          <circle cx="8" cy="8" r="2.5" />
-        </svg>
-      );
-    case "Practical Wisdom":
-    case "Timeless Wisdom":
-      // Compass/star icon
-      return (
-        <svg {...props}>
-          <circle cx="8" cy="8" r="6" />
-          <path d="M8 4L9.2 6.8L12 8L9.2 9.2L8 12L6.8 9.2L4 8L6.8 6.8L8 4Z" fill="currentColor" stroke="none" />
-        </svg>
-      );
-    case "Cross-Philosopher Reply":
-      // Reply arrows icon
-      return (
-        <svg {...props}>
-          <path d="M6 3L3 6L6 9" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M3 6H10C12.2091 6 14 7.79086 14 10V13" strokeLinecap="round" />
-        </svg>
-      );
-    case "Existential Reflection":
-      // Spiral icon
-      return (
-        <svg {...props}>
-          <path d="M8 8C8 6.5 9.5 5 11 5C12.5 5 14 6.5 14 8C14 10.5 11.5 13 8 13C4 13 2 10 2 7C2 3.5 5 1 8.5 1" strokeLinecap="round" />
-        </svg>
-      );
-    case "Psychological Insight":
-      // Brain/mind icon
-      return (
-        <svg {...props}>
-          <path d="M8 14V8" strokeLinecap="round" />
-          <path d="M4.5 8C3.1 8 2 6.9 2 5.5C2 4.1 3.1 3 4.5 3C4.8 2.4 5.6 2 6.5 2C7.6 2 8.5 2.7 8.8 3.6" strokeLinecap="round" />
-          <path d="M11.5 8C12.9 8 14 6.9 14 5.5C14 4.1 12.9 3 11.5 3C11.2 2.4 10.4 2 9.5 2C8.8 2 8.2 2.3 7.8 2.8" strokeLinecap="round" />
-          <path d="M5 8C5 10 6.3 12 8 12C9.7 12 11 10 11 8" strokeLinecap="round" />
-        </svg>
-      );
-    default:
-      return null;
-  }
-}
-
 // ── Tag Badge ───────────────────────────────────────────────────────
 
 function TagBadge({ tag, color }: { tag: string; color: string }) {
@@ -102,14 +25,13 @@ function TagBadge({ tag, color }: { tag: string; color: string }) {
 
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-mono tracking-wide rounded"
+      className="inline-flex items-center px-2 py-0.5 text-[10px] font-mono tracking-wide rounded"
       style={{
-        backgroundColor: isCrossReply ? `${color}18` : `${color}10`,
-        color: color,
-        border: `1px solid ${isCrossReply ? `${color}40` : `${color}25`}`,
+        backgroundColor: isCrossReply ? `${color}0c` : `${color}08`,
+        color: `${color}bb`,
+        border: `1px solid ${isCrossReply ? `${color}20` : `${color}15`}`,
       }}
     >
-      <TagIcon tag={tag} />
       {tag}
     </span>
   );
@@ -202,33 +124,6 @@ function CrossReplyHeader({ post, philosopher }: { post: Post; philosopher: { na
         <PhilosopherAvatar philosopherId={replyTarget.philosopherId} size="sm" />
         <span className="font-serif font-bold text-sm text-ink">{targetPhilosopher.name}</span>
       </div>
-    </div>
-  );
-}
-
-// ── Micro-CTAs ──────────────────────────────────────────────────────
-
-function MicroCTAs({ philosopherName }: { philosopherName: string }) {
-  const ctas = [
-    `Ask ${philosopherName.split(' ')[0]} about this \u2192`,
-    "See opposing view \u2192",
-    "Explore this debate \u2192",
-  ];
-  // Pick 1-2 randomly per post for variety (deterministic based on name)
-  const seed = philosopherName.length;
-  const selected = seed % 2 === 0 ? [ctas[0], ctas[2]] : [ctas[0], ctas[1]];
-
-  return (
-    <div className="flex items-center gap-4 mt-1">
-      {selected.map((cta) => (
-        <Link
-          key={cta}
-          href="/agora"
-          className="text-[11px] text-terracotta/70 hover:text-terracotta transition-colors duration-200 font-body"
-        >
-          {cta}
-        </Link>
-      ))}
     </div>
   );
 }
@@ -364,15 +259,6 @@ export function PostCard({
               >
                 {philosopher.name}
               </Link>
-              <span
-                className="text-xs font-mono px-1.5 py-0.5 rounded"
-                style={{
-                  backgroundColor: `${philosopher.color}15`,
-                  color: philosopher.color,
-                }}
-              >
-                {philosopher.tradition}
-              </span>
               <span className="text-xs text-ink-lighter">&middot;</span>
               <span className="text-xs text-ink-lighter">{post.timestamp}</span>
             </div>
@@ -408,7 +294,6 @@ export function PostCard({
             <ActionButtons post={post} />
           </div>
 
-          <MicroCTAs philosopherName={philosopher.name} />
         </div>
       ) : (
         /* Standard / news-reaction / cross-reply layout */
@@ -429,20 +314,10 @@ export function PostCard({
                 >
                   {philosopher.name}
                 </Link>
-                <span
-                  className="text-xs font-mono px-1.5 py-0.5 rounded"
-                  style={{
-                    backgroundColor: `${philosopher.color}15`,
-                    color: philosopher.color,
-                  }}
-                >
-                  {philosopher.tradition}
-                </span>
                 <StanceBadge stance={post.stance} />
                 {isPopular && <PopularBadge />}
                 <span className="text-xs text-ink-lighter">&middot;</span>
                 <span className="text-xs text-ink-lighter">{post.timestamp}</span>
-                <AIBadge className="ml-auto" />
               </div>
             )}
 
@@ -453,7 +328,6 @@ export function PostCard({
                 {isPopular && <PopularBadge />}
                 <span className="text-xs text-ink-lighter">&middot;</span>
                 <span className="text-xs text-ink-lighter">{post.timestamp}</span>
-                <AIBadge className="ml-auto" />
               </div>
             )}
 
@@ -482,7 +356,6 @@ export function PostCard({
               <ActionButtons post={post} />
             </div>
 
-            <MicroCTAs philosopherName={philosopher.name} />
           </div>
         </div>
       )}
