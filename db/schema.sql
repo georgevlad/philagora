@@ -144,8 +144,8 @@ CREATE INDEX IF NOT EXISTS idx_system_prompts_active ON system_prompts(philosoph
 
 CREATE TABLE IF NOT EXISTS generation_log (
   id               INTEGER PRIMARY KEY AUTOINCREMENT,
-  philosopher_id   TEXT NOT NULL REFERENCES philosophers(id),
-  content_type     TEXT NOT NULL CHECK(content_type IN ('post','debate_opening','debate_rebuttal','agora_response','reflection')),
+  philosopher_id   TEXT REFERENCES philosophers(id),
+  content_type     TEXT NOT NULL CHECK(content_type IN ('post','debate_opening','debate_rebuttal','agora_response','reflection','synthesis')),
   system_prompt_id INTEGER REFERENCES system_prompts(id),
   user_input       TEXT NOT NULL DEFAULT '',
   raw_output       TEXT NOT NULL DEFAULT '',

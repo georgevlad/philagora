@@ -35,12 +35,12 @@ function getRecentGenerations(): GenerationLogRow[] {
     .prepare(
       `SELECT
         g.id,
-        p.name AS philosopher_name,
+        COALESCE(p.name, 'Editorial') AS philosopher_name,
         g.content_type,
         g.status,
         g.created_at
       FROM generation_log g
-      JOIN philosophers p ON p.id = g.philosopher_id
+      LEFT JOIN philosophers p ON p.id = g.philosopher_id
       ORDER BY g.created_at DESC
       LIMIT 10`
     )
@@ -63,6 +63,7 @@ const CONTENT_TYPE_LABELS: Record<string, string> = {
   debate_rebuttal: "Debate Rebuttal",
   agora_response: "Agora Response",
   reflection: "Reflection",
+  synthesis: "Synthesis",
 };
 
 function formatDate(iso: string): string {

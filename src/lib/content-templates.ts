@@ -9,7 +9,9 @@ export type ContentTypeKey =
   | "cross_philosopher_reply"
   | "debate_opening"
   | "debate_rebuttal"
-  | "agora_response";
+  | "agora_response"
+  | "debate_synthesis"
+  | "agora_synthesis";
 
 /** Maps the DB content_type + UI label to our internal key */
 export function resolveContentTypeKey(
@@ -26,6 +28,8 @@ export function resolveContentTypeKey(
   if (dbContentType === "debate_opening") return "debate_opening";
   if (dbContentType === "debate_rebuttal") return "debate_rebuttal";
   if (dbContentType === "agora_response") return "agora_response";
+  if (dbContentType === "debate_synthesis") return "debate_synthesis";
+  if (dbContentType === "agora_synthesis") return "agora_synthesis";
   return "news_reaction";
 }
 
@@ -101,12 +105,11 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
   debate_opening: {
     key: "debate_opening",
     instructions: `
-TASK: Present your opening position on the given debate topic. This is a formal debate opening statement.
+TASK: You are participating in a structured philosophical debate on Philagora. The debate topic and trigger article are provided below. Present your opening position: what does your philosophical framework reveal about this topic?
 
 REQUIREMENTS:
-- Length: 150–250 words
-- More formal and structured than a regular post
-- Present your core argument clearly
+- Length: 150–250 words. Be substantive — this is your opening statement.
+- You may use paragraph breaks for structure.
 - Reference relevant aspects of the trigger article
 - Set up your position for cross-examination and rebuttal
 
@@ -120,12 +123,12 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
   debate_rebuttal: {
     key: "debate_rebuttal",
     instructions: `
-TASK: Respond to another philosopher's debate position. This is a formal rebuttal.
+TASK: You are responding to another philosopher's position in a structured debate. Their argument is provided below. Engage with their SPECIFIC claims.
 
 REQUIREMENTS:
-- Length: 100–200 words
 - Start with @PhilosopherName
-- Engage with their SPECIFIC claims — do not just restate your own position
+- Length: 100–200 words
+- Don't just restate your own position — show where they're wrong and why
 - Identify weak points in their argument and press on them
 - You may concede points where they are strong, then pivot
 
@@ -139,18 +142,70 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
   agora_response: {
     key: "agora_response",
     instructions: `
-TASK: Respond to a user's personal dilemma or philosophical question.
+TASK: A user has asked a personal question on Philagora's Agora. Respond through your philosophical framework, but stay grounded in their specific situation. Be genuinely helpful, not just theoretical.
 
 REQUIREMENTS:
-- Generate 1–2 response posts (each 100–200 words)
+- You may write 1–2 response posts (use multiple if the question deserves a nuanced multi-part answer, otherwise just one)
+- Length: 100–200 words per post
 - Apply your philosophical framework but stay grounded in their SPECIFIC situation
-- Be genuinely helpful — not just theoretical
 - Speak directly to the person asking
 - First post: address their core concern; second post (if included): add nuance or a practical takeaway
 
 RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
 {
   "posts": ["First response (100-200 words)", "Optional second response (100-200 words)"]
+}
+`.trim(),
+  },
+
+  debate_synthesis: {
+    key: "debate_synthesis",
+    instructions: `
+TASK: This is NOT a philosopher voice. This is the editorial voice of Philagora. You have read all the philosopher responses below. Your job is to identify:
+1. tensions — where do these thinkers fundamentally disagree, and why?
+2. agreements — what do they converge on, despite different frameworks?
+3. questionsForReflection — the questions the debate leaves open
+
+REQUIREMENTS:
+- Be precise. Name the philosophers. Don't just say "some disagree" — say "Russell defends X while Plato insists Y."
+- Also provide a synthesisSummary with three fields:
+  - agree: one sentence on what they share
+  - diverge: one sentence on the key fault line
+  - unresolvedQuestion: the question the debate leaves open
+- Length: Each tension/agreement/question should be 1-2 sentences.
+
+RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
+{
+  "tensions": ["Tension 1...", "Tension 2..."],
+  "agreements": ["Agreement 1..."],
+  "questionsForReflection": ["Question 1...", "Question 2..."],
+  "synthesisSummary": {
+    "agree": "One sentence on what they share...",
+    "diverge": "One sentence on the key fault line...",
+    "unresolvedQuestion": "The question the debate leaves open..."
+  }
+}
+`.trim(),
+  },
+
+  agora_synthesis: {
+    key: "agora_synthesis",
+    instructions: `
+TASK: This is NOT a philosopher voice. This is the editorial voice of Philagora. You have read all the philosopher responses to a user's question below. Your job is to identify:
+1. tensions — where do these thinkers offer conflicting advice or framings?
+2. agreements — what do they converge on, despite different frameworks?
+3. practicalTakeaways — concrete advice the questioner can actually act on
+
+REQUIREMENTS:
+- Be precise. Name the philosophers. Don't just say "some disagree" — say "Russell advises X while Plato recommends Y."
+- Distill 2-4 practical takeaways the questioner can actually use
+- Length: Each tension/agreement/takeaway should be 1-2 sentences.
+
+RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
+{
+  "tensions": ["Tension 1...", "Tension 2..."],
+  "agreements": ["Agreement 1..."],
+  "practicalTakeaways": ["Takeaway 1...", "Takeaway 2..."]
 }
 `.trim(),
   },

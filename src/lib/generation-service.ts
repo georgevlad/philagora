@@ -16,6 +16,9 @@ const MODEL = "claude-sonnet-4-20250514";
 const MAX_TOKENS = 1024;
 const TEMPERATURE = 0.8; // Tunable — higher = more creative variation
 
+const SYNTHESIS_TEMPERATURE = 0.4; // Lower for precision and consistency
+const SYNTHESIS_MAX_TOKENS = 2048; // Synthesis output is longer
+
 // ── Types ────────────────────────────────────────────────────────────
 
 interface PhilosopherRow {
@@ -39,7 +42,7 @@ export interface GenerationResult {
   success: true;
   data: Record<string, unknown>;
   rawOutput: string;
-  systemPromptId: number;
+  systemPromptId: number | null;
 }
 
 export interface GenerationError {
@@ -51,7 +54,23 @@ export interface GenerationError {
 
 export type GenerationOutcome = GenerationResult | GenerationError;
 
-// ── Service ──────────────────────────────────────────────────────────
+// ── Shared helpers ───────────────────────────────────────────────────
+
+function getAnthropicClient(): Anthropic | null {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey || apiKey === "placeholder_key_here") return null;
+  return new Anthropic({ apiKey });
+}
+
+function parseJsonResponse(rawOutput: string): Record<string, unknown> {
+  let cleaned = rawOutput.trim();
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*/, "").replace(/```\s*$/, "");
+  }
+  return JSON.parse(cleaned);
+}
+
+// ── Philosopher content generation ───────────────────────────────────
 
 export async function generateContent(
   philosopherId: string,
@@ -147,8 +166,8 @@ ${template.instructions}`;
   }
 
   // 7. Call the Anthropic API
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey || apiKey === "placeholder_key_here") {
+  const client = getAnthropicClient();
+  if (!client) {
     return {
       success: false,
       error:
@@ -157,8 +176,6 @@ ${template.instructions}`;
       systemPromptId: activePrompt.id,
     };
   }
-
-  const client = new Anthropic({ apiKey });
 
   let rawOutput = "";
 
@@ -192,13 +209,7 @@ ${template.instructions}`;
 
   // 8. Parse the JSON response
   try {
-    // The model might wrap its response in ```json ... ``` — strip that
-    let cleaned = rawOutput.trim();
-    if (cleaned.startsWith("```")) {
-      cleaned = cleaned.replace(/^```(?:json)?\s*/, "").replace(/```\s*$/, "");
-    }
-    const parsed = JSON.parse(cleaned);
-
+    const parsed = parseJsonResponse(rawOutput);
     return {
       success: true,
       data: parsed,
@@ -211,6 +222,86 @@ ${template.instructions}`;
       error: `Failed to parse AI response as JSON. The raw output is preserved in the generation log.`,
       rawOutput,
       systemPromptId: activePrompt.id,
+    };
+  }
+}
+
+// ── Synthesis generation (no philosopher persona) ────────────────────
+
+export async function generateSynthesis(
+  synthesisType: "debate_synthesis" | "agora_synthesis",
+  sourceMaterial: string
+): Promise<GenerationOutcome> {
+  // 1. Get the synthesis template
+  const template = CONTENT_TEMPLATES[synthesisType];
+  if (!template) {
+    return {
+      success: false,
+      error: `Unknown synthesis type: ${synthesisType}`,
+      rawOutput: "",
+      systemPromptId: null,
+    };
+  }
+
+  // 2. System message is ONLY the template instructions (no philosopher persona)
+  const systemMessage = template.instructions;
+
+  // 3. Call the Anthropic API with lower temperature
+  const client = getAnthropicClient();
+  if (!client) {
+    return {
+      success: false,
+      error:
+        "ANTHROPIC_API_KEY is not configured. Set it in .env.local to enable AI generation.",
+      rawOutput: "",
+      systemPromptId: null,
+    };
+  }
+
+  let rawOutput = "";
+
+  try {
+    const response = await client.messages.create({
+      model: MODEL,
+      max_tokens: SYNTHESIS_MAX_TOKENS,
+      temperature: SYNTHESIS_TEMPERATURE,
+      system: systemMessage,
+      messages: [{ role: "user", content: sourceMaterial }],
+    });
+
+    rawOutput = response.content
+      .filter((block) => block.type === "text")
+      .map((block) => {
+        if (block.type === "text") return block.text;
+        return "";
+      })
+      .join("");
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "Unknown API error";
+    return {
+      success: false,
+      error: `Anthropic API error: ${message}`,
+      rawOutput: rawOutput || String(err),
+      systemPromptId: null,
+    };
+  }
+
+  // 4. Parse the JSON response
+  try {
+    const parsed = parseJsonResponse(rawOutput);
+    return {
+      success: true,
+      data: parsed,
+      rawOutput,
+      systemPromptId: null,
+    };
+  } catch {
+    return {
+      success: false,
+      error: `Failed to parse synthesis response as JSON. The raw output is preserved in the generation log.`,
+      rawOutput,
+      systemPromptId: null,
     };
   }
 }

@@ -10,7 +10,10 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(curl:*)",
       "Bash(taskkill:*)",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }
