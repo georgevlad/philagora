@@ -1,0 +1,216 @@
+/**
+ * Generation service — calls the Anthropic Claude API to generate
+ * philosophical content based on a philosopher's persona and a content template.
+ */
+
+import Anthropic from "@anthropic-ai/sdk";
+import { getDb } from "@/lib/db";
+import {
+  CONTENT_TEMPLATES,
+  type ContentTypeKey,
+} from "@/lib/content-templates";
+
+// ── Configuration ────────────────────────────────────────────────────
+
+const MODEL = "claude-sonnet-4-20250514";
+const MAX_TOKENS = 1024;
+const TEMPERATURE = 0.8; // Tunable — higher = more creative variation
+
+// ── Types ────────────────────────────────────────────────────────────
+
+interface PhilosopherRow {
+  id: string;
+  name: string;
+  tradition: string;
+  color: string;
+  initials: string;
+  bio: string;
+  era: string;
+  core_principles: string; // JSON string
+}
+
+interface PromptRow {
+  id: number;
+  system_prompt_text: string;
+  prompt_version: number;
+}
+
+export interface GenerationResult {
+  success: true;
+  data: Record<string, unknown>;
+  rawOutput: string;
+  systemPromptId: number;
+}
+
+export interface GenerationError {
+  success: false;
+  error: string;
+  rawOutput: string;
+  systemPromptId: number | null;
+}
+
+export type GenerationOutcome = GenerationResult | GenerationError;
+
+// ── Service ──────────────────────────────────────────────────────────
+
+export async function generateContent(
+  philosopherId: string,
+  contentTypeKey: ContentTypeKey,
+  sourceMaterial: string
+): Promise<GenerationOutcome> {
+  const db = getDb();
+
+  // 1. Fetch the philosopher's metadata
+  const philosopher = db
+    .prepare(
+      "SELECT id, name, tradition, color, initials, bio, era, core_principles FROM philosophers WHERE id = ?"
+    )
+    .get(philosopherId) as PhilosopherRow | undefined;
+
+  if (!philosopher) {
+    return {
+      success: false,
+      error: `Philosopher "${philosopherId}" not found`,
+      rawOutput: "",
+      systemPromptId: null,
+    };
+  }
+
+  // 2. Fetch the active system prompt
+  const activePrompt = db
+    .prepare(
+      "SELECT id, system_prompt_text, prompt_version FROM system_prompts WHERE philosopher_id = ? AND is_active = 1 LIMIT 1"
+    )
+    .get(philosopherId) as PromptRow | undefined;
+
+  if (!activePrompt) {
+    return {
+      success: false,
+      error: `No active system prompt for ${philosopher.name}. Create one in the Prompts section first.`,
+      rawOutput: "",
+      systemPromptId: null,
+    };
+  }
+
+  // 3. Get the content template
+  const template = CONTENT_TEMPLATES[contentTypeKey];
+  if (!template) {
+    return {
+      success: false,
+      error: `Unknown content type: ${contentTypeKey}`,
+      rawOutput: "",
+      systemPromptId: activePrompt.id,
+    };
+  }
+
+  // 4. Parse core principles for context
+  let principlesText = "";
+  try {
+    const principles = JSON.parse(philosopher.core_principles) as {
+      title: string;
+      description: string;
+    }[];
+    principlesText = principles
+      .map((p) => `- ${p.title}: ${p.description}`)
+      .join("\n");
+  } catch {
+    principlesText = "(no principles available)";
+  }
+
+  // 5. Compose the system message: persona prompt + metadata + template
+  const systemMessage = `${activePrompt.system_prompt_text}
+
+---
+
+PHILOSOPHER METADATA:
+Name: ${philosopher.name}
+Tradition: ${philosopher.tradition}
+Era: ${philosopher.era}
+Core Principles:
+${principlesText}
+
+---
+
+${template.instructions}`;
+
+  // 6. Compose the user message
+  let userMessage = `SOURCE MATERIAL:\n${sourceMaterial}`;
+
+  // For cross-replies and rebuttals, the source material should already
+  // contain the other philosopher's info, but we'll add structure if the
+  // content type warrants it
+  if (
+    contentTypeKey === "cross_philosopher_reply" ||
+    contentTypeKey === "debate_rebuttal"
+  ) {
+    userMessage = `YOU ARE REPLYING TO THE FOLLOWING:\n\n${sourceMaterial}`;
+  }
+
+  // 7. Call the Anthropic API
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey || apiKey === "placeholder_key_here") {
+    return {
+      success: false,
+      error:
+        "ANTHROPIC_API_KEY is not configured. Set it in .env.local to enable AI generation.",
+      rawOutput: "",
+      systemPromptId: activePrompt.id,
+    };
+  }
+
+  const client = new Anthropic({ apiKey });
+
+  let rawOutput = "";
+
+  try {
+    const response = await client.messages.create({
+      model: MODEL,
+      max_tokens: MAX_TOKENS,
+      temperature: TEMPERATURE,
+      system: systemMessage,
+      messages: [{ role: "user", content: userMessage }],
+    });
+
+    // Extract text from the response
+    rawOutput = response.content
+      .filter((block) => block.type === "text")
+      .map((block) => {
+        if (block.type === "text") return block.text;
+        return "";
+      })
+      .join("");
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "Unknown API error";
+    return {
+      success: false,
+      error: `Anthropic API error: ${message}`,
+      rawOutput: rawOutput || String(err),
+      systemPromptId: activePrompt.id,
+    };
+  }
+
+  // 8. Parse the JSON response
+  try {
+    // The model might wrap its response in ```json ... ``` — strip that
+    let cleaned = rawOutput.trim();
+    if (cleaned.startsWith("```")) {
+      cleaned = cleaned.replace(/^```(?:json)?\s*/, "").replace(/```\s*$/, "");
+    }
+    const parsed = JSON.parse(cleaned);
+
+    return {
+      success: true,
+      data: parsed,
+      rawOutput,
+      systemPromptId: activePrompt.id,
+    };
+  } catch {
+    return {
+      success: false,
+      error: `Failed to parse AI response as JSON. The raw output is preserved in the generation log.`,
+      rawOutput,
+      systemPromptId: activePrompt.id,
+    };
+  }
+}
