@@ -1,16 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import type { Philosopher, PhiloStatus, PhiloState } from "@/types/admin";
+import { DEBATE_STATUS_COLORS } from "@/lib/constants";
+import { formatDate } from "@/lib/date-utils";
+import { Spinner } from "@/components/Spinner";
 
 // ── Types ───────────────────────────────────────────────────────────────
-
-interface Philosopher {
-  id: string;
-  name: string;
-  tradition: string;
-  color: string;
-  initials: string;
-}
 
 interface DebateListItem {
   id: string;
@@ -41,43 +37,6 @@ interface SynthesisData {
     diverge: string;
     unresolvedQuestion: string;
   };
-}
-
-type PhiloStatus = "pending" | "generating" | "preview" | "approved";
-
-interface PhiloState {
-  status: PhiloStatus;
-  content?: string;
-  logId?: number;
-  rawOutput?: string;
-}
-
-// ── Helpers ─────────────────────────────────────────────────────────────
-
-function formatDate(iso: string): string {
-  try {
-    const d = new Date(iso.includes("Z") ? iso : iso + "Z");
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  } catch {
-    return iso;
-  }
-}
-
-const STATUS_COLORS: Record<string, string> = {
-  scheduled: "bg-yellow-100 text-yellow-800",
-  in_progress: "bg-blue-100 text-blue-800",
-  complete: "bg-green-100 text-green-800",
-};
-
-// ── Spinner ─────────────────────────────────────────────────────────────
-
-function Spinner({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-    </svg>
-  );
 }
 
 // ── Component ───────────────────────────────────────────────────────────
@@ -638,7 +597,7 @@ export default function DebateWorkshopPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${STATUS_COLORS[d.status] || "bg-gray-100 text-gray-700"}`}>
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${DEBATE_STATUS_COLORS[d.status] || "bg-gray-100 text-gray-700"}`}>
                       {d.status}
                     </span>
                     <span className="text-xs text-ink-lighter font-mono">{formatDate(d.debate_date)}</span>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { parseGroupConcat } from "@/lib/db-utils";
 
 interface ThreadRow {
   id: string;
@@ -91,8 +92,8 @@ export async function GET() {
 
     const threads = rows.map((row) => ({
       ...row,
-      philosopher_ids: row.philosopher_ids ? row.philosopher_ids.split(",") : [],
-      philosopher_names: row.philosopher_names ? row.philosopher_names.split(",") : [],
+      philosopher_ids: parseGroupConcat(row.philosopher_ids),
+      philosopher_names: parseGroupConcat(row.philosopher_names),
     }));
 
     return NextResponse.json(threads);

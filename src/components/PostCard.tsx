@@ -6,17 +6,7 @@ import { philosophers } from "@/data/philosophers";
 import { Post, Stance, posts as allPosts } from "@/data/posts";
 import { PhilosopherAvatar } from "./PhilosopherAvatar";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
-
-// ── Stance config ───────────────────────────────────────────────────
-
-const stanceConfig: Record<Stance, { label: string; color: string; bg: string; border: string }> = {
-  challenges: { label: "Challenges", color: "#9B2C2C", bg: "#FED7D7", border: "#FEB2B2" },
-  defends:    { label: "Defends",    color: "#276749", bg: "#C6F6D5", border: "#9AE6B4" },
-  reframes:   { label: "Reframes",   color: "#744210", bg: "#FEFCBF", border: "#FAF089" },
-  questions:  { label: "Questions",  color: "#2A4365", bg: "#BEE3F8", border: "#90CDF4" },
-  warns:      { label: "Warns",      color: "#9C4221", bg: "#FEEBC8", border: "#FBD38D" },
-  observes:   { label: "Observes",   color: "#4A5568", bg: "#E2E8F0", border: "#CBD5E0" },
-};
+import { STANCE_CONFIG, POST_CONTENT_TRUNCATE_LIMIT } from "@/lib/constants";
 
 // ── Tag Badge ───────────────────────────────────────────────────────
 
@@ -40,7 +30,7 @@ function TagBadge({ tag, color }: { tag: string; color: string }) {
 // ── Stance Badge ────────────────────────────────────────────────────
 
 function StanceBadge({ stance }: { stance: Stance }) {
-  const config = stanceConfig[stance];
+  const config = STANCE_CONFIG[stance];
   return (
     <span
       className="inline-flex items-center px-2 py-0.5 text-[10px] font-mono tracking-wider uppercase rounded-full"
@@ -130,13 +120,11 @@ function CrossReplyHeader({ post, philosopher }: { post: Post; philosopher: { na
 
 // ── Truncated Content ───────────────────────────────────────────────
 
-const TRUNCATE_LIMIT = 140;
-
 function PostContent({ content, color, isAphorism }: { content: string; color: string; isAphorism?: boolean }) {
   const [expanded, setExpanded] = useState(false);
-  const needsTruncation = content.length > TRUNCATE_LIMIT;
+  const needsTruncation = content.length > POST_CONTENT_TRUNCATE_LIMIT;
   const displayText = needsTruncation && !expanded
-    ? content.slice(0, TRUNCATE_LIMIT).replace(/\s+\S*$/, '') + "\u2026"
+    ? content.slice(0, POST_CONTENT_TRUNCATE_LIMIT).replace(/\s+\S*$/, '') + "\u2026"
     : content;
 
   if (isAphorism) {

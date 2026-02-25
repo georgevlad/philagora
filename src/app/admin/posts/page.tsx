@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import type { Stance } from "@/data/posts";
+import type { Philosopher } from "@/types/admin";
+import { STANCE_CONFIG } from "@/lib/constants";
 
 // ── Types ────────────────────────────────────────────────────────────
 
-type Stance = "challenges" | "defends" | "reframes" | "questions" | "warns" | "observes";
 type PostStatus = "draft" | "approved" | "published";
 
 interface AdminPost {
@@ -25,25 +27,6 @@ interface AdminPost {
   created_at: string;
   updated_at: string;
 }
-
-interface Philosopher {
-  id: string;
-  name: string;
-  tradition: string;
-  color: string;
-  initials: string;
-}
-
-// ── Stance config ────────────────────────────────────────────────────
-
-const stanceConfig: Record<Stance, { label: string; color: string; bg: string; border: string }> = {
-  challenges: { label: "Challenges", color: "#9B2C2C", bg: "#FED7D7", border: "#FEB2B2" },
-  defends:    { label: "Defends",    color: "#276749", bg: "#C6F6D5", border: "#9AE6B4" },
-  reframes:   { label: "Reframes",   color: "#744210", bg: "#FEFCBF", border: "#FAF089" },
-  questions:  { label: "Questions",  color: "#2A4365", bg: "#BEE3F8", border: "#90CDF4" },
-  warns:      { label: "Warns",      color: "#9C4221", bg: "#FEEBC8", border: "#FBD38D" },
-  observes:   { label: "Observes",   color: "#4A5568", bg: "#E2E8F0", border: "#CBD5E0" },
-};
 
 // ── Status config ────────────────────────────────────────────────────
 
@@ -301,7 +284,7 @@ export default function AdminPostsPage() {
         <div className="space-y-4">
           {posts.map((post) => {
             const philosopher = getPhilosopher(post.philosopher_id);
-            const stanceCfg = stanceConfig[post.stance];
+            const stanceCfg = STANCE_CONFIG[post.stance];
             const statusCfg = statusConfig[post.status];
             const nextStatus = statusTransitions[post.status];
             const isUpdating = updatingId === post.id;
