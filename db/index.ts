@@ -11,6 +11,7 @@ export function getDb(): Database.Database {
     _db = new Database(DB_PATH);
     _db.pragma("journal_mode = WAL");
     _db.pragma("foreign_keys = ON");
+    ensureSchema(_db);
     runMigrations(_db);
   }
   return _db;
@@ -41,6 +42,30 @@ export function initDb(): Database.Database {
   runMigrations(db);
 
   return db;
+}
+
+/**
+ * Ensure the database schema exists.
+ * Runs schema.sql (all CREATE TABLE IF NOT EXISTS) so a fresh DB gets its tables.
+ */
+function ensureSchema(db: Database.Database): void {
+  const hasSchema = db
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='posts'")
+    .get();
+
+  if (hasSchema) return; // tables already exist
+
+  const schemaPath = path.join(process.cwd(), "db", "schema.sql");
+  const schema = fs.readFileSync(schemaPath, "utf-8");
+
+  const statements = schema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0 && !s.startsWith("PRAGMA"));
+
+  for (const stmt of statements) {
+    db.exec(stmt + ";");
+  }
 }
 
 /**
