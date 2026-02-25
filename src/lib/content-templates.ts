@@ -3,6 +3,44 @@
  * each philosopher's system prompt at generation time.
  */
 
+// ── Variable length support ─────────────────────────────────────────
+
+export type TargetLength = "short" | "medium" | "long";
+
+const STANDARD_LENGTHS: Record<TargetLength, string> = {
+  short: "Length: 40–80 words. Be terse. One paragraph max. One sharp observation.",
+  medium: "Length: 80–150 words. A developed reaction with nuance.",
+  long: "Length: 150–250 words. A deeper analysis with more nuance. Multiple paragraphs allowed.",
+};
+
+const REFLECTION_LENGTHS: Record<TargetLength, string> = {
+  short: "Length: 30–60 words. Be terse. One paragraph max. A single aphorism.",
+  medium: "Length: 60–120 words. A developed reflection.",
+  long: "Length: 120–200 words. An extended meditation. Multiple paragraphs allowed.",
+};
+
+const LENGTH_MAPS: Partial<Record<ContentTypeKey, Record<TargetLength, string>>> = {
+  news_reaction: STANDARD_LENGTHS,
+  cross_philosopher_reply: STANDARD_LENGTHS,
+  timeless_reflection: REFLECTION_LENGTHS,
+};
+
+/**
+ * Returns the appropriate length guidance string for a given template and
+ * target length. Templates without a `{LENGTH_GUIDANCE}` placeholder are
+ * unaffected — the caller simply won't substitute anything.
+ */
+export function getLengthGuidance(
+  templateKey: ContentTypeKey,
+  targetLength: TargetLength = "medium"
+): string {
+  const map = LENGTH_MAPS[templateKey];
+  if (!map) return STANDARD_LENGTHS.medium;
+  return map[targetLength];
+}
+
+// ── Content type key ────────────────────────────────────────────────
+
 export type ContentTypeKey =
   | "news_reaction"
   | "timeless_reflection"
@@ -45,14 +83,14 @@ export const CONTENT_TEMPLATES: Record<ContentTypeKey, ContentTemplate> = {
 TASK: React to the following news article through your philosophical framework.
 
 REQUIREMENTS:
-- Length: 80–150 words
+- {LENGTH_GUIDANCE}
 - Write in your authentic philosophical voice
 - Engage directly with the substance of the article
 - The citation details (article title, source, URL) will be stored separately — do NOT include them in your content
 
 RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
 {
-  "content": "Your reaction to the article (80-150 words)",
+  "content": "Your reaction to the article",
   "thesis": "One punchy sentence summarizing your position",
   "stance": "challenges | defends | reframes | questions | warns | observes",
   "tag": "Political Commentary | Ethical Analysis | Metaphysical Reflection | Existential Reflection | Practical Wisdom"
@@ -66,14 +104,14 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
 TASK: Write a timeless observation about human nature or modern life. This is NOT tied to any specific news event — it is a standalone philosophical reflection.
 
 REQUIREMENTS:
-- Length: 60–120 words
+- {LENGTH_GUIDANCE}
 - Direct address to the reader — use "you"
 - Write in your most characteristic voice
 - Should feel like something that could be read in any era
 
 RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
 {
-  "content": "Your timeless reflection (60-120 words)",
+  "content": "Your timeless reflection",
   "thesis": "One punchy sentence capturing the core insight",
   "stance": "challenges | defends | reframes | questions | warns | observes",
   "tag": "Timeless Wisdom | Practical Wisdom"
@@ -87,14 +125,14 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
 TASK: Respond to another philosopher's post. Engage with their specific claims — agree, disagree, complicate, or reframe.
 
 REQUIREMENTS:
-- Length: 80–150 words
+- {LENGTH_GUIDANCE}
 - Start with @PhilosopherName (the name of the philosopher you are replying to)
 - Engage with their SPECIFIC claims, not just your own general position
 - Show genuine philosophical engagement — this is a dialogue, not parallel monologues
 
 RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
 {
-  "content": "Your reply starting with @PhilosopherName (80-150 words)",
+  "content": "Your reply starting with @PhilosopherName",
   "thesis": "One sentence summarizing your response",
   "stance": "challenges | defends | reframes | questions | warns | observes",
   "tag": "Cross-Philosopher Reply"

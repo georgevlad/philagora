@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { Stance } from "@/data/posts";
+import type { Stance } from "@/lib/types";
 import type { Philosopher } from "@/types/admin";
 import { STANCE_CONFIG } from "@/lib/constants";
 

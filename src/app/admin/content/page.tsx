@@ -109,6 +109,11 @@ export default function ContentGenerationPage() {
   const [selectedContentTypeIndex, setSelectedContentTypeIndex] = useState(0);
   const [userInput, setUserInput] = useState("");
 
+  // ── Citation fields (News Reaction only) ──────────────────────────
+  const [citationTitle, setCitationTitle] = useState("");
+  const [citationSource, setCitationSource] = useState("");
+  const [citationUrl, setCitationUrl] = useState("");
+
   // ── Active prompt state ─────────────────────────────────────────────
   const [activePrompt, setActivePrompt] = useState<ActivePrompt | null>(null);
   const [promptLoading, setPromptLoading] = useState(false);
@@ -203,6 +208,26 @@ export default function ContentGenerationPage() {
     setSuccessMessage("");
   }, [selectedPhilosopherId, fetchActivePrompt, fetchLogEntries]);
 
+  // ── Clear citation fields when content type changes ───────────────
+  useEffect(() => {
+    setCitationTitle("");
+    setCitationSource("");
+    setCitationUrl("");
+  }, [selectedContentTypeIndex]);
+
+  // ── Auto-detect URL in source material ────────────────────────────
+  const isNewsReaction = selectedContentTypeIndex === 0;
+  useEffect(() => {
+    if (!isNewsReaction) return;
+    const trimmed = userInput.trim();
+    if (trimmed.startsWith("http")) {
+      const firstLine = trimmed.split("\n")[0].trim();
+      if (firstLine.startsWith("http") && !citationUrl) {
+        setCitationUrl(firstLine);
+      }
+    }
+  }, [userInput, isNewsReaction, citationUrl]);
+
   // ── Handle generation ───────────────────────────────────────────────
   async function handleGenerate(e?: React.FormEvent) {
     if (e) e.preventDefault();
@@ -278,7 +303,7 @@ export default function ContentGenerationPage() {
     try {
       const data = preview.data;
 
-      // Create the post
+      // Create the post (include citation data for news reactions)
       const postRes = await fetch("/api/admin/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -288,6 +313,9 @@ export default function ContentGenerationPage() {
           thesis: data.thesis ?? "",
           stance: data.stance ?? "observes",
           tag: data.tag ?? "",
+          citation_title: citationTitle || undefined,
+          citation_source: citationSource || undefined,
+          citation_url: citationUrl || undefined,
         }),
       });
 
@@ -305,6 +333,9 @@ export default function ContentGenerationPage() {
 
       setSuccessMessage("Post created as draft! View it in the Posts section.");
       setPreview(null);
+      setCitationTitle("");
+      setCitationSource("");
+      setCitationUrl("");
       fetchLogEntries(selectedPhilosopherId);
     } catch (err) {
       setErrorMessage(
@@ -442,6 +473,60 @@ export default function ContentGenerationPage() {
                 className="w-full rounded-lg border border-border bg-parchment px-4 py-3 text-sm text-ink font-body placeholder:text-ink-lighter/60 focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors resize-y"
               />
             </div>
+
+            {/* Citation fields (News Reaction only) */}
+            {isNewsReaction && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label
+                    htmlFor="citation-title"
+                    className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"
+                  >
+                    Article Title
+                  </label>
+                  <input
+                    id="citation-title"
+                    type="text"
+                    value={citationTitle}
+                    onChange={(e) => setCitationTitle(e.target.value)}
+                    placeholder="e.g. Trump makes case for Iran diplomacy"
+                    className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body placeholder:text-ink-lighter/60 focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="citation-source"
+                    className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"
+                  >
+                    Source Name
+                  </label>
+                  <input
+                    id="citation-source"
+                    type="text"
+                    value={citationSource}
+                    onChange={(e) => setCitationSource(e.target.value)}
+                    placeholder="e.g. Reuters"
+                    className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body placeholder:text-ink-lighter/60 focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="citation-url"
+                    className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"
+                  >
+                    Article URL
+                  </label>
+                  <input
+                    id="citation-url"
+                    type="url"
+                    value={citationUrl}
+                    onChange={(e) => setCitationUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body placeholder:text-ink-lighter/60 focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Active System Prompt Preview */}
             <div>

@@ -58,13 +58,26 @@ console.log(`  ✓ Philosophers: ${Object.keys(philosophers).length} inserted`);
 // ── Posts ─────────────────────────────────────────────────────────────
 
 const insertPost = db.prepare(`
-  INSERT INTO posts (id, philosopher_id, content, thesis, stance, tag, citation_title, citation_source, citation_url, reply_to, likes, replies, bookmarks, status, created_at, updated_at)
-  VALUES (@id, @philosopher_id, @content, @thesis, @stance, @tag, @citation_title, @citation_source, @citation_url, @reply_to, @likes, @replies, @bookmarks, @status, @created_at, @updated_at)
+  INSERT INTO posts (id, philosopher_id, content, thesis, stance, tag, citation_title, citation_source, citation_url, citation_image_url, reply_to, likes, replies, bookmarks, status, created_at, updated_at)
+  VALUES (@id, @philosopher_id, @content, @thesis, @stance, @tag, @citation_title, @citation_source, @citation_url, @citation_image_url, @reply_to, @likes, @replies, @bookmarks, @status, @created_at, @updated_at)
 `);
 
+function relativeToAbsolute(timestamp: string): string {
+  const now = new Date();
+  const match = timestamp.match(/(\d+)(m|h|d)\s*ago/);
+  if (match) {
+    const amount = parseInt(match[1]);
+    const unit = match[2];
+    if (unit === "m") now.setMinutes(now.getMinutes() - amount);
+    else if (unit === "h") now.setHours(now.getHours() - amount);
+    else if (unit === "d") now.setDate(now.getDate() - amount);
+  }
+  return now.toISOString().replace("T", " ").replace("Z", "").split(".")[0];
+}
+
 const insertPosts = db.transaction(() => {
-  const now = new Date().toISOString();
   for (const post of posts) {
+    const createdAt = relativeToAbsolute(post.timestamp);
     insertPost.run({
       id: post.id,
       philosopher_id: post.philosopherId,
@@ -75,13 +88,14 @@ const insertPosts = db.transaction(() => {
       citation_title: post.citation?.title ?? null,
       citation_source: post.citation?.source ?? null,
       citation_url: post.citation?.url ?? null,
+      citation_image_url: post.citation?.imageUrl ?? null,
       reply_to: post.replyTo ?? null,
       likes: post.likes,
       replies: post.replies,
       bookmarks: post.bookmarks,
       status: "published",
-      created_at: now,
-      updated_at: now,
+      created_at: createdAt,
+      updated_at: createdAt,
     });
   }
 });

@@ -1,4 +1,4 @@
-import type { Stance } from "@/data/posts";
+import type { Stance } from "@/lib/types";
 
 // ── Stance badge styling ─────────────────────────────────────────────
 

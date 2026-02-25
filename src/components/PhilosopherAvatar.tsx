@@ -2,19 +2,21 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { philosophers } from "@/data/philosophers";
 
 export function PhilosopherAvatar({
   philosopherId,
+  name,
+  color,
+  initials,
   size = "md",
 }: {
   philosopherId: string;
+  name: string;
+  color: string;
+  initials: string;
   size?: "sm" | "md" | "lg" | "xl";
 }) {
-  const philosopher = philosophers[philosopherId];
   const [imgError, setImgError] = useState(false);
-
-  if (!philosopher) return null;
 
   const sizeConfig = {
     sm: { classes: "w-8 h-8 text-xs", px: 32, ring: 2 },
@@ -30,14 +32,14 @@ export function PhilosopherAvatar({
     <div
       className={`${classes} rounded-full shrink-0 transition-transform duration-200 hover:scale-105 relative overflow-hidden`}
       style={{
-        boxShadow: `0 0 0 ${ring}px ${philosopher.color}30`,
+        boxShadow: `0 0 0 ${ring}px ${color}30`,
       }}
-      title={philosopher.name}
+      title={name}
     >
       {!imgError ? (
         <Image
           src={avatarSrc}
-          alt={philosopher.name}
+          alt={name}
           width={px}
           height={px}
           className="rounded-full object-cover"
@@ -47,9 +49,9 @@ export function PhilosopherAvatar({
       ) : (
         <div
           className="w-full h-full rounded-full flex items-center justify-center font-serif font-bold text-white"
-          style={{ backgroundColor: philosopher.color }}
+          style={{ backgroundColor: color }}
         >
-          {philosopher.initials}
+          {initials}
         </div>
       )}
     </div>

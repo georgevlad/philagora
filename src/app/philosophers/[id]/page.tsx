@@ -1,54 +1,27 @@
-"use client";
-
-import { use } from "react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { philosophers } from "@/data/philosophers";
-import { posts } from "@/data/posts";
+import Link from "next/link";
+import { getPhilosopherById, getPostsByPhilosopher, getAllPhilosophers } from "@/lib/data";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
 import { PostCard } from "@/components/PostCard";
 import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
 import { AIBadge } from "@/components/AIBadge";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { PrincipleCard } from "@/components/PrincipleCard";
 
-function PrincipleCard({
-  principle,
-  index,
-}: {
-  principle: { title: string; description: string };
-  index: number;
-}) {
-  const ref = useScrollReveal(index + 1);
-  return (
-    <div
-      ref={ref}
-      className="animate-fade-in-up p-4 rounded-lg border border-border-light hover:border-border transition-colors duration-200"
-    >
-      <h4 className="font-serif font-bold text-ink text-sm mb-1.5">
-        {principle.title}
-      </h4>
-      <p className="text-sm text-ink-light leading-relaxed">
-        {principle.description}
-      </p>
-    </div>
-  );
-}
-
-export default function PhilosopherProfileDynamic({
+export default async function PhilosopherProfileDynamic({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params);
+  const { id } = await params;
 
   // Redirect Marcus Aurelius to his dedicated page
   if (id === "marcus-aurelius") {
     redirect("/philosophers/marcus-aurelius");
   }
 
-  const philosopher = philosophers[id];
+  const philosopher = getPhilosopherById(id);
   if (!philosopher) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -57,11 +30,12 @@ export default function PhilosopherProfileDynamic({
     );
   }
 
-  const philosopherPosts = posts.filter((p) => p.philosopherId === id);
+  const philosopherPosts = getPostsByPhilosopher(id);
+  const philosophers = getAllPhilosophers();
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0">
-      <LeftSidebar />
+      <LeftSidebar philosophers={philosophers} />
       <MobileNav />
 
       <main className="flex-1 min-w-0 lg:border-l border-border-light">
@@ -82,7 +56,13 @@ export default function PhilosopherProfileDynamic({
           {/* Profile header */}
           <div className="px-4 sm:px-5 pt-6 pb-6 border-b border-border-light">
             <div className="flex items-start gap-3 sm:gap-5">
-              <PhilosopherAvatar philosopherId={id} size="xl" />
+              <PhilosopherAvatar
+                philosopherId={id}
+                name={philosopher.name}
+                color={philosopher.color}
+                initials={philosopher.initials}
+                size="xl"
+              />
 
               <div className="flex-1">
                 <div className="flex items-center gap-3 flex-wrap mb-1">

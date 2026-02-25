@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { philosopherList } from "@/data/philosophers";
+import type { Philosopher } from "@/lib/types";
 import { PhilosopherAvatar } from "./PhilosopherAvatar";
 
 const navItems = [
@@ -50,7 +50,7 @@ const navItems = [
   },
 ];
 
-export function LeftSidebar() {
+export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
   const pathname = usePathname();
 
   return (
@@ -110,13 +110,13 @@ export function LeftSidebar() {
           Following
         </h3>
         <div className="overflow-y-auto max-h-[calc(100vh-380px)] space-y-1.5 pr-1">
-          {philosopherList.map((p) => (
+          {philosophers.map((p) => (
             <Link
               key={p.id}
               href={`/philosophers/${p.id}`}
               className="flex items-center gap-2.5 py-1.5 group"
             >
-              <PhilosopherAvatar philosopherId={p.id} size="sm" />
+              <PhilosopherAvatar philosopherId={p.id} name={p.name} color={p.color} initials={p.initials} size="sm" />
               <span className="text-sm text-ink-light group-hover:text-ink transition-colors duration-200 truncate">
                 {p.name}
               </span>

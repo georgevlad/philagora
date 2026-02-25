@@ -1,48 +1,29 @@
-"use client";
-
 import Link from "next/link";
-import { philosophers } from "@/data/philosophers";
-import { posts } from "@/data/posts";
+import { getPhilosopherById, getPostsByPhilosopher, getAllPhilosophers } from "@/lib/data";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
 import { PostCard } from "@/components/PostCard";
 import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
 import { AIBadge } from "@/components/AIBadge";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { PrincipleCard } from "@/components/PrincipleCard";
 
-const philosopher = philosophers["marcus-aurelius"];
-const philosopherPosts = posts.filter(
-  (p) => p.philosopherId === "marcus-aurelius"
-);
+export default function MarcusAureliusProfile() {
+  const philosopher = getPhilosopherById("marcus-aurelius");
+  const philosopherPosts = getPostsByPhilosopher("marcus-aurelius");
+  const philosophers = getAllPhilosophers();
 
-function PrincipleCard({
-  principle,
-  index,
-}: {
-  principle: { title: string; description: string };
-  index: number;
-}) {
-  const ref = useScrollReveal(index + 1);
-  return (
-    <div
-      ref={ref}
-      className="animate-fade-in-up p-4 rounded-lg border border-border-light hover:border-border transition-colors duration-200"
-    >
-      <h4 className="font-serif font-bold text-ink text-sm mb-1.5">
-        {principle.title}
-      </h4>
-      <p className="text-sm text-ink-light leading-relaxed">
-        {principle.description}
-      </p>
-    </div>
-  );
-}
+  if (!philosopher) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-ink-lighter">Philosopher not found.</p>
+      </div>
+    );
+  }
 
-export default function PhilosopherProfile() {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0">
-      <LeftSidebar />
+      <LeftSidebar philosophers={philosophers} />
       <MobileNav />
 
       <main className="flex-1 min-w-0 lg:border-l border-border-light">
@@ -63,7 +44,13 @@ export default function PhilosopherProfile() {
           {/* Profile header */}
           <div className="px-4 sm:px-5 pt-6 pb-6 border-b border-border-light">
             <div className="flex items-start gap-3 sm:gap-5">
-              <PhilosopherAvatar philosopherId="marcus-aurelius" size="xl" />
+              <PhilosopherAvatar
+                philosopherId="marcus-aurelius"
+                name={philosopher.name}
+                color={philosopher.color}
+                initials={philosopher.initials}
+                size="xl"
+              />
 
               <div className="flex-1">
                 <div className="flex items-center gap-3 flex-wrap mb-1">
@@ -138,16 +125,18 @@ export default function PhilosopherProfile() {
           </div>
 
           {/* Recent Posts */}
-          <div className="py-4">
-            <div className="px-5 pb-3">
-              <h2 className="text-[11px] font-mono tracking-wider uppercase text-ink-lighter">
-                Recent Posts
-              </h2>
+          {philosopherPosts.length > 0 && (
+            <div className="py-4">
+              <div className="px-5 pb-3">
+                <h2 className="text-[11px] font-mono tracking-wider uppercase text-ink-lighter">
+                  Recent Posts
+                </h2>
+              </div>
+              {philosopherPosts.map((post, i) => (
+                <PostCard key={post.id} post={post} delay={i + 5} />
+              ))}
             </div>
-            {philosopherPosts.map((post, i) => (
-              <PostCard key={post.id} post={post} delay={i + 5} />
-            ))}
-          </div>
+          )}
 
           <Footer />
           <div className="pb-20 lg:pb-0" />

@@ -3,8 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { philosophers } from "@/data/philosophers";
-import { Post, Stance, posts as allPosts } from "@/data/posts";
+import type { FeedPost } from "@/lib/types";
 import { PhilosopherAvatar } from "./PhilosopherAvatar";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { STANCE_CONFIG, POST_CONTENT_TRUNCATE_LIMIT } from "@/lib/constants";
@@ -30,7 +29,7 @@ function TagBadge({ tag, color }: { tag: string; color: string }) {
 
 // ── Stance Badge ────────────────────────────────────────────────────
 
-function StanceBadge({ stance }: { stance: Stance }) {
+function StanceBadge({ stance }: { stance: FeedPost["stance"] }) {
   const config = STANCE_CONFIG[stance];
   return (
     <span
@@ -87,11 +86,8 @@ function PopularBadge() {
 
 // ── Cross-Reply Header ──────────────────────────────────────────────
 
-function CrossReplyHeader({ post, philosopher }: { post: Post; philosopher: { name: string; color: string } }) {
-  const replyTarget = post.replyTo ? allPosts.find(p => p.id === post.replyTo) : null;
-  const targetPhilosopher = replyTarget ? philosophers[replyTarget.philosopherId] : null;
-
-  if (!replyTarget || !targetPhilosopher) {
+function CrossReplyHeader({ post }: { post: FeedPost }) {
+  if (!post.replyTargetPhilosopherId || !post.replyTargetPhilosopherName) {
     return null;
   }
 
@@ -99,25 +95,25 @@ function CrossReplyHeader({ post, philosopher }: { post: Post; philosopher: { na
     <div className="mb-3">
       <div
         className="flex items-center gap-3 px-4 py-2.5 rounded-lg"
-        style={{ backgroundColor: `${philosopher.color}08`, border: `1px solid ${philosopher.color}15` }}
+        style={{ backgroundColor: `${post.philosopherColor}08`, border: `1px solid ${post.philosopherColor}15` }}
       >
         <div className="flex items-center gap-2">
-          <PhilosopherAvatar philosopherId={post.philosopherId} size="sm" />
-          <span className="font-serif font-bold text-sm text-ink">{philosopher.name}</span>
+          <PhilosopherAvatar philosopherId={post.philosopherId} name={post.philosopherName} color={post.philosopherColor} initials={post.philosopherInitials} size="sm" />
+          <span className="font-serif font-bold text-sm text-ink">{post.philosopherName}</span>
         </div>
         <div className="flex items-center gap-1.5 text-ink-lighter">
           <span className="text-xs font-mono">vs</span>
         </div>
         <div className="flex items-center gap-2">
-          <PhilosopherAvatar philosopherId={replyTarget.philosopherId} size="sm" />
-          <span className="font-serif font-bold text-sm text-ink">{targetPhilosopher.name}</span>
+          <PhilosopherAvatar philosopherId={post.replyTargetPhilosopherId} name={post.replyTargetPhilosopherName} color={post.replyTargetPhilosopherColor!} initials={post.replyTargetPhilosopherInitials!} size="sm" />
+          <span className="font-serif font-bold text-sm text-ink">{post.replyTargetPhilosopherName}</span>
         </div>
       </div>
       {/* Vertical connector line */}
       <div className="flex justify-center">
         <div
           className="w-px h-3"
-          style={{ backgroundColor: `${philosopher.color}30` }}
+          style={{ backgroundColor: `${post.philosopherColor}30` }}
         />
       </div>
     </div>
@@ -172,13 +168,12 @@ export function PostCard({
   post,
   delay = 0,
 }: {
-  post: Post;
+  post: FeedPost;
   delay?: number;
 }) {
   const ref = useScrollReveal<HTMLElement>(delay);
-  const philosopher = philosophers[post.philosopherId];
-  if (!philosopher) return null;
 
+  const color = post.philosopherColor;
   const isCrossReply = post.tag === "Cross-Philosopher Reply";
   const isAphorism = post.tag === "Practical Wisdom" || post.tag === "Timeless Wisdom";
   const isNewsReaction = !!post.citation;
@@ -189,7 +184,7 @@ export function PostCard({
       ref={ref}
       className="animate-fade-in-up rounded-xl bg-white/60 border border-border-light mx-3 my-2 sm:mx-4 sm:my-3 overflow-hidden hover:shadow-md transition-shadow duration-200"
       style={{
-        borderTop: `2px solid ${philosopher.color}`,
+        borderTop: `2px solid ${color}`,
         borderLeftWidth: isPopular ? '3px' : undefined,
         borderLeftColor: isPopular ? 'var(--color-terracotta)' : undefined,
         borderLeftStyle: isPopular ? 'solid' : undefined,
@@ -198,7 +193,7 @@ export function PostCard({
       <div className="px-5 py-5">
         {/* Cross-reply prominent header */}
         {isCrossReply && (
-          <CrossReplyHeader post={post} philosopher={philosopher} />
+          <CrossReplyHeader post={post} />
         )}
 
         {/* Non-cross-reply: regular reply indicator */}
@@ -218,7 +213,7 @@ export function PostCard({
             {/* Decorative quotation mark */}
             <div
               className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 font-serif select-none pointer-events-none"
-              style={{ fontSize: '120px', color: `${philosopher.color}08`, lineHeight: 1 }}
+              style={{ fontSize: '120px', color: `${color}08`, lineHeight: 1 }}
               aria-hidden="true"
             >
               &#x201C;
@@ -227,14 +222,14 @@ export function PostCard({
             {/* Header centered */}
             <div className="flex items-center gap-2 mb-4 relative z-10">
               <Link href={`/philosophers/${post.philosopherId}`}>
-                <PhilosopherAvatar philosopherId={post.philosopherId} />
+                <PhilosopherAvatar philosopherId={post.philosopherId} name={post.philosopherName} color={color} initials={post.philosopherInitials} />
               </Link>
               <div className="flex items-center gap-2">
                 <Link
                   href={`/philosophers/${post.philosopherId}`}
                   className="font-serif font-bold text-ink hover:text-athenian transition-colors duration-200"
                 >
-                  {philosopher.name}
+                  {post.philosopherName}
                 </Link>
                 <span className="text-xs text-ink-lighter">&middot;</span>
                 <span className="text-xs text-ink-lighter">{post.timestamp}</span>
@@ -258,22 +253,22 @@ export function PostCard({
             {/* Decorative divider */}
             <div
               className="w-12 mx-auto mb-4"
-              style={{ height: '1px', backgroundColor: `${philosopher.color}30` }}
+              style={{ height: '1px', backgroundColor: `${color}30` }}
             />
 
             {/* Body text */}
-            <PostContent content={post.content} color={philosopher.color} isAphorism />
+            <PostContent content={post.content} color={color} isAphorism />
 
             {/* Citation */}
             {post.citation && (
               <div className="w-full mt-1">
-                <CitationBlock citation={post.citation} color={philosopher.color} isNewsReaction={false} />
+                <CitationBlock citation={post.citation} color={color} isNewsReaction={false} />
               </div>
             )}
 
             {/* Tag + Actions */}
             <div className="flex items-center justify-between gap-2 flex-wrap w-full mt-1">
-              <TagBadge tag={post.tag} color={philosopher.color} />
+              <TagBadge tag={post.tag} color={color} />
               <ActionButtons post={post} />
             </div>
           </div>
@@ -282,7 +277,7 @@ export function PostCard({
           <div className="flex gap-3">
             {!isCrossReply && (
               <Link href={`/philosophers/${post.philosopherId}`}>
-                <PhilosopherAvatar philosopherId={post.philosopherId} />
+                <PhilosopherAvatar philosopherId={post.philosopherId} name={post.philosopherName} color={color} initials={post.philosopherInitials} />
               </Link>
             )}
 
@@ -294,7 +289,7 @@ export function PostCard({
                     href={`/philosophers/${post.philosopherId}`}
                     className="font-serif font-bold text-ink hover:text-athenian transition-colors duration-200"
                   >
-                    {philosopher.name}
+                    {post.philosopherName}
                   </Link>
                   <StanceBadge stance={post.stance} />
                   {isPopular && <PopularBadge />}
@@ -317,7 +312,7 @@ export function PostCard({
               <blockquote
                 className="font-serif text-[17px] leading-snug text-ink mb-3 pl-3"
                 style={{
-                  borderLeft: `3px solid ${philosopher.color}`,
+                  borderLeft: `3px solid ${color}`,
                   fontWeight: 600,
                 }}
               >
@@ -325,16 +320,16 @@ export function PostCard({
               </blockquote>
 
               {/* Content */}
-              <PostContent content={post.content} color={philosopher.color} />
+              <PostContent content={post.content} color={color} />
 
               {/* Citation */}
               {post.citation && (
-                <CitationBlock citation={post.citation} color={philosopher.color} isNewsReaction={isNewsReaction} />
+                <CitationBlock citation={post.citation} color={color} isNewsReaction={isNewsReaction} />
               )}
 
               {/* Tag + Actions row */}
               <div className="flex items-center justify-between gap-2 flex-wrap">
-                <TagBadge tag={post.tag} color={philosopher.color} />
+                <TagBadge tag={post.tag} color={color} />
                 <ActionButtons post={post} />
               </div>
             </div>
@@ -352,7 +347,7 @@ function CitationBlock({
   color,
   isNewsReaction = false,
 }: {
-  citation: NonNullable<Post["citation"]>;
+  citation: NonNullable<FeedPost["citation"]>;
   color: string;
   isNewsReaction?: boolean;
 }) {
@@ -436,7 +431,7 @@ function CitationBlock({
 
 // ── Action Buttons Row ──────────────────────────────────────────────
 
-function ActionButtons({ post }: { post: Post }) {
+function ActionButtons({ post }: { post: FeedPost }) {
   return (
     <div className="flex items-center gap-3 sm:gap-5">
       <ActionButton

@@ -7,7 +7,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getDb } from "@/lib/db";
 import {
   CONTENT_TEMPLATES,
+  getLengthGuidance,
   type ContentTypeKey,
+  type TargetLength,
 } from "@/lib/content-templates";
 
 // ── Configuration ────────────────────────────────────────────────────
@@ -75,7 +77,8 @@ function parseJsonResponse(rawOutput: string): Record<string, unknown> {
 export async function generateContent(
   philosopherId: string,
   contentTypeKey: ContentTypeKey,
-  sourceMaterial: string
+  sourceMaterial: string,
+  targetLength?: TargetLength
 ): Promise<GenerationOutcome> {
   const db = getDb();
 
@@ -137,6 +140,10 @@ export async function generateContent(
   }
 
   // 5. Compose the system message: persona prompt + metadata + template
+  //    Substitute {LENGTH_GUIDANCE} if the template uses variable lengths
+  const lengthGuidance = getLengthGuidance(contentTypeKey, targetLength ?? "medium");
+  const instructions = template.instructions.replace("{LENGTH_GUIDANCE}", lengthGuidance);
+
   const systemMessage = `${activePrompt.system_prompt_text}
 
 ---
@@ -150,7 +157,7 @@ ${principlesText}
 
 ---
 
-${template.instructions}`;
+${instructions}`;
 
   // 6. Compose the user message
   let userMessage = `SOURCE MATERIAL:\n${sourceMaterial}`;
