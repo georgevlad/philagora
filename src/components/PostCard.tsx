@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { philosophers } from "@/data/philosophers";
 import { Post, Stance, posts as allPosts } from "@/data/posts";
 import { PhilosopherAvatar } from "./PhilosopherAvatar";
@@ -95,24 +96,29 @@ function CrossReplyHeader({ post, philosopher }: { post: Post; philosopher: { na
   }
 
   return (
-    <div
-      className="flex items-center gap-3 mb-3 px-4 py-2.5 rounded-lg"
-      style={{ backgroundColor: `${philosopher.color}08`, border: `1px solid ${philosopher.color}15` }}
-    >
-      <div className="flex items-center gap-2">
-        <PhilosopherAvatar philosopherId={post.philosopherId} size="sm" />
-        <span className="font-serif font-bold text-sm text-ink">{philosopher.name}</span>
+    <div className="mb-3">
+      <div
+        className="flex items-center gap-3 px-4 py-2.5 rounded-lg"
+        style={{ backgroundColor: `${philosopher.color}08`, border: `1px solid ${philosopher.color}15` }}
+      >
+        <div className="flex items-center gap-2">
+          <PhilosopherAvatar philosopherId={post.philosopherId} size="sm" />
+          <span className="font-serif font-bold text-sm text-ink">{philosopher.name}</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-ink-lighter">
+          <span className="text-xs font-mono">vs</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <PhilosopherAvatar philosopherId={replyTarget.philosopherId} size="sm" />
+          <span className="font-serif font-bold text-sm text-ink">{targetPhilosopher.name}</span>
+        </div>
       </div>
-      <div className="flex items-center gap-1.5 text-ink-lighter">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M4 8H12" strokeLinecap="round" />
-          <path d="M9 5L12 8L9 11" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        <span className="text-xs font-mono">responds to</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <PhilosopherAvatar philosopherId={replyTarget.philosopherId} size="sm" />
-        <span className="font-serif font-bold text-sm text-ink">{targetPhilosopher.name}</span>
+      {/* Vertical connector line */}
+      <div className="flex justify-center">
+        <div
+          className="w-px h-3"
+          style={{ backgroundColor: `${philosopher.color}30` }}
+        />
       </div>
     </div>
   );
@@ -127,26 +133,20 @@ function PostContent({ content, color, isAphorism }: { content: string; color: s
     ? content.slice(0, POST_CONTENT_TRUNCATE_LIMIT).replace(/\s+\S*$/, '') + "\u2026"
     : content;
 
+  const toggleButton = needsTruncation && (
+    <button
+      onClick={() => setExpanded(!expanded)}
+      className={`ml-1 text-terracotta/80 hover:text-terracotta text-[13px] transition-colors ${isAphorism ? 'font-body not-italic' : ''}`}
+    >
+      {expanded ? 'Show less' : 'Read more'}
+    </button>
+  );
+
   if (isAphorism) {
     return (
       <div className="text-[16px] text-ink mb-3 whitespace-pre-line text-center leading-relaxed font-serif italic px-4">
         {displayText}
-        {needsTruncation && !expanded && (
-          <button
-            onClick={() => setExpanded(true)}
-            className="ml-1 text-terracotta/80 hover:text-terracotta text-[13px] font-body not-italic transition-colors"
-          >
-            Read more
-          </button>
-        )}
-        {needsTruncation && expanded && (
-          <button
-            onClick={() => setExpanded(false)}
-            className="ml-1 text-terracotta/80 hover:text-terracotta text-[13px] font-body not-italic transition-colors"
-          >
-            Show less
-          </button>
-        )}
+        {toggleButton}
       </div>
     );
   }
@@ -161,22 +161,7 @@ function PostContent({ content, color, isAphorism }: { content: string; color: s
       }}
     >
       {displayText}
-      {needsTruncation && !expanded && (
-        <button
-          onClick={() => setExpanded(true)}
-          className="ml-1 text-terracotta/80 hover:text-terracotta text-[13px] transition-colors"
-        >
-          Read more
-        </button>
-      )}
-      {needsTruncation && expanded && (
-        <button
-          onClick={() => setExpanded(false)}
-          className="ml-1 text-terracotta/80 hover:text-terracotta text-[13px] transition-colors"
-        >
-          Show less
-        </button>
-      )}
+      {toggleButton}
     </div>
   );
 }
@@ -196,197 +181,211 @@ export function PostCard({
 
   const isCrossReply = post.tag === "Cross-Philosopher Reply";
   const isAphorism = post.tag === "Practical Wisdom" || post.tag === "Timeless Wisdom";
+  const isNewsReaction = !!post.citation;
   const isPopular = post.likes >= 50;
 
   return (
     <article
       ref={ref}
-      className="animate-fade-in-up px-5 py-5 border-b border-border-light hover:bg-parchment-dark/40 transition-colors duration-300"
+      className="animate-fade-in-up rounded-xl bg-white/60 border border-border-light mx-3 my-2 sm:mx-4 sm:my-3 overflow-hidden hover:shadow-md transition-shadow duration-200"
       style={{
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+        borderTop: `2px solid ${philosopher.color}`,
         borderLeftWidth: isPopular ? '3px' : undefined,
         borderLeftColor: isPopular ? 'var(--color-terracotta)' : undefined,
         borderLeftStyle: isPopular ? 'solid' : undefined,
       }}
     >
-      {/* Cross-reply prominent header */}
-      {isCrossReply && (
-        <CrossReplyHeader post={post} philosopher={philosopher} />
-      )}
+      <div className="px-5 py-5">
+        {/* Cross-reply prominent header */}
+        {isCrossReply && (
+          <CrossReplyHeader post={post} philosopher={philosopher} />
+        )}
 
-      {/* Non-cross-reply: regular reply indicator */}
-      {post.replyTo && !isCrossReply && (
-        <div className="flex items-center gap-2 ml-12 mb-2 text-xs text-ink-lighter">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          >
-            <path d="M6 3L3 6L6 9" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M3 6H10C12.2091 6 14 7.79086 14 10V13" strokeLinecap="round" />
-          </svg>
-          Replying to thread
-        </div>
-      )}
+        {/* Non-cross-reply: regular reply indicator */}
+        {post.replyTo && !isCrossReply && (
+          <div className="flex items-center gap-2 ml-12 mb-2 text-xs text-ink-lighter">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M6 3L3 6L6 9" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M3 6H10C12.2091 6 14 7.79086 14 10V13" strokeLinecap="round" />
+            </svg>
+            Replying to thread
+          </div>
+        )}
 
-      {/* Aphorism layout: centered, no avatar sidebar */}
-      {isAphorism ? (
-        <div className="flex flex-col items-center text-center">
-          {/* Header centered */}
-          <div className="flex items-center gap-2 mb-4">
-            <Link href={`/philosophers/${post.philosopherId}`}>
-              <PhilosopherAvatar philosopherId={post.philosopherId} />
-            </Link>
-            <div className="flex items-center gap-2">
-              <Link
-                href={`/philosophers/${post.philosopherId}`}
-                className="font-serif font-bold text-ink hover:text-athenian transition-colors duration-200"
-              >
-                {philosopher.name}
+        {/* Aphorism layout: centered, no avatar sidebar */}
+        {isAphorism ? (
+          <div className="flex flex-col items-center text-center relative">
+            {/* Decorative quotation mark */}
+            <div
+              className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 font-serif select-none pointer-events-none"
+              style={{ fontSize: '120px', color: `${philosopher.color}08`, lineHeight: 1 }}
+              aria-hidden="true"
+            >
+              &#x201C;
+            </div>
+
+            {/* Header centered */}
+            <div className="flex items-center gap-2 mb-4 relative z-10">
+              <Link href={`/philosophers/${post.philosopherId}`}>
+                <PhilosopherAvatar philosopherId={post.philosopherId} />
               </Link>
-              <span className="text-xs text-ink-lighter">&middot;</span>
-              <span className="text-xs text-ink-lighter">{post.timestamp}</span>
-            </div>
-          </div>
-
-          {/* Stance + Popular */}
-          <div className="flex items-center gap-2 mb-4">
-            <StanceBadge stance={post.stance} />
-            {isPopular && <PopularBadge />}
-          </div>
-
-          {/* Thesis as aphorism pull-quote */}
-          <blockquote
-            className="font-serif text-lg sm:text-xl leading-relaxed text-ink mb-4 max-w-md px-2"
-            style={{ fontWeight: 600 }}
-          >
-            &ldquo;{post.thesis}&rdquo;
-          </blockquote>
-
-          {/* Body text */}
-          <PostContent content={post.content} color={philosopher.color} isAphorism />
-
-          {/* Citation */}
-          {post.citation && (
-            <div className="w-full mt-1">
-              <CitationBlock citation={post.citation} color={philosopher.color} />
-            </div>
-          )}
-
-          {/* Tag + Actions */}
-          <div className="flex items-center justify-between gap-2 flex-wrap w-full mt-1">
-            <TagBadge tag={post.tag} color={philosopher.color} />
-            <ActionButtons post={post} />
-          </div>
-
-        </div>
-      ) : (
-        /* Standard / news-reaction / cross-reply layout */
-        <div className="flex gap-3">
-          {!isCrossReply && (
-            <Link href={`/philosophers/${post.philosopherId}`}>
-              <PhilosopherAvatar philosopherId={post.philosopherId} />
-            </Link>
-          )}
-
-          <div className="flex-1 min-w-0">
-            {/* Header */}
-            {!isCrossReply && (
-              <div className="flex items-center gap-2 flex-wrap mb-1">
+              <div className="flex items-center gap-2">
                 <Link
                   href={`/philosophers/${post.philosopherId}`}
                   className="font-serif font-bold text-ink hover:text-athenian transition-colors duration-200"
                 >
                   {philosopher.name}
                 </Link>
-                <StanceBadge stance={post.stance} />
-                {isPopular && <PopularBadge />}
                 <span className="text-xs text-ink-lighter">&middot;</span>
                 <span className="text-xs text-ink-lighter">{post.timestamp}</span>
               </div>
-            )}
+            </div>
 
-            {/* Cross-reply: compact header after the prominent one */}
-            {isCrossReply && (
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <StanceBadge stance={post.stance} />
-                {isPopular && <PopularBadge />}
-                <span className="text-xs text-ink-lighter">&middot;</span>
-                <span className="text-xs text-ink-lighter">{post.timestamp}</span>
-              </div>
-            )}
+            {/* Stance + Popular */}
+            <div className="flex items-center gap-2 mb-4 relative z-10">
+              <StanceBadge stance={post.stance} />
+              {isPopular && <PopularBadge />}
+            </div>
 
-            {/* Thesis pull-quote */}
+            {/* Thesis as aphorism pull-quote */}
             <blockquote
-              className="font-serif text-[17px] leading-snug text-ink mb-3 pl-3"
-              style={{
-                borderLeft: `3px solid ${philosopher.color}`,
-                fontWeight: 600,
-              }}
+              className="font-serif text-lg sm:text-xl leading-relaxed text-ink mb-4 max-w-md px-2 relative z-10"
+              style={{ fontWeight: 600 }}
             >
-              {post.thesis}
+              &ldquo;{post.thesis}&rdquo;
             </blockquote>
 
-            {/* Content */}
-            <PostContent content={post.content} color={philosopher.color} />
+            {/* Decorative divider */}
+            <div
+              className="w-12 mx-auto mb-4"
+              style={{ height: '1px', backgroundColor: `${philosopher.color}30` }}
+            />
+
+            {/* Body text */}
+            <PostContent content={post.content} color={philosopher.color} isAphorism />
 
             {/* Citation */}
             {post.citation && (
-              <CitationBlock citation={post.citation} color={philosopher.color} />
+              <div className="w-full mt-1">
+                <CitationBlock citation={post.citation} color={philosopher.color} isNewsReaction={false} />
+              </div>
             )}
 
-            {/* Tag + Actions row */}
-            <div className="flex items-center justify-between gap-2 flex-wrap">
+            {/* Tag + Actions */}
+            <div className="flex items-center justify-between gap-2 flex-wrap w-full mt-1">
               <TagBadge tag={post.tag} color={philosopher.color} />
               <ActionButtons post={post} />
             </div>
-
           </div>
-        </div>
-      )}
+        ) : (
+          /* Standard / news-reaction / cross-reply layout */
+          <div className="flex gap-3">
+            {!isCrossReply && (
+              <Link href={`/philosophers/${post.philosopherId}`}>
+                <PhilosopherAvatar philosopherId={post.philosopherId} />
+              </Link>
+            )}
+
+            <div className="flex-1 min-w-0">
+              {/* Header */}
+              {!isCrossReply && (
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <Link
+                    href={`/philosophers/${post.philosopherId}`}
+                    className="font-serif font-bold text-ink hover:text-athenian transition-colors duration-200"
+                  >
+                    {philosopher.name}
+                  </Link>
+                  <StanceBadge stance={post.stance} />
+                  {isPopular && <PopularBadge />}
+                  <span className="text-xs text-ink-lighter">&middot;</span>
+                  <span className="text-xs text-ink-lighter">{post.timestamp}</span>
+                </div>
+              )}
+
+              {/* Cross-reply: compact header after the prominent one */}
+              {isCrossReply && (
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <StanceBadge stance={post.stance} />
+                  {isPopular && <PopularBadge />}
+                  <span className="text-xs text-ink-lighter">&middot;</span>
+                  <span className="text-xs text-ink-lighter">{post.timestamp}</span>
+                </div>
+              )}
+
+              {/* Thesis pull-quote */}
+              <blockquote
+                className="font-serif text-[17px] leading-snug text-ink mb-3 pl-3"
+                style={{
+                  borderLeft: `3px solid ${philosopher.color}`,
+                  fontWeight: 600,
+                }}
+              >
+                {post.thesis}
+              </blockquote>
+
+              {/* Content */}
+              <PostContent content={post.content} color={philosopher.color} />
+
+              {/* Citation */}
+              {post.citation && (
+                <CitationBlock citation={post.citation} color={philosopher.color} isNewsReaction={isNewsReaction} />
+              )}
+
+              {/* Tag + Actions row */}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <TagBadge tag={post.tag} color={philosopher.color} />
+                <ActionButtons post={post} />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </article>
   );
 }
 
 // ── Citation Block ──────────────────────────────────────────────────
 
-function CitationBlock({ citation, color }: { citation: NonNullable<Post["citation"]>; color: string }) {
-  if (citation.url) {
-    return (
-      <a
-        href={citation.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-2.5 mb-3 px-4 py-2.5 rounded-lg border hover:border-border transition-colors duration-200 group"
-        style={{
-          backgroundColor: `${color}08`,
-          borderColor: `${color}20`,
-        }}
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke={color}
-          strokeWidth="1.5"
-          className="shrink-0 opacity-60"
-        >
-          <path d="M3 12L3 4C3 2.89543 3.89543 2 5 2H11C12.1046 2 13 2.89543 13 4V12C13 13.1046 12.1046 14 11 14H5C3.89543 14 3 13.1046 3 12Z" />
-          <path d="M6 6H10" strokeLinecap="round" />
-          <path d="M6 9H8" strokeLinecap="round" />
-        </svg>
-        <div className="flex flex-col min-w-0">
-          <span className="text-sm text-ink-light group-hover:text-athenian transition-colors truncate font-medium">
-            {citation.title}
-          </span>
-          <span className="text-[11px] text-ink-lighter font-mono">
-            {citation.source}
-          </span>
+function CitationBlock({
+  citation,
+  color,
+  isNewsReaction = false,
+}: {
+  citation: NonNullable<Post["citation"]>;
+  color: string;
+  isNewsReaction?: boolean;
+}) {
+  const inner = (
+    <div className="flex items-center gap-3">
+      {citation.imageUrl ? (
+        <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-parchment-dark/30">
+          <Image
+            src={citation.imageUrl}
+            alt=""
+            width={64}
+            height={64}
+            className="w-full h-full object-cover"
+          />
         </div>
+      ) : (
+        <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center" style={{ backgroundColor: `${color}10` }}>
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke={color} strokeWidth="1.5" className="opacity-50">
+            <path d="M3 12L3 4C3 2.89543 3.89543 2 5 2H11C12.1046 2 13 2.89543 13 4V12C13 13.1046 12.1046 14 11 14H5C3.89543 14 3 13.1046 3 12Z" />
+            <path d="M6 6H10" strokeLinecap="round" />
+            <path d="M6 9H8" strokeLinecap="round" />
+          </svg>
+        </div>
+      )}
+      <div className="flex flex-col min-w-0 flex-1">
+        <span className="text-[11px] text-ink-lighter font-mono mb-0.5">
+          {citation.source}
+        </span>
+        <span className="text-sm text-ink-light font-medium line-clamp-2 group-hover:text-athenian transition-colors">
+          {citation.title}
+        </span>
+      </div>
+      {citation.url && (
         <svg
           width="14"
           height="14"
@@ -394,45 +393,43 @@ function CitationBlock({ citation, color }: { citation: NonNullable<Post["citati
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
-          className="ml-auto text-ink-lighter group-hover:text-athenian shrink-0 transition-colors"
+          className="text-ink-lighter group-hover:text-athenian shrink-0 transition-colors"
         >
           <path d="M6 3H3V13H13V10" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M9 2H14V7" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M14 2L7 9" strokeLinecap="round" />
         </svg>
-      </a>
-    );
-  }
+      )}
+    </div>
+  );
 
   return (
-    <div
-      className="flex items-center gap-2.5 mb-3 px-4 py-2.5 rounded-lg border"
-      style={{
-        backgroundColor: `${color}08`,
-        borderColor: `${color}20`,
-      }}
-    >
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke={color}
-        strokeWidth="1.5"
-        className="shrink-0 opacity-60"
-      >
-        <path d="M3 12L3 4C3 2.89543 3.89543 2 5 2H11C12.1046 2 13 2.89543 13 4V12C13 13.1046 12.1046 14 11 14H5C3.89543 14 3 13.1046 3 12Z" />
-        <path d="M6 6H10" strokeLinecap="round" />
-        <path d="M6 9H8" strokeLinecap="round" />
-      </svg>
-      <div className="flex flex-col min-w-0">
-        <span className="text-sm text-ink-light font-medium">
-          {citation.title}
-        </span>
-        <span className="text-[11px] text-ink-lighter font-mono">
-          {citation.source}
-        </span>
-      </div>
+    <div className="mb-3">
+      {/* "Reacting to" label for news posts */}
+      {isNewsReaction && (
+        <div className="flex items-center gap-1.5 mb-1.5 text-[10px] font-mono text-ink-lighter uppercase tracking-wider">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="opacity-60">
+            <path d="M3 12L3 4C3 2.89543 3.89543 2 5 2H11C12.1046 2 13 2.89543 13 4V12C13 13.1046 12.1046 14 11 14H5C3.89543 14 3 13.1046 3 12Z" />
+            <path d="M6 6H10" strokeLinecap="round" />
+            <path d="M6 9H8" strokeLinecap="round" />
+          </svg>
+          Reacting to
+        </div>
+      )}
+      {citation.url ? (
+        <a
+          href={citation.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block px-4 py-3 rounded-lg bg-parchment-dark/30 border border-border-light hover:border-border transition-colors duration-200 group"
+        >
+          {inner}
+        </a>
+      ) : (
+        <div className="px-4 py-3 rounded-lg bg-parchment-dark/30 border border-border-light group">
+          {inner}
+        </div>
+      )}
     </div>
   );
 }

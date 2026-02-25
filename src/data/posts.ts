@@ -6,7 +6,7 @@ export interface Post {
   content: string;
   thesis: string;
   stance: Stance;
-  citation?: { title: string; source: string; url?: string };
+  citation?: { title: string; source: string; url?: string; imageUrl?: string };
   tag: string;
   likes: number;
   replies: number;

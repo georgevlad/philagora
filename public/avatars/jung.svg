@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <rect width="200" height="200" rx="100" fill="#7B4A8C" opacity="0.12"/>
+  <g transform="translate(100,100)">
+    <!-- Neck -->
+    <path d="M-15 28 Q-15 42 -20 60 L20 60 Q15 42 15 28Z" fill="#7B4A8C" opacity="0.7"/>
+    <!-- Suit / collar -->
+    <path d="M-20 60 Q-48 65 -75 82 L-75 100 L75 100 L75 82 Q48 65 20 60Z" fill="#7B4A8C" opacity="0.5"/>
+    <path d="M-12 60 L-18 80 L-8 78 L-5 65Z" fill="#7B4A8C" opacity="0.35"/>
+    <path d="M12 60 L18 80 L8 78 L5 65Z" fill="#7B4A8C" opacity="0.35"/>
+    <path d="M-5 60 L-3 72 L3 72 L5 60Z" fill="#7B4A8C" opacity="0.3"/>
+    <!-- Head -->
+    <ellipse cx="0" cy="-4" rx="30" ry="36" fill="#7B4A8C" opacity="0.7"/>
+    <!-- Hair - parted, swept back, slightly receding -->
+    <path d="M-28 -10 Q-30 -22 -25 -35 Q-18 -42 -8 -42 Q-2 -44 0 -42 Q8 -42 18 -42 Q25 -35 28 -22 Q30 -15 28 -10" fill="#7B4A8C" opacity="0.82"/>
+    <!-- Part line -->
+    <line x1="-5" y1="-42" x2="-8" y2="-15" stroke="#7B4A8C" stroke-width="1" opacity="0.4"/>
+    <!-- Round glasses -->
+    <circle cx="-11" cy="-4" r="8" stroke="#7B4A8C" stroke-width="2" fill="none" opacity="0.8"/>
+    <circle cx="11" cy="-4" r="8" stroke="#7B4A8C" stroke-width="2" fill="none" opacity="0.8"/>
+    <line x1="-3" y1="-4" x2="3" y2="-4" stroke="#7B4A8C" stroke-width="1.5" opacity="0.7"/>
+    <line x1="-19" y1="-4" x2="-24" y2="-8" stroke="#7B4A8C" stroke-width="1.5" opacity="0.5"/>
+    <line x1="19" y1="-4" x2="24" y2="-8" stroke="#7B4A8C" stroke-width="1.5" opacity="0.5"/>
+    <!-- Eyes behind glasses -->
+    <ellipse cx="-11" cy="-4" rx="3" ry="2" fill="#7B4A8C" opacity="0.9"/>
+    <ellipse cx="11" cy="-4" rx="3" ry="2" fill="#7B4A8C" opacity="0.9"/>
+    <!-- Pipe (subtle) -->
+    <path d="M12 14 Q18 12 22 14 Q26 16 26 20 Q26 24 22 24 Q20 24 20 20 Q20 16 18 14" fill="#7B4A8C" opacity="0.45"/>
+    <!-- Nose -->
+    <path d="M0 -1 L-3 8 Q0 10 3 8Z" fill="#7B4A8C" opacity="0.45"/>
+    <!-- Thin mustache -->
+    <path d="M-10 12 Q-5 10 0 11 Q5 10 10 12" stroke="#7B4A8C" stroke-width="1.5" fill="none" opacity="0.6"/>
+    <!-- Brows -->
+    <path d="M-17 -14 Q-11 -16 -5 -14" stroke="#7B4A8C" stroke-width="1.5" fill="none" opacity="0.5"/>
+    <path d="M5 -14 Q11 -16 17 -14" stroke="#7B4A8C" stroke-width="1.5" fill="none" opacity="0.5"/>
+  </g>
+</svg>

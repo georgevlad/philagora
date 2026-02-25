@@ -9,6 +9,7 @@ import { LeftSidebar } from "@/components/LeftSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
 import { PostCard } from "@/components/PostCard";
+import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
 import { AIBadge } from "@/components/AIBadge";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
@@ -81,12 +82,7 @@ export default function PhilosopherProfileDynamic({
           {/* Profile header */}
           <div className="px-4 sm:px-5 pt-6 pb-6 border-b border-border-light">
             <div className="flex items-start gap-3 sm:gap-5">
-              <div
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center font-serif text-xl sm:text-2xl font-bold text-white shrink-0"
-                style={{ backgroundColor: philosopher.color }}
-              >
-                {philosopher.initials}
-              </div>
+              <PhilosopherAvatar philosopherId={id} size="xl" />
 
               <div className="flex-1">
                 <div className="flex items-center gap-3 flex-wrap mb-1">
