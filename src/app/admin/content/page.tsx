@@ -631,7 +631,7 @@ export default function ContentGenerationPage() {
                 <blockquote
                   className="font-serif text-[17px] leading-snug text-ink mb-3 pl-3"
                   style={{
-                    borderLeft: `3px solid ${selectedPhilosopher?.color ?? "#C4703F"}`,
+                    borderLeft: `3px solid ${selectedPhilosopher?.color ?? "#C05A2C"}`,
                     fontWeight: 600,
                   }}
                 >
@@ -644,7 +644,7 @@ export default function ContentGenerationPage() {
                 <div
                   className="text-[15px] text-ink mb-4 whitespace-pre-line leading-relaxed"
                   style={{
-                    borderLeft: `2px solid ${selectedPhilosopher?.color ?? "#C4703F"}25`,
+                    borderLeft: `2px solid ${selectedPhilosopher?.color ?? "#C05A2C"}25`,
                     paddingLeft: "12px",
                   }}
                 >
@@ -660,7 +660,7 @@ export default function ContentGenerationPage() {
                       key={i}
                       className="text-[15px] text-ink whitespace-pre-line leading-relaxed pl-3"
                       style={{
-                        borderLeft: `2px solid ${selectedPhilosopher?.color ?? "#C4703F"}25`,
+                        borderLeft: `2px solid ${selectedPhilosopher?.color ?? "#C05A2C"}25`,
                       }}
                     >
                       <span className="text-[10px] font-mono text-ink-lighter block mb-1">
@@ -692,9 +692,9 @@ export default function ContentGenerationPage() {
                   <span
                     className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-mono tracking-wide rounded"
                     style={{
-                      backgroundColor: `${selectedPhilosopher?.color ?? "#C4703F"}10`,
-                      color: selectedPhilosopher?.color ?? "#C4703F",
-                      border: `1px solid ${selectedPhilosopher?.color ?? "#C4703F"}25`,
+                      backgroundColor: `${selectedPhilosopher?.color ?? "#C05A2C"}10`,
+                      color: selectedPhilosopher?.color ?? "#C05A2C",
+                      border: `1px solid ${selectedPhilosopher?.color ?? "#C05A2C"}25`,
                     }}
                   >
                     {preview.data.tag}

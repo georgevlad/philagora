@@ -1,35 +1,35 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
-  <rect width="200" height="200" rx="100" fill="#5C3A2E" opacity="0.12"/>
+  <rect width="200" height="200" rx="100" fill="#7D4A38" opacity="0.12"/>
   <g transform="translate(100,100)">
     <!-- Neck -->
-    <path d="M-15 30 Q-15 44 -20 60 L20 60 Q15 44 15 30Z" fill="#5C3A2E" opacity="0.7"/>
+    <path d="M-15 30 Q-15 44 -20 60 L20 60 Q15 44 15 30Z" fill="#7D4A38" opacity="0.7"/>
     <!-- Russian coat / high collar -->
-    <path d="M-20 60 Q-48 65 -75 82 L-75 100 L75 100 L75 82 Q48 65 20 60Z" fill="#5C3A2E" opacity="0.5"/>
-    <path d="M-15 56 Q-18 52 -20 56 L-20 60 L-15 60Z" fill="#5C3A2E" opacity="0.6"/>
-    <path d="M15 56 Q18 52 20 56 L20 60 L15 60Z" fill="#5C3A2E" opacity="0.6"/>
+    <path d="M-20 60 Q-48 65 -75 82 L-75 100 L75 100 L75 82 Q48 65 20 60Z" fill="#7D4A38" opacity="0.5"/>
+    <path d="M-15 56 Q-18 52 -20 56 L-20 60 L-15 60Z" fill="#7D4A38" opacity="0.6"/>
+    <path d="M15 56 Q18 52 20 56 L20 60 L15 60Z" fill="#7D4A38" opacity="0.6"/>
     <!-- Head - gaunt, angular -->
-    <ellipse cx="0" cy="-4" rx="28" ry="36" fill="#5C3A2E" opacity="0.7"/>
+    <ellipse cx="0" cy="-4" rx="28" ry="36" fill="#7D4A38" opacity="0.7"/>
     <!-- Hair - receding, thin, unkempt -->
-    <path d="M-26 -10 Q-28 -22 -22 -35 Q-15 -42 -5 -40 Q5 -42 15 -42 Q22 -35 26 -22 Q28 -15 26 -10" fill="#5C3A2E" opacity="0.78"/>
+    <path d="M-26 -10 Q-28 -22 -22 -35 Q-15 -42 -5 -40 Q5 -42 15 -42 Q22 -35 26 -22 Q28 -15 26 -10" fill="#7D4A38" opacity="0.78"/>
     <!-- Receding hairline -->
-    <path d="M-18 -28 Q-10 -35 0 -38 Q10 -35 18 -28" fill="#5C3A2E" opacity="0.55"/>
+    <path d="M-18 -28 Q-10 -35 0 -38 Q10 -35 18 -28" fill="#7D4A38" opacity="0.55"/>
     <!-- Scraggly beard -->
-    <path d="M-16 14 Q-18 24 -15 34 Q-10 40 0 42 Q10 40 15 34 Q18 24 16 14" fill="#5C3A2E" opacity="0.55"/>
-    <path d="M-10 20 Q-8 30 -4 35" stroke="#5C3A2E" stroke-width="0.8" fill="none" opacity="0.35"/>
-    <path d="M10 20 Q8 30 4 35" stroke="#5C3A2E" stroke-width="0.8" fill="none" opacity="0.35"/>
+    <path d="M-16 14 Q-18 24 -15 34 Q-10 40 0 42 Q10 40 15 34 Q18 24 16 14" fill="#7D4A38" opacity="0.55"/>
+    <path d="M-10 20 Q-8 30 -4 35" stroke="#7D4A38" stroke-width="0.8" fill="none" opacity="0.35"/>
+    <path d="M10 20 Q8 30 4 35" stroke="#7D4A38" stroke-width="0.8" fill="none" opacity="0.35"/>
     <!-- Deep-set, haunted eyes -->
-    <ellipse cx="-10" cy="-4" rx="4.5" ry="2.5" fill="#5C3A2E"/>
-    <ellipse cx="10" cy="-4" rx="4.5" ry="2.5" fill="#5C3A2E"/>
+    <ellipse cx="-10" cy="-4" rx="4.5" ry="2.5" fill="#7D4A38"/>
+    <ellipse cx="10" cy="-4" rx="4.5" ry="2.5" fill="#7D4A38"/>
     <!-- Dark circles under eyes -->
-    <path d="M-14 -1 Q-10 2 -6 -1" stroke="#5C3A2E" stroke-width="1" fill="none" opacity="0.3"/>
-    <path d="M6 -1 Q10 2 14 -1" stroke="#5C3A2E" stroke-width="1" fill="none" opacity="0.3"/>
+    <path d="M-14 -1 Q-10 2 -6 -1" stroke="#7D4A38" stroke-width="1" fill="none" opacity="0.3"/>
+    <path d="M6 -1 Q10 2 14 -1" stroke="#7D4A38" stroke-width="1" fill="none" opacity="0.3"/>
     <!-- Heavy, troubled brows -->
-    <path d="M-16 -10 Q-10 -14 -5 -10" stroke="#5C3A2E" stroke-width="2" fill="none" opacity="0.7"/>
-    <path d="M5 -10 Q10 -14 16 -10" stroke="#5C3A2E" stroke-width="2" fill="none" opacity="0.7"/>
+    <path d="M-16 -10 Q-10 -14 -5 -10" stroke="#7D4A38" stroke-width="2" fill="none" opacity="0.7"/>
+    <path d="M5 -10 Q10 -14 16 -10" stroke="#7D4A38" stroke-width="2" fill="none" opacity="0.7"/>
     <!-- Prominent nose -->
-    <path d="M0 -2 L-4 9 Q0 12 4 9Z" fill="#5C3A2E" opacity="0.5"/>
+    <path d="M0 -2 L-4 9 Q0 12 4 9Z" fill="#7D4A38" opacity="0.5"/>
     <!-- Hollowed cheeks -->
-    <path d="M-22 2 Q-20 8 -18 10" stroke="#5C3A2E" stroke-width="0.8" fill="none" opacity="0.25"/>
-    <path d="M22 2 Q20 8 18 10" stroke="#5C3A2E" stroke-width="0.8" fill="none" opacity="0.25"/>
+    <path d="M-22 2 Q-20 8 -18 10" stroke="#7D4A38" stroke-width="0.8" fill="none" opacity="0.25"/>
+    <path d="M22 2 Q20 8 18 10" stroke="#7D4A38" stroke-width="0.8" fill="none" opacity="0.25"/>
   </g>
 </svg>

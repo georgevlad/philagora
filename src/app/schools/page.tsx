@@ -10,7 +10,7 @@ import { useScrollReveal } from "@/hooks/useScrollReveal";
 const schools = [
   {
     name: "Stoicism",
-    color: "#4A6741",
+    color: "#3D7A35",
     description:
       "The art of living well through virtue, self-discipline, and acceptance of what lies beyond our control. Two voices, two eras, one discipline.",
     philosophers: [
@@ -20,7 +20,7 @@ const schools = [
   },
   {
     name: "Existentialism",
-    color: "#8B2500",
+    color: "#A52F0F",
     description:
       "Existence precedes essence \u2014 we create meaning through our choices, actions, and authentic engagement with the world.",
     philosophers: [
@@ -30,49 +30,49 @@ const schools = [
   },
   {
     name: "Classical Greek Idealism",
-    color: "#5B7FA5",
+    color: "#4A80B8",
     description:
       "Beyond appearances lies a higher reality of eternal Forms. True knowledge is knowledge of the unchanging, and justice requires wisdom at the helm.",
     philosophers: [{ id: "plato", name: "Plato" }],
   },
   {
     name: "Analytical Psychology",
-    color: "#7B4A8C",
+    color: "#8E4DA6",
     description:
       "The psyche has its own reality. Archetypes, the collective unconscious, and the shadow \u2014 integration of what we deny is the path to wholeness.",
     philosophers: [{ id: "jung", name: "Carl Jung" }],
   },
   {
     name: "Deontological Ethics",
-    color: "#2F4F7F",
+    color: "#2E5BA8",
     description:
       "Morality grounded in duty, universal principles, and the categorical imperative \u2014 act as you would have all act.",
     philosophers: [{ id: "kant", name: "Immanuel Kant" }],
   },
   {
     name: "Confucianism",
-    color: "#B8860B",
+    color: "#C89515",
     description:
       "Social harmony through right relationships, ritual propriety, education, and the cultivation of virtue.",
     philosophers: [{ id: "confucius", name: "Confucius" }],
   },
   {
     name: "Absurdism",
-    color: "#C4956A",
+    color: "#D49248",
     description:
       "The world is indifferent and meaning is absent \u2014 yet we revolt, we create, and we must imagine Sisyphus happy.",
     philosophers: [{ id: "camus", name: "Camus" }],
   },
   {
     name: "Literary Philosophy",
-    color: "#5C3A2E",
+    color: "#7D4A38",
     description:
       "Philosophy through character, narrative, and the darkest corners of the human soul. Not arguments but lived contradictions.",
     philosophers: [{ id: "dostoevsky", name: "Dostoevsky" }],
   },
   {
     name: "Analytic Philosophy",
-    color: "#2E6B5A",
+    color: "#2D7E68",
     description:
       "Clear thinking as the antidote to confusion. Decompose problems, question authority, and let reason guide ethics.",
     philosophers: [{ id: "russell", name: "Bertrand Russell" }],

@@ -1,31 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
-  <rect width="200" height="200" rx="100" fill="#5B7FA5" opacity="0.12"/>
+  <rect width="200" height="200" rx="100" fill="#4A80B8" opacity="0.12"/>
   <g transform="translate(100,100)">
     <!-- Neck -->
-    <path d="M-18 30 Q-18 45 -25 65 L25 65 Q18 45 18 30Z" fill="#5B7FA5" opacity="0.7"/>
+    <path d="M-18 30 Q-18 45 -25 65 L25 65 Q18 45 18 30Z" fill="#4A80B8" opacity="0.7"/>
     <!-- Greek toga / himation -->
-    <path d="M-25 65 Q-55 70 -75 85 L-75 100 L75 100 L75 85 Q55 70 25 65Z" fill="#5B7FA5" opacity="0.5"/>
-    <path d="M-25 65 Q-15 70 -5 68 Q10 72 25 65 L20 85 Q5 80 -20 85Z" fill="#5B7FA5" opacity="0.35"/>
+    <path d="M-25 65 Q-55 70 -75 85 L-75 100 L75 100 L75 85 Q55 70 25 65Z" fill="#4A80B8" opacity="0.5"/>
+    <path d="M-25 65 Q-15 70 -5 68 Q10 72 25 65 L20 85 Q5 80 -20 85Z" fill="#4A80B8" opacity="0.35"/>
     <!-- Head - broad, noble -->
-    <ellipse cx="0" cy="-3" rx="33" ry="38" fill="#5B7FA5" opacity="0.7"/>
+    <ellipse cx="0" cy="-3" rx="33" ry="38" fill="#4A80B8" opacity="0.7"/>
     <!-- Hair - wavy, thick Greek style -->
-    <path d="M-32 -10 Q-35 -28 -28 -40 Q-18 -48 -5 -45 Q5 -48 18 -48 Q28 -40 32 -28 Q35 -18 32 -10" fill="#5B7FA5" opacity="0.85"/>
-    <path d="M-28 -20 Q-24 -25 -18 -22" stroke="#5B7FA5" stroke-width="1.5" fill="none" opacity="0.5"/>
-    <path d="M-15 -25 Q-10 -30 -5 -27" stroke="#5B7FA5" stroke-width="1.5" fill="none" opacity="0.5"/>
-    <path d="M5 -27 Q10 -30 15 -25" stroke="#5B7FA5" stroke-width="1.5" fill="none" opacity="0.5"/>
-    <path d="M18 -22 Q24 -25 28 -20" stroke="#5B7FA5" stroke-width="1.5" fill="none" opacity="0.5"/>
+    <path d="M-32 -10 Q-35 -28 -28 -40 Q-18 -48 -5 -45 Q5 -48 18 -48 Q28 -40 32 -28 Q35 -18 32 -10" fill="#4A80B8" opacity="0.85"/>
+    <path d="M-28 -20 Q-24 -25 -18 -22" stroke="#4A80B8" stroke-width="1.5" fill="none" opacity="0.5"/>
+    <path d="M-15 -25 Q-10 -30 -5 -27" stroke="#4A80B8" stroke-width="1.5" fill="none" opacity="0.5"/>
+    <path d="M5 -27 Q10 -30 15 -25" stroke="#4A80B8" stroke-width="1.5" fill="none" opacity="0.5"/>
+    <path d="M18 -22 Q24 -25 28 -20" stroke="#4A80B8" stroke-width="1.5" fill="none" opacity="0.5"/>
     <!-- Full beard - Greek philosopher style -->
-    <path d="M-20 12 Q-22 25 -18 35 Q-12 42 0 44 Q12 42 18 35 Q22 25 20 12" fill="#5B7FA5" opacity="0.6"/>
-    <path d="M-12 18 Q-10 30 -5 36" stroke="#5B7FA5" stroke-width="0.8" fill="none" opacity="0.35"/>
-    <path d="M0 16 Q0 30 0 38" stroke="#5B7FA5" stroke-width="0.8" fill="none" opacity="0.35"/>
-    <path d="M12 18 Q10 30 5 36" stroke="#5B7FA5" stroke-width="0.8" fill="none" opacity="0.35"/>
+    <path d="M-20 12 Q-22 25 -18 35 Q-12 42 0 44 Q12 42 18 35 Q22 25 20 12" fill="#4A80B8" opacity="0.6"/>
+    <path d="M-12 18 Q-10 30 -5 36" stroke="#4A80B8" stroke-width="0.8" fill="none" opacity="0.35"/>
+    <path d="M0 16 Q0 30 0 38" stroke="#4A80B8" stroke-width="0.8" fill="none" opacity="0.35"/>
+    <path d="M12 18 Q10 30 5 36" stroke="#4A80B8" stroke-width="0.8" fill="none" opacity="0.35"/>
     <!-- Eyes - contemplative, wide -->
-    <ellipse cx="-12" cy="-5" rx="4.5" ry="2.5" fill="#5B7FA5"/>
-    <ellipse cx="12" cy="-5" rx="4.5" ry="2.5" fill="#5B7FA5"/>
+    <ellipse cx="-12" cy="-5" rx="4.5" ry="2.5" fill="#4A80B8"/>
+    <ellipse cx="12" cy="-5" rx="4.5" ry="2.5" fill="#4A80B8"/>
     <!-- Brows - expressive -->
-    <path d="M-19 -10 Q-12 -14 -6 -10" stroke="#5B7FA5" stroke-width="1.8" fill="none" opacity="0.6"/>
-    <path d="M6 -10 Q12 -14 19 -10" stroke="#5B7FA5" stroke-width="1.8" fill="none" opacity="0.6"/>
+    <path d="M-19 -10 Q-12 -14 -6 -10" stroke="#4A80B8" stroke-width="1.8" fill="none" opacity="0.6"/>
+    <path d="M6 -10 Q12 -14 19 -10" stroke="#4A80B8" stroke-width="1.8" fill="none" opacity="0.6"/>
     <!-- Broad nose -->
-    <path d="M0 -2 L-4 8 Q0 11 4 8Z" fill="#5B7FA5" opacity="0.45"/>
+    <path d="M0 -2 L-4 8 Q0 11 4 8Z" fill="#4A80B8" opacity="0.45"/>
   </g>
 </svg>

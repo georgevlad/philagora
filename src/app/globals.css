@@ -1,25 +1,27 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-parchment: #FAF8F5;
-  --color-parchment-dark: #F0EBE3;
-  --color-parchment-deeper: #E5DFD5;
+  --color-parchment: #FBF7F0;
+  --color-parchment-dark: #F0E6D6;
+  --color-parchment-deeper: #E3D7C3;
+  --color-parchment-tint: #FDF8EC;
   --color-athenian: #1B3A5C;
   --color-athenian-light: #2A5580;
-  --color-terracotta: #C4703F;
-  --color-terracotta-light: #D4884F;
-  --color-ink: #3D3529;
-  --color-ink-light: #5A5147;
-  --color-ink-lighter: #8A8278;
-  --color-border: #E0D9CE;
-  --color-border-light: #EDE8E0;
+  --color-terracotta: #C05A2C;
+  --color-terracotta-light: #D47240;
+  --color-ink: #2A2118;
+  --color-ink-light: #524839;
+  --color-ink-lighter: #7D7468;
+  --color-border: #D1C7B5;
+  --color-border-light: #DFD7C8;
+  --color-gold: #B8913A;
 
-  --color-stoic: #4A6741;
-  --color-existential: #8B2500;
-  --color-feminist: #6B3A6B;
-  --color-confucian: #B8860B;
-  --color-deontological: #2F4F7F;
-  --color-classical: #CD853F;
+  --color-stoic: #3D7A35;
+  --color-existential: #A52F0F;
+  --color-feminist: #8E4DA6;
+  --color-confucian: #C89515;
+  --color-deontological: #2E5BA8;
+  --color-classical: #4A80B8;
 
   --font-serif: var(--font-playfair);
   --font-body: var(--font-dm-sans);

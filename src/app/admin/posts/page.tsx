@@ -309,7 +309,7 @@ export default function AdminPostsPage() {
                       <div
                         className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-mono font-bold"
                         style={{
-                          backgroundColor: philosopher?.color ?? "#8A8278",
+                          backgroundColor: philosopher?.color ?? "#7D7468",
                         }}
                       >
                         {philosopher?.initials ?? "??"}
@@ -389,7 +389,7 @@ export default function AdminPostsPage() {
                     <blockquote
                       className="font-serif text-[15px] leading-snug text-ink mb-2 pl-3"
                       style={{
-                        borderLeft: `3px solid ${philosopher?.color ?? "#8A8278"}`,
+                        borderLeft: `3px solid ${philosopher?.color ?? "#7D7468"}`,
                         fontWeight: 600,
                       }}
                     >
@@ -412,9 +412,9 @@ export default function AdminPostsPage() {
                     <div
                       className="flex items-center gap-2 mb-3 px-3 py-2 rounded-md text-xs font-mono"
                       style={{
-                        backgroundColor: `${philosopher?.color ?? "#8A8278"}08`,
-                        border: `1px solid ${philosopher?.color ?? "#8A8278"}20`,
-                        color: philosopher?.color ?? "#8A8278",
+                        backgroundColor: `${philosopher?.color ?? "#7D7468"}08`,
+                        border: `1px solid ${philosopher?.color ?? "#7D7468"}20`,
+                        color: philosopher?.color ?? "#7D7468",
                       }}
                     >
                       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 opacity-60">
@@ -439,9 +439,9 @@ export default function AdminPostsPage() {
                         <span
                           className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-mono tracking-wide rounded"
                           style={{
-                            backgroundColor: `${philosopher?.color ?? "#8A8278"}10`,
-                            color: philosopher?.color ?? "#8A8278",
-                            border: `1px solid ${philosopher?.color ?? "#8A8278"}25`,
+                            backgroundColor: `${philosopher?.color ?? "#7D7468"}10`,
+                            color: philosopher?.color ?? "#7D7468",
+                            border: `1px solid ${philosopher?.color ?? "#7D7468"}25`,
                           }}
                         >
                           {post.tag}

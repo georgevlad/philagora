@@ -1,38 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
-  <rect width="200" height="200" rx="100" fill="#2E6B5A" opacity="0.12"/>
+  <rect width="200" height="200" rx="100" fill="#2D7E68" opacity="0.12"/>
   <g transform="translate(100,100)">
     <!-- Neck -->
-    <path d="M-14 28 Q-14 42 -20 58 L20 58 Q14 42 14 28Z" fill="#2E6B5A" opacity="0.7"/>
+    <path d="M-14 28 Q-14 42 -20 58 L20 58 Q14 42 14 28Z" fill="#2D7E68" opacity="0.7"/>
     <!-- Tweed suit / academic -->
-    <path d="M-20 58 Q-48 63 -75 80 L-75 100 L75 100 L75 80 Q48 63 20 58Z" fill="#2E6B5A" opacity="0.5"/>
-    <path d="M-12 58 L-16 78 L-6 76 L-5 60Z" fill="#2E6B5A" opacity="0.35"/>
-    <path d="M12 58 L16 78 L6 76 L5 60Z" fill="#2E6B5A" opacity="0.35"/>
-    <path d="M-5 58 L-3 70 L3 70 L5 58Z" fill="#2E6B5A" opacity="0.28"/>
+    <path d="M-20 58 Q-48 63 -75 80 L-75 100 L75 100 L75 80 Q48 63 20 58Z" fill="#2D7E68" opacity="0.5"/>
+    <path d="M-12 58 L-16 78 L-6 76 L-5 60Z" fill="#2D7E68" opacity="0.35"/>
+    <path d="M12 58 L16 78 L6 76 L5 60Z" fill="#2D7E68" opacity="0.35"/>
+    <path d="M-5 58 L-3 70 L3 70 L5 58Z" fill="#2D7E68" opacity="0.28"/>
     <!-- Head - lean, angular -->
-    <ellipse cx="0" cy="-4" rx="28" ry="35" fill="#2E6B5A" opacity="0.7"/>
+    <ellipse cx="0" cy="-4" rx="28" ry="35" fill="#2D7E68" opacity="0.7"/>
     <!-- Hair - white/silver, wispy, older Russell -->
-    <path d="M-26 -10 Q-28 -20 -22 -32 Q-15 -40 -5 -38 Q5 -40 15 -38 Q22 -32 26 -20 Q28 -14 26 -10" fill="#2E6B5A" opacity="0.7"/>
+    <path d="M-26 -10 Q-28 -20 -22 -32 Q-15 -40 -5 -38 Q5 -40 15 -38 Q22 -32 26 -20 Q28 -14 26 -10" fill="#2D7E68" opacity="0.7"/>
     <!-- Wispy texture -->
-    <path d="M-18 -28 Q-14 -32 -8 -30" stroke="#2E6B5A" stroke-width="1" fill="none" opacity="0.4"/>
-    <path d="M8 -30 Q14 -32 18 -28" stroke="#2E6B5A" stroke-width="1" fill="none" opacity="0.4"/>
+    <path d="M-18 -28 Q-14 -32 -8 -30" stroke="#2D7E68" stroke-width="1" fill="none" opacity="0.4"/>
+    <path d="M8 -30 Q14 -32 18 -28" stroke="#2D7E68" stroke-width="1" fill="none" opacity="0.4"/>
     <!-- Pipe -->
-    <path d="M-14 14 Q-20 12 -24 14 Q-28 18 -28 22 Q-28 26 -24 26 Q-22 26 -22 22 Q-22 18 -20 14" fill="#2E6B5A" opacity="0.5"/>
-    <line x1="-14" y1="14" x2="-14" y2="12" stroke="#2E6B5A" stroke-width="1.5" opacity="0.4"/>
+    <path d="M-14 14 Q-20 12 -24 14 Q-28 18 -28 22 Q-28 26 -24 26 Q-22 26 -22 22 Q-22 18 -20 14" fill="#2D7E68" opacity="0.5"/>
+    <line x1="-14" y1="14" x2="-14" y2="12" stroke="#2D7E68" stroke-width="1.5" opacity="0.4"/>
     <!-- Eyes - sharp, twinkling -->
-    <ellipse cx="-10" cy="-4" rx="4" ry="2.5" fill="#2E6B5A"/>
-    <ellipse cx="10" cy="-4" rx="4" ry="2.5" fill="#2E6B5A"/>
+    <ellipse cx="-10" cy="-4" rx="4" ry="2.5" fill="#2D7E68"/>
+    <ellipse cx="10" cy="-4" rx="4" ry="2.5" fill="#2D7E68"/>
     <!-- Raised, expressive brows -->
-    <path d="M-16 -10 Q-10 -14 -5 -10" stroke="#2E6B5A" stroke-width="1.5" fill="none" opacity="0.65"/>
-    <path d="M5 -10 Q10 -14 16 -10" stroke="#2E6B5A" stroke-width="1.5" fill="none" opacity="0.65"/>
+    <path d="M-16 -10 Q-10 -14 -5 -10" stroke="#2D7E68" stroke-width="1.5" fill="none" opacity="0.65"/>
+    <path d="M5 -10 Q10 -14 16 -10" stroke="#2D7E68" stroke-width="1.5" fill="none" opacity="0.65"/>
     <!-- Prominent nose -->
-    <path d="M0 -2 L-3 8 Q0 11 3 8Z" fill="#2E6B5A" opacity="0.5"/>
+    <path d="M0 -2 L-3 8 Q0 11 3 8Z" fill="#2D7E68" opacity="0.5"/>
     <!-- Slight wry smile -->
-    <path d="M-7 16 Q0 19 7 16" stroke="#2E6B5A" stroke-width="1.2" fill="none" opacity="0.45"/>
+    <path d="M-7 16 Q0 19 7 16" stroke="#2D7E68" stroke-width="1.2" fill="none" opacity="0.45"/>
     <!-- Age lines / wrinkles -->
-    <path d="M-20 -1 Q-18 2 -16 0" stroke="#2E6B5A" stroke-width="0.8" fill="none" opacity="0.25"/>
-    <path d="M16 0 Q18 2 20 -1" stroke="#2E6B5A" stroke-width="0.8" fill="none" opacity="0.25"/>
+    <path d="M-20 -1 Q-18 2 -16 0" stroke="#2D7E68" stroke-width="0.8" fill="none" opacity="0.25"/>
+    <path d="M16 0 Q18 2 20 -1" stroke="#2D7E68" stroke-width="0.8" fill="none" opacity="0.25"/>
     <!-- Prominent ears -->
-    <ellipse cx="-28" cy="-2" rx="5" ry="8" fill="#2E6B5A" opacity="0.45"/>
-    <ellipse cx="28" cy="-2" rx="5" ry="8" fill="#2E6B5A" opacity="0.45"/>
+    <ellipse cx="-28" cy="-2" rx="5" ry="8" fill="#2D7E68" opacity="0.45"/>
+    <ellipse cx="28" cy="-2" rx="5" ry="8" fill="#2D7E68" opacity="0.45"/>
   </g>
 </svg>

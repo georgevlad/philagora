@@ -113,10 +113,10 @@ function NeutralSynthesisCard({
       ref={ref}
       className="animate-fade-in-up mx-3 sm:mx-5 my-6 rounded-lg overflow-hidden"
       style={{
-        backgroundColor: "rgba(240, 235, 227, 0.5)",
-        borderTop: "2px dashed var(--color-border)",
+        backgroundColor: "rgba(240, 230, 214, 0.5)",
+        borderTop: "2px solid var(--color-border)",
         border: "1px solid var(--color-border-light)",
-        borderTopStyle: "dashed",
+        borderTopStyle: "solid",
       }}
     >
       <div className="px-5 py-3 flex items-center gap-3">
