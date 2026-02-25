@@ -8,13 +8,13 @@
 export type TargetLength = "short" | "medium" | "long";
 
 const STANDARD_LENGTHS: Record<TargetLength, string> = {
-  short: "Length: 40–80 words. Be terse. One paragraph max. One sharp observation.",
+  short: "STRICT LENGTH: 30–50 words. Maximum 2 sentences. Be brutally concise — one piercing observation, no elaboration, no preamble, no conclusion. Think tweet, not essay.",
   medium: "Length: 80–150 words. A developed reaction with nuance.",
   long: "Length: 150–250 words. A deeper analysis with more nuance. Multiple paragraphs allowed.",
 };
 
 const REFLECTION_LENGTHS: Record<TargetLength, string> = {
-  short: "Length: 30–60 words. Be terse. One paragraph max. A single aphorism.",
+  short: "STRICT LENGTH: 30–50 words. Maximum 2 sentences. Be brutally concise — one piercing insight, no elaboration, no preamble, no conclusion. Think tweet, not essay.",
   medium: "Length: 60–120 words. A developed reflection.",
   long: "Length: 120–200 words. An extended meditation. Multiple paragraphs allowed.",
 };

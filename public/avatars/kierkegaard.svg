@@ -1,33 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
-  <rect width="200" height="200" rx="100" fill="#5B7590" opacity="0.12"/>
+  <rect width="200" height="200" rx="100" fill="#5B7590" opacity="0.25"/>
   <g transform="translate(100,100)">
     <!-- Neck with high collar -->
-    <path d="M-14 28 Q-14 42 -20 58 L20 58 Q14 42 14 28Z" fill="#5B7590" opacity="0.7"/>
+    <path d="M-14 28 Q-14 42 -20 58 L20 58 Q14 42 14 28Z" fill="#5B7590" opacity="0.95"/>
     <!-- High collar / cravat -->
-    <path d="M-14 28 Q-16 32 -18 38 L-10 38 Q-8 34 -8 28Z" fill="#5B7590" opacity="0.55"/>
-    <path d="M14 28 Q16 32 18 38 L10 38 Q8 34 8 28Z" fill="#5B7590" opacity="0.55"/>
+    <path d="M-14 28 Q-16 32 -18 38 L-10 38 Q-8 34 -8 28Z" fill="#5B7590" opacity="0.77"/>
+    <path d="M14 28 Q16 32 18 38 L10 38 Q8 34 8 28Z" fill="#5B7590" opacity="0.77"/>
     <!-- Frock coat -->
-    <path d="M-20 58 Q-48 63 -75 80 L-75 100 L75 100 L75 80 Q48 63 20 58Z" fill="#5B7590" opacity="0.5"/>
+    <path d="M-20 58 Q-48 63 -75 80 L-75 100 L75 100 L75 80 Q48 63 20 58Z" fill="#5B7590" opacity="0.7"/>
     <!-- Head - slightly elongated -->
-    <ellipse cx="0" cy="-5" rx="28" ry="36" fill="#5B7590" opacity="0.7"/>
+    <ellipse cx="0" cy="-5" rx="28" ry="36" fill="#5B7590" opacity="0.95"/>
     <!-- Wild, unruly hair - Kierkegaard's famous messy hair -->
-    <path d="M-26 -12 Q-30 -25 -24 -38 Q-18 -48 -8 -46 Q-2 -50 5 -48 Q15 -50 22 -44 Q28 -35 30 -22 Q32 -15 28 -10" fill="#5B7590" opacity="0.82"/>
+    <path d="M-26 -12 Q-30 -25 -24 -38 Q-18 -48 -8 -46 Q-2 -50 5 -48 Q15 -50 22 -44 Q28 -35 30 -22 Q32 -15 28 -10" fill="#5B7590" opacity="0.95"/>
     <!-- Tufts sticking up -->
-    <path d="M-15 -44 Q-18 -52 -12 -54 Q-8 -52 -8 -46" fill="#5B7590" opacity="0.7"/>
-    <path d="M-2 -48 Q0 -56 5 -55 Q8 -52 5 -48" fill="#5B7590" opacity="0.7"/>
-    <path d="M15 -46 Q20 -52 18 -55 Q14 -54 12 -48" fill="#5B7590" opacity="0.7"/>
+    <path d="M-15 -44 Q-18 -52 -12 -54 Q-8 -52 -8 -46" fill="#5B7590" opacity="0.95"/>
+    <path d="M-2 -48 Q0 -56 5 -55 Q8 -52 5 -48" fill="#5B7590" opacity="0.95"/>
+    <path d="M15 -46 Q20 -52 18 -55 Q14 -54 12 -48" fill="#5B7590" opacity="0.95"/>
     <!-- Eyes - melancholic, deep -->
     <ellipse cx="-10" cy="-5" rx="4" ry="2.5" fill="#5B7590"/>
     <ellipse cx="10" cy="-5" rx="4" ry="2.5" fill="#5B7590"/>
     <!-- Slightly downturned brows - brooding -->
-    <path d="M-16 -10 Q-10 -12 -5 -11" stroke="#5B7590" stroke-width="1.5" fill="none" opacity="0.65"/>
-    <path d="M5 -11 Q10 -12 16 -10" stroke="#5B7590" stroke-width="1.5" fill="none" opacity="0.65"/>
+    <path d="M-16 -10 Q-10 -12 -5 -11" stroke="#5B7590" stroke-width="2.5" fill="none" opacity="0.91"/>
+    <path d="M5 -11 Q10 -12 16 -10" stroke="#5B7590" stroke-width="2.5" fill="none" opacity="0.91"/>
     <!-- Long pointed nose -->
-    <path d="M0 -2 L-3 9 Q0 12 3 9Z" fill="#5B7590" opacity="0.5"/>
+    <path d="M0 -2 L-3 9 Q0 12 3 9Z" fill="#5B7590" opacity="0.7"/>
     <!-- Thin lips, slightly downturned -->
-    <path d="M-7 16 Q0 14 7 16" stroke="#5B7590" stroke-width="1.2" fill="none" opacity="0.5"/>
+    <path d="M-7 16 Q0 14 7 16" stroke="#5B7590" stroke-width="2" fill="none" opacity="0.7"/>
     <!-- Sideburns -->
-    <path d="M-24 -5 Q-26 5 -24 15 Q-22 20 -18 18 Q-20 10 -22 0Z" fill="#5B7590" opacity="0.55"/>
-    <path d="M24 -5 Q26 5 24 15 Q22 20 18 18 Q20 10 22 0Z" fill="#5B7590" opacity="0.55"/>
+    <path d="M-24 -5 Q-26 5 -24 15 Q-22 20 -18 18 Q-20 10 -22 0Z" fill="#5B7590" opacity="0.77"/>
+    <path d="M24 -5 Q26 5 24 15 Q22 20 18 18 Q20 10 22 0Z" fill="#5B7590" opacity="0.77"/>
   </g>
 </svg>

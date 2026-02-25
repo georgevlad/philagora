@@ -15,8 +15,15 @@ import {
 // ── Configuration ────────────────────────────────────────────────────
 
 const MODEL = "claude-sonnet-4-20250514";
-const MAX_TOKENS = 1024;
+const DEFAULT_MAX_TOKENS = 1024;
 const TEMPERATURE = 0.8; // Tunable — higher = more creative variation
+
+/** Hard-cap tokens by target length to enforce brevity at the API level. */
+const LENGTH_MAX_TOKENS: Record<string, number> = {
+  short: 256,
+  medium: 1024,
+  long: 1536,
+};
 
 const SYNTHESIS_TEMPERATURE = 0.4; // Lower for precision and consistency
 const SYNTHESIS_MAX_TOKENS = 2048; // Synthesis output is longer
@@ -184,12 +191,16 @@ ${instructions}`;
     };
   }
 
+  const maxTokens = targetLength
+    ? (LENGTH_MAX_TOKENS[targetLength] ?? DEFAULT_MAX_TOKENS)
+    : DEFAULT_MAX_TOKENS;
+
   let rawOutput = "";
 
   try {
     const response = await client.messages.create({
       model: MODEL,
-      max_tokens: MAX_TOKENS,
+      max_tokens: maxTokens,
       temperature: TEMPERATURE,
       system: systemMessage,
       messages: [{ role: "user", content: userMessage }],

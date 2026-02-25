@@ -32,7 +32,7 @@ export function PhilosopherAvatar({
     <div
       className={`${classes} rounded-full shrink-0 transition-transform duration-200 hover:scale-105 relative overflow-hidden`}
       style={{
-        boxShadow: `0 0 0 ${ring}px ${color}30`,
+        boxShadow: `0 0 0 ${ring}px ${color}50`,
       }}
       title={name}
     >
