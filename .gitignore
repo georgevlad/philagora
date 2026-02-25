@@ -36,8 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
-# sqlite database
-db/*.db
+# sqlite WAL/SHM journal files (not the database itself)
+db/*.db-shm
+db/*.db-wal
 
 # typescript
 *.tsbuildinfo
