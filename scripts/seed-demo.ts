@@ -583,6 +583,7 @@ async function main() {
     console.log(`\u{1F4CB} Dry run complete. ${postIndex} posts would be generated.`);
   } else {
     console.log(`\u2705 Done! ${postIndex} posts generated. ${totalPosts} total published posts in DB.`);
+    console.log(`\n\u{1F4F7} Run 'npx tsx scripts/backfill-og-images.ts' to fetch article thumbnails`);
   }
   console.log("");
 }
