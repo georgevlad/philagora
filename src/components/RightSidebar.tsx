@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { activeDebates } from "@/data/debates";
-import { getPhilosophersMap } from "@/lib/data";
+import { getPhilosophersMap, getAllDebates } from "@/lib/data";
 import { PhilosopherAvatar } from "./PhilosopherAvatar";
 
 export function RightSidebar() {
   const philosophersMap = getPhilosophersMap();
+  const debates = getAllDebates();
 
   return (
     <aside className="hidden xl:block w-72 shrink-0 sticky top-0 h-screen overflow-y-auto py-6 px-4 border-l border-border-light">
@@ -14,7 +14,7 @@ export function RightSidebar() {
           Active Debates
         </h3>
         <div className="space-y-3">
-          {activeDebates.map((debate) => (
+          {debates.map((debate) => (
             <Link
               key={debate.id}
               href={`/debates/${debate.id}`}

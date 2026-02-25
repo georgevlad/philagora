@@ -1,10 +1,7 @@
 "use client";
 
-import { use } from "react";
 import Link from "next/link";
-import { debates } from "@/data/debates";
-import type { Philosopher } from "@/lib/types";
-import type { DebatePost as DebatePostType } from "@/data/debates";
+import type { Philosopher, DebateDetail, DebatePost } from "@/lib/types";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
@@ -17,7 +14,7 @@ function DebatePostCard({
   delay,
   philosophersMap,
 }: {
-  post: DebatePostType;
+  post: DebatePost;
   delay: number;
   philosophersMap: Record<string, Philosopher>;
 }) {
@@ -172,26 +169,14 @@ function NeutralSynthesisCard({
 }
 
 export function DebatePageClient({
-  debateId,
+  debate,
   philosophersMap,
   philosophers,
 }: {
-  debateId: string;
+  debate: DebateDetail;
   philosophersMap: Record<string, Philosopher>;
   philosophers: Philosopher[];
 }) {
-  const debate = debates[debateId];
-
-  if (!debate) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-ink-lighter">Debate not found.</p>
-      </div>
-    );
-  }
-
-  const openingPosts = debate.posts.filter((p) => p.phase === "opening");
-  const rebuttalPosts = debate.posts.filter((p) => p.phase === "rebuttal");
   const isComplete = debate.status === "Complete";
   const isScheduled = debate.status === "Scheduled";
 
@@ -230,13 +215,13 @@ export function DebatePageClient({
               >
                 {debate.status}
               </span>
-              <span>{debate.date}</span>
+              <span>{debate.debateDate}</span>
             </div>
 
             {/* Trigger article */}
-            {debate.triggerArticle.url ? (
+            {debate.triggerArticleUrl ? (
               <a
-                href={debate.triggerArticle.url}
+                href={debate.triggerArticleUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-3 py-2 rounded border border-border-light hover:border-border transition-colors duration-200 mb-4 group"
@@ -258,11 +243,11 @@ export function DebatePageClient({
                 <span className="text-xs text-ink-light group-hover:text-athenian transition-colors">
                   Triggered by:{" "}
                   <span className="font-medium">
-                    {debate.triggerArticle.title}
+                    {debate.triggerArticleTitle}
                   </span>
                 </span>
                 <span className="text-xs text-ink-lighter">
-                  &mdash; {debate.triggerArticle.source}
+                  &mdash; {debate.triggerArticleSource}
                 </span>
                 <svg
                   width="12"
@@ -296,11 +281,11 @@ export function DebatePageClient({
                 <span className="text-xs text-ink-light">
                   Triggered by:{" "}
                   <span className="font-medium">
-                    {debate.triggerArticle.title}
+                    {debate.triggerArticleTitle}
                   </span>
                 </span>
                 <span className="text-xs text-ink-lighter">
-                  &mdash; {debate.triggerArticle.source}
+                  &mdash; {debate.triggerArticleSource}
                 </span>
               </div>
             )}
@@ -341,33 +326,33 @@ export function DebatePageClient({
           {isScheduled && (
             <div className="px-5 py-12 text-center">
               <p className="text-ink-lighter text-sm font-mono">
-                This debate has not yet begun. Check back on {debate.date}.
+                This debate has not yet begun. Check back on {debate.debateDate}.
               </p>
             </div>
           )}
 
           {/* Opening Statements */}
-          {openingPosts.length > 0 && (
+          {debate.openings.length > 0 && (
             <>
               <PhaseLabel label="Opening Statements" />
-              {openingPosts.map((post, i) => (
+              {debate.openings.map((post, i) => (
                 <DebatePostCard key={post.id} post={post} delay={i} philosophersMap={philosophersMap} />
               ))}
             </>
           )}
 
           {/* Rebuttals */}
-          {rebuttalPosts.length > 0 && (
+          {debate.rebuttals.length > 0 && (
             <>
               <PhaseLabel label="Rebuttals" />
-              {rebuttalPosts.map((post, i) => (
+              {debate.rebuttals.map((post, i) => (
                 <DebatePostCard key={post.id} post={post} delay={i} philosophersMap={philosophersMap} />
               ))}
             </>
           )}
 
           {/* In Progress indicator */}
-          {debate.status === "In Progress" && openingPosts.length > 0 && (
+          {debate.status === "In Progress" && debate.openings.length > 0 && (
             <div className="px-5 py-8 text-center border-t border-border-light">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-terracotta/10 text-terracotta text-sm font-mono">
                 <span className="w-2 h-2 rounded-full bg-terracotta animate-pulse" />
@@ -377,13 +362,13 @@ export function DebatePageClient({
           )}
 
           {/* Synthesis (Complete debates only) */}
-          {isComplete && debate.synthesisSummary.agree && (
+          {isComplete && debate.synthesisSummaryAgree && (
             <>
               <PhaseLabel label="Synthesis" />
               <NeutralSynthesisCard
-                agree={debate.synthesisSummary.agree}
-                diverge={debate.synthesisSummary.diverge}
-                unresolvedQuestion={debate.synthesisSummary.unresolvedQuestion}
+                agree={debate.synthesisSummaryAgree}
+                diverge={debate.synthesisSummaryDiverge}
+                unresolvedQuestion={debate.synthesisSummaryUnresolved}
               />
             </>
           )}

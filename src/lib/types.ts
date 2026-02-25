@@ -54,3 +54,78 @@ export interface Philosopher {
   keyWorks: string[];
   corePrinciples: { title: string; description: string }[];
 }
+
+// ── Debates ──────────────────────────────────────────────────
+
+export interface DebateListItem {
+  id: string;
+  title: string;
+  status: "Complete" | "In Progress" | "Scheduled";
+  debateDate: string;
+  triggerArticleTitle: string;
+  triggerArticleSource: string;
+  triggerArticleUrl: string | null;
+  philosophers: string[];
+  firstPostPreview: string;
+}
+
+export interface DebatePost {
+  id: string;
+  philosopherId: string;
+  content: string;
+  phase: "opening" | "cross-examination" | "rebuttal" | "synthesis";
+  replyTo: string | null;
+  sortOrder: number;
+  philosopherName: string;
+  philosopherColor: string;
+  philosopherInitials: string;
+  philosopherTradition: string;
+}
+
+export interface DebateDetail {
+  id: string;
+  title: string;
+  status: "Complete" | "In Progress" | "Scheduled";
+  debateDate: string;
+  triggerArticleTitle: string;
+  triggerArticleSource: string;
+  triggerArticleUrl: string | null;
+  philosophers: string[];
+  openings: DebatePost[];
+  rebuttals: DebatePost[];
+  synthesisTensions: string[];
+  synthesisAgreements: string[];
+  synthesisQuestions: string[];
+  synthesisSummaryAgree: string;
+  synthesisSummaryDiverge: string;
+  synthesisSummaryUnresolved: string;
+}
+
+// ── Agora ────────────────────────────────────────────────────
+
+export interface AgoraResponse {
+  philosopherId: string;
+  philosopherName: string;
+  philosopherColor: string;
+  philosopherInitials: string;
+  philosopherTradition: string;
+  posts: string[];
+  sortOrder: number;
+}
+
+export interface AgoraSynthesis {
+  tensions: string[];
+  agreements: string[];
+  practicalTakeaways: string[];
+}
+
+export interface AgoraThreadDetail {
+  id: string;
+  question: string;
+  askedBy: string;
+  status: string;
+  createdAt: string;
+  philosophers: string[];
+  responses: AgoraResponse[];
+  synthesis: AgoraSynthesis | null;
+}

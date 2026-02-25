@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { debatesList } from "@/data/debates";
-import type { Philosopher } from "@/lib/types";
+import type { Philosopher, DebateListItem } from "@/lib/types";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
@@ -14,15 +13,12 @@ function DebateListCard({
   index,
   philosophersMap,
 }: {
-  debate: (typeof debatesList)[0];
+  debate: DebateListItem;
   index: number;
   philosophersMap: Record<string, Philosopher>;
 }) {
   const ref = useScrollReveal(index);
-  const firstPost = debate.posts[0];
-  const preview = firstPost
-    ? firstPost.content.slice(0, 120) + (firstPost.content.length > 120 ? "..." : "")
-    : "Debate not yet started.";
+  const preview = debate.firstPostPreview || "Debate not yet started.";
 
   return (
     <Link href={`/debates/${debate.id}`}>
@@ -43,7 +39,7 @@ function DebateListCard({
           >
             {debate.status}
           </span>
-          <span className="text-xs text-ink-lighter">{debate.date}</span>
+          <span className="text-xs text-ink-lighter">{debate.debateDate}</span>
         </div>
 
         <h3 className="font-serif text-lg font-bold text-ink leading-snug mb-2">
@@ -66,7 +62,7 @@ function DebateListCard({
             <path d="M6 9H8" strokeLinecap="round" />
           </svg>
           <span>
-            {debate.triggerArticle.title} &mdash; {debate.triggerArticle.source}
+            {debate.triggerArticleTitle} &mdash; {debate.triggerArticleSource}
           </span>
         </div>
 
@@ -108,9 +104,11 @@ function DebateListCard({
 export function DebatesPageClient({
   philosophersMap,
   philosophers,
+  debates,
 }: {
   philosophersMap: Record<string, Philosopher>;
   philosophers: Philosopher[];
+  debates: DebateListItem[];
 }) {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0">
@@ -129,14 +127,20 @@ export function DebatesPageClient({
           </div>
 
           <div className="px-5 py-6">
-            {debatesList.map((debate, i) => (
-              <DebateListCard
-                key={debate.id}
-                debate={debate}
-                index={i}
-                philosophersMap={philosophersMap}
-              />
-            ))}
+            {debates.length > 0 ? (
+              debates.map((debate, i) => (
+                <DebateListCard
+                  key={debate.id}
+                  debate={debate}
+                  index={i}
+                  philosophersMap={philosophersMap}
+                />
+              ))
+            ) : (
+              <p className="text-center text-ink-lighter py-12 font-mono text-sm">
+                No debates yet.
+              </p>
+            )}
           </div>
 
           <Footer />

@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { agoraThreads } from "@/data/agora";
-import type { Philosopher } from "@/lib/types";
+import type { Philosopher, AgoraThreadDetail } from "@/lib/types";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
@@ -86,7 +85,7 @@ function AgoraThreadCardExpanded({
   index,
   philosophersMap,
 }: {
-  thread: (typeof agoraThreads)[0];
+  thread: AgoraThreadDetail;
   index: number;
   philosophersMap: Record<string, Philosopher>;
 }) {
@@ -107,7 +106,7 @@ function AgoraThreadCardExpanded({
             <path d="M6 6.5C6 5.5 6.8 5 8 5C9.2 5 10 5.7 10 6.5C10 7.5 8 7.5 8 9" strokeLinecap="round" />
             <circle cx="8" cy="11" r="0.5" fill="currentColor" />
           </svg>
-          {thread.askedBy} &middot; {thread.timestamp}
+          {thread.askedBy} &middot; {thread.createdAt}
         </div>
         <h3 className="font-serif text-lg font-bold text-ink leading-snug">
           &ldquo;{thread.question}&rdquo;
@@ -145,12 +144,14 @@ function AgoraThreadCardExpanded({
       ))}
 
       {/* Synthesis */}
-      <SynthesisCard
-        tensions={thread.synthesis.tensions}
-        agreements={thread.synthesis.agreements}
-        questionsOrTakeaways={thread.synthesis.practicalTakeaways}
-        questionsLabel="Practical Takeaways"
-      />
+      {thread.synthesis && (
+        <SynthesisCard
+          tensions={thread.synthesis.tensions}
+          agreements={thread.synthesis.agreements}
+          questionsOrTakeaways={thread.synthesis.practicalTakeaways}
+          questionsLabel="Practical Takeaways"
+        />
+      )}
     </div>
   );
 }
@@ -159,7 +160,7 @@ function AgoraThreadCardCollapsed({
   thread,
   philosophersMap,
 }: {
-  thread: (typeof agoraThreads)[0];
+  thread: AgoraThreadDetail;
   philosophersMap: Record<string, Philosopher>;
 }) {
   const ref = useScrollReveal();
@@ -184,7 +185,7 @@ function AgoraThreadCardCollapsed({
             <path d="M6 6.5C6 5.5 6.8 5 8 5C9.2 5 10 5.7 10 6.5C10 7.5 8 7.5 8 9" strokeLinecap="round" />
             <circle cx="8" cy="11" r="0.5" fill="currentColor" />
           </svg>
-          {thread.askedBy} &middot; {thread.timestamp}
+          {thread.askedBy} &middot; {thread.createdAt}
         </div>
         <h3 className="font-serif text-lg font-bold text-ink leading-snug mb-3">
           &ldquo;{thread.question}&rdquo;
@@ -216,12 +217,14 @@ function AgoraThreadCardCollapsed({
 export function AgoraPageClient({
   philosophersMap,
   philosophers,
+  threads,
 }: {
   philosophersMap: Record<string, Philosopher>;
   philosophers: Philosopher[];
+  threads: AgoraThreadDetail[];
 }) {
-  const firstThread = agoraThreads[0];
-  const remainingThreads = agoraThreads.slice(1);
+  const firstThread = threads[0];
+  const remainingThreads = threads.slice(1);
 
   // Philosopher IDs for the hero arc
   const heroPhilosophers = ["seneca", "kierkegaard", "confucius", "camus", "plato", "jung"];
