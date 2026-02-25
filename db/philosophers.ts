@@ -1,4 +1,10 @@
-export interface Philosopher {
+/**
+ * Canonical philosopher definitions used by db/seed.ts to bootstrap the database.
+ * The Philosopher interface is defined in src/lib/types.ts; this file uses a
+ * local shape that matches the seed insert to avoid coupling to the app types.
+ */
+
+export interface PhilosopherSeed {
   id: string;
   name: string;
   tradition: string;
@@ -13,7 +19,7 @@ export interface Philosopher {
   corePrinciples: { title: string; description: string }[];
 }
 
-export const philosophers: Record<string, Philosopher> = {
+export const philosophers: Record<string, PhilosopherSeed> = {
   "marcus-aurelius": {
     id: "marcus-aurelius",
     name: "Marcus Aurelius",
@@ -458,5 +464,3 @@ export const philosophers: Record<string, Philosopher> = {
     ],
   },
 };
-
-export const philosopherList = Object.values(philosophers);
