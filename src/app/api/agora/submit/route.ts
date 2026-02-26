@@ -131,50 +131,63 @@ async function runGeneration(
   try {
     const db = getDb();
 
-    // 1. Generate each philosopher's response sequentially
+    // 1. Generate each philosopher's response sequentially (with one retry)
     for (let i = 0; i < philosopherIds.length; i++) {
       const pid = philosopherIds[i];
-      try {
-        const sourceMaterial = `USER QUESTION:\n${question}\n\nAsked by: ${askedBy}\n\nRespond to this person's situation through your philosophical framework.`;
+      const sourceMaterial = `USER QUESTION:\n${question}\n\nAsked by: ${askedBy}\n\nRespond to this person's situation through your philosophical framework.`;
+      const maxAttempts = 2;
 
-        const outcome = await generateContent(
-          pid,
-          "agora_response",
-          sourceMaterial
-        );
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const outcome = await generateContent(
+            pid,
+            "agora_response",
+            sourceMaterial
+          );
 
-        // Log to generation_log
-        const status = outcome.success ? "generated" : "rejected";
-        const rawOutput = outcome.success
-          ? JSON.stringify(outcome.data, null, 2)
-          : outcome.rawOutput || outcome.error;
-
-        db.prepare(
-          `INSERT INTO generation_log (philosopher_id, content_type, system_prompt_id, user_input, raw_output, status)
-           VALUES (?, 'agora_response', ?, ?, ?, ?)`
-        ).run(pid, outcome.systemPromptId, sourceMaterial, rawOutput, status);
-
-        if (outcome.success) {
-          const responseId = crypto.randomUUID();
-          const posts = (outcome.data as { posts: string[] }).posts;
+          // Log to generation_log
+          const logStatus = outcome.success ? "generated" : "rejected";
+          const rawOutput = outcome.success
+            ? JSON.stringify(outcome.data, null, 2)
+            : outcome.rawOutput || outcome.error;
 
           db.prepare(
-            `INSERT INTO agora_responses (id, thread_id, philosopher_id, posts, sort_order)
-             VALUES (?, ?, ?, ?, ?)`
-          ).run(
-            responseId,
-            threadId,
-            pid,
-            JSON.stringify(posts),
-            i
+            `INSERT INTO generation_log (philosopher_id, content_type, system_prompt_id, user_input, raw_output, status)
+             VALUES (?, 'agora_response', ?, ?, ?, ?)`
+          ).run(pid, outcome.systemPromptId, sourceMaterial, rawOutput, logStatus);
+
+          if (outcome.success) {
+            const responseId = crypto.randomUUID();
+            const posts = (outcome.data as { posts: string[] }).posts;
+
+            db.prepare(
+              `INSERT INTO agora_responses (id, thread_id, philosopher_id, posts, sort_order)
+               VALUES (?, ?, ?, ?, ?)`
+            ).run(
+              responseId,
+              threadId,
+              pid,
+              JSON.stringify(posts),
+              i
+            );
+            break; // Success — move to next philosopher
+          }
+
+          // Failed — retry if we have attempts left
+          if (attempt < maxAttempts) {
+            console.warn(
+              `Agora: retrying ${pid} (attempt ${attempt} failed)`
+            );
+            continue;
+          }
+          // Exhausted retries — move to next philosopher
+        } catch (err) {
+          console.error(
+            `Agora generation failed for philosopher ${pid} (attempt ${attempt}):`,
+            err
           );
+          if (attempt >= maxAttempts) break; // Exhausted retries
         }
-      } catch (err) {
-        console.error(
-          `Agora generation failed for philosopher ${pid}:`,
-          err
-        );
-        // Continue with the next philosopher
       }
     }
 

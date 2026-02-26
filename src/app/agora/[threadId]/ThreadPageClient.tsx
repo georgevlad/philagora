@@ -283,12 +283,6 @@ export function ThreadPageClient({
           <p className="text-sm text-ink-lighter font-body mb-6">
             This discussion may have been removed or never existed.
           </p>
-          <Link
-            href="/agora"
-            className="inline-flex items-center gap-2 text-sm font-mono text-athenian hover:text-terracotta transition-colors"
-          >
-            ← Back to the Agora
-          </Link>
         </div>
       </PageWrapper>
     );
@@ -316,30 +310,6 @@ export function ThreadPageClient({
 
   return (
     <PageWrapper philosophers={philosophers}>
-      {/* Back link */}
-      <div className="px-5 py-3 border-b border-border-light">
-        <Link
-          href="/agora"
-          className="inline-flex items-center gap-2 text-sm font-mono text-ink-lighter hover:text-athenian transition-colors duration-200"
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          >
-            <path
-              d="M10 3L5 8L10 13"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          Back to Agora
-        </Link>
-      </div>
-
       {/* ── Question header ──────────────────────────────────────── */}
       <div className="px-5 py-5 bg-parchment-dark/40 border-b border-border-light">
         <div className="flex items-center gap-2 mb-2 text-[11px] font-mono text-ink-lighter">
@@ -429,7 +399,29 @@ export function ThreadPageClient({
           }
 
           // Thread is complete but philosopher has no response (generation failed)
-          return null;
+          return (
+            <div
+              key={philosopher.id}
+              className="px-5 py-5 border-b border-border-light/60"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <PhilosopherAvatar
+                  philosopherId={philosopher.id}
+                  name={philosopher.name}
+                  color={philosopher.color}
+                  initials={philosopher.initials}
+                  size="sm"
+                />
+                <span className="font-serif font-bold text-ink">
+                  {philosopher.name}
+                </span>
+              </div>
+              <p className="text-sm text-ink-lighter italic">
+                {philosopher.name} was unable to respond to this question. This
+                can happen occasionally — try asking again.
+              </p>
+            </div>
+          );
         })}
       </div>
 
