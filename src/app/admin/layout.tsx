@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { verifyAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
+import { AdminLogoutButton } from "./AdminLogoutButton";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: "📊" },
@@ -11,11 +14,20 @@ const navItems = [
   { href: "/admin/news-scout", label: "News Scout", icon: "📰" },
 ];
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(ADMIN_COOKIE_NAME)?.value;
+  const isAuthenticated = verifyAdminToken(token);
+
+  // Unauthenticated → render children bare (login page via middleware redirect)
+  if (!isAuthenticated) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="min-h-screen bg-parchment flex">
       {/* Sidebar */}
@@ -44,13 +56,14 @@ export default function AdminLayout({
           ))}
         </nav>
 
-        <div className="px-5 py-4 border-t border-border">
+        <div className="px-5 py-4 border-t border-border flex items-center justify-between">
           <Link
             href="/"
             className="text-xs text-ink-lighter hover:text-terracotta transition-colors font-mono"
           >
             &larr; Back to site
           </Link>
+          <AdminLogoutButton />
         </div>
       </aside>
 
