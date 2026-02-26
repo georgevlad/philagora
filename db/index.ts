@@ -76,7 +76,15 @@ function runMigrations(db: Database.Database): void {
   // ── News Scout tables (always runs, idempotent) ──────────────────
   migrateNewsScout(db);
   migrateNewsSourceLogos(db);
-  migratePostsArchivedStatus(db);
+
+  // Table-rebuild migrations can race with parallel build workers.
+  // Wrap each in try-catch so a concurrent "table already dropped" or
+  // "table not found" error from another worker doesn't crash the build.
+  try {
+    migratePostsArchivedStatus(db);
+  } catch (err) {
+    if (!(err instanceof Error && err.message.includes("SQLITE_ERROR"))) throw err;
+  }
 
   // Check if generation_log needs migration by inspecting the table schema
   const tableInfo = db
@@ -92,30 +100,36 @@ function runMigrations(db: Database.Database): void {
   if (!needsMigration) return;
 
   // Rebuild the table with the corrected schema
-  db.exec("PRAGMA foreign_keys = OFF;");
+  try {
+    db.exec("PRAGMA foreign_keys = OFF;");
 
-  db.transaction(() => {
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS generation_log_new (
-        id               INTEGER PRIMARY KEY AUTOINCREMENT,
-        philosopher_id   TEXT REFERENCES philosophers(id),
-        content_type     TEXT NOT NULL CHECK(content_type IN ('post','debate_opening','debate_rebuttal','agora_response','reflection','synthesis')),
-        system_prompt_id INTEGER REFERENCES system_prompts(id),
-        user_input       TEXT NOT NULL DEFAULT '',
-        raw_output       TEXT NOT NULL DEFAULT '',
-        status           TEXT NOT NULL DEFAULT 'generated' CHECK(status IN ('generated','approved','rejected','published','pending')),
-        created_at       TEXT NOT NULL DEFAULT (datetime('now'))
-      );
-    `);
+    db.transaction(() => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS generation_log_new (
+          id               INTEGER PRIMARY KEY AUTOINCREMENT,
+          philosopher_id   TEXT REFERENCES philosophers(id),
+          content_type     TEXT NOT NULL CHECK(content_type IN ('post','debate_opening','debate_rebuttal','agora_response','reflection','synthesis')),
+          system_prompt_id INTEGER REFERENCES system_prompts(id),
+          user_input       TEXT NOT NULL DEFAULT '',
+          raw_output       TEXT NOT NULL DEFAULT '',
+          status           TEXT NOT NULL DEFAULT 'generated' CHECK(status IN ('generated','approved','rejected','published','pending')),
+          created_at       TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+      `);
 
-    db.exec("INSERT INTO generation_log_new SELECT * FROM generation_log;");
-    db.exec("DROP TABLE generation_log;");
-    db.exec("ALTER TABLE generation_log_new RENAME TO generation_log;");
-    db.exec("CREATE INDEX IF NOT EXISTS idx_generation_log_philosopher ON generation_log(philosopher_id);");
-    db.exec("CREATE INDEX IF NOT EXISTS idx_generation_log_status ON generation_log(status);");
-  })();
+      db.exec("INSERT INTO generation_log_new SELECT * FROM generation_log;");
+      db.exec("DROP TABLE generation_log;");
+      db.exec("ALTER TABLE generation_log_new RENAME TO generation_log;");
+      db.exec("CREATE INDEX IF NOT EXISTS idx_generation_log_philosopher ON generation_log(philosopher_id);");
+      db.exec("CREATE INDEX IF NOT EXISTS idx_generation_log_status ON generation_log(status);");
+    })();
 
-  db.exec("PRAGMA foreign_keys = ON;");
+    db.exec("PRAGMA foreign_keys = ON;");
+  } catch (err) {
+    // Another worker may have completed this migration concurrently
+    if (!(err instanceof Error && err.message.includes("SQLITE_ERROR"))) throw err;
+    try { db.exec("PRAGMA foreign_keys = ON;"); } catch { /* best effort */ }
+  }
 }
 
 /**
@@ -205,7 +219,13 @@ function migrateNewsSourceLogos(db: Database.Database): void {
   const hasLogoUrl = columns.some((c) => c.name === "logo_url");
   if (hasLogoUrl) return;
 
-  db.exec("ALTER TABLE news_sources ADD COLUMN logo_url TEXT;");
+  try {
+    db.exec("ALTER TABLE news_sources ADD COLUMN logo_url TEXT;");
+  } catch (err) {
+    // Another worker may have added the column between check and alter (build-time race)
+    if (err instanceof Error && err.message.includes("duplicate column")) return;
+    throw err;
+  }
 
   // Seed logos using Google's favicon service
   const sourceLogos: Record<string, string> = {
