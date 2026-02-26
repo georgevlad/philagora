@@ -156,3 +156,41 @@ CREATE TABLE IF NOT EXISTS generation_log (
 
 CREATE INDEX IF NOT EXISTS idx_generation_log_philosopher ON generation_log(philosopher_id);
 CREATE INDEX IF NOT EXISTS idx_generation_log_status ON generation_log(status);
+
+-- ── News Scout: Sources ────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS news_sources (
+  id              TEXT PRIMARY KEY,
+  name            TEXT NOT NULL,
+  feed_url        TEXT NOT NULL UNIQUE,
+  category        TEXT NOT NULL DEFAULT 'world',
+  is_active       INTEGER NOT NULL DEFAULT 1,
+  last_fetched_at TEXT,
+  created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ── News Scout: Article Candidates ─────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS article_candidates (
+  id                       TEXT PRIMARY KEY,
+  source_id                TEXT NOT NULL REFERENCES news_sources(id),
+  title                    TEXT NOT NULL,
+  url                      TEXT NOT NULL UNIQUE,
+  description              TEXT NOT NULL DEFAULT '',
+  pub_date                 TEXT,
+  score                    INTEGER,
+  score_reasoning          TEXT,
+  suggested_philosophers   TEXT NOT NULL DEFAULT '[]',
+  suggested_stances        TEXT NOT NULL DEFAULT '{}',
+  primary_tensions         TEXT NOT NULL DEFAULT '[]',
+  philosophical_entry_point TEXT,
+  image_url                TEXT,
+  status                   TEXT NOT NULL DEFAULT 'new'
+                             CHECK(status IN ('new','scored','approved','dismissed','used')),
+  fetched_at               TEXT NOT NULL DEFAULT (datetime('now')),
+  scored_at                TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_article_candidates_status ON article_candidates(status);
+CREATE INDEX IF NOT EXISTS idx_article_candidates_score ON article_candidates(score);
+CREATE INDEX IF NOT EXISTS idx_article_candidates_url ON article_candidates(url);

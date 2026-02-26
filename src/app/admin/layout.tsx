@@ -8,6 +8,7 @@ const navItems = [
   { href: "/admin/debates", label: "Debates", icon: "⚔️" },
   { href: "/admin/agora", label: "Agora", icon: "❓" },
   { href: "/admin/content", label: "Generate", icon: "⚡" },
+  { href: "/admin/news-scout", label: "News Scout", icon: "📰" },
 ];
 
 export default function AdminLayout({

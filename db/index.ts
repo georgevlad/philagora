@@ -73,6 +73,9 @@ function ensureSchema(db: Database.Database): void {
  * on philosopher_id or is missing the 'synthesis' content_type.
  */
 function runMigrations(db: Database.Database): void {
+  // ── News Scout tables (always runs, idempotent) ──────────────────
+  migrateNewsScout(db);
+
   // Check if generation_log needs migration by inspecting the table schema
   const tableInfo = db
     .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='generation_log'")
@@ -111,6 +114,81 @@ function runMigrations(db: Database.Database): void {
   })();
 
   db.exec("PRAGMA foreign_keys = ON;");
+}
+
+/**
+ * Create news_sources and article_candidates tables if they don't exist,
+ * then seed starter RSS sources.
+ */
+function migrateNewsScout(db: Database.Database): void {
+  const hasTable = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='news_sources'"
+    )
+    .get();
+
+  if (hasTable) return; // already migrated
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS news_sources (
+      id              TEXT PRIMARY KEY,
+      name            TEXT NOT NULL,
+      feed_url        TEXT NOT NULL UNIQUE,
+      category        TEXT NOT NULL DEFAULT 'world',
+      is_active       INTEGER NOT NULL DEFAULT 1,
+      last_fetched_at TEXT,
+      created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS article_candidates (
+      id                       TEXT PRIMARY KEY,
+      source_id                TEXT NOT NULL REFERENCES news_sources(id),
+      title                    TEXT NOT NULL,
+      url                      TEXT NOT NULL UNIQUE,
+      description              TEXT NOT NULL DEFAULT '',
+      pub_date                 TEXT,
+      score                    INTEGER,
+      score_reasoning          TEXT,
+      suggested_philosophers   TEXT NOT NULL DEFAULT '[]',
+      suggested_stances        TEXT NOT NULL DEFAULT '{}',
+      primary_tensions         TEXT NOT NULL DEFAULT '[]',
+      philosophical_entry_point TEXT,
+      image_url                TEXT,
+      status                   TEXT NOT NULL DEFAULT 'new'
+                                 CHECK(status IN ('new','scored','approved','dismissed','used')),
+      fetched_at               TEXT NOT NULL DEFAULT (datetime('now')),
+      scored_at                TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_article_candidates_status ON article_candidates(status);
+    CREATE INDEX IF NOT EXISTS idx_article_candidates_score ON article_candidates(score);
+    CREATE INDEX IF NOT EXISTS idx_article_candidates_url ON article_candidates(url);
+  `);
+
+  // Seed starter RSS sources
+  const insert = db.prepare(
+    "INSERT OR IGNORE INTO news_sources (id, name, feed_url, category) VALUES (?, ?, ?, ?)"
+  );
+
+  const seeds: [string, string, string, string][] = [
+    ["bbc-world", "BBC World News", "https://feeds.bbci.co.uk/news/world/rss.xml", "world"],
+    ["bbc-top", "BBC Top Stories", "https://feeds.bbci.co.uk/news/rss.xml", "world"],
+    ["npr-top", "NPR Top Stories", "https://feeds.npr.org/1001/rss.xml", "world"],
+    ["guardian-world", "The Guardian World", "https://www.theguardian.com/world/rss", "world"],
+    ["aljazeera", "Al Jazeera", "https://www.aljazeera.com/xml/rss/all.xml", "world"],
+    ["cnn-world", "CNN World", "http://rss.cnn.com/rss/edition_world.rss", "world"],
+    ["atlantic", "The Atlantic", "https://www.theatlantic.com/feed/all/", "opinion"],
+    ["aeon", "Aeon", "https://aeon.co/feed.rss", "culture"],
+    ["avclub", "The A.V. Club", "https://www.avclub.com/rss", "entertainment"],
+    ["popmatters", "PopMatters", "https://popmatters.com/feed", "culture"],
+    ["bbc-sport", "BBC Sport", "https://feeds.bbci.co.uk/sport/rss.xml", "sports"],
+    ["espn-top", "ESPN Top News", "http://www.espn.com/espn/rss/news", "sports"],
+    ["ars-technica", "Ars Technica", "http://feeds.arstechnica.com/arstechnica/index/", "tech"],
+  ];
+
+  for (const row of seeds) {
+    insert.run(...row);
+  }
 }
 
 export default getDb;
