@@ -56,13 +56,11 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
   return (
     <aside className="hidden lg:flex flex-col w-64 shrink-0 sticky top-0 h-screen border-r border-border-light py-6 px-4">
       {/* Logo */}
-      <Link href="/" className="group mb-8 px-2">
+      <Link href="/" className="group mb-8 px-2 flex items-center gap-3">
+        <img src="/logo.svg" alt="" width={32} height={32} className="shrink-0" />
         <h1 className="font-serif text-2xl font-bold text-athenian tracking-tight italic">
           Philagora
         </h1>
-        <p className="text-[11px] font-mono text-ink-lighter tracking-widest uppercase mt-0.5">
-          Timeless minds. Timely debates.
-        </p>
       </Link>
 
       {/* Navigation */}

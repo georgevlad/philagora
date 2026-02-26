@@ -75,6 +75,7 @@ const PHILOSOPHER_META: Record<string, { name: string; initials: string; color: 
   "seneca":           { name: "Seneca",           initials: "Se", color: "#6B5B3E" },
   "jung":             { name: "Jung",             initials: "CJ", color: "#5C4B8A" },
   "dostoevsky":       { name: "Dostoevsky",       initials: "FD", color: "#4A3728" },
+  "cicero":           { name: "Cicero",           initials: "MT", color: "#8B4513" },
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────

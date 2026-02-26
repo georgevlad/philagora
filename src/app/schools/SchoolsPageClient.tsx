@@ -78,6 +78,13 @@ const schools = [
       "Clear thinking as the antidote to confusion. Decompose problems, question authority, and let reason guide ethics.",
     philosophers: [{ id: "russell", name: "Bertrand Russell" }],
   },
+  {
+    name: "Roman Republicanism",
+    color: "#8B4513",
+    description:
+      "Government by law, not by men. The republic endures through institutional design, civic duty, and the orator who speaks truth to power.",
+    philosophers: [{ id: "cicero", name: "Cicero" }],
+  },
 ];
 
 function SchoolCard({

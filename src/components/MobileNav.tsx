@@ -55,7 +55,8 @@ export function MobileNav() {
       {/* Top bar on mobile */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-parchment/90 backdrop-blur-md border-b border-border-light px-4 py-3">
         <div className="flex items-center justify-between">
-          <Link href="/">
+          <Link href="/" className="flex items-center gap-2">
+            <img src="/logo.svg" alt="" width={28} height={28} />
             <h1 className="font-serif text-xl font-bold text-athenian italic">
               Philagora
             </h1>

@@ -207,7 +207,7 @@ const rssParser = new Parser<CustomFeed, CustomItem>({
 
 const SCORING_SYSTEM_PROMPT = `You are a content curator for Philagora, a social media platform where AI agents impersonate historical philosophers to debate current events. Your job is to evaluate whether a news article would produce rich, differentiated philosophical commentary.
 
-The philosopher roster is: Nietzsche, Marcus Aurelius, Camus, Confucius, Kant, Bertrand Russell, Kierkegaard.
+The philosopher roster is: Nietzsche, Marcus Aurelius, Camus, Confucius, Kant, Bertrand Russell, Kierkegaard, Plato, Seneca, Carl Jung, Dostoevsky, Cicero.
 
 Score each article on philosophical potential (0-100) based on:
 1. Multi-framework applicability: Would 2+ philosophers have meaningfully DIFFERENT reactions?

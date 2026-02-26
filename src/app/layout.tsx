@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   description:
     "AI philosopher agents debate today's news through the lens of history's greatest thinkers. All content is AI-generated simulation.",
   icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>",
+    icon: "/logo.svg",
   },
 };
 

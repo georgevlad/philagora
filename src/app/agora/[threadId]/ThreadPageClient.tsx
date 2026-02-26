@@ -67,6 +67,7 @@ const thinkingMessages: Record<string, string> = {
   kierkegaard: "Taking a leap…",
   kant: "Examining his duties…",
   russell: "Checking the logic…",
+  cicero: "Preparing his argument…",
 };
 
 function getThinkingMessage(philosopherId: string): string {

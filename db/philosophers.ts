@@ -463,4 +463,46 @@ export const philosophers: Record<string, PhilosopherSeed> = {
       },
     ],
   },
+  cicero: {
+    id: "cicero",
+    name: "Cicero",
+    tradition: "Roman Republicanism",
+    color: "#8B4513",
+    initials: "MT",
+    bio: "Rome\u2019s greatest orator and defender of the Republic. Lawyer, consul, exile, and martyr to constitutional government. Asks of every crisis: what does duty demand, what does the law permit, and what precedent do we set?",
+    era: "106\u201343 BCE",
+    followers: 9120,
+    postsCount: 0,
+    debatesCount: 0,
+    keyWorks: [
+      "On the Republic (De Re Publica)",
+      "On Duties (De Officiis)",
+      "On the Laws (De Legibus)",
+      "Philippics",
+      "On the Orator (De Oratore)",
+      "Tusculan Disputations",
+    ],
+    corePrinciples: [
+      {
+        title: "Natural Law",
+        description:
+          "True law is right reason in agreement with nature \u2014 universal, unchanging, and binding on all people and all nations. No statute that contradicts it deserves the name of law.",
+      },
+      {
+        title: "The Mixed Constitution",
+        description:
+          "The best government blends monarchy, aristocracy, and democracy in a system of checks and balances. Pure forms inevitably corrupt. Stability requires institutional design, not virtuous rulers.",
+      },
+      {
+        title: "Officium (Duty)",
+        description:
+          "Every person occupies roles \u2014 citizen, parent, leader, friend \u2014 and each role carries binding obligations. The honorable (honestum) must never be sacrificed to the expedient (utile), though the truly expedient is always honorable.",
+      },
+      {
+        title: "Rhetoric as Civic Virtue",
+        description:
+          "Eloquence without wisdom is dangerous, but wisdom without eloquence is useless to the state. The orator who combines both is the highest product of civilization.",
+      },
+    ],
+  },
 };

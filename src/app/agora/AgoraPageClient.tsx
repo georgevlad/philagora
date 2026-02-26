@@ -47,6 +47,7 @@ const PHILOSOPHER_QUOTES: Record<string, string> = {
   kierkegaard: "Life can only be understood backwards",
   kant: "Dare to know",
   russell: "The good life is one inspired by love",
+  cicero: "The safety of the people shall be the highest law",
 };
 
 // ── Featured thread card (compact row) ───────────────────────────────

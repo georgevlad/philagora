@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Outer circle ring -->
+  <circle cx="32" cy="32" r="29" stroke="#1B3A5C" stroke-width="2.5"/>
+
+  <!-- Column base platform -->
+  <rect x="19" y="48" width="12" height="2.2" rx="0.5" fill="#1B3A5C"/>
+  <!-- Column base step -->
+  <rect x="20.5" y="45.5" width="9" height="2.5" rx="0.3" fill="#1B3A5C"/>
+
+  <!-- Column shaft -->
+  <rect x="22.5" y="19.5" width="5" height="26" rx="0.4" fill="#1B3A5C"/>
+  <!-- Shaft fluting lines -->
+  <line x1="24.2" y1="20" x2="24.2" y2="45" stroke="#F5F0E8" stroke-width="0.4" opacity="0.4"/>
+  <line x1="26" y1="20" x2="26" y2="45" stroke="#F5F0E8" stroke-width="0.4" opacity="0.4"/>
+
+  <!-- Column capital — Ionic volutes -->
+  <rect x="20.5" y="17" width="9" height="2.5" rx="0.3" fill="#1B3A5C"/>
+  <circle cx="20.2" cy="16.2" r="1.6" stroke="#1B3A5C" stroke-width="1.4" fill="none"/>
+  <circle cx="29.8" cy="16.2" r="1.6" stroke="#1B3A5C" stroke-width="1.4" fill="none"/>
+  <!-- Abacus (top slab) -->
+  <rect x="19.5" y="14.5" width="11" height="2" rx="0.3" fill="#1B3A5C"/>
+
+  <!-- P bowl — smooth arc from capital sweeping right and back -->
+  <path
+    d="M 27.5 14.5 C 32 13, 38 13.5, 42 16.5 C 46 19.5, 46 24, 44 27 C 42 30, 37 31, 32 31 L 27.5 31"
+    stroke="#1B3A5C"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+</svg>
