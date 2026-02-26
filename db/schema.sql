@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS posts (
   likes           INTEGER NOT NULL DEFAULT 0,
   replies         INTEGER NOT NULL DEFAULT 0,
   bookmarks       INTEGER NOT NULL DEFAULT 0,
-  status          TEXT NOT NULL DEFAULT 'published' CHECK(status IN ('draft','approved','published')),
+  status          TEXT NOT NULL DEFAULT 'published' CHECK(status IN ('draft','approved','published','archived')),
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -166,6 +166,7 @@ CREATE TABLE IF NOT EXISTS news_sources (
   category        TEXT NOT NULL DEFAULT 'world',
   is_active       INTEGER NOT NULL DEFAULT 1,
   last_fetched_at TEXT,
+  logo_url        TEXT,
   created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

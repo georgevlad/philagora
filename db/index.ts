@@ -75,6 +75,8 @@ function ensureSchema(db: Database.Database): void {
 function runMigrations(db: Database.Database): void {
   // ── News Scout tables (always runs, idempotent) ──────────────────
   migrateNewsScout(db);
+  migrateNewsSourceLogos(db);
+  migratePostsArchivedStatus(db);
 
   // Check if generation_log needs migration by inspecting the table schema
   const tableInfo = db
@@ -189,6 +191,97 @@ function migrateNewsScout(db: Database.Database): void {
   for (const row of seeds) {
     insert.run(...row);
   }
+}
+
+/**
+ * Add logo_url column to news_sources and seed favicon URLs.
+ */
+function migrateNewsSourceLogos(db: Database.Database): void {
+  // Check if column already exists
+  const columns = db
+    .prepare("PRAGMA table_info(news_sources)")
+    .all() as { name: string }[];
+
+  const hasLogoUrl = columns.some((c) => c.name === "logo_url");
+  if (hasLogoUrl) return;
+
+  db.exec("ALTER TABLE news_sources ADD COLUMN logo_url TEXT;");
+
+  // Seed logos using Google's favicon service
+  const sourceLogos: Record<string, string> = {
+    "bbc-world": "https://www.google.com/s2/favicons?domain=bbc.co.uk&sz=64",
+    "bbc-top": "https://www.google.com/s2/favicons?domain=bbc.co.uk&sz=64",
+    "npr-top": "https://www.google.com/s2/favicons?domain=npr.org&sz=64",
+    "guardian-world": "https://www.google.com/s2/favicons?domain=theguardian.com&sz=64",
+    "aljazeera": "https://www.google.com/s2/favicons?domain=aljazeera.com&sz=64",
+    "cnn-world": "https://www.google.com/s2/favicons?domain=cnn.com&sz=64",
+    "atlantic": "https://www.google.com/s2/favicons?domain=theatlantic.com&sz=64",
+    "aeon": "https://www.google.com/s2/favicons?domain=aeon.co&sz=64",
+    "avclub": "https://www.google.com/s2/favicons?domain=avclub.com&sz=64",
+    "popmatters": "https://www.google.com/s2/favicons?domain=popmatters.com&sz=64",
+    "bbc-sport": "https://www.google.com/s2/favicons?domain=bbc.co.uk&sz=64",
+    "espn-top": "https://www.google.com/s2/favicons?domain=espn.com&sz=64",
+    "ars-technica": "https://www.google.com/s2/favicons?domain=arstechnica.com&sz=64",
+  };
+
+  const update = db.prepare(
+    "UPDATE news_sources SET logo_url = ? WHERE id = ?"
+  );
+
+  for (const [id, logoUrl] of Object.entries(sourceLogos)) {
+    update.run(logoUrl, id);
+  }
+}
+
+/**
+ * Add 'archived' to the posts status CHECK constraint.
+ * SQLite requires rebuilding the table to alter a CHECK constraint.
+ */
+function migratePostsArchivedStatus(db: Database.Database): void {
+  const tableInfo = db
+    .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='posts'")
+    .get() as { sql: string } | undefined;
+
+  if (!tableInfo) return;
+
+  // Already migrated if 'archived' is in the CHECK constraint
+  if (tableInfo.sql.includes("archived")) return;
+
+  db.exec("PRAGMA foreign_keys = OFF;");
+
+  db.transaction(() => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS posts_new (
+        id              TEXT PRIMARY KEY,
+        philosopher_id  TEXT NOT NULL REFERENCES philosophers(id),
+        content         TEXT NOT NULL,
+        thesis          TEXT NOT NULL DEFAULT '',
+        stance          TEXT NOT NULL CHECK(stance IN ('challenges','defends','reframes','questions','warns','observes')),
+        tag             TEXT NOT NULL DEFAULT '',
+        citation_title     TEXT,
+        citation_source    TEXT,
+        citation_url       TEXT,
+        citation_image_url TEXT,
+        reply_to        TEXT REFERENCES posts_new(id),
+        likes           INTEGER NOT NULL DEFAULT 0,
+        replies         INTEGER NOT NULL DEFAULT 0,
+        bookmarks       INTEGER NOT NULL DEFAULT 0,
+        status          TEXT NOT NULL DEFAULT 'published' CHECK(status IN ('draft','approved','published','archived')),
+        created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+
+    db.exec("INSERT INTO posts_new SELECT * FROM posts;");
+    db.exec("DROP TABLE posts;");
+    db.exec("ALTER TABLE posts_new RENAME TO posts;");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_posts_philosopher ON posts(philosopher_id);");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_posts_tag ON posts(tag);");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_posts_reply_to ON posts(reply_to);");
+  })();
+
+  db.exec("PRAGMA foreign_keys = ON;");
 }
 
 export default getDb;

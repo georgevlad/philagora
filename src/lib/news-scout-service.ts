@@ -41,6 +41,7 @@ export interface ArticleCandidate {
   // joined fields
   source_name?: string;
   source_category?: string;
+  source_logo_url?: string;
 }
 
 export interface FetchResult {
@@ -83,6 +84,58 @@ function parseJsonResponse(rawOutput: string): Record<string, unknown> {
     cleaned = cleaned.replace(/^```(?:json)?\s*/, "").replace(/```\s*$/, "");
   }
   return JSON.parse(cleaned);
+}
+
+/**
+ * Fetch the og:image meta tag from an article's HTML page.
+ * Used to enrich articles that lack an image from RSS.
+ */
+export async function fetchOgImage(url: string): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const res = await fetch(url, {
+      signal: controller.signal,
+      redirect: "follow",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; Philagora/1.0)",
+      },
+    });
+
+    clearTimeout(timeout);
+
+    if (!res.ok) return null;
+
+    // Read only enough to get the <head> section (~20KB)
+    const text = await res.text();
+    const head = text.substring(0, 20000);
+
+    // Try property before content: <meta property="og:image" content="...">
+    let match = head.match(
+      /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i
+    );
+
+    // Try content before property: <meta content="..." property="og:image">
+    if (!match) {
+      match = head.match(
+        /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i
+      );
+    }
+
+    if (!match?.[1]) return null;
+
+    let imageUrl = match[1].trim();
+
+    // Handle protocol-relative URLs
+    if (imageUrl.startsWith("//")) {
+      imageUrl = "https:" + imageUrl;
+    }
+
+    return imageUrl;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -339,6 +392,16 @@ ${article.description}`;
         parsed.philosophical_entry_point ?? "",
         article.id
       );
+
+      // Enrich with OG image if RSS didn't provide one
+      if (!article.image_url) {
+        const ogImage = await fetchOgImage(article.url);
+        if (ogImage) {
+          db.prepare(
+            "UPDATE article_candidates SET image_url = ? WHERE id = ?"
+          ).run(ogImage, article.id);
+        }
+      }
 
       result.scored++;
     } catch (err) {

@@ -116,6 +116,7 @@ function ContentGenerationPageInner() {
   const [citationTitle, setCitationTitle] = useState("");
   const [citationSource, setCitationSource] = useState("");
   const [citationUrl, setCitationUrl] = useState("");
+  const [citationImageUrl, setCitationImageUrl] = useState("");
 
   // ── Active prompt state ─────────────────────────────────────────────
   const [activePrompt, setActivePrompt] = useState<ActivePrompt | null>(null);
@@ -159,6 +160,7 @@ function ContentGenerationPageInner() {
     setCitationTitle(articleTitle);
     setCitationSource(searchParams.get("article_source") || "");
     setCitationUrl(searchParams.get("article_url") || "");
+    setCitationImageUrl(searchParams.get("article_image_url") || "");
 
     const description = searchParams.get("article_description") || "";
     const source = searchParams.get("article_source") || "";
@@ -350,6 +352,7 @@ function ContentGenerationPageInner() {
           citation_title: citationTitle || undefined,
           citation_source: citationSource || undefined,
           citation_url: citationUrl || undefined,
+          citation_image_url: citationImageUrl || undefined,
         }),
       });
 

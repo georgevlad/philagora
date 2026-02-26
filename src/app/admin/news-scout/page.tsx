@@ -38,6 +38,7 @@ interface ArticleCandidate {
   scored_at: string | null;
   source_name?: string;
   source_category?: string;
+  source_logo_url?: string;
 }
 
 interface Stats {
@@ -515,20 +516,38 @@ export default function NewsScoutPage() {
             >
               <div className="px-5 py-4">
                 <div className="flex gap-4">
-                  {/* Thumbnail */}
-                  {candidate.image_url && (
-                    <div className="shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={candidate.image_url}
-                        alt=""
-                        className="w-20 h-16 object-cover rounded-lg"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
-                      />
-                    </div>
-                  )}
+                  {/* Thumbnail — article image or source logo fallback */}
+                  {(() => {
+                    const displayImage =
+                      candidate.image_url || candidate.source_logo_url;
+                    const isLogo =
+                      !candidate.image_url && !!candidate.source_logo_url;
+                    if (!displayImage) return null;
+                    return (
+                      <div
+                        className={`shrink-0 rounded-lg overflow-hidden ${
+                          isLogo
+                            ? "w-12 h-12 flex items-center justify-center bg-parchment-dark/20"
+                            : "w-20 h-16"
+                        }`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={displayImage}
+                          alt=""
+                          className={
+                            isLogo
+                              ? "w-8 h-8 object-contain"
+                              : "w-full h-full object-cover"
+                          }
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
+                          }}
+                        />
+                      </div>
+                    );
+                  })()}
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">

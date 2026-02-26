@@ -7,7 +7,7 @@ import { STANCE_CONFIG } from "@/lib/constants";
 
 // ── Types ────────────────────────────────────────────────────────────
 
-type PostStatus = "draft" | "approved" | "published";
+type PostStatus = "draft" | "approved" | "published" | "archived";
 
 interface AdminPost {
   id: string;
@@ -34,6 +34,7 @@ const statusConfig: Record<PostStatus, { label: string; bg: string; text: string
   draft:     { label: "Draft",     bg: "#E2E8F0", text: "#4A5568", border: "#CBD5E0" },
   approved:  { label: "Approved",  bg: "#BEE3F8", text: "#2A4365", border: "#90CDF4" },
   published: { label: "Published", bg: "#C6F6D5", text: "#276749", border: "#9AE6B4" },
+  archived:  { label: "Archived",  bg: "#FED7D7", text: "#9B2C2C", border: "#FEB2B2" },
 };
 
 // ── Status transitions ──────────────────────────────────────────────
@@ -42,12 +43,14 @@ const statusTransitions: Record<PostStatus, PostStatus | null> = {
   draft: "approved",
   approved: "published",
   published: null,
+  archived: null,
 };
 
 const transitionLabels: Record<PostStatus, string> = {
   draft: "Approve",
   approved: "Publish",
   published: "",
+  archived: "",
 };
 
 // ── Known tags ──────────────────────────────────────────────────────
@@ -71,6 +74,8 @@ export default function AdminPostsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Filters
   const [filterPhilosopher, setFilterPhilosopher] = useState("");
@@ -144,6 +149,28 @@ export default function AdminPostsPage() {
     }
   }
 
+  // Delete handler
+  async function handleDelete(postId: string) {
+    setDeletingId(postId);
+    try {
+      const res = await fetch("/api/admin/posts", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: postId }),
+      });
+
+      if (!res.ok) throw new Error("Failed to delete post");
+
+      // Remove the post from local state
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      setConfirmDeleteId(null);
+    } catch {
+      setError("Failed to delete post. Please try again.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   // Philosopher lookup helper
   function getPhilosopher(id: string): Philosopher | undefined {
     return philosophers.find((p) => p.id === id);
@@ -198,6 +225,7 @@ export default function AdminPostsPage() {
             <option value="draft">Draft</option>
             <option value="approved">Approved</option>
             <option value="published">Published</option>
+            <option value="archived">Archived</option>
           </select>
         </div>
 
@@ -345,7 +373,7 @@ export default function AdminPostsPage() {
                       </div>
                     </div>
 
-                    {/* Status badge + transition button */}
+                    {/* Status badge + action buttons */}
                     <div className="flex items-center gap-2 shrink-0">
                       <span
                         className="inline-flex items-center px-2.5 py-1 text-[11px] font-mono tracking-wider uppercase rounded-full"
@@ -357,6 +385,8 @@ export default function AdminPostsPage() {
                       >
                         {statusCfg.label}
                       </span>
+
+                      {/* Forward transition (Approve / Publish) */}
                       {nextStatus && (
                         <button
                           onClick={() => handleStatusChange(post.id, nextStatus)}
@@ -379,6 +409,94 @@ export default function AdminPostsPage() {
                               {transitionLabels[post.status]}
                             </>
                           )}
+                        </button>
+                      )}
+
+                      {/* Restore button (archived → draft) */}
+                      {post.status === "archived" && (
+                        <button
+                          onClick={() => handleStatusChange(post.id, "draft")}
+                          disabled={isUpdating}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-mono tracking-wide rounded-full text-white bg-[#2A4365] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-md"
+                        >
+                          {isUpdating ? (
+                            <span className="flex items-center gap-1">
+                              <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
+                              Restoring
+                            </span>
+                          ) : (
+                            <>
+                              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M4 7L2 5L4 3" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M2 5H10C12.2091 5 14 6.79086 14 9C14 11.2091 12.2091 13 10 13H8" strokeLinecap="round" />
+                              </svg>
+                              Restore
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      {/* Archive button (published/approved/draft → archived) */}
+                      {post.status !== "archived" && (
+                        <button
+                          onClick={() => handleStatusChange(post.id, "archived")}
+                          disabled={isUpdating}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-mono tracking-wide rounded-full text-[#9B2C2C] bg-[#FED7D7] border border-[#FEB2B2] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#FEB2B2]"
+                        >
+                          {isUpdating ? (
+                            <span className="flex items-center gap-1">
+                              <span className="w-3 h-3 border border-[#9B2C2C]/40 border-t-[#9B2C2C] rounded-full animate-spin" />
+                            </span>
+                          ) : (
+                            <>
+                              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                <path d="M2 4H14V13C14 13.5523 13.5523 14 13 14H3C2.44772 14 2 13.5523 2 13V4Z" />
+                                <path d="M1 2H15V4H1V2Z" />
+                                <path d="M6 7H10" strokeLinecap="round" />
+                              </svg>
+                              Archive
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      {/* Delete button */}
+                      {confirmDeleteId === post.id ? (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleDelete(post.id)}
+                            disabled={deletingId === post.id}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
+                          >
+                            {deletingId === post.id ? (
+                              <span className="flex items-center gap-1">
+                                <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
+                                Deleting
+                              </span>
+                            ) : (
+                              "Confirm"
+                            )}
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="inline-flex items-center px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:bg-parchment-dark/50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeleteId(post.id)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:text-red-600 hover:border-red-300 hover:bg-red-50"
+                          title="Permanently delete this post"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <path d="M3 4H13L12 14H4L3 4Z" />
+                            <path d="M1 4H15" strokeLinecap="round" />
+                            <path d="M6 2H10" strokeLinecap="round" />
+                            <path d="M7 7V11" strokeLinecap="round" />
+                            <path d="M9 7V11" strokeLinecap="round" />
+                          </svg>
                         </button>
                       )}
                     </div>

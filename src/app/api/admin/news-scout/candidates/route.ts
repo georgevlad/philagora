@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "30", 10);
 
     let query = `
-      SELECT ac.*, ns.name as source_name, ns.category as source_category
+      SELECT ac.*, ns.name as source_name, ns.category as source_category, ns.logo_url as source_logo_url
       FROM article_candidates ac
       JOIN news_sources ns ON ac.source_id = ns.id
     `;
@@ -90,7 +90,7 @@ export async function PATCH(request: NextRequest) {
 
     const updated = db
       .prepare(
-        `SELECT ac.*, ns.name as source_name, ns.category as source_category
+        `SELECT ac.*, ns.name as source_name, ns.category as source_category, ns.logo_url as source_logo_url
          FROM article_candidates ac
          JOIN news_sources ns ON ac.source_id = ns.id
          WHERE ac.id = ?`

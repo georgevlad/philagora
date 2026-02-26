@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
       citation_title,
       citation_source,
       citation_url,
+      citation_image_url,
       reply_to,
     } = body;
 
@@ -80,8 +81,8 @@ export async function POST(request: NextRequest) {
 
     const result = db
       .prepare(
-        `INSERT INTO posts (id, philosopher_id, content, thesis, stance, tag, citation_title, citation_source, citation_url, reply_to, likes, replies, bookmarks, status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 'draft', datetime('now'), datetime('now'))`
+        `INSERT INTO posts (id, philosopher_id, content, thesis, stance, tag, citation_title, citation_source, citation_url, citation_image_url, reply_to, likes, replies, bookmarks, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 'draft', datetime('now'), datetime('now'))`
       )
       .run(
         postId,
@@ -93,6 +94,7 @@ export async function POST(request: NextRequest) {
         citation_title ?? null,
         citation_source ?? null,
         citation_url ?? null,
+        citation_image_url ?? null,
         reply_to ?? null
       );
 
@@ -125,7 +127,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const validStatuses = ["draft", "approved", "published"];
+    const validStatuses = ["draft", "approved", "published", "archived"];
     if (!validStatuses.includes(status)) {
       return NextResponse.json(
         { error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
@@ -154,6 +156,50 @@ export async function PATCH(request: NextRequest) {
     console.error("Failed to update post status:", error);
     return NextResponse.json(
       { error: "Failed to update post status" },
+      { status: 500 }
+    );
+  }
+}
+
+/** DELETE — permanently remove a post */
+export async function DELETE(request: NextRequest) {
+  try {
+    const db = getDb();
+    const body = await request.json();
+    const { id } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "id is required" },
+        { status: 400 }
+      );
+    }
+
+    const existing = db
+      .prepare("SELECT id, status FROM posts WHERE id = ?")
+      .get(id) as { id: string; status: string } | undefined;
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Post not found" },
+        { status: 404 }
+      );
+    }
+
+    // Detach any replies that reference this post (orphan them gracefully)
+    db.prepare("UPDATE posts SET reply_to = NULL WHERE reply_to = ?").run(id);
+
+    // Delete the post
+    db.prepare("DELETE FROM posts WHERE id = ?").run(id);
+
+    // Bust the feed cache
+    revalidatePath("/");
+
+    return NextResponse.json({ deleted: id });
+  } catch (error) {
+    console.error("Failed to delete post:", error);
+    return NextResponse.json(
+      { error: "Failed to delete post" },
       { status: 500 }
     );
   }
