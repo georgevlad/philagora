@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 // ── Types ───────────────────────────────────────────────────────────────
@@ -102,7 +103,9 @@ function formatDate(iso: string): string {
 
 // ── Component ───────────────────────────────────────────────────────────
 
-export default function ContentGenerationPage() {
+function ContentGenerationPageInner() {
+  const searchParams = useSearchParams();
+
   // ── Form state ──────────────────────────────────────────────────────
   const [philosophers, setPhilosophers] = useState<Philosopher[]>([]);
   const [selectedPhilosopherId, setSelectedPhilosopherId] = useState("");
@@ -147,6 +150,37 @@ export default function ContentGenerationPage() {
     }
     fetchPhilosophers();
   }, []);
+
+  // ── Pre-fill from News Scout query params ─────────────────────────
+  useEffect(() => {
+    const articleTitle = searchParams.get("article_title");
+    if (!articleTitle) return;
+
+    setCitationTitle(articleTitle);
+    setCitationSource(searchParams.get("article_source") || "");
+    setCitationUrl(searchParams.get("article_url") || "");
+
+    const description = searchParams.get("article_description") || "";
+    const source = searchParams.get("article_source") || "";
+    setUserInput(`${articleTitle} — ${source}\n\n${description}`);
+
+    // Ensure content type is "News Reaction" (index 0)
+    setSelectedContentTypeIndex(0);
+
+    // Auto-select the first suggested philosopher
+    const suggestedRaw = searchParams.get("suggested_philosophers");
+    if (suggestedRaw && philosophers.length > 0) {
+      try {
+        const suggested: string[] = JSON.parse(suggestedRaw);
+        if (suggested.length > 0) {
+          const firstMatch = philosophers.find((p) => p.id === suggested[0]);
+          if (firstMatch) setSelectedPhilosopherId(firstMatch.id);
+        }
+      } catch {
+        // ignore malformed JSON
+      }
+    }
+  }, [searchParams, philosophers]);
 
   // ── Fetch active prompt when philosopher changes ────────────────────
   const fetchActivePrompt = useCallback(async (philosopherId: string) => {
@@ -983,5 +1017,13 @@ export default function ContentGenerationPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ContentGenerationPage() {
+  return (
+    <Suspense>
+      <ContentGenerationPageInner />
+    </Suspense>
   );
 }

@@ -8,6 +8,9 @@ import { Footer } from "@/components/Footer";
 import { getPublishedPosts, getAllPhilosophers } from "@/lib/data";
 import type { FeedPost } from "@/lib/types";
 
+// Re-render this page on every request so published posts appear immediately
+export const dynamic = "force-dynamic";
+
 // ── Feed item types ─────────────────────────────────────────────────
 
 type FeedItem =

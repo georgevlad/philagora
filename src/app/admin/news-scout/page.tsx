@@ -669,7 +669,17 @@ export default function NewsScoutPage() {
                           ✓ Approved
                         </span>
                         <a
-                          href="/admin/content"
+                          href={
+                            `/admin/content?` +
+                            new URLSearchParams({
+                              article_title: candidate.title,
+                              article_source: candidate.source_name || "",
+                              article_url: candidate.url,
+                              article_description: candidate.description || "",
+                              article_image_url: candidate.image_url || "",
+                              suggested_philosophers: candidate.suggested_philosophers || "[]",
+                            }).toString()
+                          }
                           className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors text-center"
                         >
                           Generate →

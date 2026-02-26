@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
@@ -143,6 +144,9 @@ export async function PATCH(request: NextRequest) {
     db.prepare(
       "UPDATE posts SET status = ?, updated_at = datetime('now') WHERE id = ?"
     ).run(status, id);
+
+    // Bust the cached feed so published/unpublished posts appear/disappear
+    revalidatePath("/");
 
     const updated = db.prepare("SELECT * FROM posts WHERE id = ?").get(id);
     return NextResponse.json(updated);
