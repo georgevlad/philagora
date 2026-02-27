@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
 import { parseGroupConcat } from "@/lib/db-utils";
 
@@ -101,6 +102,45 @@ export async function GET() {
     console.error("Failed to fetch agora threads:", error);
     return NextResponse.json(
       { error: "Failed to fetch agora threads" },
+      { status: 500 }
+    );
+  }
+}
+
+/** DELETE — permanently remove an agora thread */
+export async function DELETE(request: NextRequest) {
+  try {
+    const db = getDb();
+    const body = await request.json();
+    const { id } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "id is required" },
+        { status: 400 }
+      );
+    }
+
+    const existing = db
+      .prepare("SELECT id FROM agora_threads WHERE id = ?")
+      .get(id);
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Thread not found" },
+        { status: 404 }
+      );
+    }
+
+    db.prepare("DELETE FROM agora_threads WHERE id = ?").run(id);
+
+    revalidatePath("/agora");
+
+    return NextResponse.json({ deleted: id });
+  } catch (error) {
+    console.error("Failed to delete agora thread:", error);
+    return NextResponse.json(
+      { error: "Failed to delete agora thread" },
       { status: 500 }
     );
   }

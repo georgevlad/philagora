@@ -76,6 +76,11 @@ function ContentGenerationPageInner() {
   const [logEntries, setLogEntries] = useState<GenerationLogEntry[]>([]);
   const [logLoading, setLogLoading] = useState(false);
 
+  // ── Purge state ────────────────────────────────────────────────────
+  const [purgeConfirm, setPurgeConfirm] = useState(false);
+  const [purging, setPurging] = useState(false);
+  const [purgeResult, setPurgeResult] = useState<number | null>(null);
+
   // ── Submission state ────────────────────────────────────────────────
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -184,6 +189,32 @@ function ContentGenerationPageInner() {
       setLogLoading(false);
     }
   }, []);
+
+  async function handlePurge() {
+    setPurging(true);
+    try {
+      const res = await fetch("/api/admin/content", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cleanup", older_than_days: 30, status_filter: "rejected" }),
+      });
+
+      if (!res.ok) throw new Error("Failed to purge log entries");
+
+      const data = await res.json();
+      setPurgeConfirm(false);
+      setPurgeResult(data.deleted);
+      setTimeout(() => setPurgeResult(null), 4000);
+
+      if (selectedPhilosopherId) {
+        fetchLogEntries(selectedPhilosopherId);
+      }
+    } catch {
+      setErrorMessage("Failed to purge old log entries. Please try again.");
+    } finally {
+      setPurging(false);
+    }
+  }
 
   // ── React to philosopher selection changes ──────────────────────────
   useEffect(() => {
@@ -881,15 +912,57 @@ function ContentGenerationPageInner() {
               </span>
             )}
           </h2>
-          {selectedPhilosopherId && (
-            <button
-              type="button"
-              onClick={() => fetchLogEntries(selectedPhilosopherId)}
-              className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors"
-            >
-              Refresh
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {purgeResult !== null && (
+              <span className="text-xs font-mono text-green-700">
+                Purged {purgeResult} entries
+              </span>
+            )}
+            {purgeConfirm ? (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-ink-lighter font-mono mr-1">
+                  Delete rejected entries older than 30 days?
+                </span>
+                <button
+                  onClick={handlePurge}
+                  disabled={purging}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
+                >
+                  {purging ? (
+                    <span className="flex items-center gap-1">
+                      <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
+                      Purging
+                    </span>
+                  ) : (
+                    "Confirm"
+                  )}
+                </button>
+                <button
+                  onClick={() => setPurgeConfirm(false)}
+                  className="inline-flex items-center px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:bg-parchment-dark/50"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setPurgeConfirm(true)}
+                className="text-xs font-mono text-ink-lighter hover:text-red-600 transition-colors"
+              >
+                Purge old logs
+              </button>
+            )}
+            {selectedPhilosopherId && (
+              <button
+                type="button"
+                onClick={() => fetchLogEntries(selectedPhilosopherId)}
+                className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors"
+              >
+                Refresh
+              </button>
+            )}
+          </div>
         </div>
 
         {!selectedPhilosopherId ? (

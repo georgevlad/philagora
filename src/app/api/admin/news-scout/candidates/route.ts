@@ -113,3 +113,58 @@ export async function PATCH(request: NextRequest) {
     );
   }
 }
+
+/**
+ * DELETE — Remove article candidates.
+ * Single: { id } — delete one candidate by id
+ * Bulk:   { action: "cleanup", older_than_days?: number } — delete dismissed/new candidates older than N days
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const db = getDb();
+    const body = await request.json();
+
+    if (body.action === "cleanup") {
+      const days = body.older_than_days ?? 30;
+      const result = db
+        .prepare(
+          `DELETE FROM article_candidates
+           WHERE status IN ('dismissed', 'new')
+             AND fetched_at < datetime('now', '-' || ? || ' days')`
+        )
+        .run(days);
+
+      return NextResponse.json({ deleted: result.changes });
+    }
+
+    const { id } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "id is required" },
+        { status: 400 }
+      );
+    }
+
+    const existing = db
+      .prepare("SELECT id FROM article_candidates WHERE id = ?")
+      .get(id);
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Candidate not found" },
+        { status: 404 }
+      );
+    }
+
+    db.prepare("DELETE FROM article_candidates WHERE id = ?").run(id);
+
+    return NextResponse.json({ deleted: id });
+  } catch (error) {
+    console.error("Failed to delete candidate:", error);
+    return NextResponse.json(
+      { error: "Failed to delete candidate" },
+      { status: 500 }
+    );
+  }
+}

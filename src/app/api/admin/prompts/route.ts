@@ -133,3 +133,47 @@ export async function PATCH(request: NextRequest) {
     );
   }
 }
+
+/** DELETE — permanently remove a prompt version */
+export async function DELETE(request: NextRequest) {
+  try {
+    const db = getDb();
+    const body = await request.json();
+    const { id } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "id is required" },
+        { status: 400 }
+      );
+    }
+
+    const existing = db
+      .prepare("SELECT id, is_active FROM system_prompts WHERE id = ?")
+      .get(id) as { id: number; is_active: number } | undefined;
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Prompt not found" },
+        { status: 404 }
+      );
+    }
+
+    if (existing.is_active === 1) {
+      return NextResponse.json(
+        { error: "Cannot delete the active prompt. Set another prompt as active first." },
+        { status: 400 }
+      );
+    }
+
+    db.prepare("DELETE FROM system_prompts WHERE id = ?").run(id);
+
+    return NextResponse.json({ deleted: id });
+  } catch (error) {
+    console.error("Failed to delete prompt:", error);
+    return NextResponse.json(
+      { error: "Failed to delete prompt" },
+      { status: 500 }
+    );
+  }
+}

@@ -46,6 +46,8 @@ export default function DebateWorkshopPage() {
   const [philosophers, setPhilosophers] = useState<Philosopher[]>([]);
   const [existingDebates, setExistingDebates] = useState<DebateListItem[]>([]);
   const [error, setError] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // ── Wizard state ──────────────────────────────────────────────────────
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -93,6 +95,31 @@ export default function DebateWorkshopPage() {
       .then((r) => r.json())
       .then((data) => setExistingDebates(Array.isArray(data) ? data : []))
       .catch((e) => console.error("Failed to fetch debates:", e));
+  }
+
+  async function handleDeleteDebate(id: string) {
+    setDeletingId(id);
+    try {
+      const res = await fetch("/api/admin/debates", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+
+      if (!res.ok) throw new Error("Failed to delete debate");
+
+      setExistingDebates((prev) => prev.filter((d) => d.id !== id));
+      setConfirmDeleteId(null);
+
+      if (debateId === id) {
+        setDebateId(null);
+        setStep(1);
+      }
+    } catch {
+      setError("Failed to delete debate. Please try again.");
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   // ── Resume an existing debate ─────────────────────────────────────────
@@ -582,28 +609,68 @@ export default function DebateWorkshopPage() {
           <h2 className="font-serif text-lg font-bold text-ink mb-3">Existing Debates</h2>
           <div className="space-y-2">
             {existingDebates.map((d) => (
-              <button
+              <div
                 key={d.id}
-                onClick={() => resumeDebate(d.id)}
-                className={`w-full text-left bg-white border rounded-xl px-5 py-3 hover:bg-parchment-dark/20 transition-colors ${
+                className={`w-full bg-white border rounded-xl px-5 py-3 transition-colors ${
                   debateId === d.id ? "border-terracotta ring-1 ring-terracotta/30" : "border-border"
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div>
+                  <button
+                    onClick={() => resumeDebate(d.id)}
+                    className="flex-1 text-left hover:opacity-70 transition-opacity min-w-0"
+                  >
                     <span className="font-serif font-bold text-ink text-sm">{d.title}</span>
                     <span className="text-xs text-ink-lighter ml-2">
                       {d.philosopher_names.join(", ")}
                     </span>
-                  </div>
-                  <div className="flex items-center gap-2">
+                  </button>
+                  <div className="flex items-center gap-2 shrink-0 ml-3">
                     <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${DEBATE_STATUS_COLORS[d.status] || "bg-gray-100 text-gray-700"}`}>
                       {d.status}
                     </span>
                     <span className="text-xs text-ink-lighter font-mono">{formatDate(d.debate_date)}</span>
+                    {confirmDeleteId === d.id ? (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleDeleteDebate(d.id)}
+                          disabled={deletingId === d.id}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
+                        >
+                          {deletingId === d.id ? (
+                            <span className="flex items-center gap-1">
+                              <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
+                              Deleting
+                            </span>
+                          ) : (
+                            "Confirm"
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="inline-flex items-center px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:bg-parchment-dark/50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(d.id)}
+                        className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:text-red-600 hover:border-red-300 hover:bg-red-50"
+                        title="Delete this debate"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <path d="M3 4H13L12 14H4L3 4Z" />
+                          <path d="M1 4H15" strokeLinecap="round" />
+                          <path d="M6 2H10" strokeLinecap="round" />
+                          <path d="M7 7V11" strokeLinecap="round" />
+                          <path d="M9 7V11" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </div>

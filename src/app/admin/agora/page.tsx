@@ -40,6 +40,8 @@ export default function AgoraWorkshopPage() {
   const [philosophers, setPhilosophers] = useState<Philosopher[]>([]);
   const [existingThreads, setExistingThreads] = useState<ThreadListItem[]>([]);
   const [error, setError] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // ── Wizard state ──────────────────────────────────────────────────────
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -81,6 +83,31 @@ export default function AgoraWorkshopPage() {
       .then((r) => r.json())
       .then((data) => setExistingThreads(Array.isArray(data) ? data : []))
       .catch((e) => console.error("Failed to fetch agora threads:", e));
+  }
+
+  async function handleDeleteThread(id: string) {
+    setDeletingId(id);
+    try {
+      const res = await fetch("/api/admin/agora", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+
+      if (!res.ok) throw new Error("Failed to delete thread");
+
+      setExistingThreads((prev) => prev.filter((t) => t.id !== id));
+      setConfirmDeleteId(null);
+
+      if (threadId === id) {
+        setThreadId(null);
+        setStep(1);
+      }
+    } catch {
+      setError("Failed to delete thread. Please try again.");
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   // ── Resume an existing thread ─────────────────────────────────────────
@@ -455,28 +482,68 @@ export default function AgoraWorkshopPage() {
           <h2 className="font-serif text-lg font-bold text-ink mb-3">Existing Threads</h2>
           <div className="space-y-2">
             {existingThreads.map((t) => (
-              <button
+              <div
                 key={t.id}
-                onClick={() => resumeThread(t.id)}
-                className={`w-full text-left bg-white border rounded-xl px-5 py-3 hover:bg-parchment-dark/20 transition-colors ${
+                className={`w-full bg-white border rounded-xl px-5 py-3 transition-colors ${
                   threadId === t.id ? "border-terracotta ring-1 ring-terracotta/30" : "border-border"
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="min-w-0 flex-1 mr-4">
+                  <button
+                    onClick={() => resumeThread(t.id)}
+                    className="min-w-0 flex-1 mr-4 text-left hover:opacity-70 transition-opacity"
+                  >
                     <span className="font-serif font-bold text-ink text-sm line-clamp-1">{t.question}</span>
                     <span className="text-xs text-ink-lighter block mt-0.5">
                       Asked by {t.asked_by} &middot; {t.philosopher_names.join(", ")}
                     </span>
-                  </div>
+                  </button>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${AGORA_STATUS_COLORS[t.status] || "bg-gray-100 text-gray-700"}`}>
                       {t.status}
                     </span>
                     <span className="text-xs text-ink-lighter font-mono">{formatDate(t.created_at)}</span>
+                    {confirmDeleteId === t.id ? (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleDeleteThread(t.id)}
+                          disabled={deletingId === t.id}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
+                        >
+                          {deletingId === t.id ? (
+                            <span className="flex items-center gap-1">
+                              <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
+                              Deleting
+                            </span>
+                          ) : (
+                            "Confirm"
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="inline-flex items-center px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:bg-parchment-dark/50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(t.id)}
+                        className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:text-red-600 hover:border-red-300 hover:bg-red-50"
+                        title="Delete this thread"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <path d="M3 4H13L12 14H4L3 4Z" />
+                          <path d="M1 4H15" strokeLinecap="round" />
+                          <path d="M6 2H10" strokeLinecap="round" />
+                          <path d="M7 7V11" strokeLinecap="round" />
+                          <path d="M9 7V11" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </div>

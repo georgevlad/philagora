@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
 import { parseGroupConcat } from "@/lib/db-utils";
 
@@ -116,6 +117,45 @@ export async function GET() {
     console.error("Failed to fetch debates:", error);
     return NextResponse.json(
       { error: "Failed to fetch debates" },
+      { status: 500 }
+    );
+  }
+}
+
+/** DELETE — permanently remove a debate */
+export async function DELETE(request: NextRequest) {
+  try {
+    const db = getDb();
+    const body = await request.json();
+    const { id } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "id is required" },
+        { status: 400 }
+      );
+    }
+
+    const existing = db
+      .prepare("SELECT id FROM debates WHERE id = ?")
+      .get(id);
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Debate not found" },
+        { status: 404 }
+      );
+    }
+
+    db.prepare("DELETE FROM debates WHERE id = ?").run(id);
+
+    revalidatePath("/debates");
+
+    return NextResponse.json({ deleted: id });
+  } catch (error) {
+    console.error("Failed to delete debate:", error);
+    return NextResponse.json(
+      { error: "Failed to delete debate" },
       { status: 500 }
     );
   }

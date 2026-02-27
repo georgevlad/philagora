@@ -30,6 +30,8 @@ export default function PromptsPage() {
   const [loadingPrompts, setLoadingPrompts] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activating, setActivating] = useState<number | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch philosophers on mount
@@ -132,6 +134,32 @@ export default function PromptsPage() {
       );
     } finally {
       setActivating(null);
+    }
+  }
+
+  async function handleDeletePrompt(promptId: number) {
+    if (!selectedPhilosopher) return;
+    setDeletingId(promptId);
+    try {
+      const res = await fetch("/api/admin/prompts", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: promptId }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error ?? "Failed to delete prompt");
+      }
+
+      setConfirmDeleteId(null);
+      await fetchPrompts(selectedPhilosopher.id);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to delete prompt"
+      );
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -409,15 +437,55 @@ export default function PromptsPage() {
                                   )}
                                 </div>
                                 {!isActive && (
-                                  <button
-                                    onClick={() => handleSetActive(prompt.id)}
-                                    disabled={activating === prompt.id}
-                                    className="px-3 py-1 rounded-md border border-border text-xs font-body text-ink-light hover:border-terracotta/50 hover:text-terracotta disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
-                                  >
-                                    {activating === prompt.id
-                                      ? "Activating..."
-                                      : "Make Active"}
-                                  </button>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => handleSetActive(prompt.id)}
+                                      disabled={activating === prompt.id}
+                                      className="px-3 py-1 rounded-md border border-border text-xs font-body text-ink-light hover:border-terracotta/50 hover:text-terracotta disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
+                                    >
+                                      {activating === prompt.id
+                                        ? "Activating..."
+                                        : "Make Active"}
+                                    </button>
+                                    {confirmDeleteId === prompt.id ? (
+                                      <div className="flex items-center gap-1.5">
+                                        <button
+                                          onClick={() => handleDeletePrompt(prompt.id)}
+                                          disabled={deletingId === prompt.id}
+                                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
+                                        >
+                                          {deletingId === prompt.id ? (
+                                            <span className="flex items-center gap-1">
+                                              <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
+                                              Deleting
+                                            </span>
+                                          ) : (
+                                            "Confirm"
+                                          )}
+                                        </button>
+                                        <button
+                                          onClick={() => setConfirmDeleteId(null)}
+                                          className="inline-flex items-center px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:bg-parchment-dark/50"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => setConfirmDeleteId(prompt.id)}
+                                        className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:text-red-600 hover:border-red-300 hover:bg-red-50"
+                                        title="Delete this prompt version"
+                                      >
+                                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                          <path d="M3 4H13L12 14H4L3 4Z" />
+                                          <path d="M1 4H15" strokeLinecap="round" />
+                                          <path d="M6 2H10" strokeLinecap="round" />
+                                          <path d="M7 7V11" strokeLinecap="round" />
+                                          <path d="M9 7V11" strokeLinecap="round" />
+                                        </svg>
+                                      </button>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                               <p className="text-sm text-ink font-body leading-relaxed whitespace-pre-wrap">

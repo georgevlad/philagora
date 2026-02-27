@@ -182,3 +182,41 @@ export async function PATCH(request: NextRequest) {
     );
   }
 }
+
+/**
+ * DELETE — Bulk cleanup of old generation log entries.
+ * Body: { action: "cleanup", older_than_days?: number, status_filter?: string }
+ * Defaults: 30 days, status_filter = "rejected"
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const db = getDb();
+    const body = await request.json();
+
+    if (body.action !== "cleanup") {
+      return NextResponse.json(
+        { error: 'action must be "cleanup"' },
+        { status: 400 }
+      );
+    }
+
+    const days = body.older_than_days ?? 30;
+    const statusFilter = body.status_filter ?? "rejected";
+
+    const result = db
+      .prepare(
+        `DELETE FROM generation_log
+         WHERE status = ?
+           AND created_at < datetime('now', '-' || ? || ' days')`
+      )
+      .run(statusFilter, days);
+
+    return NextResponse.json({ deleted: result.changes });
+  } catch (error) {
+    console.error("Failed to clean up generation log:", error);
+    return NextResponse.json(
+      { error: "Failed to clean up generation log" },
+      { status: 500 }
+    );
+  }
+}
