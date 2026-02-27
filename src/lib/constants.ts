@@ -25,6 +25,28 @@ export const AGORA_STATUS_COLORS: Record<string, string> = {
   complete: "bg-green-100 text-green-800",
 };
 
+// ── Generation status badge colors (Tailwind classes) ────────────────
+
+export const STATUS_STYLES: Record<string, string> = {
+  pending: "bg-yellow-100 text-yellow-800",
+  generated: "bg-blue-100 text-blue-800",
+  approved: "bg-green-100 text-green-800",
+  rejected: "bg-red-100 text-red-800",
+  published: "bg-terracotta/10 text-terracotta",
+  error: "bg-red-100 text-red-800",
+};
+
+// ── Content type display labels ─────────────────────────────────────
+
+export const CONTENT_TYPE_LABELS: Record<string, string> = {
+  post: "Post",
+  reflection: "Reflection",
+  debate_opening: "Debate Opening",
+  debate_rebuttal: "Debate Rebuttal",
+  agora_response: "Agora Response",
+  synthesis: "Synthesis",
+};
+
 // ── Post content truncation ──────────────────────────────────────────
 
 export const POST_CONTENT_TRUNCATE_LIMIT = 140;

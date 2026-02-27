@@ -72,7 +72,7 @@ export default function AgoraWorkshopPage() {
     fetch("/api/admin/philosophers")
       .then((r) => r.json())
       .then((data) => setPhilosophers(Array.isArray(data) ? data : []))
-      .catch(() => {});
+      .catch((e) => console.error("Failed to fetch philosophers:", e));
     fetchThreads();
   }, []);
 
@@ -80,7 +80,7 @@ export default function AgoraWorkshopPage() {
     fetch("/api/admin/agora")
       .then((r) => r.json())
       .then((data) => setExistingThreads(Array.isArray(data) ? data : []))
-      .catch(() => {});
+      .catch((e) => console.error("Failed to fetch agora threads:", e));
   }
 
   // ── Resume an existing thread ─────────────────────────────────────────

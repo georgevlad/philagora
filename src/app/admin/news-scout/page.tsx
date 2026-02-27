@@ -8,37 +8,15 @@ import type { Stance } from "@/lib/types";
 
 // ── Types ────────────────────────────────────────────────────────────
 
-interface NewsSource {
-  id: string;
-  name: string;
-  feed_url: string;
-  category: string;
-  is_active: number;
-  last_fetched_at: string | null;
-  created_at: string;
-  article_count?: number;
-}
+import type {
+  NewsSource as BaseNewsSource,
+  ArticleCandidate,
+  FetchResult,
+  ScoreResult,
+} from "@/lib/news-scout-service";
 
-interface ArticleCandidate {
-  id: string;
-  source_id: string;
-  title: string;
-  url: string;
-  description: string;
-  pub_date: string | null;
-  score: number | null;
-  score_reasoning: string | null;
-  suggested_philosophers: string;
-  suggested_stances: string;
-  primary_tensions: string;
-  philosophical_entry_point: string | null;
-  image_url: string | null;
-  status: string;
-  fetched_at: string;
-  scored_at: string | null;
-  source_name?: string;
-  source_category?: string;
-  source_logo_url?: string;
+interface NewsSource extends BaseNewsSource {
+  article_count?: number;
 }
 
 interface Stats {
@@ -49,34 +27,6 @@ interface Stats {
   dismissed: number;
   used: number;
 }
-
-interface FetchResult {
-  sourcesChecked: number;
-  newArticles: number;
-  errors: string[];
-}
-
-interface ScoreResult {
-  scored: number;
-  errors: string[];
-}
-
-// ── Philosopher lookup (for avatar rendering) ─────────────────────
-
-const PHILOSOPHER_META: Record<string, { name: string; initials: string; color: string }> = {
-  "marcus-aurelius":  { name: "Marcus Aurelius",  initials: "MA", color: "#3D7A35" },
-  "nietzsche":        { name: "Nietzsche",        initials: "FN", color: "#8B1A1A" },
-  "confucius":        { name: "Confucius",        initials: "Co", color: "#8B6914" },
-  "kant":             { name: "Kant",             initials: "IK", color: "#1A3A5C" },
-  "camus":            { name: "Camus",            initials: "AC", color: "#5B4A8A" },
-  "russell":          { name: "Russell",          initials: "BR", color: "#2E6B62" },
-  "kierkegaard":      { name: "Kierkegaard",      initials: "SK", color: "#7A3B2E" },
-  "plato":            { name: "Plato",            initials: "Pl", color: "#4A6FA5" },
-  "seneca":           { name: "Seneca",           initials: "Se", color: "#6B5B3E" },
-  "jung":             { name: "Jung",             initials: "CJ", color: "#5C4B8A" },
-  "dostoevsky":       { name: "Dostoevsky",       initials: "FD", color: "#4A3728" },
-  "cicero":           { name: "Cicero",           initials: "MT", color: "#8B4513" },
-};
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -137,6 +87,11 @@ export default function NewsScoutPage() {
   });
   const [addingSource, setAddingSource] = useState(false);
 
+  // Philosopher lookup (fetched dynamically so it stays current)
+  const [philosopherMeta, setPhilosopherMeta] = useState<
+    Record<string, { name: string; initials: string; color: string }>
+  >({});
+
   // ── Data fetching ──────────────────────────────────────────────────
 
   const fetchStats = useCallback(async () => {
@@ -176,6 +131,17 @@ export default function NewsScoutPage() {
   }, []);
 
   useEffect(() => {
+    fetch("/api/admin/philosophers")
+      .then((r) => r.json())
+      .then((data: Array<{ id: string; name: string; initials: string; color: string }>) => {
+        const lookup: Record<string, { name: string; initials: string; color: string }> = {};
+        for (const p of data) {
+          lookup[p.id] = { name: p.name, initials: p.initials, color: p.color };
+        }
+        setPhilosopherMeta(lookup);
+      })
+      .catch((e) => console.error("Failed to fetch philosophers:", e));
+
     Promise.all([fetchStats(), fetchCandidates(), fetchSources()]).finally(() =>
       setLoading(false)
     );
@@ -591,7 +557,7 @@ export default function NewsScoutPage() {
                     {philosophers.length > 0 && (
                       <div className="flex items-center gap-1.5 mb-2 flex-wrap">
                         {philosophers.map((pid) => {
-                          const meta = PHILOSOPHER_META[pid];
+                          const meta = philosopherMeta[pid];
                           const stance = stances[pid] as Stance | undefined;
                           const stanceStyle = stance
                             ? STANCE_CONFIG[stance]

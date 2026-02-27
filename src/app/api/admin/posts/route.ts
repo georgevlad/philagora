@@ -74,10 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate a unique post ID
-    const count = db
-      .prepare("SELECT COUNT(*) as c FROM posts")
-      .get() as { c: number };
-    const postId = `post-gen-${count.c + 1}-${Date.now()}`;
+    const postId = `post-gen-${crypto.randomUUID()}`;
 
     const result = db
       .prepare(

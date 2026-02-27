@@ -8,6 +8,22 @@ export function formatDate(iso: string): string {
   }
 }
 
+/** Format an ISO date string into a short display format with time (e.g. "Jan 5, 2025, 3:45 PM"). */
+export function formatDateTime(iso: string): string {
+  try {
+    const d = new Date(iso.includes("Z") ? iso : iso + "Z");
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
 /** Convert an ISO date string to a relative timestamp (e.g. "2h ago"). */
 export function timeAgo(iso: string): string {
   try {

@@ -84,7 +84,7 @@ export default function DebateWorkshopPage() {
     fetch("/api/admin/philosophers")
       .then((r) => r.json())
       .then((data) => setPhilosophers(Array.isArray(data) ? data : []))
-      .catch(() => {});
+      .catch((e) => console.error("Failed to fetch philosophers:", e));
     fetchDebates();
   }, []);
 
@@ -92,7 +92,7 @@ export default function DebateWorkshopPage() {
     fetch("/api/admin/debates")
       .then((r) => r.json())
       .then((data) => setExistingDebates(Array.isArray(data) ? data : []))
-      .catch(() => {});
+      .catch((e) => console.error("Failed to fetch debates:", e));
   }
 
   // ── Resume an existing debate ─────────────────────────────────────────

@@ -5,9 +5,10 @@
  * scoreUnscored()   — Send unscored articles to Claude for philosophical scoring.
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import type Anthropic from "@anthropic-ai/sdk";
 import Parser from "rss-parser";
 import { getDb } from "@/lib/db";
+import { getAnthropicClient, parseJsonResponse } from "@/lib/anthropic-utils";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -69,22 +70,6 @@ interface ScoreResponse {
 const SCORING_MODEL = "claude-haiku-4-5-20251001";
 const SCORING_MAX_TOKENS = 1024;
 const SCORING_TEMPERATURE = 0.3;
-
-// ── Helpers ──────────────────────────────────────────────────────────
-
-function getAnthropicClient(): Anthropic | null {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey || apiKey === "placeholder_key_here") return null;
-  return new Anthropic({ apiKey });
-}
-
-function parseJsonResponse(rawOutput: string): Record<string, unknown> {
-  let cleaned = rawOutput.trim();
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*/, "").replace(/```\s*$/, "");
-  }
-  return JSON.parse(cleaned);
-}
 
 /**
  * Fetch the og:image meta tag from an article's HTML page.

@@ -3,16 +3,11 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { formatDateTime } from "@/lib/date-utils";
+import { STANCE_CONFIG, STATUS_STYLES, CONTENT_TYPE_LABELS } from "@/lib/constants";
+import type { Philosopher } from "@/types/admin";
 
 // ── Types ───────────────────────────────────────────────────────────────
-
-interface Philosopher {
-  id: string;
-  name: string;
-  tradition: string;
-  color: string;
-  initials: string;
-}
 
 interface GenerationLogEntry {
   id: number;
@@ -55,51 +50,6 @@ const CONTENT_TYPE_OPTIONS = [
   { label: "Debate Rebuttal", value: "debate_rebuttal", description: "Rebuttal in an ongoing debate" },
   { label: "Agora Response", value: "agora_response", description: "Respond to a user's question" },
 ] as const;
-
-// ── Badge styles ────────────────────────────────────────────────────────
-
-const STATUS_STYLES: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800",
-  generated: "bg-blue-100 text-blue-800",
-  approved: "bg-green-100 text-green-800",
-  rejected: "bg-red-100 text-red-800",
-  published: "bg-terracotta/10 text-terracotta",
-  error: "bg-red-100 text-red-800",
-};
-
-const STANCE_STYLES: Record<string, { bg: string; text: string; border: string }> = {
-  challenges: { bg: "#FED7D7", text: "#9B2C2C", border: "#FEB2B2" },
-  defends: { bg: "#C6F6D5", text: "#276749", border: "#9AE6B4" },
-  reframes: { bg: "#FEFCBF", text: "#744210", border: "#FAF089" },
-  questions: { bg: "#BEE3F8", text: "#2A4365", border: "#90CDF4" },
-  warns: { bg: "#FEEBC8", text: "#9C4221", border: "#FBD38D" },
-  observes: { bg: "#E2E8F0", text: "#4A5568", border: "#CBD5E0" },
-};
-
-const CONTENT_TYPE_LABELS: Record<string, string> = {
-  post: "Post",
-  reflection: "Reflection",
-  debate_opening: "Debate Opening",
-  debate_rebuttal: "Debate Rebuttal",
-  agora_response: "Agora Response",
-};
-
-// ── Helpers ─────────────────────────────────────────────────────────────
-
-function formatDate(iso: string): string {
-  try {
-    const d = new Date(iso.includes("Z") ? iso : iso + "Z");
-    return d.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
-}
 
 // ── Component ───────────────────────────────────────────────────────────
 
@@ -801,10 +751,10 @@ function ContentGenerationPageInner() {
                     className="inline-flex items-center px-2 py-0.5 text-[10px] font-mono tracking-wider uppercase rounded-full"
                     style={{
                       backgroundColor:
-                        STANCE_STYLES[preview.data.stance]?.bg ?? "#E2E8F0",
+                        STANCE_CONFIG[preview.data.stance as keyof typeof STANCE_CONFIG]?.bg ?? "#E2E8F0",
                       color:
-                        STANCE_STYLES[preview.data.stance]?.text ?? "#4A5568",
-                      border: `1px solid ${STANCE_STYLES[preview.data.stance]?.border ?? "#CBD5E0"}`,
+                        STANCE_CONFIG[preview.data.stance as keyof typeof STANCE_CONFIG]?.color ?? "#4A5568",
+                      border: `1px solid ${STANCE_CONFIG[preview.data.stance as keyof typeof STANCE_CONFIG]?.border ?? "#CBD5E0"}`,
                     }}
                   >
                     {preview.data.stance}
@@ -1010,7 +960,7 @@ function ContentGenerationPageInner() {
                       </span>
                     </td>
                     <td className="px-5 py-3 text-ink-lighter text-xs font-mono whitespace-nowrap">
-                      {formatDate(entry.created_at)}
+                      {formatDateTime(entry.created_at)}
                     </td>
                   </tr>
                 ))}

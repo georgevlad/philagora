@@ -1,4 +1,6 @@
 import { getDb } from "@/lib/db";
+import { formatDateTime } from "@/lib/date-utils";
+import { STATUS_STYLES, CONTENT_TYPE_LABELS } from "@/lib/constants";
 
 interface StatRow {
   count: number;
@@ -47,34 +49,6 @@ function getRecentGenerations(): GenerationLogRow[] {
     .all() as GenerationLogRow[];
 
   return rows;
-}
-
-const STATUS_STYLES: Record<string, string> = {
-  generated: "bg-blue-100 text-blue-800",
-  approved: "bg-green-100 text-green-800",
-  rejected: "bg-red-100 text-red-800",
-  published: "bg-terracotta/10 text-terracotta",
-  pending: "bg-yellow-100 text-yellow-800",
-};
-
-const CONTENT_TYPE_LABELS: Record<string, string> = {
-  post: "Post",
-  debate_opening: "Debate Opening",
-  debate_rebuttal: "Debate Rebuttal",
-  agora_response: "Agora Response",
-  reflection: "Reflection",
-  synthesis: "Synthesis",
-};
-
-function formatDate(iso: string): string {
-  const d = new Date(iso + "Z");
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }
 
 export default function AdminDashboard() {
@@ -169,7 +143,7 @@ export default function AdminDashboard() {
                       </span>
                     </td>
                     <td className="px-5 py-3 text-ink-lighter text-xs font-mono">
-                      {formatDate(entry.created_at)}
+                      {formatDateTime(entry.created_at)}
                     </td>
                   </tr>
                 ))}
