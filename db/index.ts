@@ -76,6 +76,7 @@ function runMigrations(db: Database.Database): void {
   // ── News Scout tables (always runs, idempotent) ──────────────────
   migrateNewsScout(db);
   migrateNewsSourceLogos(db);
+  migrateAgoraThreadsIpAddress(db);
 
   // Table-rebuild migrations can race with parallel build workers.
   // Wrap each in try-catch so a concurrent "table already dropped" or
@@ -302,6 +303,25 @@ function migratePostsArchivedStatus(db: Database.Database): void {
   })();
 
   db.exec("PRAGMA foreign_keys = ON;");
+}
+
+/**
+ * Add ip_address column to agora_threads for per-IP rate limiting.
+ */
+function migrateAgoraThreadsIpAddress(db: Database.Database): void {
+  const columns = db
+    .prepare("PRAGMA table_info(agora_threads)")
+    .all() as { name: string }[];
+
+  const hasIpAddress = columns.some((c) => c.name === "ip_address");
+  if (hasIpAddress) return;
+
+  try {
+    db.exec("ALTER TABLE agora_threads ADD COLUMN ip_address TEXT;");
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("duplicate column")) return;
+    throw err;
+  }
 }
 
 export default getDb;

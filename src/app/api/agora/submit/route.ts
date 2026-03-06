@@ -24,7 +24,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     const question = (body.question ?? "").trim();
-    const askedBy = (body.asked_by ?? "").trim() || "Anonymous";
+    const askedBy = (body.asked_by ?? "")
+      .replace(/<[^>]*>/g, "")
+      .replace(/[^a-zA-Z0-9\s\-_.]/g, "")
+      .slice(0, 40)
+      .trim() || "Anonymous";
     const philosopherIds: unknown = body.philosopher_ids;
 
     // ── Validation ────────────────────────────────────────────────────
@@ -35,6 +39,16 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Strip prompt injection patterns
+    const sanitizedQuestion = question
+      .replace(/\[INST\]/gi, "")
+      .replace(/<\/?system>/gi, "")
+      .replace(/<\/?assistant>/gi, "")
+      .replace(/<\/?human>/gi, "")
+      .replace(/<\/?user>/gi, "")
+      .replace(/^(system|assistant|human|user)\s*:/gim, "")
+      .trim();
 
     if (
       !Array.isArray(philosopherIds) ||
@@ -69,6 +83,25 @@ export async function POST(request: NextRequest) {
 
     // ── Rate limit ────────────────────────────────────────────────────
 
+    const clientIp =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      "unknown";
+
+    // Per-IP limit: 3 submissions per day
+    const ipCount = db
+      .prepare(
+        "SELECT COUNT(*) as count FROM agora_threads WHERE ip_address = ? AND created_at >= date('now')"
+      )
+      .get(clientIp) as CountRow;
+
+    if (ipCount.count >= 3) {
+      return NextResponse.json(
+        { error: "The philosophers are resting. Check back tomorrow." },
+        { status: 429 }
+      );
+    }
+
+    // Global safety net: 10 submissions per day total
     const todayCount = db
       .prepare(
         "SELECT COUNT(*) as count FROM agora_threads WHERE created_at >= date('now')"
@@ -89,9 +122,9 @@ export async function POST(request: NextRequest) {
 
     db.transaction(() => {
       db.prepare(
-        `INSERT INTO agora_threads (id, question, asked_by, status)
-         VALUES (?, ?, ?, 'in_progress')`
-      ).run(threadId, question, askedBy);
+        `INSERT INTO agora_threads (id, question, asked_by, status, ip_address)
+         VALUES (?, ?, ?, 'in_progress', ?)`
+      ).run(threadId, sanitizedQuestion, askedBy, clientIp);
 
       const insertPhilosopher = db.prepare(
         "INSERT INTO agora_thread_philosophers (thread_id, philosopher_id) VALUES (?, ?)"
@@ -103,7 +136,7 @@ export async function POST(request: NextRequest) {
 
     // ── Fire-and-forget generation ────────────────────────────────────
 
-    runGeneration(threadId, question, askedBy, validPids);
+    runGeneration(threadId, sanitizedQuestion, askedBy, validPids);
 
     return NextResponse.json({ threadId }, { status: 201 });
   } catch (error) {

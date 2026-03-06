@@ -10,7 +10,7 @@
  *   4. If ADMIN_PASSWORD is not set, admin is open (local-dev convenience).
  */
 
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 
 export const ADMIN_COOKIE_NAME = "philagora_admin";
 export const ADMIN_COOKIE_MAX_AGE = 60 * 60 * 24; // 24 hours
@@ -31,9 +31,14 @@ export function isAdminOpen(): boolean {
   return !process.env.ADMIN_PASSWORD;
 }
 
-/** Check a raw password against the env var. */
+/** Check a raw password against the env var (timing-safe). */
 export function verifyPassword(candidate: string): boolean {
-  return candidate === process.env.ADMIN_PASSWORD;
+  const pw = process.env.ADMIN_PASSWORD;
+  if (!pw) return false;
+  const a = Buffer.from(candidate);
+  const b = Buffer.from(pw);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }
 
 /** Create the token value to store in the cookie. */
