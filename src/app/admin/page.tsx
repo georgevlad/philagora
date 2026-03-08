@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getDb } from "@/lib/db";
 import { formatDateTime } from "@/lib/date-utils";
 import { STATUS_STYLES, CONTENT_TYPE_LABELS } from "@/lib/constants";
@@ -14,19 +15,62 @@ interface GenerationLogRow {
   created_at: string;
 }
 
-function getStats() {
+function getActionStats() {
   const db = getDb();
 
-  const posts = db.prepare("SELECT COUNT(*) as count FROM posts").get() as StatRow;
-  const debates = db.prepare("SELECT COUNT(*) as count FROM debates").get() as StatRow;
-  const threads = db.prepare("SELECT COUNT(*) as count FROM agora_threads").get() as StatRow;
-  const logs = db.prepare("SELECT COUNT(*) as count FROM generation_log").get() as StatRow;
+  const unscored = db
+    .prepare("SELECT COUNT(*) as count FROM article_candidates WHERE status = 'new'")
+    .get() as StatRow;
+
+  const approvedNoPosts = db
+    .prepare(
+      `SELECT COUNT(*) as count FROM article_candidates ac
+       WHERE ac.status = 'approved'
+         AND NOT EXISTS (
+           SELECT 1 FROM posts p
+           WHERE p.citation_url = ac.url
+             AND p.status IN ('draft', 'approved', 'published')
+         )`
+    )
+    .get() as StatRow;
+
+  const draftPosts = db
+    .prepare("SELECT COUNT(*) as count FROM posts WHERE status = 'draft'")
+    .get() as StatRow;
+
+  const approvedPosts = db
+    .prepare("SELECT COUNT(*) as count FROM posts WHERE status = 'approved'")
+    .get() as StatRow;
 
   return {
-    posts: posts.count,
+    unscored: unscored.count,
+    approvedNoPosts: approvedNoPosts.count,
+    draftPosts: draftPosts.count,
+    approvedPosts: approvedPosts.count,
+  };
+}
+
+function getQuickStats() {
+  const db = getDb();
+
+  const published = db
+    .prepare("SELECT COUNT(*) as count FROM posts WHERE status = 'published'")
+    .get() as StatRow;
+  const debates = db
+    .prepare("SELECT COUNT(*) as count FROM debates")
+    .get() as StatRow;
+  const threads = db
+    .prepare("SELECT COUNT(*) as count FROM agora_threads")
+    .get() as StatRow;
+  const sources = db
+    .prepare("SELECT COUNT(*) as count FROM news_sources WHERE is_active = 1")
+    .get() as StatRow;
+
+  return {
+    published: published.count,
     debates: debates.count,
     threads: threads.count,
-    logs: logs.count,
+    sources: sources.count,
   };
 }
 
@@ -44,7 +88,7 @@ function getRecentGenerations(): GenerationLogRow[] {
       FROM generation_log g
       LEFT JOIN philosophers p ON p.id = g.philosopher_id
       ORDER BY g.created_at DESC
-      LIMIT 10`
+      LIMIT 5`
     )
     .all() as GenerationLogRow[];
 
@@ -52,15 +96,45 @@ function getRecentGenerations(): GenerationLogRow[] {
 }
 
 export default function AdminDashboard() {
-  const stats = getStats();
+  const actions = getActionStats();
+  const quick = getQuickStats();
   const recentGenerations = getRecentGenerations();
 
-  const statCards = [
-    { label: "Total Posts", value: stats.posts, icon: "\u270D" },
-    { label: "Total Debates", value: stats.debates, icon: "\u2694" },
-    { label: "Agora Threads", value: stats.threads, icon: "\u2753" },
-    { label: "Generation Logs", value: stats.logs, icon: "\u2699" },
+  const actionCards = [
+    {
+      label: "Unscored Articles",
+      value: actions.unscored,
+      icon: "📰",
+      href: "/admin/news-scout",
+      color: "amber" as const,
+    },
+    {
+      label: "Approved, No Posts",
+      value: actions.approvedNoPosts,
+      icon: "✍️",
+      href: "/admin/news-scout?tab=approved",
+      color: "amber" as const,
+    },
+    {
+      label: "Draft Posts",
+      value: actions.draftPosts,
+      icon: "📝",
+      href: "/admin/posts?status=draft",
+      color: "blue" as const,
+    },
+    {
+      label: "Approved Posts",
+      value: actions.approvedPosts,
+      icon: "✅",
+      href: "/admin/posts?status=approved",
+      color: "blue" as const,
+    },
   ];
+
+  const borderColors = {
+    amber: "border-l-4 border-l-amber-400",
+    blue: "border-l-4 border-l-blue-400",
+  };
 
   return (
     <div>
@@ -68,16 +142,19 @@ export default function AdminDashboard() {
       <div className="mb-8">
         <h1 className="font-serif text-2xl font-bold text-ink">Dashboard</h1>
         <p className="text-sm text-ink-lighter mt-1">
-          Overview of Philagora content and generation activity.
+          Items that need your attention.
         </p>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        {statCards.map((card) => (
-          <div
+      {/* A) Action cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {actionCards.map((card) => (
+          <Link
             key={card.label}
-            className="bg-white border border-border rounded-xl px-5 py-4 shadow-sm"
+            href={card.href}
+            className={`bg-white border border-border rounded-xl px-5 py-4 shadow-sm hover:shadow-md hover:border-border-light transition-all duration-150 ${
+              card.value > 0 ? borderColors[card.color] : ""
+            }`}
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-mono uppercase tracking-wider text-ink-lighter">
@@ -86,15 +163,46 @@ export default function AdminDashboard() {
               <span className="text-lg">{card.icon}</span>
             </div>
             <p className="font-serif text-3xl font-bold text-ink">{card.value}</p>
-          </div>
+          </Link>
         ))}
       </div>
 
-      {/* Recent generations */}
+      {/* B) Quick stats row */}
+      <div className="text-xs font-mono text-ink-lighter mb-10 px-1">
+        Published Posts:{" "}
+        <Link href="/admin/posts?status=published" className="text-ink-light hover:text-terracotta transition-colors">
+          {quick.published}
+        </Link>
+        {"  ·  "}
+        Completed Debates:{" "}
+        <Link href="/admin/debates" className="text-ink-light hover:text-terracotta transition-colors">
+          {quick.debates}
+        </Link>
+        {"  ·  "}
+        Agora Threads:{" "}
+        <Link href="/admin/agora" className="text-ink-light hover:text-terracotta transition-colors">
+          {quick.threads}
+        </Link>
+        {"  ·  "}
+        RSS Sources:{" "}
+        <Link href="/admin/news-scout/sources" className="text-ink-light hover:text-terracotta transition-colors">
+          {quick.sources}
+        </Link>
+      </div>
+
+      {/* C) Recent generations */}
       <div>
-        <h2 className="font-serif text-lg font-bold text-ink mb-4">
-          Recent Generations
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-serif text-lg font-bold text-ink">
+            Recent Generations
+          </h2>
+          <Link
+            href="/admin/content"
+            className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors"
+          >
+            View all &rarr;
+          </Link>
+        </div>
 
         {recentGenerations.length === 0 ? (
           <div className="bg-white border border-border rounded-xl px-6 py-10 text-center">
