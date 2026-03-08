@@ -2,18 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { verifyAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
 import { AdminLogoutButton } from "./AdminLogoutButton";
-
-const navItems = [
-  { href: "/admin", label: "Dashboard", icon: "📊" },
-  { href: "/admin/philosophers", label: "Philosophers", icon: "🏛️" },
-  { href: "/admin/posts", label: "Posts", icon: "📝" },
-  { href: "/admin/prompts", label: "Prompts", icon: "💬" },
-  { href: "/admin/debates", label: "Debates", icon: "⚔️" },
-  { href: "/admin/agora", label: "Agora", icon: "❓" },
-  { href: "/admin/content", label: "Generate", icon: "⚡" },
-  { href: "/admin/news-scout", label: "News Scout", icon: "📰" },
-  { href: "/admin/news-scout/sources", label: "RSS Sources", icon: "📡", indent: true },
-];
+import { AdminNav } from "./AdminNav";
 
 export default async function AdminLayout({
   children,
@@ -44,18 +33,7 @@ export default async function AdminLayout({
           </Link>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 text-sm text-ink-light rounded-lg hover:bg-parchment-dark hover:text-ink transition-colors duration-150 ${item.indent ? "ml-4 text-xs" : ""}`}
-            >
-              <span className="text-base">{item.icon}</span>
-              <span className="font-body">{item.label}</span>
-            </Link>
-          ))}
-        </nav>
+        <AdminNav />
 
         <div className="px-5 py-4 border-t border-border flex items-center justify-between">
           <Link
