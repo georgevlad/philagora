@@ -502,6 +502,30 @@ export default function AdminPostsPage() {
                     </div>
                   </div>
 
+                  {/* ── Source article indicator ───────────────────────── */}
+                  {post.citation_title && (
+                    <div className="flex items-center gap-1.5 mb-2 ml-12">
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-ink-lighter shrink-0">
+                        <path d="M2 4h12M2 8h8M2 12h10" strokeLinecap="round" />
+                      </svg>
+                      {post.citation_url ? (
+                        <a
+                          href={post.citation_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-mono text-ink-lighter hover:text-terracotta transition-colors truncate max-w-[300px]"
+                          title={post.citation_title}
+                        >
+                          via {post.citation_source || "article"}: {post.citation_title}
+                        </a>
+                      ) : (
+                        <span className="text-[11px] font-mono text-ink-lighter truncate max-w-[300px]">
+                          via {post.citation_source || "article"}: {post.citation_title}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* ── Thesis ────────────────────────────────────────── */}
                   {post.thesis && (
                     <blockquote
