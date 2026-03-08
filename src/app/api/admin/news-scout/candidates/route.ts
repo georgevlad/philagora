@@ -48,7 +48,41 @@ export async function GET(request: NextRequest) {
 
     const candidates = db.prepare(query).all(...params) as ArticleCandidate[];
 
-    return NextResponse.json(candidates);
+    // Batch-fetch post usage data for returned candidates
+    const urls = candidates.map((c) => c.url).filter(Boolean);
+    let usageMap: Record<
+      string,
+      Array<{ philosopher_id: string; status: string; post_id: string }>
+    > = {};
+
+    if (urls.length > 0) {
+      const placeholders = urls.map(() => "?").join(",");
+      const posts = db
+        .prepare(
+          `SELECT citation_url, philosopher_id, status, id as post_id
+           FROM posts
+           WHERE citation_url IN (${placeholders})
+             AND status IN ('draft', 'approved', 'published')`
+        )
+        .all(...urls) as Array<{
+        citation_url: string;
+        philosopher_id: string;
+        status: string;
+        post_id: string;
+      }>;
+
+      for (const post of posts) {
+        if (!usageMap[post.citation_url]) usageMap[post.citation_url] = [];
+        usageMap[post.citation_url].push(post);
+      }
+    }
+
+    const enriched = candidates.map((c) => ({
+      ...c,
+      published_posts: usageMap[c.url] || [],
+    }));
+
+    return NextResponse.json(enriched);
   } catch (error) {
     console.error("Failed to fetch candidates:", error);
     return NextResponse.json(

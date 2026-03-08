@@ -12,6 +12,7 @@ const navItems = [
   { href: "/admin/agora", label: "Agora", icon: "❓" },
   { href: "/admin/content", label: "Generate", icon: "⚡" },
   { href: "/admin/news-scout", label: "News Scout", icon: "📰" },
+  { href: "/admin/news-scout/sources", label: "RSS Sources", icon: "📡", indent: true },
 ];
 
 export default async function AdminLayout({
@@ -48,7 +49,7 @@ export default async function AdminLayout({
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-3 px-3 py-2.5 text-sm text-ink-light rounded-lg hover:bg-parchment-dark hover:text-ink transition-colors duration-150"
+              className={`flex items-center gap-3 px-3 py-2.5 text-sm text-ink-light rounded-lg hover:bg-parchment-dark hover:text-ink transition-colors duration-150 ${item.indent ? "ml-4 text-xs" : ""}`}
             >
               <span className="text-base">{item.icon}</span>
               <span className="font-body">{item.label}</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { Spinner } from "@/components/Spinner";
 import { formatDate } from "@/lib/date-utils";
 import { STANCE_CONFIG } from "@/lib/constants";
@@ -9,15 +10,10 @@ import type { Stance } from "@/lib/types";
 // ── Types ────────────────────────────────────────────────────────────
 
 import type {
-  NewsSource as BaseNewsSource,
   ArticleCandidate,
   FetchResult,
   ScoreResult,
 } from "@/lib/news-scout-service";
-
-interface NewsSource extends BaseNewsSource {
-  article_count?: number;
-}
 
 interface Stats {
   total: number;
@@ -26,6 +22,14 @@ interface Stats {
   approved: number;
   dismissed: number;
   used: number;
+}
+
+interface CandidateWithUsage extends ArticleCandidate {
+  published_posts?: Array<{
+    philosopher_id: string;
+    status: string;
+    post_id: string;
+  }>;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -61,8 +65,7 @@ export default function NewsScoutPage() {
   // ── State ──────────────────────────────────────────────────────────
 
   const [stats, setStats] = useState<Stats | null>(null);
-  const [candidates, setCandidates] = useState<ArticleCandidate[]>([]);
-  const [sources, setSources] = useState<NewsSource[]>([]);
+  const [candidates, setCandidates] = useState<CandidateWithUsage[]>([]);
   const [loading, setLoading] = useState(true);
   const [pipelineRunning, setPipelineRunning] = useState(false);
   const [pipelineStatus, setPipelineStatus] = useState("");
@@ -76,16 +79,6 @@ export default function NewsScoutPage() {
   const [statusFilter, setStatusFilter] = useState("scored");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [minScoreFilter, setMinScoreFilter] = useState("");
-
-  // Sources management
-  const [sourcesExpanded, setSourcesExpanded] = useState(false);
-  const [newSource, setNewSource] = useState({
-    id: "",
-    name: "",
-    feed_url: "",
-    category: "world",
-  });
-  const [addingSource, setAddingSource] = useState(false);
 
   // Delete / cleanup
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -126,16 +119,6 @@ export default function NewsScoutPage() {
     }
   }, [statusFilter, categoryFilter, minScoreFilter]);
 
-  const fetchSources = useCallback(async () => {
-    try {
-      const res = await fetch("/api/admin/news-scout/sources");
-      const data = await res.json();
-      setSources(data);
-    } catch {
-      // non-critical
-    }
-  }, []);
-
   useEffect(() => {
     fetch("/api/admin/philosophers")
       .then((r) => r.json())
@@ -148,10 +131,10 @@ export default function NewsScoutPage() {
       })
       .catch((e) => console.error("Failed to fetch philosophers:", e));
 
-    Promise.all([fetchStats(), fetchCandidates(), fetchSources()]).finally(() =>
+    Promise.all([fetchStats(), fetchCandidates()]).finally(() =>
       setLoading(false)
     );
-  }, [fetchStats, fetchCandidates, fetchSources]);
+  }, [fetchStats, fetchCandidates]);
 
   // Re-fetch candidates when filters change
   useEffect(() => {
@@ -181,7 +164,7 @@ export default function NewsScoutPage() {
 
       setPipelineResult(data);
       // Refresh all data
-      await Promise.all([fetchStats(), fetchCandidates(), fetchSources()]);
+      await Promise.all([fetchStats(), fetchCandidates()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Pipeline failed");
     } finally {
@@ -260,60 +243,6 @@ export default function NewsScoutPage() {
       setCleanupRunning(false);
     }
   }
-
-  // ── Source management ──────────────────────────────────────────────
-
-  const addSource = async () => {
-    if (!newSource.id || !newSource.name || !newSource.feed_url) return;
-    setAddingSource(true);
-    try {
-      const res = await fetch("/api/admin/news-scout/sources", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newSource),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to add source");
-      }
-      setNewSource({ id: "", name: "", feed_url: "", category: "world" });
-      fetchSources();
-      fetchStats();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add source");
-    } finally {
-      setAddingSource(false);
-    }
-  };
-
-  const toggleSource = async (id: string, currentActive: number) => {
-    try {
-      await fetch("/api/admin/news-scout/sources", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, is_active: currentActive ? 0 : 1 }),
-      });
-      fetchSources();
-    } catch {
-      setError("Failed to toggle source");
-    }
-  };
-
-  const deleteSource = async (id: string) => {
-    if (!confirm(`Delete source "${id}" and all its articles?`)) return;
-    try {
-      await fetch("/api/admin/news-scout/sources", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-      fetchSources();
-      fetchStats();
-      fetchCandidates();
-    } catch {
-      setError("Failed to delete source");
-    }
-  };
 
   // ── Render ─────────────────────────────────────────────────────────
 
@@ -472,17 +401,12 @@ export default function NewsScoutPage() {
             </button>
           )}
 
-          {sources.length > 0 && sources[0].last_fetched_at && (
-            <span className="text-xs font-mono text-ink-lighter ml-auto">
-              Last fetch:{" "}
-              {formatDate(
-                sources.reduce((latest, s) => {
-                  if (!s.last_fetched_at) return latest;
-                  return s.last_fetched_at > latest ? s.last_fetched_at : latest;
-                }, "")
-              )}
-            </span>
-          )}
+          <Link
+            href="/admin/news-scout/sources"
+            className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors ml-auto"
+          >
+            Manage RSS Sources &rarr;
+          </Link>
         </div>
       </div>
 
@@ -536,6 +460,11 @@ export default function NewsScoutPage() {
       </div>
 
       {/* ── Candidates List ───────────────────────────────────────── */}
+      {statusFilter === "approved" && candidates.length > 0 && (
+        <div className="text-xs font-mono text-ink-lighter px-1 mb-2">
+          {candidates.filter(c => (c.published_posts?.length || 0) > 0).length} of {candidates.length} approved articles have posts
+        </div>
+      )}
       <div className="space-y-3">
         {candidates.length === 0 && (
           <div className="bg-white border border-border rounded-xl px-6 py-12 text-center">
@@ -702,6 +631,85 @@ export default function NewsScoutPage() {
                       </div>
                     )}
 
+                    {/* Post usage indicator (approved cards only) */}
+                    {isApproved && (() => {
+                      const posts = candidate.published_posts || [];
+                      const postedPhilosopherIds = new Set(posts.map(p => p.philosopher_id));
+                      const unusedPhilosophers = philosophers.filter(pid => !postedPhilosopherIds.has(pid));
+
+                      if (posts.length > 0 && unusedPhilosophers.length === 0) {
+                        // Fully used
+                        return (
+                          <div className="flex items-center gap-2 mt-2 py-1.5 px-2.5 rounded-lg bg-green-50 border border-green-200">
+                            <span className="text-[10px] font-mono text-green-700">
+                              ✓ {posts.length} post{posts.length !== 1 ? 's' : ''} generated
+                            </span>
+                            <div className="flex items-center gap-1">
+                              {posts.map(p => {
+                                const meta = philosopherMeta[p.philosopher_id];
+                                return meta ? (
+                                  <span
+                                    key={p.post_id}
+                                    className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[8px] font-bold text-white"
+                                    style={{ backgroundColor: meta.color }}
+                                    title={`${meta.name} — ${p.status}`}
+                                  >
+                                    {meta.initials}
+                                  </span>
+                                ) : null;
+                              })}
+                            </div>
+                          </div>
+                        );
+                      } else if (posts.length > 0) {
+                        // Partially used
+                        return (
+                          <div className="flex items-center gap-2 mt-2 py-1.5 px-2.5 rounded-lg bg-amber-50 border border-amber-200">
+                            <span className="text-[10px] font-mono text-amber-700">
+                              {posts.length}/{philosophers.length} posts
+                            </span>
+                            <div className="flex items-center gap-1">
+                              {posts.map(p => {
+                                const meta = philosopherMeta[p.philosopher_id];
+                                return meta ? (
+                                  <span
+                                    key={p.post_id}
+                                    className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[8px] font-bold text-white"
+                                    style={{ backgroundColor: meta.color }}
+                                    title={`${meta.name} — ${p.status}`}
+                                  >
+                                    {meta.initials}
+                                  </span>
+                                ) : null;
+                              })}
+                              {unusedPhilosophers.map(pid => {
+                                const meta = philosopherMeta[pid];
+                                return meta ? (
+                                  <span
+                                    key={pid}
+                                    className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[8px] font-bold border border-dashed opacity-40"
+                                    style={{ borderColor: meta.color, color: meta.color }}
+                                    title={`${meta.name} — not yet generated`}
+                                  >
+                                    {meta.initials}
+                                  </span>
+                                ) : null;
+                              })}
+                            </div>
+                          </div>
+                        );
+                      } else {
+                        // No posts
+                        return (
+                          <div className="flex items-center gap-2 mt-2 py-1.5 px-2.5 rounded-lg bg-parchment-dark/20 border border-border-light">
+                            <span className="text-[10px] font-mono text-ink-lighter">
+                              No posts generated
+                            </span>
+                          </div>
+                        );
+                      }
+                    })()}
+
                     {/* Score reasoning (collapsed) */}
                     {candidate.score_reasoning && (
                       <details className="mb-2">
@@ -818,167 +826,6 @@ export default function NewsScoutPage() {
         })}
       </div>
 
-      {/* ── Sources Management (Collapsible) ──────────────────────── */}
-      <div className="bg-white border border-border rounded-xl shadow-sm overflow-hidden">
-        <button
-          onClick={() => setSourcesExpanded(!sourcesExpanded)}
-          className="w-full px-6 py-4 flex items-center justify-between hover:bg-parchment-dark/20 transition-colors"
-        >
-          <h2 className="font-serif text-lg font-bold text-ink">
-            RSS Sources
-          </h2>
-          <span className="text-ink-lighter text-lg">
-            {sourcesExpanded ? "▲" : "▼"}
-          </span>
-        </button>
-
-        {sourcesExpanded && (
-          <div className="border-t border-border">
-            {/* Sources table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-parchment-dark/30">
-                    <th className="text-left px-5 py-3 font-mono text-xs uppercase tracking-wider text-ink-lighter">
-                      Source
-                    </th>
-                    <th className="text-left px-5 py-3 font-mono text-xs uppercase tracking-wider text-ink-lighter">
-                      Category
-                    </th>
-                    <th className="text-left px-5 py-3 font-mono text-xs uppercase tracking-wider text-ink-lighter">
-                      Articles
-                    </th>
-                    <th className="text-left px-5 py-3 font-mono text-xs uppercase tracking-wider text-ink-lighter">
-                      Last Fetched
-                    </th>
-                    <th className="text-left px-5 py-3 font-mono text-xs uppercase tracking-wider text-ink-lighter">
-                      Status
-                    </th>
-                    <th className="text-right px-5 py-3 font-mono text-xs uppercase tracking-wider text-ink-lighter">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sources.map((source) => (
-                    <tr
-                      key={source.id}
-                      className="border-b border-border-light last:border-b-0 hover:bg-parchment-dark/20 transition-colors"
-                    >
-                      <td className="px-5 py-3">
-                        <div className="font-body text-ink text-sm">
-                          {source.name}
-                        </div>
-                        <div className="font-mono text-[10px] text-ink-lighter truncate max-w-[250px]">
-                          {source.feed_url}
-                        </div>
-                      </td>
-                      <td className="px-5 py-3">
-                        <span className="inline-block px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider rounded-full bg-parchment-dark/40 text-ink-lighter">
-                          {source.category}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 font-mono text-xs text-ink-light">
-                        {source.article_count ?? 0}
-                      </td>
-                      <td className="px-5 py-3 font-mono text-xs text-ink-lighter">
-                        {source.last_fetched_at
-                          ? formatDate(source.last_fetched_at)
-                          : "Never"}
-                      </td>
-                      <td className="px-5 py-3">
-                        <button
-                          onClick={() =>
-                            toggleSource(source.id, source.is_active)
-                          }
-                          className={`text-xs font-mono px-2 py-1 rounded-full transition-colors ${
-                            source.is_active
-                              ? "bg-green-100 text-green-800 hover:bg-green-200"
-                              : "bg-red-100 text-red-800 hover:bg-red-200"
-                          }`}
-                        >
-                          {source.is_active ? "Active" : "Inactive"}
-                        </button>
-                      </td>
-                      <td className="px-5 py-3 text-right">
-                        <button
-                          onClick={() => deleteSource(source.id)}
-                          className="text-xs font-mono text-red-600 hover:text-red-800 transition-colors"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Add Source form */}
-            <div className="px-6 py-4 border-t border-border bg-parchment-dark/10">
-              <h3 className="text-xs font-mono uppercase tracking-wider text-ink-lighter mb-3">
-                Add Source
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <input
-                  type="text"
-                  placeholder="slug-id"
-                  value={newSource.id}
-                  onChange={(e) =>
-                    setNewSource({ ...newSource, id: e.target.value })
-                  }
-                  className="rounded-lg border border-border bg-parchment px-3 py-2 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-                />
-                <input
-                  type="text"
-                  placeholder="Display Name"
-                  value={newSource.name}
-                  onChange={(e) =>
-                    setNewSource({ ...newSource, name: e.target.value })
-                  }
-                  className="rounded-lg border border-border bg-parchment px-3 py-2 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-                />
-                <input
-                  type="text"
-                  placeholder="Feed URL"
-                  value={newSource.feed_url}
-                  onChange={(e) =>
-                    setNewSource({ ...newSource, feed_url: e.target.value })
-                  }
-                  className="rounded-lg border border-border bg-parchment px-3 py-2 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-                />
-                <div className="flex gap-2">
-                  <select
-                    value={newSource.category}
-                    onChange={(e) =>
-                      setNewSource({ ...newSource, category: e.target.value })
-                    }
-                    className="flex-1 rounded-lg border border-border bg-parchment px-3 py-2 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-                  >
-                    {CATEGORIES.filter((c) => c !== "all").map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={addSource}
-                    disabled={
-                      addingSource ||
-                      !newSource.id ||
-                      !newSource.name ||
-                      !newSource.feed_url
-                    }
-                    className="bg-terracotta hover:bg-terracotta-light text-white text-xs font-body px-4 py-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                  >
-                    {addingSource ? <Spinner className="h-4 w-4" /> : "Add"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
