@@ -91,6 +91,12 @@ export default function NewsScoutPage() {
     Record<string, { name: string; initials: string; color: string }>
   >({});
 
+  // Inline generation
+  const [expandedGenId, setExpandedGenId] = useState<string | null>(null);
+  const [selectedGenPhilosophers, setSelectedGenPhilosophers] = useState<string[]>([]);
+  const [genResults, setGenResults] = useState<Array<{ philosopherId: string; success: boolean; error?: string }>>([]);
+  const [genInProgress, setGenInProgress] = useState(false);
+
   // ── Data fetching ──────────────────────────────────────────────────
 
   const fetchStats = useCallback(async () => {
@@ -242,6 +248,74 @@ export default function NewsScoutPage() {
     } finally {
       setCleanupRunning(false);
     }
+  }
+
+  // ── Inline bulk generation ────────────────────────────────────────
+
+  async function handleBulkGenerate(candidate: CandidateWithUsage) {
+    setGenInProgress(true);
+    setGenResults([]);
+
+    const sourceMaterial = `${candidate.title} — ${candidate.source_name}\n\n${candidate.description}`;
+    const validPhilosophers = selectedGenPhilosophers.filter(pid => pid in philosopherMeta);
+
+    for (const philosopherId of validPhilosophers) {
+      try {
+        // 1. Generate content
+        const genRes = await fetch("/api/admin/content", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            philosopher_id: philosopherId,
+            content_type: "post",
+            content_label: "News Reaction",
+            user_input: sourceMaterial,
+          }),
+        });
+
+        const genData = await genRes.json();
+        if (!genRes.ok) throw new Error(genData.error || "Generation failed");
+
+        // 2. Save as draft post with citation data
+        const postRes = await fetch("/api/admin/posts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            philosopher_id: philosopherId,
+            content: genData.generated?.content ?? "",
+            thesis: genData.generated?.thesis ?? "",
+            stance: genData.generated?.stance ?? "observes",
+            tag: genData.generated?.tag ?? "",
+            citation_title: candidate.title,
+            citation_source: candidate.source_name || "",
+            citation_url: candidate.url,
+            citation_image_url: candidate.image_url || "",
+          }),
+        });
+
+        if (!postRes.ok) throw new Error("Failed to save post");
+
+        // 3. Update generation log to approved
+        if (genData.log_entry?.id) {
+          await fetch("/api/admin/content", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: genData.log_entry.id, status: "approved" }),
+          });
+        }
+
+        setGenResults(prev => [...prev, { philosopherId, success: true }]);
+      } catch (err) {
+        setGenResults(prev => [...prev, {
+          philosopherId,
+          success: false,
+          error: err instanceof Error ? err.message : "Failed",
+        }]);
+      }
+    }
+
+    setGenInProgress(false);
+    fetchCandidates();
   }
 
   // ── Render ─────────────────────────────────────────────────────────
@@ -775,6 +849,21 @@ export default function NewsScoutPage() {
                         >
                           Undo
                         </button>
+                        <button
+                          onClick={() => {
+                            if (expandedGenId === candidate.id) {
+                              setExpandedGenId(null);
+                            } else {
+                              setExpandedGenId(candidate.id);
+                              const suggested = parseJSON<string[]>(candidate.suggested_philosophers, []);
+                              setSelectedGenPhilosophers(suggested.filter(pid => pid in philosopherMeta));
+                              setGenResults([]);
+                            }
+                          }}
+                          className="text-[10px] font-mono text-terracotta hover:text-terracotta-light transition-colors"
+                        >
+                          {expandedGenId === candidate.id ? "Close" : "Quick Generate ⚡"}
+                        </button>
                       </>
                     )}
 
@@ -821,6 +910,67 @@ export default function NewsScoutPage() {
                   </div>
                 </div>
               </div>
+
+              {/* ── Quick Generate panel ─────────────────────────── */}
+              {isApproved && expandedGenId === candidate.id && (
+                <div className="border-t border-border px-5 py-4 bg-parchment-dark/10">
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {Object.entries(philosopherMeta).map(([pid, meta]) => {
+                      const isSelected = selectedGenPhilosophers.includes(pid);
+                      const result = genResults.find(r => r.philosopherId === pid);
+                      return (
+                        <button
+                          key={pid}
+                          onClick={() => {
+                            if (genInProgress) return;
+                            setSelectedGenPhilosophers(prev =>
+                              isSelected ? prev.filter(p => p !== pid) : [...prev, pid]
+                            );
+                          }}
+                          disabled={genInProgress}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono transition-all ${
+                            isSelected
+                              ? "ring-2 ring-offset-1 opacity-100"
+                              : "opacity-40 hover:opacity-70"
+                          } ${result?.success === true ? "ring-green-400" : result?.success === false ? "ring-red-400" : ""}`}
+                          style={{
+                            backgroundColor: `${meta.color}15`,
+                            color: meta.color,
+                            ...(isSelected && !result ? { ["--tw-ring-color" as string]: meta.color } : {}),
+                          }}
+                        >
+                          <span
+                            className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white"
+                            style={{ backgroundColor: meta.color }}
+                          >
+                            {meta.initials}
+                          </span>
+                          {meta.name.split(" ").pop()}
+                          {result?.success === true && " ✓"}
+                          {result?.success === false && " ✗"}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => handleBulkGenerate(candidate)}
+                    disabled={genInProgress || selectedGenPhilosophers.length === 0}
+                    className="inline-flex items-center gap-2 bg-terracotta hover:bg-terracotta-light disabled:opacity-50 text-white font-body font-medium text-sm px-4 py-2 rounded-lg shadow-sm transition-colors"
+                  >
+                    {genInProgress
+                      ? `Generating... (${genResults.length}/${selectedGenPhilosophers.length})`
+                      : `Generate for ${selectedGenPhilosophers.length} philosopher${selectedGenPhilosophers.length !== 1 ? "s" : ""}`
+                    }
+                  </button>
+
+                  {genResults.filter(r => !r.success).map(r => (
+                    <p key={r.philosopherId} className="text-xs text-red-600 mt-1">
+                      {philosopherMeta[r.philosopherId]?.name}: {r.error}
+                    </p>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}

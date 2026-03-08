@@ -76,6 +76,7 @@ export default function AdminPostsPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [bulkUpdating, setBulkUpdating] = useState(false);
 
   // Filters
   const [filterPhilosopher, setFilterPhilosopher] = useState("");
@@ -171,6 +172,26 @@ export default function AdminPostsPage() {
     }
   }
 
+  // Bulk publish handler
+  async function handleBulkPublish() {
+    if (!confirm("Publish all approved posts? This will make them visible on the public feed.")) return;
+    setBulkUpdating(true);
+    try {
+      const res = await fetch("/api/admin/posts/bulk", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from_status: "approved", to_status: "published" }),
+      });
+      if (!res.ok) throw new Error("Failed to bulk publish");
+      setError(null);
+      fetchPosts();
+    } catch {
+      setError("Failed to bulk publish posts.");
+    } finally {
+      setBulkUpdating(false);
+    }
+  }
+
   // Philosopher lookup helper
   function getPhilosopher(id: string): Philosopher | undefined {
     return philosophers.find((p) => p.id === id);
@@ -262,8 +283,21 @@ export default function AdminPostsPage() {
           </button>
         )}
 
-        {/* Post count */}
-        <div className="ml-auto self-end">
+        {/* Post count + bulk actions */}
+        <div className="ml-auto self-end flex items-center gap-3">
+          {(filterStatus === "approved" || filterStatus === "") && (() => {
+            const approvedCount = posts.filter(p => p.status === "approved").length;
+            return approvedCount > 0 ? (
+              <button
+                onClick={handleBulkPublish}
+                disabled={bulkUpdating}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-mono tracking-wide rounded-full text-white bg-green-700 hover:bg-green-800 disabled:opacity-50 transition-colors"
+              >
+                {bulkUpdating ? "Publishing..." : `Publish ${approvedCount} approved`}
+              </button>
+            ) : null;
+          })()}
+
           <span className="text-xs font-mono text-ink-lighter">
             {loading ? "Loading..." : `${posts.length} post${posts.length !== 1 ? "s" : ""}`}
           </span>
