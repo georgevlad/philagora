@@ -11,11 +11,9 @@
  */
 
 import { createHmac, timingSafeEqual } from "crypto";
+import { ADMIN_COOKIE_NAME, ADMIN_COOKIE_MAX_AGE, HMAC_PAYLOAD } from "./admin-constants";
 
-export const ADMIN_COOKIE_NAME = "philagora_admin";
-export const ADMIN_COOKIE_MAX_AGE = 60 * 60 * 24; // 24 hours
-
-const HMAC_PAYLOAD = "philagora-admin-session";
+export { ADMIN_COOKIE_NAME, ADMIN_COOKIE_MAX_AGE };
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -54,11 +52,8 @@ export function verifyAdminToken(cookieValue: string | undefined): boolean {
   if (!cookieValue) return false;
   const expected = deriveToken();
   if (!expected) return false;
-  // Constant-time compare
-  if (cookieValue.length !== expected.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < cookieValue.length; i++) {
-    mismatch |= cookieValue.charCodeAt(i) ^ expected.charCodeAt(i);
-  }
-  return mismatch === 0;
+  const a = Buffer.from(cookieValue);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }

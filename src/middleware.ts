@@ -7,8 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
  * If ADMIN_PASSWORD is not set, admin is open (local-dev convenience).
  */
 
-const COOKIE_NAME = "philagora_admin";
-const HMAC_PAYLOAD = "philagora-admin-session";
+import { ADMIN_COOKIE_NAME, HMAC_PAYLOAD } from "@/lib/admin-constants";
 
 // ── Edge-compatible HMAC ────────────────────────────────────────────
 
@@ -56,7 +55,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const cookie = req.cookies.get(COOKIE_NAME)?.value;
+  const cookie = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
 
   if (cookie) {
     const expected = await deriveToken(adminPassword);

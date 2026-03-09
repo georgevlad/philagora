@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { POST_STATUSES } from "@/lib/constants";
 
 /**
  * PATCH — Bulk update post statuses.
@@ -13,8 +14,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { from_status, to_status } = body;
 
-    const validStatuses = ["draft", "approved", "published", "archived"];
-    if (!validStatuses.includes(from_status) || !validStatuses.includes(to_status)) {
+    if (!POST_STATUSES.includes(from_status) || !POST_STATUSES.includes(to_status)) {
       return NextResponse.json(
         { error: "Invalid status values" },
         { status: 400 }

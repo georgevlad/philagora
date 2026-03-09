@@ -54,4 +54,4 @@ export const POST_CONTENT_TRUNCATE_LIMIT = 140;
 // ── Valid values ─────────────────────────────────────────────────────
 
 export const DEBATE_PHASES = ["opening", "rebuttal"] as const;
-export const POST_STATUSES = ["draft", "approved", "published"] as const;
+export const POST_STATUSES = ["draft", "approved", "published", "archived"] as const;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
+import { POST_STATUSES } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
   try {
@@ -124,10 +125,9 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const validStatuses = ["draft", "approved", "published", "archived"];
-    if (!validStatuses.includes(status)) {
+    if (!POST_STATUSES.includes(status)) {
       return NextResponse.json(
-        { error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
+        { error: `Invalid status. Must be one of: ${POST_STATUSES.join(", ")}` },
         { status: 400 }
       );
     }

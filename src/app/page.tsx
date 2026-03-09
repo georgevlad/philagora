@@ -88,7 +88,7 @@ export default function HomePage() {
                   />
                 ) : (
                   <TensionCard
-                    key={`tension-${i}`}
+                    key={`tension-${item.postA.id}-${item.postB.id}`}
                     philosopherA={{
                       name: item.postA.philosopherName,
                       id: item.postA.philosopherId,
