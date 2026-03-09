@@ -26,7 +26,7 @@ export function TensionCard({
   return (
     <div
       ref={ref}
-      className="animate-fade-in-up px-4 py-3 my-1"
+      className="animate-fade-in-up px-4 py-3 my-1 hover:bg-parchment-dark/30 transition-colors duration-200 cursor-pointer rounded-lg"
     >
       {/* Decorative divider line with centered icon */}
       <div className="flex items-center gap-3">

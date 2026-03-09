@@ -130,8 +130,12 @@ function ResponseCard({
             {response.posts.map((post, i) => (
               <div
                 key={i}
-                className="text-[15px] text-ink"
-                style={{ lineHeight: "1.7", whiteSpace: "pre-line" }}
+                className="text-[17px] text-ink"
+                style={{
+                  fontFamily: 'var(--font-source-serif), var(--font-serif), Georgia, serif',
+                  lineHeight: "1.75",
+                  whiteSpace: "pre-line",
+                }}
               >
                 {i > 0 && (
                   <div className="flex items-center gap-2 mb-1 text-[11px] font-mono text-ink-lighter">

@@ -74,11 +74,12 @@ function DebatePostCard({
           )}
 
           <div
-            className="text-[15px] text-ink whitespace-pre-line"
+            className="text-[17px] text-ink whitespace-pre-line"
             style={{
+              fontFamily: 'var(--font-source-serif), var(--font-serif), Georgia, serif',
               borderLeft: `2px solid ${philosopher.color}25`,
               paddingLeft: "12px",
-              lineHeight: "1.7",
+              lineHeight: "1.75",
             }}
           >
             {post.content}
@@ -295,30 +296,74 @@ export function DebatePageClient({
               <h3 className="text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-2">
                 Participants
               </h3>
-              <div className="flex flex-wrap gap-3">
-                {debate.philosophers.map((pId) => {
-                  const p = philosophersMap[pId];
-                  if (!p) return null;
-                  return (
+              {debate.philosophers.length === 2 ? (() => {
+                const pA = philosophersMap[debate.philosophers[0]];
+                const pB = philosophersMap[debate.philosophers[1]];
+                if (!pA || !pB) return null;
+                return (
+                  <div className="flex items-center justify-center gap-4 py-2">
                     <Link
-                      key={pId}
-                      href={`/philosophers/${pId}`}
-                      className="flex items-center gap-2 group"
+                      href={`/philosophers/${debate.philosophers[0]}`}
+                      className="flex flex-col items-center gap-1.5 group"
                     >
                       <PhilosopherAvatar
-                        philosopherId={pId}
-                        name={p.name}
-                        color={p.color}
-                        initials={p.initials}
-                        size="sm"
+                        philosopherId={debate.philosophers[0]}
+                        name={pA.name}
+                        color={pA.color}
+                        initials={pA.initials}
+                        size="lg"
                       />
-                      <span className="text-sm text-ink-light group-hover:text-athenian transition-colors duration-200">
-                        {p.name}
+                      <span className="text-sm font-serif font-bold text-ink group-hover:text-athenian transition-colors duration-200">
+                        {pA.name}
                       </span>
                     </Link>
-                  );
-                })}
-              </div>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="text-ink-faint text-lg" aria-hidden="true">&#x2694;</span>
+                      <span className="text-[10px] font-mono text-ink-lighter tracking-wider uppercase">vs</span>
+                    </div>
+                    <Link
+                      href={`/philosophers/${debate.philosophers[1]}`}
+                      className="flex flex-col items-center gap-1.5 group"
+                    >
+                      <PhilosopherAvatar
+                        philosopherId={debate.philosophers[1]}
+                        name={pB.name}
+                        color={pB.color}
+                        initials={pB.initials}
+                        size="lg"
+                      />
+                      <span className="text-sm font-serif font-bold text-ink group-hover:text-athenian transition-colors duration-200">
+                        {pB.name}
+                      </span>
+                    </Link>
+                  </div>
+                );
+              })() : (
+                <div className="flex flex-wrap gap-3">
+                  {debate.philosophers.map((pId) => {
+                    const p = philosophersMap[pId];
+                    if (!p) return null;
+                    return (
+                      <Link
+                        key={pId}
+                        href={`/philosophers/${pId}`}
+                        className="flex items-center gap-2 group"
+                      >
+                        <PhilosopherAvatar
+                          philosopherId={pId}
+                          name={p.name}
+                          color={p.color}
+                          initials={p.initials}
+                          size="sm"
+                        />
+                        <span className="text-sm text-ink-light group-hover:text-athenian transition-colors duration-200">
+                          {p.name}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 

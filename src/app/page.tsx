@@ -5,6 +5,7 @@ import { FeedTabs } from "@/components/FeedTabs";
 import { PostCard } from "@/components/PostCard";
 import { TensionCard } from "@/components/TensionCard";
 import { Footer } from "@/components/Footer";
+import { EditorialDivider } from "@/components/EditorialDivider";
 import { getPublishedPosts, getAllPhilosophers } from "@/lib/data";
 import type { FeedPost } from "@/lib/types";
 
@@ -79,8 +80,8 @@ export default function HomePage() {
           <FeedTabs />
           <div className="pb-20 lg:pb-0 py-2">
             {feedItems.length > 0 ? (
-              feedItems.map((item, i) =>
-                item.type === "post" ? (
+              feedItems.map((item, i) => {
+                const element = item.type === "post" ? (
                   <PostCard
                     key={item.post.id}
                     post={item.post}
@@ -105,8 +106,18 @@ export default function HomePage() {
                     }}
                     articleTitle={item.postA.citation?.title || ""}
                   />
-                )
-              )
+                );
+
+                const postCount = feedItems.slice(0, i + 1).filter(fi => fi.type === "post").length;
+                const showDivider = item.type === "post" && postCount > 0 && postCount % 5 === 0 && i < feedItems.length - 1;
+
+                return showDivider ? (
+                  <div key={`group-${i}`}>
+                    {element}
+                    <EditorialDivider />
+                  </div>
+                ) : element;
+              })
             ) : (
               <div className="px-6 py-16 text-center">
                 <p className="font-serif text-lg text-ink-light mb-2">

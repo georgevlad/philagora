@@ -24,6 +24,9 @@
   --color-deontological: #2E5BA8;
   --color-classical: #4A80B8;
 
+  --color-warm-gold: #b5895a;
+
+  --font-source-serif: var(--font-source-serif-4);
   --font-serif: var(--font-playfair);
   --font-body: var(--font-dm-sans);
   --font-mono: var(--font-jetbrains);
@@ -35,7 +38,8 @@
 }
 
 body {
-  background: var(--color-parchment);
+  background-color: var(--color-parchment);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
   color: var(--color-ink);
   font-family: var(--font-body), system-ui, sans-serif;
 }
@@ -86,4 +90,31 @@ body {
 }
 .link-underline:hover::after {
   width: 100%;
+}
+
+/* Editorial divider — classical ornamental rule */
+.editorial-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+.editorial-divider::before,
+.editorial-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--color-border) 20%,
+    var(--color-border) 80%,
+    transparent
+  );
+}
+.editorial-divider .divider-icon {
+  color: var(--color-ink-faint);
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
 }

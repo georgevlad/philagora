@@ -3,6 +3,21 @@
 import { useState } from "react";
 import Image from "next/image";
 
+const SCHOOL_COLORS: Record<string, string> = {
+  "marcus-aurelius": "var(--color-stoic)",
+  seneca: "var(--color-stoic)",
+  nietzsche: "var(--color-existential)",
+  camus: "var(--color-existential)",
+  kierkegaard: "var(--color-existential)",
+  dostoevsky: "var(--color-existential)",
+  plato: "var(--color-classical)",
+  cicero: "var(--color-classical)",
+  russell: "var(--color-classical)",
+  confucius: "var(--color-confucian)",
+  kant: "var(--color-deontological)",
+  jung: "var(--color-existential)",
+};
+
 export function PhilosopherAvatar({
   philosopherId,
   name,
@@ -32,7 +47,7 @@ export function PhilosopherAvatar({
     <div
       className={`${classes} rounded-full shrink-0 transition-transform duration-200 hover:scale-105 relative overflow-hidden`}
       style={{
-        boxShadow: `0 0 0 ${ring}px ${color}50`,
+        boxShadow: `0 0 0 ${ring}px ${color}50, 0 0 0 ${ring + 1.5}px ${SCHOOL_COLORS[philosopherId] ?? color}30`,
       }}
       title={name}
     >

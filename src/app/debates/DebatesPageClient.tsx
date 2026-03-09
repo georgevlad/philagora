@@ -73,28 +73,65 @@ function DebateListCard({
 
         {/* Participants */}
         <div className="flex items-center gap-2">
-          <div className="flex -space-x-1.5">
-            {debate.philosophers.map((pId) => {
-              const p = philosophersMap[pId];
-              return p ? (
-                <div key={pId} className="ring-2 ring-parchment rounded-full">
-                  <PhilosopherAvatar
-                    philosopherId={pId}
-                    name={p.name}
-                    color={p.color}
-                    initials={p.initials}
-                    size="sm"
-                  />
+          {debate.philosophers.length === 2 ? (() => {
+            const pA = philosophersMap[debate.philosophers[0]];
+            const pB = philosophersMap[debate.philosophers[1]];
+            if (!pA || !pB) return null;
+            return (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="ring-2 ring-parchment rounded-full">
+                    <PhilosopherAvatar
+                      philosopherId={debate.philosophers[0]}
+                      name={pA.name}
+                      color={pA.color}
+                      initials={pA.initials}
+                      size="sm"
+                    />
+                  </div>
+                  <span className="text-xs font-serif font-semibold text-ink">{pA.name}</span>
                 </div>
-              ) : null;
-            })}
-          </div>
-          <span className="text-xs text-ink-lighter">
-            {debate.philosophers
-              .map((pId) => philosophersMap[pId]?.name)
-              .filter(Boolean)
-              .join(", ")}
-          </span>
+                <span className="text-ink-faint text-xs font-mono">&#x2694; vs</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="ring-2 ring-parchment rounded-full">
+                    <PhilosopherAvatar
+                      philosopherId={debate.philosophers[1]}
+                      name={pB.name}
+                      color={pB.color}
+                      initials={pB.initials}
+                      size="sm"
+                    />
+                  </div>
+                  <span className="text-xs font-serif font-semibold text-ink">{pB.name}</span>
+                </div>
+              </div>
+            );
+          })() : (
+            <>
+              <div className="flex -space-x-1.5">
+                {debate.philosophers.map((pId) => {
+                  const p = philosophersMap[pId];
+                  return p ? (
+                    <div key={pId} className="ring-2 ring-parchment rounded-full">
+                      <PhilosopherAvatar
+                        philosopherId={pId}
+                        name={p.name}
+                        color={p.color}
+                        initials={p.initials}
+                        size="sm"
+                      />
+                    </div>
+                  ) : null;
+                })}
+              </div>
+              <span className="text-xs text-ink-lighter">
+                {debate.philosophers
+                  .map((pId) => philosophersMap[pId]?.name)
+                  .filter(Boolean)
+                  .join(", ")}
+              </span>
+            </>
+          )}
         </div>
       </div>
     </Link>

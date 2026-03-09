@@ -115,7 +115,7 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
               className="flex items-center gap-2.5 py-1.5 group"
             >
               <PhilosopherAvatar philosopherId={p.id} name={p.name} color={p.color} initials={p.initials} size="sm" />
-              <span className="text-sm text-ink-light group-hover:text-ink transition-colors duration-200 truncate">
+              <span className="text-sm text-ink-light group-hover:text-warm-gold transition-colors duration-200 truncate">
                 {p.name}
               </span>
             </Link>

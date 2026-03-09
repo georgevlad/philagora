@@ -273,11 +273,18 @@ export function AgoraPageClient({
                   minds.
                 </p>
 
+                {/* Decorative separator */}
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="flex-1 h-px bg-border-light" />
+                  <span className="text-ink-faint text-lg select-none" aria-hidden="true">&#x2696;</span>
+                  <div className="flex-1 h-px bg-border-light" />
+                </div>
+
                 {/* Writing surface */}
                 <textarea
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
-                  placeholder="What's weighing on your mind?"
+                  placeholder="What troubles your mind today? Pose your question to the philosophers..."
                   maxLength={500}
                   className="w-full bg-transparent border-transparent text-[18px] lg:text-[20px] font-serif text-ink placeholder:italic placeholder:text-ink-lighter/50 focus:outline-none resize-none leading-relaxed"
                   style={{ minHeight: "160px" }}
