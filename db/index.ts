@@ -235,8 +235,8 @@ function migrateNewsScout(db: Database.Database): void {
     upsert.run(...row);
   }
 
-  // Remove deprecated sources that should no longer appear in the seed set.
-  db.prepare("DELETE FROM news_sources WHERE id = ?").run("bbc-top");
+  // Deactivate deprecated sources so existing article candidates remain valid.
+  db.prepare("UPDATE news_sources SET is_active = 0 WHERE id = ?").run("bbc-top");
 }
 
 /**
@@ -299,7 +299,7 @@ function migrateNewsSourceLogos(db: Database.Database): void {
     update.run(logoUrl, id);
   }
 
-  db.prepare("UPDATE news_sources SET logo_url = NULL WHERE id = ?").run("bbc-top");
+  db.prepare("UPDATE news_sources SET logo_url = NULL, is_active = 0 WHERE id = ?").run("bbc-top");
 }
 
 /**
@@ -373,3 +373,4 @@ function migrateAgoraThreadsIpAddress(db: Database.Database): void {
 }
 
 export default getDb;
+
