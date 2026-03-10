@@ -19,7 +19,7 @@ export function getDb(): Database.Database {
 
 /**
  * Initialize the database by running schema.sql.
- * Safe to call multiple times Ã¢â‚¬â€ uses IF NOT EXISTS.
+ * Safe to call multiple times ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â uses IF NOT EXISTS.
  */
 export function initDb(): Database.Database {
   const db = getDb();
@@ -73,7 +73,7 @@ function ensureSchema(db: Database.Database): void {
  * on philosopher_id or is missing the 'synthesis' content_type.
  */
 function runMigrations(db: Database.Database): void {
-  // Ã¢â€â‚¬Ã¢â€â‚¬ News Scout tables (always runs, idempotent) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ News Scout tables (always runs, idempotent) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   migrateNewsScout(db);
   migrateNewsSourceLogos(db);
   migrateAgoraThreadsIpAddress(db);
@@ -197,6 +197,14 @@ function migrateNewsScout(db: Database.Database): void {
     ["economist", "The Economist", "https://www.economist.com/latest/rss.xml", "world"],
     ["reuters-google", "Reuters (via Google News)", "https://news.google.com/rss/search?q=when:24h+allinurl:reuters.com&ceid=US:en&hl=en-US&gl=US", "world"],
 
+    // Europe
+    ["france24", "France 24", "https://www.france24.com/en/rss", "world"],
+    ["dw-europe", "Deutsche Welle Europe", "https://rss.dw.com/rdf/rss-en-eu", "world"],
+    ["spiegel-intl", "Der Spiegel International", "https://www.spiegel.de/international/index.rss", "world"],
+    ["politico-eu", "Politico Europe", "https://www.politico.eu/feed/", "politics"],
+    ["euronews", "Euronews", "https://feeds.feedburner.com/euronews/en/home/", "world"],
+    ["eurotopics", "Euro Topics", "https://www.eurotopics.net/export/en/rss.xml", "ideas"],
+
     // Politics / Geopolitics
     ["foreign-affairs", "Foreign Affairs", "https://foreignaffairs.com/rss.xml", "politics"],
     ["foreign-policy", "Foreign Policy", "https://foreignpolicy.com/feed/", "politics"],
@@ -260,6 +268,12 @@ function migrateNewsSourceLogos(db: Database.Database): void {
     "cnn-world": "https://www.google.com/s2/favicons?domain=cnn.com&sz=64",
     "economist": "https://www.google.com/s2/favicons?domain=economist.com&sz=64",
     "reuters-google": "https://www.google.com/s2/favicons?domain=reuters.com&sz=64",
+    "france24": "https://www.google.com/s2/favicons?domain=france24.com&sz=64",
+    "dw-europe": "https://www.google.com/s2/favicons?domain=dw.com&sz=64",
+    "spiegel-intl": "https://www.google.com/s2/favicons?domain=spiegel.de&sz=64",
+    "politico-eu": "https://www.google.com/s2/favicons?domain=politico.eu&sz=64",
+    "euronews": "https://www.google.com/s2/favicons?domain=euronews.com&sz=64",
+    "eurotopics": "https://www.google.com/s2/favicons?domain=eurotopics.net&sz=64",
     "foreign-affairs": "https://www.google.com/s2/favicons?domain=foreignaffairs.com&sz=64",
     "foreign-policy": "https://www.google.com/s2/favicons?domain=foreignpolicy.com&sz=64",
     "war-on-the-rocks": "https://www.google.com/s2/favicons?domain=warontherocks.com&sz=64",
