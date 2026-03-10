@@ -19,7 +19,7 @@ export function getDb(): Database.Database {
 
 /**
  * Initialize the database by running schema.sql.
- * Safe to call multiple times ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â uses IF NOT EXISTS.
+ * Safe to call multiple times - uses IF NOT EXISTS.
  */
 export function initDb(): Database.Database {
   const db = getDb();
@@ -73,7 +73,7 @@ function ensureSchema(db: Database.Database): void {
  * on philosopher_id or is missing the 'synthesis' content_type.
  */
 function runMigrations(db: Database.Database): void {
-  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ News Scout tables (always runs, idempotent) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+  // News Scout tables (always runs, idempotent)
   migrateNewsScout(db);
   migrateNewsSourceLogos(db);
   migrateAgoraThreadsIpAddress(db);
@@ -138,14 +138,6 @@ function runMigrations(db: Database.Database): void {
  * then seed starter RSS sources.
  */
 function migrateNewsScout(db: Database.Database): void {
-  const hasTable = db
-    .prepare(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name='news_sources'"
-    )
-    .get();
-
-  if (hasTable) return; // already migrated
-
   db.exec(`
     CREATE TABLE IF NOT EXISTS news_sources (
       id              TEXT PRIMARY KEY,
@@ -183,8 +175,13 @@ function migrateNewsScout(db: Database.Database): void {
   `);
 
   // Seed starter RSS sources
-  const insert = db.prepare(
-    "INSERT OR IGNORE INTO news_sources (id, name, feed_url, category) VALUES (?, ?, ?, ?)"
+  const upsert = db.prepare(
+    `INSERT INTO news_sources (id, name, feed_url, category)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       name = excluded.name,
+       feed_url = excluded.feed_url,
+       category = excluded.category`
   );
 
   const seeds: [string, string, string, string][] = [
@@ -235,8 +232,11 @@ function migrateNewsScout(db: Database.Database): void {
   ];
 
   for (const row of seeds) {
-    insert.run(...row);
+    upsert.run(...row);
   }
+
+  // Remove deprecated sources that should no longer appear in the seed set.
+  db.prepare("DELETE FROM news_sources WHERE id = ?").run("bbc-top");
 }
 
 /**
@@ -249,14 +249,15 @@ function migrateNewsSourceLogos(db: Database.Database): void {
     .all() as { name: string }[];
 
   const hasLogoUrl = columns.some((c) => c.name === "logo_url");
-  if (hasLogoUrl) return;
-
-  try {
-    db.exec("ALTER TABLE news_sources ADD COLUMN logo_url TEXT;");
-  } catch (err) {
-    // Another worker may have added the column between check and alter (build-time race)
-    if (err instanceof Error && err.message.includes("duplicate column")) return;
-    throw err;
+  if (!hasLogoUrl) {
+    try {
+      db.exec("ALTER TABLE news_sources ADD COLUMN logo_url TEXT;");
+    } catch (err) {
+      // Another worker may have added the column between check and alter (build-time race)
+      if (!(err instanceof Error && err.message.includes("duplicate column"))) {
+        throw err;
+      }
+    }
   }
 
   // Seed logos using Google's favicon service
@@ -297,6 +298,8 @@ function migrateNewsSourceLogos(db: Database.Database): void {
   for (const [id, logoUrl] of Object.entries(sourceLogos)) {
     update.run(logoUrl, id);
   }
+
+  db.prepare("UPDATE news_sources SET logo_url = NULL WHERE id = ?").run("bbc-top");
 }
 
 /**

@@ -7,7 +7,7 @@ import { formatDate } from "@/lib/date-utils";
 import { STANCE_CONFIG } from "@/lib/constants";
 import type { Stance } from "@/lib/types";
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Types
 
 import type {
   ArticleCandidate,
@@ -32,7 +32,7 @@ interface CandidateWithUsage extends ArticleCandidate {
   }>;
 }
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Helpers
 
 function parseJSON<T>(raw: string, fallback: T): T {
   try {
@@ -70,10 +70,10 @@ const MIN_SCORES = [
 ];
 const STATUS_TABS = ["scored", "approved", "dismissed", "all"];
 
-// â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Component
 
 export default function NewsScoutPage() {
-  // â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // State
 
   const [stats, setStats] = useState<Stats | null>(null);
   const [candidates, setCandidates] = useState<CandidateWithUsage[]>([]);
@@ -108,7 +108,7 @@ export default function NewsScoutPage() {
   const [genResults, setGenResults] = useState<Array<{ philosopherId: string; success: boolean; error?: string }>>([]);
   const [genInProgress, setGenInProgress] = useState(false);
 
-  // â”€â”€ Data fetching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Data fetching
 
   const fetchStats = useCallback(async () => {
     try {
@@ -158,7 +158,7 @@ export default function NewsScoutPage() {
     fetchCandidates();
   }, [fetchCandidates]);
 
-  // â”€â”€ Pipeline actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Pipeline actions
 
   const runPipeline = async (action: "fetch" | "score" | "fetch_and_score") => {
     setPipelineRunning(true);
@@ -190,7 +190,7 @@ export default function NewsScoutPage() {
     }
   };
 
-  // â”€â”€ Candidate actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Candidate actions
 
   const updateCandidateStatus = async (
     id: string,
@@ -261,13 +261,15 @@ export default function NewsScoutPage() {
     }
   }
 
-  // â”€â”€ Inline bulk generation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Inline bulk generation
 
   async function handleBulkGenerate(candidate: CandidateWithUsage) {
     setGenInProgress(true);
     setGenResults([]);
 
-    const sourceMaterial = `${candidate.title} â€” ${candidate.source_name}\n\n${candidate.description}`;
+    const sourceMaterial = `${candidate.title} - ${candidate.source_name}
+
+${candidate.description}`;
     const validPhilosophers = selectedGenPhilosophers.filter(pid => pid in philosopherMeta);
 
     for (const philosopherId of validPhilosophers) {
@@ -329,7 +331,7 @@ export default function NewsScoutPage() {
     fetchCandidates();
   }
 
-  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Render
 
   if (loading) {
     return (
@@ -357,7 +359,7 @@ export default function NewsScoutPage() {
             onClick={() => setError(null)}
             className="text-red-600 hover:text-red-800 ml-3"
           >
-            âœ•
+            x
           </button>
         </div>
       )}
@@ -367,7 +369,7 @@ export default function NewsScoutPage() {
         <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
           {pipelineResult.fetchResult && (
             <p>
-              Fetched {pipelineResult.fetchResult.sourcesChecked} sources â†’{" "}
+              Fetched {pipelineResult.fetchResult.sourcesChecked} sources -&gt;{" "}
               <strong>{pipelineResult.fetchResult.newArticles}</strong> new articles
               {pipelineResult.fetchResult.errors.length > 0 && (
                 <span className="text-yellow-700">
@@ -391,13 +393,13 @@ export default function NewsScoutPage() {
         </div>
       )}
 
-      {/* â”€â”€ Stats Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Stats Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
         {[
-          { label: "Total", value: stats?.total ?? 0, icon: "ðŸ“Š" },
-          { label: "Unscored", value: stats?.new ?? 0, icon: "ðŸ†•" },
-          { label: "Scored", value: stats?.scored ?? 0, icon: "ðŸ“‹" },
-          { label: "Approved", value: stats?.approved ?? 0, icon: "âœ…" },
+          { label: "Total", value: stats?.total ?? 0, icon: "#" },
+          { label: "Unscored", value: stats?.new ?? 0, icon: "~" },
+          { label: "Scored", value: stats?.scored ?? 0, icon: "+" },
+          { label: "Approved", value: stats?.approved ?? 0, icon: "ok" },
         ].map((card) => (
           <div
             key={card.label}
@@ -416,7 +418,7 @@ export default function NewsScoutPage() {
         ))}
       </div>
 
-      {/* â”€â”€ Action Buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Action Buttons */}
       <div className="bg-white border border-border rounded-xl shadow-sm overflow-hidden">
         <div className="px-6 py-5 flex items-center gap-3 flex-wrap">
           <button
@@ -430,7 +432,7 @@ export default function NewsScoutPage() {
                 <span>{pipelineStatus}</span>
               </>
             ) : (
-              <>ðŸ“° Fetch &amp; Score</>
+              <>Fetch &amp; Score</>
             )}
           </button>
 
@@ -490,12 +492,12 @@ export default function NewsScoutPage() {
             href="/admin/news-scout/sources"
             className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors ml-auto"
           >
-            Manage RSS Sources &rarr;
+            Manage RSS Sources -&gt;
           </Link>
         </div>
       </div>
 
-      {/* â”€â”€ Filter Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Filter Bar */}
       <div className="bg-white border border-border rounded-xl shadow-sm sticky top-0 z-10">
         <div className="px-6 py-5 space-y-4">
           {/* Status tabs */}
@@ -544,7 +546,7 @@ export default function NewsScoutPage() {
         </div>
       </div>
 
-      {/* â”€â”€ Candidates List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Candidates List */}
       {statusFilter === "approved" && candidates.length > 0 && (
         <div className="text-xs font-mono text-ink-lighter px-1 mb-2">
           {candidates.filter(c => (c.published_posts?.length || 0) > 0).length} of {candidates.length} approved articles have posts
@@ -586,7 +588,7 @@ export default function NewsScoutPage() {
             >
               <div className="px-6 py-5">
                 <div className="flex gap-5">
-                  {/* Thumbnail â€” article image or source logo fallback */}
+                  {/* Thumbnail: article image or source logo fallback */}
                   {(() => {
                     const displayImage =
                       candidate.image_url || candidate.source_logo_url;
@@ -628,7 +630,7 @@ export default function NewsScoutPage() {
                           candidate.score
                         )}`}
                       >
-                        {candidate.score ?? "â€”"}
+                        {candidate.score ?? "--"}
                       </span>
 
                       <a
@@ -727,7 +729,7 @@ export default function NewsScoutPage() {
                         return (
                           <div className="flex items-center gap-2 mt-2 py-1.5 px-2.5 rounded-lg bg-green-50 border border-green-200">
                             <span className="text-[11px] font-mono text-green-700">
-                              âœ“ {posts.length} post{posts.length !== 1 ? 's' : ''} generated
+                              Approved: {posts.length} post{posts.length !== 1 ? 's' : ''} generated
                             </span>
                             <div className="flex items-center gap-1">
                               {posts.map(p => {
@@ -737,7 +739,7 @@ export default function NewsScoutPage() {
                                     key={p.post_id}
                                     className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-bold text-white"
                                     style={{ backgroundColor: meta.color }}
-                                    title={`${meta.name} â€” ${p.status}`}
+                                    title={`${meta.name} - ${p.status}`}
                                   >
                                     {meta.initials}
                                   </span>
@@ -761,7 +763,7 @@ export default function NewsScoutPage() {
                                     key={p.post_id}
                                     className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-bold text-white"
                                     style={{ backgroundColor: meta.color }}
-                                    title={`${meta.name} â€” ${p.status}`}
+                                    title={`${meta.name} - ${p.status}`}
                                   >
                                     {meta.initials}
                                   </span>
@@ -774,7 +776,7 @@ export default function NewsScoutPage() {
                                     key={pid}
                                     className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-bold border border-dashed opacity-40"
                                     style={{ borderColor: meta.color, color: meta.color }}
-                                    title={`${meta.name} â€” not yet generated`}
+                                    title={`${meta.name} - not yet generated`}
                                   >
                                     {meta.initials}
                                   </span>
@@ -818,7 +820,7 @@ export default function NewsScoutPage() {
                           }
                           className="bg-green-700 hover:bg-green-800 text-white text-xs font-body px-4 py-2 rounded-full transition-colors"
                         >
-                          Approve âœ“
+                          Approve
                         </button>
                         <button
                           onClick={() =>
@@ -826,7 +828,7 @@ export default function NewsScoutPage() {
                           }
                           className="bg-parchment-dark hover:bg-parchment-dark/80 text-ink-light text-xs font-body px-4 py-2 rounded-full transition-colors"
                         >
-                          Dismiss âœ—
+                          Dismiss
                         </button>
                       </>
                     )}
@@ -834,7 +836,7 @@ export default function NewsScoutPage() {
                     {isApproved && (
                       <>
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-100 px-2.5 py-1 rounded-full">
-                          âœ“ Approved
+                          Approved
                         </span>
                         <a
                           href={
@@ -850,7 +852,7 @@ export default function NewsScoutPage() {
                           }
                           className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors text-center px-3 py-1.5 rounded-full border border-terracotta/20 bg-terracotta/5 hover:bg-terracotta/10"
                         >
-                          Generate â†’
+                          Generate -&gt;
                         </a>
                         <button
                           onClick={() =>
@@ -873,7 +875,7 @@ export default function NewsScoutPage() {
                           }}
                           className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors px-3 py-1.5 rounded-full border border-terracotta/20 bg-terracotta/5 hover:bg-terracotta/10"
                         >
-                          {expandedGenId === candidate.id ? "Close" : "Quick Generate âš¡"}
+                          {expandedGenId === candidate.id ? "Close" : "Quick Generate"}
                         </button>
                       </>
                     )}
@@ -881,7 +883,7 @@ export default function NewsScoutPage() {
                     {isDismissed && (
                       <>
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-ink-lighter bg-parchment-dark/30 px-2.5 py-1 rounded-full">
-                          âœ— Dismissed
+                          Dismissed
                         </span>
                         <button
                           onClick={() =>
@@ -922,7 +924,7 @@ export default function NewsScoutPage() {
                 </div>
               </div>
 
-              {/* â”€â”€ Quick Generate panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              {/* Quick Generate panel */}
               {isApproved && expandedGenId === candidate.id && (
                 <div className="border-t border-border px-6 py-5 bg-parchment-dark/10">
                   <div className="flex flex-wrap gap-3 mb-3">
@@ -957,8 +959,8 @@ export default function NewsScoutPage() {
                             {meta.initials}
                           </span>
                           {meta.name.split(" ").pop()}
-                          {result?.success === true && " âœ“"}
-                          {result?.success === false && " âœ—"}
+                          {result?.success === true && " ok"}
+                          {result?.success === false && " x"}
                         </button>
                       );
                     })}
