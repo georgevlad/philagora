@@ -12,26 +12,15 @@ import type { FeedPost } from "@/lib/types";
 // Re-render this page on every request so published posts appear immediately
 export const dynamic = "force-dynamic";
 
-// ── Feed item types ─────────────────────────────────────────────────
-
 type FeedItem =
   | { type: "post"; post: FeedPost; index: number }
   | { type: "tension"; postA: FeedPost; postB: FeedPost };
 
 function sharesSameArticle(a: FeedPost, b: FeedPost): boolean {
   if (!a.citation || !b.citation) return false;
-  if (a.citation.url && b.citation.url && a.citation.url === b.citation.url)
-    return true;
-  if (
-    a.citation.title &&
-    b.citation.title &&
-    a.citation.source &&
-    b.citation.source
-  ) {
-    return (
-      a.citation.title === b.citation.title &&
-      a.citation.source === b.citation.source
-    );
+  if (a.citation.url && b.citation.url && a.citation.url === b.citation.url) return true;
+  if (a.citation.title && b.citation.title && a.citation.source && b.citation.source) {
+    return a.citation.title === b.citation.title && a.citation.source === b.citation.source;
   }
   return false;
 }
@@ -48,8 +37,7 @@ function buildFeedItems(posts: FeedPost[]): FeedItem[] {
       const next = posts[i + 1];
       const sameArticle = sharesSameArticle(current, next);
       const differentStance = current.stance !== next.stance;
-      const articleKey =
-        current.citation?.url || current.citation?.title || null;
+      const articleKey = current.citation?.url || current.citation?.title || null;
       const notDuplicate = articleKey !== lastTensionArticle;
 
       if (sameArticle && differentStance && notDuplicate) {
@@ -62,8 +50,6 @@ function buildFeedItems(posts: FeedPost[]): FeedItem[] {
   return items;
 }
 
-// ── Page ────────────────────────────────────────────────────────────
-
 export default function HomePage() {
   const posts = getPublishedPosts();
   const philosophers = getAllPhilosophers();
@@ -74,19 +60,14 @@ export default function HomePage() {
       <LeftSidebar philosophers={philosophers} />
       <MobileNav />
 
-      {/* Main feed */}
-      <main className="flex-1 min-w-0 lg:border-r border-border-light lg:border-l">
-        <div className="max-w-[680px] mx-auto">
+      <main className="flex-1 min-w-0 lg:border-r border-border-light lg:border-l bg-[linear-gradient(180deg,rgba(248,243,234,0.5),rgba(244,239,230,0.12))]">
+        <div className="max-w-[700px] mx-auto">
           <FeedTabs />
-          <div className="pb-20 lg:pb-0 py-2">
+          <div className="pb-20 lg:pb-0 py-3">
             {feedItems.length > 0 ? (
               feedItems.map((item, i) => {
                 const element = item.type === "post" ? (
-                  <PostCard
-                    key={item.post.id}
-                    post={item.post}
-                    delay={item.index}
-                  />
+                  <PostCard key={item.post.id} post={item.post} delay={item.index} />
                 ) : (
                   <TensionCard
                     key={`tension-${item.postA.id}-${item.postB.id}`}
@@ -108,7 +89,7 @@ export default function HomePage() {
                   />
                 );
 
-                const postCount = feedItems.slice(0, i + 1).filter(fi => fi.type === "post").length;
+                const postCount = feedItems.slice(0, i + 1).filter((fi) => fi.type === "post").length;
                 const showDivider = item.type === "post" && postCount > 0 && postCount % 5 === 0 && i < feedItems.length - 1;
 
                 return showDivider ? (
@@ -116,16 +97,14 @@ export default function HomePage() {
                     {element}
                     <EditorialDivider />
                   </div>
-                ) : element;
+                ) : (
+                  element
+                );
               })
             ) : (
               <div className="px-6 py-16 text-center">
-                <p className="font-serif text-lg text-ink-light mb-2">
-                  No posts yet.
-                </p>
-                <p className="text-sm text-ink-lighter">
-                  Content is being curated by the philosophers.
-                </p>
+                <p className="font-serif text-lg text-ink-light mb-2">No posts yet.</p>
+                <p className="text-sm text-ink-lighter">Content is being curated by the philosophers.</p>
               </div>
             )}
           </div>

@@ -1,6 +1,6 @@
-export function EditorialDivider({ icon = "\u2766" }: { icon?: string }) {
+export function EditorialDivider({ icon = "?" }: { icon?: string }) {
   return (
-    <div className="editorial-divider mx-4 my-3">
+    <div className="editorial-divider mx-6 my-4 opacity-80">
       <span className="divider-icon">{icon}</span>
     </div>
   );

@@ -1,24 +1,26 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 @theme inline {
-  --color-parchment: #FBF7F0;
-  --color-parchment-dark: #F0E6D6;
-  --color-parchment-deeper: #E3D7C3;
-  --color-parchment-tint: #FDF8EC;
-  --color-athenian: #1A3C2A;
-  --color-athenian-light: #2A5C40;
-  --color-terracotta: #2D5F3F;
-  --color-terracotta-light: #3A7A52;
-  --color-burgundy: #8B3A4A;
-  --color-burgundy-light: #A34D5F;
-  --color-ink: #2A2118;
-  --color-ink-light: #524839;
-  --color-ink-lighter: #7D7468;
-  --color-ink-faint: #A09688;
-  --color-border: #D1C7B5;
-  --color-border-light: #DFD7C8;
-  --color-gold: #9E7B3C;
-  --color-card: #FDFBF7;
+  --color-parchment: #F4EFE6;
+  --color-parchment-dark: #EEE6D8;
+  --color-parchment-deeper: #E4D8C6;
+  --color-parchment-tint: #F8F3EA;
+  --color-athenian: #23392E;
+  --color-athenian-light: #314E3D;
+  --color-terracotta: #314E3D;
+  --color-terracotta-light: #486756;
+  --color-burgundy: #7A3E3A;
+  --color-burgundy-light: #92504B;
+  --color-ink: #2A241F;
+  --color-ink-light: #5F564B;
+  --color-ink-lighter: #8A8073;
+  --color-ink-faint: #A19688;
+  --color-border: #D8CDBD;
+  --color-border-light: #E6DDD1;
+  --color-gold: #B08A49;
+  --color-card: #F8F3EA;
+  --color-navy: #3E5166;
+  --color-navy-light: #DCE3EA;
 
   --color-stoic: #2D6B30;
   --color-existential: #8B3A4A;
@@ -27,11 +29,11 @@
   --color-deontological: #2E4A7A;
   --color-classical: #3B6E8A;
 
-  --color-warm-gold: #b5895a;
+  --color-warm-gold: #B08A49;
 
   --font-source-serif: var(--font-lora);
   --font-display: var(--font-cormorant);
-  --font-serif: var(--font-playfair);
+  --font-serif: var(--font-lora);
   --font-body: var(--font-dm-sans);
   --font-mono: var(--font-jetbrains);
 }
@@ -43,9 +45,17 @@
 
 body {
   background-color: var(--color-parchment);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  background-image:
+    radial-gradient(circle at top left, rgba(176, 138, 73, 0.08), transparent 24%),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
   color: var(--color-ink);
   font-family: var(--font-dm-sans), system-ui, sans-serif;
+}
+
+::selection {
+  background: rgba(49, 78, 61, 0.18);
+  color: var(--color-ink);
 }
 
 /* Fade in animation for scroll */
@@ -89,14 +99,14 @@ body {
   left: 0;
   width: 0;
   height: 1px;
-  background: var(--color-warm-gold);
+  background: var(--color-gold);
   transition: width 0.3s ease;
 }
 .link-underline:hover::after {
   width: 100%;
 }
 
-/* Editorial divider — classical ornamental rule */
+/* Editorial divider - classical ornamental rule */
 .editorial-divider {
   display: flex;
   align-items: center;
@@ -117,13 +127,13 @@ body {
   );
 }
 .editorial-divider .divider-icon {
-  color: var(--color-ink-faint);
+  color: var(--color-gold);
   font-size: 14px;
   line-height: 1;
   flex-shrink: 0;
 }
 
-/* Reading-optimized prose — use on philosophical content blocks */
+/* Reading-optimized prose - use on philosophical content blocks */
 .prose-reading {
   font-family: var(--font-lora), var(--font-playfair), Georgia, serif;
   font-size: 16px;
@@ -135,3 +145,4 @@ body {
 .prose-reading p + p {
   margin-top: 0.75em;
 }
+

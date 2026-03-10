@@ -40,7 +40,7 @@ function DebatePostCard({
           <div className="flex items-center gap-2 mb-1">
             <Link
               href={`/philosophers/${post.philosopherId}`}
-              className="font-serif font-bold text-ink hover:text-athenian transition-colors duration-200"
+              className="font-serif font-semibold text-ink hover:text-athenian transition-colors duration-200"
             >
               {philosopher.name}
             </Link>
@@ -136,7 +136,7 @@ function NeutralSynthesisCard({
             <path d="M8 1L10 6H15L11 9.5L12.5 15L8 11.5L3.5 15L5 9.5L1 6H6L8 1Z" />
           </svg>
         </div>
-        <h3 className="font-serif font-bold text-athenian text-sm">
+        <h3 className="font-serif font-semibold text-athenian text-sm">
           Synthesis
         </h3>
       </div>
@@ -198,7 +198,7 @@ export function DebatePageClient({
               Back to Debates
             </Link>
 
-            <h1 className="font-serif text-2xl lg:text-3xl font-bold text-ink leading-tight mb-3">
+            <h1 className="font-serif text-[28px] lg:text-[32px] font-medium text-ink leading-[1.12] mb-3">
               {debate.title}
             </h1>
 
@@ -311,7 +311,7 @@ export function DebatePageClient({
                         initials={pA.initials}
                         size="lg"
                       />
-                      <span className="text-sm font-serif font-bold text-ink group-hover:text-athenian transition-colors duration-200">
+                      <span className="text-sm font-serif font-semibold text-ink group-hover:text-athenian transition-colors duration-200">
                         {pA.name}
                       </span>
                     </Link>
@@ -330,7 +330,7 @@ export function DebatePageClient({
                         initials={pB.initials}
                         size="lg"
                       />
-                      <span className="text-sm font-serif font-bold text-ink group-hover:text-athenian transition-colors duration-200">
+                      <span className="text-sm font-serif font-semibold text-ink group-hover:text-athenian transition-colors duration-200">
                         {pB.name}
                       </span>
                     </Link>
@@ -365,7 +365,7 @@ export function DebatePageClient({
             </div>
           </div>
 
-          {/* Scheduled — no content yet */}
+          {/* Scheduled ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â no content yet */}
           {isScheduled && (
             <div className="px-5 py-12 text-center">
               <p className="text-ink-lighter text-sm font-mono">
