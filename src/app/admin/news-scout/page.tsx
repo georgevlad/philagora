@@ -381,7 +381,7 @@ export default function NewsScoutPage() {
       )}
 
       {/* ── Stats Bar ─────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
         {[
           { label: "Total", value: stats?.total ?? 0, icon: "📊" },
           { label: "Unscored", value: stats?.new ?? 0, icon: "🆕" },
@@ -390,7 +390,7 @@ export default function NewsScoutPage() {
         ].map((card) => (
           <div
             key={card.label}
-            className="bg-white border border-border rounded-xl px-5 py-4 shadow-sm"
+            className="bg-white border border-border rounded-xl px-6 py-5 shadow-sm"
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-mono uppercase tracking-wider text-ink-lighter">
@@ -407,7 +407,7 @@ export default function NewsScoutPage() {
 
       {/* ── Action Buttons ────────────────────────────────────────── */}
       <div className="bg-white border border-border rounded-xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 flex items-center gap-3 flex-wrap">
+        <div className="px-6 py-5 flex items-center gap-3 flex-wrap">
           <button
             onClick={() => runPipeline("fetch_and_score")}
             disabled={pipelineRunning}
@@ -426,7 +426,7 @@ export default function NewsScoutPage() {
           <button
             onClick={() => runPipeline("fetch")}
             disabled={pipelineRunning}
-            className="text-sm font-body text-ink-light hover:text-ink px-3 py-2 rounded-lg hover:bg-parchment-dark transition-colors disabled:opacity-50"
+            className="text-sm font-body text-ink-light hover:text-ink px-4 py-2.5 rounded-lg hover:bg-parchment-dark transition-colors disabled:opacity-50"
           >
             Fetch Only
           </button>
@@ -434,20 +434,20 @@ export default function NewsScoutPage() {
           <button
             onClick={() => runPipeline("score")}
             disabled={pipelineRunning}
-            className="text-sm font-body text-ink-light hover:text-ink px-3 py-2 rounded-lg hover:bg-parchment-dark transition-colors disabled:opacity-50"
+            className="text-sm font-body text-ink-light hover:text-ink px-4 py-2.5 rounded-lg hover:bg-parchment-dark transition-colors disabled:opacity-50"
           >
             Score Only
           </button>
 
           {cleanupConfirm ? (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <span className="text-xs text-ink-lighter font-mono mr-1">
                 Delete old dismissed/new articles?
               </span>
               <button
                 onClick={handleCleanup}
                 disabled={cleanupRunning}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
+                className="inline-flex items-center gap-1 px-3.5 py-1.5 text-xs font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
               >
                 {cleanupRunning ? (
                   <span className="flex items-center gap-1">
@@ -460,7 +460,7 @@ export default function NewsScoutPage() {
               </button>
               <button
                 onClick={() => setCleanupConfirm(false)}
-                className="inline-flex items-center px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:bg-parchment-dark/50"
+                className="inline-flex items-center px-3.5 py-1.5 text-xs font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:bg-parchment-dark/50"
               >
                 Cancel
               </button>
@@ -469,7 +469,7 @@ export default function NewsScoutPage() {
             <button
               onClick={() => setCleanupConfirm(true)}
               disabled={pipelineRunning}
-              className="text-sm font-body text-ink-light hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+              className="text-sm font-body text-ink-light hover:text-red-600 px-4 py-2.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
             >
               Clean up old
             </button>
@@ -485,17 +485,17 @@ export default function NewsScoutPage() {
       </div>
 
       {/* ── Filter Bar ────────────────────────────────────────────── */}
-      <div className="bg-white border border-border rounded-xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 space-y-4">
+      <div className="bg-white border border-border rounded-xl shadow-sm sticky top-0 z-10">
+        <div className="px-6 py-5 space-y-4">
           {/* Status tabs */}
           <div className="flex gap-1">
             {STATUS_TABS.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setStatusFilter(tab)}
-                className={`px-4 py-2 text-sm font-body rounded-lg transition-colors capitalize ${
+                className={`px-5 py-2.5 text-sm font-body rounded-lg transition-colors capitalize ${
                   statusFilter === tab
-                    ? "bg-terracotta/10 text-terracotta ring-1 ring-terracotta/30"
+                    ? "bg-terracotta/10 text-terracotta ring-1 ring-terracotta/30 font-medium"
                     : "text-ink-light hover:text-ink hover:bg-parchment-dark"
                 }`}
               >
@@ -509,7 +509,7 @@ export default function NewsScoutPage() {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="rounded-lg border border-border bg-parchment px-3 py-2 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+              className="rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
             >
               {CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>
@@ -521,7 +521,7 @@ export default function NewsScoutPage() {
             <select
               value={minScoreFilter}
               onChange={(e) => setMinScoreFilter(e.target.value)}
-              className="rounded-lg border border-border bg-parchment px-3 py-2 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+              className="rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
             >
               {MIN_SCORES.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -539,7 +539,7 @@ export default function NewsScoutPage() {
           {candidates.filter(c => (c.published_posts?.length || 0) > 0).length} of {candidates.length} approved articles have posts
         </div>
       )}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {candidates.length === 0 && (
           <div className="bg-white border border-border rounded-xl px-6 py-12 text-center">
             <p className="text-ink-lighter font-body text-sm">
@@ -573,8 +573,8 @@ export default function NewsScoutPage() {
                   : "border-border"
               }`}
             >
-              <div className="px-5 py-4">
-                <div className="flex gap-4">
+              <div className="px-6 py-5">
+                <div className="flex gap-5">
                   {/* Thumbnail — article image or source logo fallback */}
                   {(() => {
                     const displayImage =
@@ -635,7 +635,7 @@ export default function NewsScoutPage() {
                       <span className="text-xs font-mono text-ink-lighter">
                         {candidate.source_name}
                       </span>
-                      <span className="inline-block px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider rounded-full bg-parchment-dark/40 text-ink-lighter">
+                      <span className="inline-block px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider rounded-full bg-parchment-dark/40 text-ink-lighter">
                         {candidate.source_category}
                       </span>
                       {candidate.pub_date && (
@@ -647,7 +647,7 @@ export default function NewsScoutPage() {
 
                     {/* Philosophers + stances */}
                     {philosophers.length > 0 && (
-                      <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+                      <div className="flex items-center gap-2 mb-3 flex-wrap">
                         {philosophers.map((pid) => {
                           const meta = philosopherMeta[pid];
                           const stance = stances[pid] as Stance | undefined;
@@ -658,7 +658,7 @@ export default function NewsScoutPage() {
                           return (
                             <div key={pid} className="flex items-center gap-1">
                               <span
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-serif font-bold"
+                                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-serif font-bold"
                                 style={{
                                   backgroundColor: meta?.color || "#666",
                                 }}
@@ -668,7 +668,7 @@ export default function NewsScoutPage() {
                               </span>
                               {stanceStyle && (
                                 <span
-                                  className="text-[10px] font-mono px-1.5 py-0.5 rounded-full"
+                                  className="text-[11px] font-mono px-2 py-0.5 rounded-full"
                                   style={{
                                     backgroundColor: stanceStyle.bg,
                                     color: stanceStyle.color,
@@ -686,18 +686,18 @@ export default function NewsScoutPage() {
 
                     {/* Philosophical entry point */}
                     {candidate.philosophical_entry_point && (
-                      <p className="text-xs text-ink-light font-body italic mb-2 line-clamp-2">
+                      <p className="text-sm text-ink-light font-body italic mb-2 line-clamp-2">
                         {candidate.philosophical_entry_point}
                       </p>
                     )}
 
                     {/* Tensions */}
                     {tensions.length > 0 && (
-                      <div className="flex items-center gap-1 mb-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 mb-2 flex-wrap">
                         {tensions.map((t) => (
                           <span
                             key={t}
-                            className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-parchment-dark/30 text-ink-lighter"
+                            className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-parchment-dark/30 text-ink-lighter"
                           >
                             {t.replace(/_/g, " ")}
                           </span>
@@ -715,7 +715,7 @@ export default function NewsScoutPage() {
                         // Fully used
                         return (
                           <div className="flex items-center gap-2 mt-2 py-1.5 px-2.5 rounded-lg bg-green-50 border border-green-200">
-                            <span className="text-[10px] font-mono text-green-700">
+                            <span className="text-[11px] font-mono text-green-700">
                               ✓ {posts.length} post{posts.length !== 1 ? 's' : ''} generated
                             </span>
                             <div className="flex items-center gap-1">
@@ -724,7 +724,7 @@ export default function NewsScoutPage() {
                                 return meta ? (
                                   <span
                                     key={p.post_id}
-                                    className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[8px] font-bold text-white"
+                                    className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-bold text-white"
                                     style={{ backgroundColor: meta.color }}
                                     title={`${meta.name} — ${p.status}`}
                                   >
@@ -739,7 +739,7 @@ export default function NewsScoutPage() {
                         // Partially used
                         return (
                           <div className="flex items-center gap-2 mt-2 py-1.5 px-2.5 rounded-lg bg-amber-50 border border-amber-200">
-                            <span className="text-[10px] font-mono text-amber-700">
+                            <span className="text-[11px] font-mono text-amber-700">
                               {posts.length}/{philosophers.length} posts
                             </span>
                             <div className="flex items-center gap-1">
@@ -748,7 +748,7 @@ export default function NewsScoutPage() {
                                 return meta ? (
                                   <span
                                     key={p.post_id}
-                                    className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[8px] font-bold text-white"
+                                    className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-bold text-white"
                                     style={{ backgroundColor: meta.color }}
                                     title={`${meta.name} — ${p.status}`}
                                   >
@@ -761,7 +761,7 @@ export default function NewsScoutPage() {
                                 return meta ? (
                                   <span
                                     key={pid}
-                                    className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[8px] font-bold border border-dashed opacity-40"
+                                    className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-bold border border-dashed opacity-40"
                                     style={{ borderColor: meta.color, color: meta.color }}
                                     title={`${meta.name} — not yet generated`}
                                   >
@@ -776,7 +776,7 @@ export default function NewsScoutPage() {
                         // No posts
                         return (
                           <div className="flex items-center gap-2 mt-2 py-1.5 px-2.5 rounded-lg bg-parchment-dark/20 border border-border-light">
-                            <span className="text-[10px] font-mono text-ink-lighter">
+                            <span className="text-[11px] font-mono text-ink-lighter">
                               No posts generated
                             </span>
                           </div>
@@ -787,10 +787,10 @@ export default function NewsScoutPage() {
                     {/* Score reasoning (collapsed) */}
                     {candidate.score_reasoning && (
                       <details className="mb-2">
-                        <summary className="text-[10px] font-mono text-ink-lighter cursor-pointer hover:text-ink-light">
+                        <summary className="text-xs font-mono text-ink-lighter cursor-pointer hover:text-ink-light">
                           Scoring reasoning
                         </summary>
-                        <p className="text-xs text-ink-light font-body mt-1 pl-2 border-l-2 border-border">
+                        <p className="text-sm text-ink-light font-body mt-1 pl-2 border-l-2 border-border">
                           {candidate.score_reasoning}
                         </p>
                       </details>
@@ -798,14 +798,14 @@ export default function NewsScoutPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="shrink-0 flex flex-col gap-2">
+                  <div className="shrink-0 flex flex-col gap-3">
                     {candidate.status === "scored" && (
                       <>
                         <button
                           onClick={() =>
                             updateCandidateStatus(candidate.id, "approved")
                           }
-                          className="bg-green-700 hover:bg-green-800 text-white text-xs font-body px-3 py-1.5 rounded-full transition-colors"
+                          className="bg-green-700 hover:bg-green-800 text-white text-xs font-body px-4 py-2 rounded-full transition-colors"
                         >
                           Approve ✓
                         </button>
@@ -813,7 +813,7 @@ export default function NewsScoutPage() {
                           onClick={() =>
                             updateCandidateStatus(candidate.id, "dismissed")
                           }
-                          className="bg-parchment-dark hover:bg-parchment-dark/80 text-ink-light text-xs font-body px-3 py-1.5 rounded-full transition-colors"
+                          className="bg-parchment-dark hover:bg-parchment-dark/80 text-ink-light text-xs font-body px-4 py-2 rounded-full transition-colors"
                         >
                           Dismiss ✗
                         </button>
@@ -837,7 +837,7 @@ export default function NewsScoutPage() {
                               suggested_philosophers: candidate.suggested_philosophers || "[]",
                             }).toString()
                           }
-                          className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors text-center"
+                          className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors text-center px-3 py-1.5 rounded-full border border-terracotta/20 bg-terracotta/5 hover:bg-terracotta/10"
                         >
                           Generate →
                         </a>
@@ -845,7 +845,7 @@ export default function NewsScoutPage() {
                           onClick={() =>
                             updateCandidateStatus(candidate.id, "scored")
                           }
-                          className="text-[10px] font-mono text-ink-lighter hover:text-ink-light transition-colors"
+                          className="text-[11px] font-mono text-ink-lighter hover:text-ink-light transition-colors"
                         >
                           Undo
                         </button>
@@ -860,7 +860,7 @@ export default function NewsScoutPage() {
                               setGenResults([]);
                             }
                           }}
-                          className="text-[10px] font-mono text-terracotta hover:text-terracotta-light transition-colors"
+                          className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors px-3 py-1.5 rounded-full border border-terracotta/20 bg-terracotta/5 hover:bg-terracotta/10"
                         >
                           {expandedGenId === candidate.id ? "Close" : "Quick Generate ⚡"}
                         </button>
@@ -876,7 +876,7 @@ export default function NewsScoutPage() {
                           onClick={() =>
                             updateCandidateStatus(candidate.id, "scored")
                           }
-                          className="text-[10px] font-mono text-ink-lighter hover:text-ink-light transition-colors"
+                          className="text-[11px] font-mono text-ink-lighter hover:text-ink-light transition-colors"
                         >
                           Undo
                         </button>
@@ -885,13 +885,13 @@ export default function NewsScoutPage() {
                             <button
                               onClick={() => handleDeleteCandidate(candidate.id)}
                               disabled={deletingId === candidate.id}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 hover:bg-red-700"
+                              className="inline-flex items-center gap-1 px-3 py-1 text-[11px] font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 hover:bg-red-700"
                             >
                               {deletingId === candidate.id ? "..." : "Delete"}
                             </button>
                             <button
                               onClick={() => setConfirmDeleteId(null)}
-                              className="text-[10px] font-mono text-ink-lighter hover:text-ink-light transition-colors"
+                              className="text-[11px] font-mono text-ink-lighter hover:text-ink-light transition-colors"
                             >
                               Cancel
                             </button>
@@ -899,7 +899,7 @@ export default function NewsScoutPage() {
                         ) : (
                           <button
                             onClick={() => setConfirmDeleteId(candidate.id)}
-                            className="text-[10px] font-mono text-red-400 hover:text-red-600 transition-colors"
+                            className="text-[11px] font-mono text-red-400 hover:text-red-600 transition-colors"
                             title="Permanently delete"
                           >
                             Delete
@@ -913,8 +913,8 @@ export default function NewsScoutPage() {
 
               {/* ── Quick Generate panel ─────────────────────────── */}
               {isApproved && expandedGenId === candidate.id && (
-                <div className="border-t border-border px-5 py-4 bg-parchment-dark/10">
-                  <div className="flex flex-wrap gap-2 mb-3">
+                <div className="border-t border-border px-6 py-5 bg-parchment-dark/10">
+                  <div className="flex flex-wrap gap-3 mb-3">
                     {Object.entries(philosopherMeta).map(([pid, meta]) => {
                       const isSelected = selectedGenPhilosophers.includes(pid);
                       const result = genResults.find(r => r.philosopherId === pid);

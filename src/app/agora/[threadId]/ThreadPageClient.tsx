@@ -123,19 +123,15 @@ function ResponseCard({
           <div
             className="space-y-3"
             style={{
-              borderLeft: `2px solid ${response.philosopher_color}25`,
-              paddingLeft: "12px",
+              borderLeft: `2px solid ${response.philosopher_color}18`,
+              paddingLeft: '14px',
             }}
           >
             {response.posts.map((post, i) => (
               <div
                 key={i}
-                className="text-[17px] text-ink"
-                style={{
-                  fontFamily: 'var(--font-source-serif), var(--font-serif), Georgia, serif',
-                  lineHeight: "1.75",
-                  whiteSpace: "pre-line",
-                }}
+                className="prose-reading"
+                style={{ whiteSpace: "pre-line" }}
               >
                 {i > 0 && (
                   <div className="flex items-center gap-2 mb-1 text-[11px] font-mono text-ink-lighter">
@@ -316,34 +312,27 @@ export function ThreadPageClient({
   return (
     <PageWrapper philosophers={philosophers}>
       {/* ── Question header ──────────────────────────────────────── */}
-      <div className="px-5 py-5 bg-parchment-dark/40 border-b border-border-light">
-        <div className="flex items-center gap-2 mb-2 text-[11px] font-mono text-ink-lighter">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          >
-            <circle cx="8" cy="8" r="6" />
-            <path
-              d="M6 6.5C6 5.5 6.8 5 8 5C9.2 5 10 5.7 10 6.5C10 7.5 8 7.5 8 9"
-              strokeLinecap="round"
-            />
-            <circle cx="8" cy="11" r="0.5" fill="currentColor" />
-          </svg>
-          {data.thread.asked_by} &middot;{" "}
-          {new Date(data.thread.created_at).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </div>
-
-        <h1 className="font-serif text-xl lg:text-2xl font-bold text-ink leading-snug">
+      <div className="px-5 py-6 bg-parchment-dark/40 border-b border-border-light">
+        <blockquote className="font-serif text-xl sm:text-2xl leading-relaxed text-ink text-center max-w-lg mx-auto px-4"
+                    style={{ fontWeight: 500 }}>
           &ldquo;{data.thread.question}&rdquo;
-        </h1>
+        </blockquote>
+        <p className="text-center mt-3">
+          <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-ink-faint">
+            Asked by
+          </span>
+          <span className="text-[13px] font-serif italic text-ink-lighter ml-2">
+            {data.thread.asked_by}
+          </span>
+          <span className="text-ink-faint mx-2">&middot;</span>
+          <span className="text-[11px] font-mono text-ink-lighter">
+            {new Date(data.thread.created_at).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </span>
+        </p>
 
         {/* Philosopher avatars row */}
         <div className="flex items-center gap-2 mt-3">

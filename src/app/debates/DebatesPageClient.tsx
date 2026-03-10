@@ -33,7 +33,7 @@ function DebateListCard({
               debate.status === "Complete"
                 ? "bg-stoic/10 text-stoic"
                 : debate.status === "In Progress"
-                ? "bg-terracotta/10 text-terracotta"
+                ? "bg-burgundy/10 text-burgundy"
                 : "bg-ink-lighter/10 text-ink-lighter"
             }`}
           >

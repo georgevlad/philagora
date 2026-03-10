@@ -58,7 +58,8 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
       {/* Logo */}
       <Link href="/" className="group mb-8 px-2 flex items-center gap-3">
         <img src="/logo.svg" alt="" width={32} height={32} className="shrink-0" />
-        <h1 className="font-serif text-2xl font-bold text-athenian tracking-tight italic">
+        <h1 className="text-2xl font-bold text-athenian tracking-tight italic"
+            style={{ fontFamily: 'var(--font-cormorant), var(--font-playfair), serif' }}>
           Philagora
         </h1>
       </Link>
@@ -75,7 +76,7 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
             <Link
               key={item.label}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium tracking-wide transition-all duration-200 ${
                 isActive
                   ? "bg-athenian/8 text-athenian"
                   : "text-ink-light hover:bg-parchment-dark hover:text-ink"
@@ -93,20 +94,39 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
       {/* Ask CTA */}
       <Link
         href="/agora"
-        className="mx-2 mb-6 flex items-center justify-center gap-2 px-4 py-3 bg-terracotta text-white text-sm font-medium rounded-lg hover:bg-terracotta-light transition-colors duration-200 shadow-sm"
+        className="group mx-2 mb-6 block overflow-hidden rounded-xl border border-warm-gold/30 bg-gradient-to-br from-parchment-dark via-parchment to-parchment-dark/80 hover:border-warm-gold/60 transition-all duration-300 shadow-sm hover:shadow-md"
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M8 3V13" strokeLinecap="round" />
-          <path d="M3 8H13" strokeLinecap="round" />
-        </svg>
-        Ask the Philosophers
+        <div className="px-4 py-3.5 flex items-center gap-3">
+          {/* Decorative icon — column/temple motif */}
+          <div className="w-9 h-9 rounded-lg bg-warm-gold/10 flex items-center justify-center shrink-0 group-hover:bg-warm-gold/20 transition-colors duration-300">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" className="text-warm-gold">
+              <path d="M10 2L3 6V7H17V6L10 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+              <path d="M5 7V14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M10 7V14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M15 7V14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M3 14H17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M2 17H18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div>
+            <span className="block font-serif text-[15px] font-semibold text-ink group-hover:text-warm-gold transition-colors duration-300">
+              Ask the Philosophers
+            </span>
+            <span className="block text-[10px] font-mono text-ink-faint tracking-wide mt-0.5">
+              Pose your question to the Agora
+            </span>
+          </div>
+        </div>
       </Link>
 
       {/* Following — scrollable */}
       <div className="flex-1 min-h-0 px-2">
-        <h3 className="text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-3">
-          Following
-        </h3>
+        <div className="flex items-center gap-3 mb-3">
+          <h3 className="text-[9px] font-mono tracking-[0.25em] uppercase text-ink-faint shrink-0">
+            Following
+          </h3>
+          <div className="flex-1 h-px bg-border-light/60" />
+        </div>
         <div className="overflow-y-auto max-h-[calc(100vh-380px)] space-y-1.5 pr-1">
           {philosophers.map((p) => (
             <Link
@@ -115,7 +135,11 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
               className="flex items-center gap-2.5 py-1.5 group"
             >
               <PhilosopherAvatar philosopherId={p.id} name={p.name} color={p.color} initials={p.initials} size="sm" />
-              <span className="text-sm text-ink-light group-hover:text-warm-gold transition-colors duration-200 truncate">
+              <span
+                className="text-sm text-ink-light transition-colors duration-200 truncate font-serif"
+                onMouseEnter={(e) => (e.currentTarget.style.color = p.color)}
+                onMouseLeave={(e) => (e.currentTarget.style.color = '')}
+              >
                 {p.name}
               </span>
             </Link>

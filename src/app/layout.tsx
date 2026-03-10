@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Playfair_Display, DM_Sans, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
+import { Playfair_Display, DM_Sans, JetBrains_Mono, Lora, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -20,9 +20,16 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
-const sourceSerif = Source_Serif_4({
-  variable: "--font-source-serif-4",
+const lora = Lora({
+  variable: "--font-lora",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const cormorant = Cormorant_Garamond({
+  variable: "--font-cormorant",
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
   display: "swap",
 });
 
@@ -43,7 +50,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${playfair.variable} ${dmSans.variable} ${jetbrainsMono.variable} ${sourceSerif.variable} antialiased`}
+        className={`${playfair.variable} ${dmSans.variable} ${jetbrainsMono.variable} ${lora.variable} ${cormorant.variable} antialiased`}
       >
         {children}
       </body>

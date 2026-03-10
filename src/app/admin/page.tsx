@@ -152,7 +152,7 @@ export default function AdminDashboard() {
           <Link
             key={card.label}
             href={card.href}
-            className={`bg-white border border-border rounded-xl px-5 py-4 shadow-sm hover:shadow-md hover:border-border-light transition-all duration-150 ${
+            className={`bg-white border border-border rounded-xl px-6 py-5 shadow-sm hover:shadow-md hover:border-border-light transition-all duration-150 ${
               card.value > 0 ? borderColors[card.color] : ""
             }`}
           >

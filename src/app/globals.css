@@ -5,28 +5,32 @@
   --color-parchment-dark: #F0E6D6;
   --color-parchment-deeper: #E3D7C3;
   --color-parchment-tint: #FDF8EC;
-  --color-athenian: #1B3A5C;
-  --color-athenian-light: #2A5580;
-  --color-terracotta: #C05A2C;
-  --color-terracotta-light: #D47240;
+  --color-athenian: #1A3C2A;
+  --color-athenian-light: #2A5C40;
+  --color-terracotta: #2D5F3F;
+  --color-terracotta-light: #3A7A52;
+  --color-burgundy: #8B3A4A;
+  --color-burgundy-light: #A34D5F;
   --color-ink: #2A2118;
   --color-ink-light: #524839;
   --color-ink-lighter: #7D7468;
   --color-ink-faint: #A09688;
   --color-border: #D1C7B5;
   --color-border-light: #DFD7C8;
-  --color-gold: #B8913A;
+  --color-gold: #9E7B3C;
+  --color-card: #FDFBF7;
 
-  --color-stoic: #3D7A35;
-  --color-existential: #A52F0F;
-  --color-feminist: #8E4DA6;
+  --color-stoic: #2D6B30;
+  --color-existential: #8B3A4A;
+  --color-feminist: #7A4A8E;
   --color-confucian: #C89515;
-  --color-deontological: #2E5BA8;
-  --color-classical: #4A80B8;
+  --color-deontological: #2E4A7A;
+  --color-classical: #3B6E8A;
 
   --color-warm-gold: #b5895a;
 
-  --font-source-serif: var(--font-source-serif-4);
+  --font-source-serif: var(--font-lora);
+  --font-display: var(--font-cormorant);
   --font-serif: var(--font-playfair);
   --font-body: var(--font-dm-sans);
   --font-mono: var(--font-jetbrains);
@@ -41,7 +45,7 @@ body {
   background-color: var(--color-parchment);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
   color: var(--color-ink);
-  font-family: var(--font-body), system-ui, sans-serif;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
 }
 
 /* Fade in animation for scroll */
@@ -85,7 +89,7 @@ body {
   left: 0;
   width: 0;
   height: 1px;
-  background: var(--color-terracotta);
+  background: var(--color-warm-gold);
   transition: width 0.3s ease;
 }
 .link-underline:hover::after {
@@ -117,4 +121,17 @@ body {
   font-size: 14px;
   line-height: 1;
   flex-shrink: 0;
+}
+
+/* Reading-optimized prose — use on philosophical content blocks */
+.prose-reading {
+  font-family: var(--font-lora), var(--font-playfair), Georgia, serif;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+.prose-reading p + p {
+  margin-top: 0.75em;
 }

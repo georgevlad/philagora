@@ -74,12 +74,10 @@ function DebatePostCard({
           )}
 
           <div
-            className="text-[17px] text-ink whitespace-pre-line"
+            className="prose-reading whitespace-pre-line"
             style={{
-              fontFamily: 'var(--font-source-serif), var(--font-serif), Georgia, serif',
-              borderLeft: `2px solid ${philosopher.color}25`,
-              paddingLeft: "12px",
-              lineHeight: "1.75",
+              borderLeft: `2px solid ${philosopher.color}18`,
+              paddingLeft: '14px',
             }}
           >
             {post.content}
@@ -210,7 +208,7 @@ export function DebatePageClient({
                   isComplete
                     ? "bg-stoic/10 text-stoic"
                     : debate.status === "In Progress"
-                    ? "bg-terracotta/10 text-terracotta"
+                    ? "bg-burgundy/10 text-burgundy"
                     : "bg-ink-lighter/10 text-ink-lighter"
                 }`}
               >
@@ -399,8 +397,8 @@ export function DebatePageClient({
           {/* In Progress indicator */}
           {debate.status === "In Progress" && debate.openings.length > 0 && (
             <div className="px-5 py-8 text-center border-t border-border-light">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-terracotta/10 text-terracotta text-sm font-mono">
-                <span className="w-2 h-2 rounded-full bg-terracotta animate-pulse" />
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-burgundy/10 text-burgundy text-sm font-mono">
+                <span className="w-2 h-2 rounded-full bg-burgundy animate-pulse" />
                 Debate in progress &mdash; rebuttals and synthesis coming soon
               </div>
             </div>

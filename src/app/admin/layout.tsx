@@ -38,7 +38,7 @@ export default async function AdminLayout({
         <div className="px-5 py-4 border-t border-border flex items-center justify-between">
           <Link
             href="/"
-            className="text-xs text-ink-lighter hover:text-terracotta transition-colors font-mono"
+            className="text-sm text-ink-lighter hover:text-terracotta transition-colors font-mono"
           >
             &larr; Back to site
           </Link>

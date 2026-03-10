@@ -212,16 +212,16 @@ export default function AdminPostsPage() {
       </div>
 
       {/* ── Filter bar ──────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 mb-6 p-4 rounded-lg bg-parchment-dark/50 border border-border-light">
+      <div className="flex flex-wrap items-center gap-3 mb-6 p-5 rounded-lg bg-parchment-dark/50 border border-border-light sticky top-0 z-10">
         {/* Philosopher filter */}
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-mono text-ink-lighter tracking-widest uppercase">
+          <label className="text-xs font-mono text-ink-lighter tracking-widest uppercase">
             Philosopher
           </label>
           <select
             value={filterPhilosopher}
             onChange={(e) => setFilterPhilosopher(e.target.value)}
-            className="text-sm font-body text-ink bg-parchment border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta"
+            className="text-sm font-body text-ink bg-parchment border border-border rounded-md px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta"
           >
             <option value="">All Philosophers</option>
             {philosophers.map((p) => (
@@ -234,13 +234,13 @@ export default function AdminPostsPage() {
 
         {/* Status filter */}
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-mono text-ink-lighter tracking-widest uppercase">
+          <label className="text-xs font-mono text-ink-lighter tracking-widest uppercase">
             Status
           </label>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as PostStatus | "")}
-            className="text-sm font-body text-ink bg-parchment border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta"
+            className="text-sm font-body text-ink bg-parchment border border-border rounded-md px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta"
           >
             <option value="">All Statuses</option>
             <option value="draft">Draft</option>
@@ -252,13 +252,13 @@ export default function AdminPostsPage() {
 
         {/* Tag filter */}
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-mono text-ink-lighter tracking-widest uppercase">
+          <label className="text-xs font-mono text-ink-lighter tracking-widest uppercase">
             Tag
           </label>
           <select
             value={filterTag}
             onChange={(e) => setFilterTag(e.target.value)}
-            className="text-sm font-body text-ink bg-parchment border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta"
+            className="text-sm font-body text-ink bg-parchment border border-border rounded-md px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta"
           >
             <option value="">All Tags</option>
             {tagOptions.map((tag) => (
@@ -277,21 +277,21 @@ export default function AdminPostsPage() {
               setFilterStatus("");
               setFilterTag("");
             }}
-            className="self-end text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors py-1.5 px-3"
+            className="self-end text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors py-2 px-3 rounded-lg border border-border hover:bg-parchment-dark/40"
           >
             Clear filters
           </button>
         )}
 
         {/* Post count + bulk actions */}
-        <div className="ml-auto self-end flex items-center gap-3">
+        <div className="ml-auto self-end flex items-center gap-3 border-l border-border pl-4">
           {(filterStatus === "approved" || filterStatus === "") && (() => {
             const approvedCount = posts.filter(p => p.status === "approved").length;
             return approvedCount > 0 ? (
               <button
                 onClick={handleBulkPublish}
                 disabled={bulkUpdating}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-mono tracking-wide rounded-full text-white bg-green-700 hover:bg-green-800 disabled:opacity-50 transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-mono tracking-wide rounded-full text-white bg-green-700 hover:bg-green-800 disabled:opacity-50 transition-colors"
               >
                 {bulkUpdating ? "Publishing..." : `Publish ${approvedCount} approved`}
               </button>
@@ -363,9 +363,9 @@ export default function AdminPostsPage() {
                   boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
                 }}
               >
-                <div className="px-5 py-4">
+                <div className="px-6 py-5">
                   {/* ── Top row: philosopher + status ─────────────────── */}
-                  <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex items-start justify-between gap-3 mb-4">
                     <div className="flex items-center gap-3 min-w-0">
                       {/* Color swatch + name */}
                       <div
@@ -383,7 +383,7 @@ export default function AdminPostsPage() {
                           </span>
                           {philosopher?.tradition && (
                             <span
-                              className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+                              className="text-[11px] font-mono px-2 py-0.5 rounded"
                               style={{
                                 backgroundColor: `${philosopher.color}15`,
                                 color: philosopher.color,
@@ -408,7 +408,7 @@ export default function AdminPostsPage() {
                     </div>
 
                     {/* Status badge + action buttons */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2.5 shrink-0">
                       <span
                         className="inline-flex items-center px-2.5 py-1 text-[11px] font-mono tracking-wider uppercase rounded-full"
                         style={{
@@ -425,7 +425,7 @@ export default function AdminPostsPage() {
                         <button
                           onClick={() => handleStatusChange(post.id, nextStatus)}
                           disabled={isUpdating}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-mono tracking-wide rounded-full text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-md"
+                          className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-mono tracking-wide rounded-full text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-md"
                           style={{
                             backgroundColor: nextStatus === "approved" ? "#2A4365" : "#276749",
                           }}
@@ -451,7 +451,7 @@ export default function AdminPostsPage() {
                         <button
                           onClick={() => handleStatusChange(post.id, "draft")}
                           disabled={isUpdating}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-mono tracking-wide rounded-full text-white bg-[#2A4365] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-md"
+                          className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-mono tracking-wide rounded-full text-white bg-[#2A4365] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-md"
                         >
                           {isUpdating ? (
                             <span className="flex items-center gap-1">
@@ -475,7 +475,7 @@ export default function AdminPostsPage() {
                         <button
                           onClick={() => handleStatusChange(post.id, "archived")}
                           disabled={isUpdating}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-mono tracking-wide rounded-full text-[#9B2C2C] bg-[#FED7D7] border border-[#FEB2B2] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#FEB2B2]"
+                          className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-mono tracking-wide rounded-full text-[#9B2C2C] bg-[#FED7D7] border border-[#FEB2B2] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#FEB2B2]"
                         >
                           {isUpdating ? (
                             <span className="flex items-center gap-1">
@@ -496,11 +496,11 @@ export default function AdminPostsPage() {
 
                       {/* Delete button */}
                       {confirmDeleteId === post.id ? (
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleDelete(post.id)}
                             disabled={deletingId === post.id}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
+                            className="inline-flex items-center gap-1 px-3.5 py-1.5 text-xs font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
                           >
                             {deletingId === post.id ? (
                               <span className="flex items-center gap-1">
@@ -513,7 +513,7 @@ export default function AdminPostsPage() {
                           </button>
                           <button
                             onClick={() => setConfirmDeleteId(null)}
-                            className="inline-flex items-center px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:bg-parchment-dark/50"
+                            className="inline-flex items-center px-3.5 py-1.5 text-xs font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:bg-parchment-dark/50"
                           >
                             Cancel
                           </button>
@@ -521,7 +521,7 @@ export default function AdminPostsPage() {
                       ) : (
                         <button
                           onClick={() => setConfirmDeleteId(post.id)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:text-red-600 hover:border-red-300 hover:bg-red-50"
+                          className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-ink-lighter border border-border-light transition-all duration-200 hover:text-red-600 hover:border-red-300 hover:bg-red-50"
                           title="Permanently delete this post"
                         >
                           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -586,7 +586,7 @@ export default function AdminPostsPage() {
                   {/* ── Citation ──────────────────────────────────────── */}
                   {post.citation_title && (
                     <div
-                      className="flex items-center gap-2 mb-3 px-3 py-2 rounded-md text-xs font-mono"
+                      className="flex items-center gap-2 mb-3 mt-3 px-4 py-3 rounded-md text-xs font-mono"
                       style={{
                         backgroundColor: `${philosopher?.color ?? "#7D7468"}08`,
                         border: `1px solid ${philosopher?.color ?? "#7D7468"}20`,
@@ -608,7 +608,7 @@ export default function AdminPostsPage() {
                   )}
 
                   {/* ── Bottom row: tag, stance, stats ───────────────── */}
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center justify-between gap-3 flex-wrap mt-4 pt-4 border-t border-border-light">
                     <div className="flex items-center gap-2 flex-wrap">
                       {/* Tag badge */}
                       {post.tag && (
@@ -626,7 +626,7 @@ export default function AdminPostsPage() {
 
                       {/* Stance badge */}
                       <span
-                        className="inline-flex items-center px-2 py-0.5 text-[10px] font-mono tracking-wider uppercase rounded-full"
+                        className="inline-flex items-center px-2.5 py-0.5 text-[11px] font-mono tracking-wider uppercase rounded-full"
                         style={{
                           backgroundColor: stanceCfg.bg,
                           color: stanceCfg.color,

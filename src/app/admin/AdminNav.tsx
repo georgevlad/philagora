@@ -45,7 +45,7 @@ export function AdminNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors duration-150 ${
+            className={`flex items-center gap-3 px-3 py-3 text-sm rounded-lg transition-colors duration-150 ${
               item.indent ? "ml-4 text-xs" : ""
             } ${
               active

@@ -766,7 +766,7 @@ function ContentGenerationPageInner() {
                         borderLeft: `2px solid ${selectedPhilosopher?.color ?? "#C05A2C"}25`,
                       }}
                     >
-                      <span className="text-[10px] font-mono text-ink-lighter block mb-1">
+                      <span className="text-[11px] font-mono text-ink-lighter block mb-1">
                         Response {i + 1}
                       </span>
                       {post}
@@ -779,7 +779,7 @@ function ContentGenerationPageInner() {
               <div className="flex items-center gap-2 flex-wrap">
                 {preview.data.stance && (
                   <span
-                    className="inline-flex items-center px-2 py-0.5 text-[10px] font-mono tracking-wider uppercase rounded-full"
+                    className="inline-flex items-center px-2.5 py-0.5 text-[11px] font-mono tracking-wider uppercase rounded-full"
                     style={{
                       backgroundColor:
                         STANCE_CONFIG[preview.data.stance as keyof typeof STANCE_CONFIG]?.bg ?? "#E2E8F0",
@@ -919,14 +919,14 @@ function ContentGenerationPageInner() {
               </span>
             )}
             {purgeConfirm ? (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <span className="text-xs text-ink-lighter font-mono mr-1">
                   Delete rejected entries older than 30 days?
                 </span>
                 <button
                   onClick={handlePurge}
                   disabled={purging}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
+                  className="inline-flex items-center gap-1 px-3.5 py-1.5 text-xs font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
                 >
                   {purging ? (
                     <span className="flex items-center gap-1">
@@ -939,7 +939,7 @@ function ContentGenerationPageInner() {
                 </button>
                 <button
                   onClick={() => setPurgeConfirm(false)}
-                  className="inline-flex items-center px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:bg-parchment-dark/50"
+                  className="inline-flex items-center px-3.5 py-1.5 text-xs font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:bg-parchment-dark/50"
                 >
                   Cancel
                 </button>

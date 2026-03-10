@@ -76,7 +76,7 @@ export default function HomePage() {
 
       {/* Main feed */}
       <main className="flex-1 min-w-0 lg:border-r border-border-light lg:border-l">
-        <div className="max-w-[640px] mx-auto">
+        <div className="max-w-[680px] mx-auto">
           <FeedTabs />
           <div className="pb-20 lg:pb-0 py-2">
             {feedItems.length > 0 ? (

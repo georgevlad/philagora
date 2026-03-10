@@ -14,15 +14,15 @@ export function FeedTabs() {
           <button
             key={tab}
             onClick={() => setActive(tab)}
-            className={`flex-1 px-2 sm:px-4 py-3 text-sm font-medium transition-colors duration-200 relative ${
+            className={`flex-1 px-2 sm:px-4 py-3 transition-colors duration-200 relative ${
               active === tab
-                ? "text-athenian"
-                : "text-ink-lighter hover:text-ink-light"
+                ? "text-ink font-serif font-bold text-[15px]"
+                : "text-ink-lighter font-body text-sm hover:text-ink-light"
             }`}
           >
             {tab}
             {active === tab && (
-              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-athenian rounded-full" />
+              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-[2.5px] bg-terracotta rounded-full" />
             )}
           </button>
         ))}

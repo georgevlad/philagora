@@ -57,7 +57,8 @@ export function MobileNav() {
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <img src="/logo.svg" alt="" width={28} height={28} />
-            <h1 className="font-serif text-xl font-bold text-athenian italic">
+            <h1 className="text-xl font-bold text-athenian italic"
+                style={{ fontFamily: 'var(--font-cormorant), var(--font-playfair), serif' }}>
               Philagora
             </h1>
           </Link>

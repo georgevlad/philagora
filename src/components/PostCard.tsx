@@ -58,14 +58,14 @@ function ActionButton({
 }) {
   return (
     <button
-      className="flex items-center gap-1.5 text-ink-lighter hover:text-terracotta transition-colors duration-200 group"
+      className="flex items-center gap-1 text-ink-faint/50 hover:text-terracotta transition-colors duration-200 group"
       aria-label={label}
     >
       <span className="group-hover:scale-110 transition-transform duration-200">
         {icon}
       </span>
       {count !== undefined && (
-        <span className="text-xs font-mono">{count}</span>
+        <span className="text-[11px] font-mono">{count}</span>
       )}
     </button>
   );
@@ -75,7 +75,7 @@ function ActionButton({
 
 function PopularBadge() {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono tracking-wider uppercase rounded-full bg-warm-gold/10 text-warm-gold border border-warm-gold/20">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono tracking-wider uppercase rounded-full bg-burgundy/10 text-burgundy border border-burgundy/20">
       <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" stroke="none">
         <path d="M8 1C8 1 3 5 3 9C3 11.7614 5.23858 14 8 14C10.7614 14 13 11.7614 13 9C13 5 8 1 8 1ZM8 12C6.34315 12 5 10.6569 5 9C5 7 8 4 8 4C8 4 11 7 11 9C11 10.6569 9.65685 12 8 12Z" />
       </svg>
@@ -141,8 +141,8 @@ function PostContent({ content, color, isAphorism }: { content: string; color: s
   if (isAphorism) {
     return (
       <div
-        className="text-[17px] text-ink mb-3 whitespace-pre-line text-center leading-relaxed italic px-4"
-        style={{ fontFamily: 'var(--font-source-serif), var(--font-serif), Georgia, serif' }}
+        className="text-[16px] text-ink mb-2 whitespace-pre-line text-center leading-[1.7] italic px-4"
+        style={{ fontFamily: 'var(--font-lora), var(--font-playfair), Georgia, serif' }}
       >
         {displayText}
         {toggleButton}
@@ -152,12 +152,12 @@ function PostContent({ content, color, isAphorism }: { content: string; color: s
 
   return (
     <div
-      className="text-[17px] text-ink mb-3 whitespace-pre-line"
+      className="text-[16px] text-ink mb-2 whitespace-pre-line"
       style={{
-        fontFamily: 'var(--font-source-serif), var(--font-serif), Georgia, serif',
-        borderLeft: `2px solid ${color}25`,
-        paddingLeft: '12px',
-        lineHeight: '1.75',
+        fontFamily: 'var(--font-lora), var(--font-playfair), Georgia, serif',
+        borderLeft: `2px solid ${color}18`,
+        paddingLeft: '14px',
+        lineHeight: '1.7',
       }}
     >
       {displayText}
@@ -186,15 +186,15 @@ export function PostCard({
   return (
     <article
       ref={ref}
-      className="animate-fade-in-up rounded-xl bg-white/50 border border-[#e6dfd4] mx-3 my-2 sm:mx-4 sm:my-3 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-shadow duration-200"
+      className="animate-fade-in-up rounded-xl bg-card/60 border border-[#e6dfd4] mx-2 my-1.5 sm:mx-3 sm:my-2 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-shadow duration-200"
       style={{
-        borderTop: `2px solid ${color}`,
+        borderTop: `1.5px solid ${color}`,
         borderLeftWidth: isPopular ? '3px' : undefined,
-        borderLeftColor: isPopular ? 'var(--color-terracotta)' : undefined,
+        borderLeftColor: isPopular ? 'var(--color-burgundy)' : undefined,
         borderLeftStyle: isPopular ? 'solid' : undefined,
       }}
     >
-      <div className="px-5 py-5">
+      <div className="px-4 py-4 sm:px-5 sm:py-4">
         {/* Cross-reply prominent header */}
         {isCrossReply && (
           <CrossReplyHeader post={post} />
@@ -231,7 +231,7 @@ export function PostCard({
               <div className="flex items-center gap-2">
                 <Link
                   href={`/philosophers/${post.philosopherId}`}
-                  className="font-serif font-bold text-ink hover:text-athenian transition-colors duration-200 link-underline"
+                  className="font-serif font-bold text-[17px] text-ink hover:text-athenian transition-colors duration-200 link-underline"
                 >
                   {post.philosopherName}
                 </Link>
@@ -248,7 +248,7 @@ export function PostCard({
 
             {/* Thesis as aphorism pull-quote */}
             <blockquote
-              className="font-serif text-lg sm:text-xl leading-relaxed text-ink mb-4 max-w-md px-2 relative z-10"
+              className="font-serif text-lg sm:text-xl leading-[1.4] text-ink mb-3 max-w-md px-2 relative z-10"
               style={{ fontWeight: 600 }}
             >
               &ldquo;{post.thesis}&rdquo;
@@ -291,7 +291,7 @@ export function PostCard({
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <Link
                     href={`/philosophers/${post.philosopherId}`}
-                    className="font-serif font-bold text-ink hover:text-athenian transition-colors duration-200 link-underline"
+                    className="font-serif font-bold text-[17px] text-ink hover:text-athenian transition-colors duration-200 link-underline"
                   >
                     {post.philosopherName}
                   </Link>
@@ -314,11 +314,11 @@ export function PostCard({
 
               {/* Thesis pull-quote */}
               <blockquote
-                className="font-serif text-lg leading-snug text-ink mb-3 pl-4 rounded-r-sm"
+                className="font-serif text-[19px] leading-[1.35] text-ink mb-2.5 pl-4 rounded-r-sm"
                 style={{
-                  borderLeft: `4px solid ${color}`,
+                  borderLeft: `3px solid ${color}`,
                   fontWeight: 600,
-                  backgroundColor: `${color}08`,
+                  backgroundColor: `${color}05`,
                 }}
               >
                 {post.thesis}
@@ -327,23 +327,13 @@ export function PostCard({
               {/* Content */}
               <PostContent content={post.content} color={color} />
 
-              {/* Philosopher signature */}
-              {!isCrossReply && !isAphorism && (
-                <p
-                  className="text-sm text-ink-lighter italic mb-3"
-                  style={{ fontFamily: 'var(--font-source-serif), var(--font-serif), Georgia, serif' }}
-                >
-                  &mdash; {post.philosopherName}
-                </p>
-              )}
-
               {/* Citation */}
               {post.citation && (
                 <CitationBlock citation={post.citation} color={color} isNewsReaction={isNewsReaction} />
               )}
 
               {/* Tag + Actions row */}
-              <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center justify-between gap-2 flex-wrap mt-1">
                 <TagBadge tag={post.tag} color={color} />
                 <ActionButtons post={post} />
               </div>
@@ -367,9 +357,9 @@ function CitationBlock({
   isNewsReaction?: boolean;
 }) {
   const inner = (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2.5">
       {citation.imageUrl ? (
-        <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-parchment-dark/30">
+        <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-parchment-dark/30">
           <Image
             src={citation.imageUrl}
             alt=""
@@ -379,8 +369,8 @@ function CitationBlock({
           />
         </div>
       ) : (
-        <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center" style={{ backgroundColor: `${color}10` }}>
-          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke={color} strokeWidth="1.5" className="opacity-50">
+        <div className="w-8 h-8 rounded shrink-0 flex items-center justify-center" style={{ backgroundColor: `${color}08` }}>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke={color} strokeWidth="1.5" className="opacity-50">
             <path d="M3 12L3 4C3 2.89543 3.89543 2 5 2H11C12.1046 2 13 2.89543 13 4V12C13 13.1046 12.1046 14 11 14H5C3.89543 14 3 13.1046 3 12Z" />
             <path d="M6 6H10" strokeLinecap="round" />
             <path d="M6 9H8" strokeLinecap="round" />
@@ -388,11 +378,11 @@ function CitationBlock({
         </div>
       )}
       <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-[11px] text-ink-lighter font-mono mb-0.5">
-          {citation.source}
-        </span>
-        <span className="text-sm text-ink font-serif font-semibold line-clamp-2 group-hover:text-athenian transition-colors">
+        <span className="font-serif text-sm leading-snug text-ink font-medium line-clamp-2 group-hover:text-athenian transition-colors">
           {citation.title}
+        </span>
+        <span className="text-[10px] text-ink-faint font-mono mt-0.5">
+          {citation.source}
         </span>
       </div>
       {citation.url && (
@@ -414,31 +404,18 @@ function CitationBlock({
   );
 
   return (
-    <div className="mb-3">
-      {/* "Reacting to" label for news posts */}
-      {isNewsReaction && (
-        <div className="flex items-center gap-1.5 mb-1.5 text-[10px] font-mono text-ink-lighter uppercase tracking-wider">
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="opacity-60">
-            <rect x="1" y="3" width="14" height="11" rx="1" />
-            <path d="M4 6H8" strokeLinecap="round" />
-            <path d="M4 8.5H12" strokeLinecap="round" />
-            <path d="M4 11H12" strokeLinecap="round" />
-            <rect x="9" y="5.5" width="3" height="3" rx="0.5" />
-          </svg>
-          Reacting to
-        </div>
-      )}
+    <div className="mb-2">
       {citation.url ? (
         <a
           href={citation.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block px-4 py-3 rounded-lg bg-parchment-dark/40 border border-border-light hover:border-border transition-colors duration-200 group"
+          className="block px-3 py-2 rounded-lg border border-border-light/60 bg-parchment-dark/20 hover:bg-parchment-dark/40 transition-colors group"
         >
           {inner}
         </a>
       ) : (
-        <div className="px-4 py-3 rounded-lg bg-parchment-dark/40 border border-border-light group">
+        <div className="px-3 py-2 rounded-lg border border-border-light/60 bg-parchment-dark/20 group">
           {inner}
         </div>
       )}
@@ -450,7 +427,7 @@ function CitationBlock({
 
 function ActionButtons({ post }: { post: FeedPost }) {
   return (
-    <div className="flex items-center gap-3 sm:gap-5">
+    <div className="flex items-center gap-3">
       <ActionButton
         label="Reply"
         count={post.replies}

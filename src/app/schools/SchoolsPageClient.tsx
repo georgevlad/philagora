@@ -11,7 +11,7 @@ import { useScrollReveal } from "@/hooks/useScrollReveal";
 const schools = [
   {
     name: "Stoicism",
-    color: "#3D7A35",
+    color: "#2D6B30",
     description:
       "The art of living well through virtue, self-discipline, and acceptance of what lies beyond our control. Two voices, two eras, one discipline.",
     philosophers: [
@@ -21,7 +21,7 @@ const schools = [
   },
   {
     name: "Existentialism",
-    color: "#A52F0F",
+    color: "#8B3A4A",
     description:
       "Existence precedes essence \u2014 we create meaning through our choices, actions, and authentic engagement with the world.",
     philosophers: [
@@ -31,21 +31,21 @@ const schools = [
   },
   {
     name: "Classical Greek Idealism",
-    color: "#4A80B8",
+    color: "#3B6E8A",
     description:
       "Beyond appearances lies a higher reality of eternal Forms. True knowledge is knowledge of the unchanging, and justice requires wisdom at the helm.",
     philosophers: [{ id: "plato", name: "Plato" }],
   },
   {
     name: "Analytical Psychology",
-    color: "#8E4DA6",
+    color: "#7A4A8E",
     description:
       "The psyche has its own reality. Archetypes, the collective unconscious, and the shadow \u2014 integration of what we deny is the path to wholeness.",
     philosophers: [{ id: "jung", name: "Carl Jung" }],
   },
   {
     name: "Deontological Ethics",
-    color: "#2E5BA8",
+    color: "#2E4A7A",
     description:
       "Morality grounded in duty, universal principles, and the categorical imperative \u2014 act as you would have all act.",
     philosophers: [{ id: "kant", name: "Immanuel Kant" }],
@@ -59,28 +59,28 @@ const schools = [
   },
   {
     name: "Absurdism",
-    color: "#D49248",
+    color: "#B07D3A",
     description:
       "The world is indifferent and meaning is absent \u2014 yet we revolt, we create, and we must imagine Sisyphus happy.",
     philosophers: [{ id: "camus", name: "Camus" }],
   },
   {
     name: "Literary Philosophy",
-    color: "#7D4A38",
+    color: "#6B4035",
     description:
       "Philosophy through character, narrative, and the darkest corners of the human soul. Not arguments but lived contradictions.",
     philosophers: [{ id: "dostoevsky", name: "Dostoevsky" }],
   },
   {
     name: "Analytic Philosophy",
-    color: "#2D7E68",
+    color: "#2A6B5A",
     description:
       "Clear thinking as the antidote to confusion. Decompose problems, question authority, and let reason guide ethics.",
     philosophers: [{ id: "russell", name: "Bertrand Russell" }],
   },
   {
     name: "Roman Republicanism",
-    color: "#8B4513",
+    color: "#7A4020",
     description:
       "Government by law, not by men. The republic endures through institutional design, civic duty, and the orator who speaks truth to power.",
     philosophers: [{ id: "cicero", name: "Cicero" }],

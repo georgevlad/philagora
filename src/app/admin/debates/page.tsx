@@ -504,7 +504,7 @@ export default function DebateWorkshopPage() {
   }) {
     return (
       <div className="bg-white border border-border rounded-xl overflow-hidden">
-        <div className="px-5 py-4 flex items-center justify-between">
+        <div className="px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-serif font-bold shrink-0"
@@ -515,7 +515,7 @@ export default function DebateWorkshopPage() {
             <div>
               <span className="font-serif font-bold text-ink text-sm">{philosopher.name}</span>
               <span
-                className="ml-2 text-[10px] font-mono px-1.5 py-0.5 rounded"
+                className="ml-2 text-[11px] font-mono px-2 py-0.5 rounded"
                 style={{ backgroundColor: `${philosopher.color}15`, color: philosopher.color }}
               >
                 {philosopher.tradition}
@@ -526,11 +526,11 @@ export default function DebateWorkshopPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {state.status === "pending" && (
               <button
                 onClick={onGenerate}
-                className="inline-flex items-center gap-1.5 bg-terracotta hover:bg-terracotta-light text-white text-xs font-body px-3 py-1.5 rounded-full transition-colors"
+                className="inline-flex items-center gap-1.5 bg-terracotta hover:bg-terracotta-light text-white text-xs font-body px-4 py-2 rounded-full transition-colors"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
@@ -556,7 +556,7 @@ export default function DebateWorkshopPage() {
 
         {/* Preview */}
         {(state.status === "preview" || state.status === "approved") && state.content && (
-          <div className="px-5 pb-4 border-t border-border/50">
+          <div className="px-6 pb-5 border-t border-border/50">
             <div
               className="mt-3 text-sm text-ink leading-relaxed whitespace-pre-line pl-3"
               style={{ borderLeft: `2px solid ${philosopher.color}40` }}
@@ -565,10 +565,10 @@ export default function DebateWorkshopPage() {
             </div>
 
             {state.status === "preview" && (
-              <div className="flex items-center gap-2 mt-3">
+              <div className="flex items-center gap-3 mt-3">
                 <button
                   onClick={onApprove}
-                  className="inline-flex items-center gap-1.5 bg-green-700 hover:bg-green-800 text-white text-xs font-body px-3 py-1.5 rounded-lg transition-colors"
+                  className="inline-flex items-center gap-1.5 bg-green-700 hover:bg-green-800 text-white text-xs font-body px-4 py-2 rounded-lg transition-colors"
                 >
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
@@ -607,11 +607,11 @@ export default function DebateWorkshopPage() {
       {existingDebates.length > 0 && (
         <div className="mb-8">
           <h2 className="font-serif text-lg font-bold text-ink mb-3">Existing Debates</h2>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {existingDebates.map((d) => (
               <div
                 key={d.id}
-                className={`w-full bg-white border rounded-xl px-5 py-3 transition-colors ${
+                className={`w-full bg-white border rounded-xl px-6 py-4 transition-colors ${
                   debateId === d.id ? "border-terracotta ring-1 ring-terracotta/30" : "border-border"
                 }`}
               >
@@ -626,16 +626,16 @@ export default function DebateWorkshopPage() {
                     </span>
                   </button>
                   <div className="flex items-center gap-2 shrink-0 ml-3">
-                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${DEBATE_STATUS_COLORS[d.status] || "bg-gray-100 text-gray-700"}`}>
+                    <span className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full ${DEBATE_STATUS_COLORS[d.status] || "bg-gray-100 text-gray-700"}`}>
                       {d.status}
                     </span>
                     <span className="text-xs text-ink-lighter font-mono">{formatDate(d.debate_date)}</span>
                     {confirmDeleteId === d.id ? (
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleDeleteDebate(d.id)}
                           disabled={deletingId === d.id}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
+                          className="inline-flex items-center gap-1 px-3.5 py-1.5 text-xs font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
                         >
                           {deletingId === d.id ? (
                             <span className="flex items-center gap-1">
@@ -648,7 +648,7 @@ export default function DebateWorkshopPage() {
                         </button>
                         <button
                           onClick={() => setConfirmDeleteId(null)}
-                          className="inline-flex items-center px-2.5 py-1 text-[11px] font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:bg-parchment-dark/50"
+                          className="inline-flex items-center px-3.5 py-1.5 text-xs font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:bg-parchment-dark/50"
                         >
                           Cancel
                         </button>
@@ -656,7 +656,7 @@ export default function DebateWorkshopPage() {
                     ) : (
                       <button
                         onClick={() => setConfirmDeleteId(d.id)}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:text-red-600 hover:border-red-300 hover:bg-red-50"
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-ink-lighter border border-border-light transition-all duration-200 hover:text-red-600 hover:border-red-300 hover:bg-red-50"
                         title="Delete this debate"
                       >
                         <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -734,7 +734,7 @@ export default function DebateWorkshopPage() {
             </div>
 
             {/* Article info */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div>
                 <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
                   Article Title
@@ -779,7 +779,7 @@ export default function DebateWorkshopPage() {
                 Select Philosophers
                 <span className="normal-case text-ink-lighter/60 ml-1">(3-4 recommended)</span>
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {philosophers.map((p) => {
                   const selected = selectedIds.includes(p.id);
                   return (
@@ -787,7 +787,7 @@ export default function DebateWorkshopPage() {
                       key={p.id}
                       type="button"
                       onClick={() => togglePhilosopher(p.id)}
-                      className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-left transition-all text-sm ${
+                      className={`flex items-center gap-2 px-4 py-3 rounded-lg border text-left transition-all text-sm ${
                         selected
                           ? "border-terracotta bg-terracotta/5 ring-1 ring-terracotta/30"
                           : "border-border hover:bg-parchment-dark/20"
@@ -801,7 +801,7 @@ export default function DebateWorkshopPage() {
                       </div>
                       <div className="min-w-0">
                         <div className="font-serif font-bold text-ink text-xs truncate">{p.name}</div>
-                        <div className="text-[10px] text-ink-lighter truncate">{p.tradition}</div>
+                        <div className="text-[11px] text-ink-lighter truncate">{p.tradition}</div>
                       </div>
                     </button>
                   );
