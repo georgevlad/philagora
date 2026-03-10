@@ -18,6 +18,7 @@ const navItems: NavItem[] = [
   { href: "/admin/debates", label: "Debates", icon: "⚔️" },
   { href: "/admin/agora", label: "Agora", icon: "❓" },
   { href: "/admin/content", label: "Generate", icon: "⚡" },
+  { href: "/admin/daily", label: "Daily Feed", icon: "🗓️" },
   { href: "/admin/news-scout", label: "News Scout", icon: "📰" },
   { href: "/admin/news-scout/sources", label: "RSS Sources", icon: "📡", indent: true },
 ];
@@ -28,13 +29,11 @@ export function AdminNav() {
   return (
     <nav className="flex-1 px-3 py-4 space-y-1">
       {navItems.map((item) => {
-        // Exact match for dashboard, prefix match for everything else
         const isActive =
           item.href === "/admin"
             ? pathname === "/admin"
             : pathname.startsWith(item.href) && item.href !== "/admin";
 
-        // Special case: /admin/news-scout should not be active when on /admin/news-scout/sources
         const isExactSubroute =
           item.href === "/admin/news-scout" &&
           pathname.startsWith("/admin/news-scout/sources");
