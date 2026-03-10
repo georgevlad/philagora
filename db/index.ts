@@ -19,7 +19,7 @@ export function getDb(): Database.Database {
 
 /**
  * Initialize the database by running schema.sql.
- * Safe to call multiple times — uses IF NOT EXISTS.
+ * Safe to call multiple times Ã¢â‚¬â€ uses IF NOT EXISTS.
  */
 export function initDb(): Database.Database {
   const db = getDb();
@@ -73,7 +73,7 @@ function ensureSchema(db: Database.Database): void {
  * on philosopher_id or is missing the 'synthesis' content_type.
  */
 function runMigrations(db: Database.Database): void {
-  // ── News Scout tables (always runs, idempotent) ──────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ News Scout tables (always runs, idempotent) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   migrateNewsScout(db);
   migrateNewsSourceLogos(db);
   migrateAgoraThreadsIpAddress(db);
@@ -188,19 +188,42 @@ function migrateNewsScout(db: Database.Database): void {
   );
 
   const seeds: [string, string, string, string][] = [
+    // World
     ["bbc-world", "BBC World News", "https://feeds.bbci.co.uk/news/world/rss.xml", "world"],
-    ["bbc-top", "BBC Top Stories", "https://feeds.bbci.co.uk/news/rss.xml", "world"],
     ["npr-top", "NPR Top Stories", "https://feeds.npr.org/1001/rss.xml", "world"],
     ["guardian-world", "The Guardian World", "https://www.theguardian.com/world/rss", "world"],
     ["aljazeera", "Al Jazeera", "https://www.aljazeera.com/xml/rss/all.xml", "world"],
     ["cnn-world", "CNN World", "http://rss.cnn.com/rss/edition_world.rss", "world"],
+    ["economist", "The Economist", "https://www.economist.com/latest/rss.xml", "world"],
+    ["reuters-google", "Reuters (via Google News)", "https://news.google.com/rss/search?q=when:24h+allinurl:reuters.com&ceid=US:en&hl=en-US&gl=US", "world"],
+
+    // Politics / Geopolitics
+    ["foreign-affairs", "Foreign Affairs", "https://foreignaffairs.com/rss.xml", "politics"],
+    ["foreign-policy", "Foreign Policy", "https://foreignpolicy.com/feed/", "politics"],
+    ["war-on-the-rocks", "War on the Rocks", "https://warontherocks.com/feed/", "politics"],
+
+    // Science
+    ["nature-news", "Nature", "https://www.nature.com/nature.rss", "science"],
+
+    // Tech
+    ["ars-technica", "Ars Technica", "http://feeds.arstechnica.com/arstechnica/index/", "tech"],
+    ["wired", "Wired", "https://www.wired.com/feed/rss", "tech"],
+
+    // Ideas / Philosophy
+    ["the-conversation", "The Conversation", "https://theconversation.com/us/articles.atom", "ideas"],
+    ["oxford-practical-ethics", "Oxford Practical Ethics", "https://blog.practicalethics.ox.ac.uk/feed/", "ideas"],
+
+    // Opinion
     ["atlantic", "The Atlantic", "https://www.theatlantic.com/feed/all/", "opinion"],
     ["aeon", "Aeon", "https://aeon.co/feed.rss", "culture"],
+
+    // Culture / Entertainment
     ["avclub", "The A.V. Club", "https://www.avclub.com/rss", "entertainment"],
     ["popmatters", "PopMatters", "https://popmatters.com/feed", "culture"],
+
+    // Sports
     ["bbc-sport", "BBC Sport", "https://feeds.bbci.co.uk/sport/rss.xml", "sports"],
     ["espn-top", "ESPN Top News", "http://www.espn.com/espn/rss/news", "sports"],
-    ["ars-technica", "Ars Technica", "http://feeds.arstechnica.com/arstechnica/index/", "tech"],
   ];
 
   for (const row of seeds) {
@@ -231,11 +254,19 @@ function migrateNewsSourceLogos(db: Database.Database): void {
   // Seed logos using Google's favicon service
   const sourceLogos: Record<string, string> = {
     "bbc-world": "https://www.google.com/s2/favicons?domain=bbc.co.uk&sz=64",
-    "bbc-top": "https://www.google.com/s2/favicons?domain=bbc.co.uk&sz=64",
     "npr-top": "https://www.google.com/s2/favicons?domain=npr.org&sz=64",
     "guardian-world": "https://www.google.com/s2/favicons?domain=theguardian.com&sz=64",
     "aljazeera": "https://www.google.com/s2/favicons?domain=aljazeera.com&sz=64",
     "cnn-world": "https://www.google.com/s2/favicons?domain=cnn.com&sz=64",
+    "economist": "https://www.google.com/s2/favicons?domain=economist.com&sz=64",
+    "reuters-google": "https://www.google.com/s2/favicons?domain=reuters.com&sz=64",
+    "foreign-affairs": "https://www.google.com/s2/favicons?domain=foreignaffairs.com&sz=64",
+    "foreign-policy": "https://www.google.com/s2/favicons?domain=foreignpolicy.com&sz=64",
+    "war-on-the-rocks": "https://www.google.com/s2/favicons?domain=warontherocks.com&sz=64",
+    "nature-news": "https://www.google.com/s2/favicons?domain=nature.com&sz=64",
+    "wired": "https://www.google.com/s2/favicons?domain=wired.com&sz=64",
+    "the-conversation": "https://www.google.com/s2/favicons?domain=theconversation.com&sz=64",
+    "oxford-practical-ethics": "https://www.google.com/s2/favicons?domain=practicalethics.ox.ac.uk&sz=64",
     "atlantic": "https://www.google.com/s2/favicons?domain=theatlantic.com&sz=64",
     "aeon": "https://www.google.com/s2/favicons?domain=aeon.co&sz=64",
     "avclub": "https://www.google.com/s2/favicons?domain=avclub.com&sz=64",

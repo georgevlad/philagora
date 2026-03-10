@@ -9,7 +9,17 @@ interface NewsSource extends BaseNewsSource {
   article_count?: number;
 }
 
-const CATEGORIES = ["world", "opinion", "entertainment", "sports", "tech", "culture"];
+const CATEGORIES = [
+  "world",
+  "politics",
+  "science",
+  "ideas",
+  "opinion",
+  "entertainment",
+  "sports",
+  "tech",
+  "culture",
+];
 
 export default function RSSSourcesPage() {
   const [sources, setSources] = useState<NewsSource[]>([]);
@@ -112,7 +122,7 @@ export default function RSSSourcesPage() {
             onClick={() => setError(null)}
             className="text-red-600 hover:text-red-800 ml-3"
           >
-            ✕
+            âœ•
           </button>
         </div>
       )}

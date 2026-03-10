@@ -7,7 +7,7 @@ interface SourceWithCount extends NewsSource {
 }
 
 /**
- * GET — List all sources with article counts.
+ * GET â€” List all sources with article counts.
  */
 export async function GET() {
   try {
@@ -35,7 +35,7 @@ export async function GET() {
 }
 
 /**
- * POST — Add a new RSS source.
+ * POST â€” Add a new RSS source.
  * Body: { id, name, feed_url, category }
  */
 export async function POST(request: NextRequest) {
@@ -53,6 +53,9 @@ export async function POST(request: NextRequest) {
 
     const validCategories = [
       "world",
+      "politics",
+      "science",
+      "ideas",
       "opinion",
       "entertainment",
       "sports",
@@ -85,7 +88,7 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * PATCH — Toggle source active/inactive.
+ * PATCH â€” Toggle source active/inactive.
  * Body: { id, is_active }
  */
 export async function PATCH(request: NextRequest) {
@@ -128,7 +131,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 /**
- * DELETE — Remove a source.
+ * DELETE â€” Remove a source.
  * Body: { id }
  */
 export async function DELETE(request: NextRequest) {
