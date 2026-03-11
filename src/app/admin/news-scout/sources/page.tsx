@@ -122,7 +122,7 @@ export default function RSSSourcesPage() {
             onClick={() => setError(null)}
             className="text-red-600 hover:text-red-800 ml-3"
           >
-            âœ•
+            x
           </button>
         </div>
       )}
@@ -180,24 +180,22 @@ export default function RSSSourcesPage() {
                       ? formatDate(source.last_fetched_at)
                       : "Never"}
                   </td>
-                  <td className="px-5 py-3">
+                                    <td className="px-5 py-3">
                     <button
-                      onClick={() =>
-                        toggleSource(source.id, source.is_active)
-                      }
-                      className={`text-xs font-mono px-2 py-1 rounded-full transition-colors ${
+                      onClick={() => toggleSource(source.id, source.is_active)}
+                      className={`rounded-full px-2 py-1 text-[10px] font-mono uppercase tracking-wider transition-colors ${
                         source.is_active
                           ? "bg-green-100 text-green-800 hover:bg-green-200"
-                          : "bg-red-100 text-red-800 hover:bg-red-200"
+                          : "bg-stone-200 text-stone-700 hover:bg-stone-300"
                       }`}
                     >
-                      {source.is_active ? "Active" : "Inactive"}
+                      {source.is_active ? "Active" : "Paused"}
                     </button>
                   </td>
                   <td className="px-5 py-3 text-right">
                     <button
                       onClick={() => deleteSource(source.id)}
-                      className="text-xs font-mono text-red-600 hover:text-red-800 transition-colors"
+                      className="font-mono text-xs text-red-700 hover:text-red-900"
                     >
                       Delete
                     </button>
@@ -265,7 +263,7 @@ export default function RSSSourcesPage() {
                 }
                 className="bg-terracotta hover:bg-terracotta-light text-white text-xs font-body px-4 py-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
               >
-                {addingSource ? <Spinner className="h-4 w-4" /> : "Add"}
+                ×
               </button>
             </div>
           </div>

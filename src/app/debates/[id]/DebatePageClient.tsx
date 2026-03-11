@@ -365,7 +365,7 @@ export function DebatePageClient({
             </div>
           </div>
 
-          {/* Scheduled ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â no content yet */}
+          {/* Scheduled, no content yet */}
           {isScheduled && (
             <div className="px-5 py-12 text-center">
               <p className="text-ink-lighter text-sm font-mono">
