@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Playfair_Display, DM_Sans, JetBrains_Mono, Lora, Cormorant_Garamond } from "next/font/google";
+import DevelopmentBanner from "@/components/DevelopmentBanner";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -52,6 +53,7 @@ export default function RootLayout({
       <body
         className={`${playfair.variable} ${dmSans.variable} ${jetbrainsMono.variable} ${lora.variable} ${cormorant.variable} antialiased`}
       >
+        <DevelopmentBanner />
         {children}
       </body>
     </html>
