@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:railway": "npx tsx scripts/startup.ts",
     "lint": "eslint"
   },
   "dependencies": {
