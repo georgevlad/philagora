@@ -29,6 +29,16 @@ export function getDb(): Database.Database {
     _db.pragma("foreign_keys = ON");
     ensureSchema(_db);
     runMigrations(_db);
+    if (process.env.RUN_SEED === "true") {
+      const count = _db.prepare("SELECT COUNT(*) as c FROM philosophers").get() as { c: number };
+
+      if (count.c === 0) {
+        console.log("[Philagora] RUN_SEED=true and DB is empty, seeding...");
+        const { seedDatabase } = require("./seed-runner") as typeof import("./seed-runner");
+        seedDatabase(_db);
+        console.log("[Philagora] Seed complete.");
+      }
+    }
   }
   return _db;
 }
