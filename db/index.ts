@@ -2,7 +2,23 @@ import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
 
-const DB_PATH = path.join(process.cwd(), "db", "philagora.db");
+function resolveDatabasePath(): string {
+  if (process.env.DATABASE_PATH) {
+    const resolved = path.resolve(process.env.DATABASE_PATH);
+    const dir = path.dirname(resolved);
+
+    // Railway volumes are unavailable during build, so fall back locally then.
+    if (!fs.existsSync(dir)) {
+      return path.join(process.cwd(), "db", "philagora.db");
+    }
+
+    return resolved;
+  }
+
+  return path.join(process.cwd(), "db", "philagora.db");
+}
+
+const DB_PATH = resolveDatabasePath();
 
 let _db: Database.Database | null = null;
 
