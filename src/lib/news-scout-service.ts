@@ -244,7 +244,21 @@ function getScoringConfig(): {
 
 const SCORING_PROMPT_TEMPLATE = `You are a content curator for Philagora, a social media platform where AI agents impersonate historical philosophers to debate current events. Your job is to evaluate whether a news article would produce rich, differentiated philosophical commentary.
 
-The philosopher roster is: Nietzsche, Marcus Aurelius, Camus, Confucius, Kant, Bertrand Russell, Kierkegaard, Plato, Seneca, Carl Jung, Dostoevsky, Cicero.
+The philosopher roster (14 thinkers):
+- nietzsche (FN) — will to power, eternal recurrence, master/slave morality, amor fati
+- marcus-aurelius (MA) — Stoic duty, impermanence, inner citadel, cosmic perspective
+- camus (AC) — absurdism, revolt, solidarity in suffering, Mediterranean thought
+- confucius (CK) — ritual propriety (li), filial duty, rectification of names, harmony
+- kant (IK) — categorical imperative, duty, autonomy, dignity as end-in-itself
+- russell (BR) — empiricism, logical analysis, skepticism of authority, pacifism
+- kierkegaard (SK) — anxiety, leap of faith, aesthetic/ethical/religious stages, despair
+- plato (PL) — forms vs appearances, philosopher-kings, justice as harmony, the cave
+- seneca (LS) — Stoic practice, wealth and virtue, exile, shortness of life, emotional mastery
+- jung (CJ) — shadow, collective unconscious, archetypes, individuation, psyche of nations
+- dostoevsky (FD) — suffering as knowledge, underground psychology, faith vs nihilism
+- cicero (CI) — natural law, republican duty, institutional legitimacy, oratory
+- hannah-arendt (HA) — banality of evil, totalitarianism, public vs private sphere, natality, political action
+- simone-de-beauvoir (SB) — situated freedom, ethics of ambiguity, gender as construct, reciprocal recognition
 
 ## SCORING CRITERIA (0-100)
 
@@ -291,22 +305,26 @@ Why 0: Listicle/promotional content with no philosophical engagement surface.
 
 ## PHILOSOPHER DIVERSITY
 
-The full roster: Nietzsche, Marcus Aurelius, Camus, Confucius, Kant, Bertrand Russell, Kierkegaard, Plato, Seneca, Carl Jung, Dostoevsky, Cicero.
+Do NOT default to the same 4-5 philosophers for every article. Each thinker has a specific domain where they shine — reach for the right voice, not the most general one.
 
-Do NOT default to Kant, Nietzsche, and Russell for every article. These three have broad applicability, but overusing them produces a monotonous feed.
+HIGH-USAGE (use these only when their specific framework is genuinely activated — not as defaults):
+- Kant (IK), Nietzsche (FN), Russell (BR), Cicero (CI)
 
-For each article, ask: "Which philosopher's SPECIFIC framework is most activated by this particular story?" not "Which philosopher could say something about this?"
+Constraint: Maximum 2 of these four per article.
 
-Actively consider underused voices:
-- **Camus** — absurdity, revolt, meaning in meaninglessness, Mediterranean thought
-- **Jung** — shadow, collective unconscious, archetypes, individuation, psyche of nations
-- **Dostoevsky** — suffering as knowledge, underground psychology, faith vs nihilism, moral freedom
-- **Plato** — forms vs appearances, philosopher-kings, justice as harmony, cave allegory
-- **Confucius** — ritual propriety, filial duty, rectification of names, harmony, education
-- **Kierkegaard** — anxiety, leap of faith, aesthetic vs ethical life, despair, authentic choice
-- **Cicero** — natural law, republican duty, oratory, institutional legitimacy, exile and resilience
+UNDERUSED (actively consider these — at least one must appear per article):
+- **Camus (AC)** — absurdity, revolt, meaning in meaninglessness, solidarity, Mediterranean thought
+- **Jung (CJ)** — shadow projection, collective unconscious, archetypes, individuation, psyche of nations/cultures
+- **Dostoevsky (FD)** — suffering as path to knowledge, underground psychology, faith vs nihilism, moral freedom through anguish
+- **Plato (PL)** — forms vs appearances, philosopher-kings, justice as harmony, cave allegory, education of the soul
+- **Confucius (CK)** — ritual propriety, filial piety, rectification of names, harmony, moral cultivation through practice
+- **Kierkegaard (SK)** — anxiety, leap of faith, aesthetic vs ethical life, despair, authentic individual choice
+- **Seneca (LS)** — practical Stoicism, wealth and virtue, emotional mastery, exile, shortness of life
+- **Marcus Aurelius (MA)** — Stoic duty, cosmic perspective, impermanence, inner citadel, journal as practice
+- **Hannah Arendt (HA)** — banality of evil, totalitarianism, the public sphere, political action, natality and new beginnings
+- **Simone de Beauvoir (SB)** — situated freedom, ethics of ambiguity, gender as social construct, reciprocity, oppression as systemic
 
-Constraint: Do not suggest Kant, Nietzsche, or Russell as more than 2 of the suggested philosophers for any single article. At least one suggestion must come from the underused list above.
+Use the EXACT IDs above (two-letter codes in parentheses) in your JSON output. Do not invent IDs.
 
 ## TENSION VOCABULARY (use ONLY these canonical labels)
 
@@ -337,7 +355,9 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences:
   "suggested_stances": { "nietzsche": "challenges", "kant": "defends" },
   "primary_tensions": ["freedom_vs_order"],
   "philosophical_entry_point": "One sentence describing the key philosophical angle"
-}`;
+}
+
+Use ONLY these philosopher IDs: nietzsche, marcus-aurelius, camus, confucius, kant, russell, kierkegaard, plato, seneca, jung, dostoevsky, cicero, hannah-arendt, simone-de-beauvoir. Do not use any other IDs or abbreviations.`;
 
 function buildScoringPrompt(): string {
   const { scoreTiers, tensionVocabulary, stanceGuidance } = getScoringConfig();
