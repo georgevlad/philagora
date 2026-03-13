@@ -6,6 +6,18 @@ interface SourceWithCount extends NewsSource {
   article_count: number;
 }
 
+const VALID_CATEGORIES = [
+  "world",
+  "politics",
+  "science",
+  "ideas",
+  "opinion",
+  "entertainment",
+  "sports",
+  "tech",
+  "culture",
+];
+
 /**
  * GET - List all sources with article counts.
  */
@@ -51,18 +63,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const validCategories = [
-      "world",
-      "politics",
-      "science",
-      "ideas",
-      "opinion",
-      "entertainment",
-      "sports",
-      "tech",
-      "culture",
-    ];
-    const cat = validCategories.includes(category) ? category : "world";
+    const cat = VALID_CATEGORIES.includes(category) ? category : "world";
 
     db.prepare(
       "INSERT INTO news_sources (id, name, feed_url, category) VALUES (?, ?, ?, ?)"
@@ -88,24 +89,51 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * PATCH - Toggle source active/inactive.
- * Body: { id, is_active }
+ * PATCH - Update source category and/or active state.
+ * Body: { id, is_active?, category? }
  */
 export async function PATCH(request: NextRequest) {
   try {
     const db = getDb();
     const body = await request.json();
-    const { id, is_active } = body;
+    const { id, is_active, category } = body;
 
-    if (!id || is_active === undefined) {
+    if (!id) {
       return NextResponse.json(
-        { error: "id and is_active are required" },
+        { error: "id is required" },
         { status: 400 }
       );
     }
 
-    db.prepare("UPDATE news_sources SET is_active = ? WHERE id = ?").run(
-      is_active ? 1 : 0,
+    if (is_active === undefined && category === undefined) {
+      return NextResponse.json(
+        { error: "Provide is_active and/or category" },
+        { status: 400 }
+      );
+    }
+
+    const fields: string[] = [];
+    const values: Array<string | number> = [];
+
+    if (is_active !== undefined) {
+      fields.push("is_active = ?");
+      values.push(is_active ? 1 : 0);
+    }
+
+    if (category !== undefined) {
+      if (!VALID_CATEGORIES.includes(category)) {
+        return NextResponse.json(
+          { error: "Invalid category" },
+          { status: 400 }
+        );
+      }
+
+      fields.push("category = ?");
+      values.push(category);
+    }
+
+    db.prepare(`UPDATE news_sources SET ${fields.join(", ")} WHERE id = ?`).run(
+      ...values,
       id
     );
 
