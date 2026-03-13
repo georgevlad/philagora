@@ -20,8 +20,8 @@ export default function HomePage() {
 
       <main className="flex-1 min-w-0 lg:border-r border-border-light lg:border-l bg-[linear-gradient(180deg,rgba(248,243,234,0.5),rgba(244,239,230,0.12))]">
         <div className="max-w-[700px] mx-auto">
-          <FeedTabs philosophers={philosophers} />
-          <FeedSection initialPosts={posts} philosophers={philosophers} />
+          <FeedTabs />
+          <FeedSection initialPosts={posts} />
           <Footer />
         </div>
       </main>

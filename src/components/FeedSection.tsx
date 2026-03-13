@@ -10,17 +10,13 @@ import {
   normalizeFeedContentType,
   type FeedContentType,
 } from "@/lib/feed-utils";
-import type { FeedPost, Philosopher } from "@/lib/types";
+import type { FeedPost } from "@/lib/types";
 
-function buildFeedApiUrl(type: FeedContentType, philosopherId?: string): string {
+function buildFeedApiUrl(type: FeedContentType): string {
   const params = new URLSearchParams();
 
   if (type !== "all") {
     params.set("type", type);
-  }
-
-  if (philosopherId) {
-    params.set("philosopher", philosopherId);
   }
 
   const query = params.toString();
@@ -68,17 +64,10 @@ function buildEmptyStateMessage(type: FeedContentType, philosopherName?: string)
   return "No posts yet.";
 }
 
-export function FeedSection({
-  initialPosts,
-  philosophers,
-}: {
-  initialPosts: FeedPost[];
-  philosophers: Philosopher[];
-}) {
+export function FeedSection({ initialPosts }: { initialPosts: FeedPost[] }) {
   const searchParams = useSearchParams();
   const selectedType = normalizeFeedContentType(searchParams.get("type"));
-  const selectedPhilosopherId = searchParams.get("philosopher") || undefined;
-  const showDefaultFeed = selectedType === "all" && !selectedPhilosopherId;
+  const showDefaultFeed = selectedType === "all";
   const [posts, setPosts] = useState<FeedPost[]>(
     showDefaultFeed ? initialPosts : []
   );
@@ -94,7 +83,7 @@ export function FeedSection({
       setError(null);
 
       try {
-        const response = await fetch(buildFeedApiUrl(selectedType, selectedPhilosopherId), {
+        const response = await fetch(buildFeedApiUrl(selectedType), {
           cache: "no-store",
           signal: controller.signal,
         });
@@ -121,18 +110,11 @@ export function FeedSection({
     loadPosts();
 
     return () => controller.abort();
-  }, [selectedPhilosopherId, selectedType, showDefaultFeed]);
+  }, [selectedType, showDefaultFeed]);
 
   const displayPosts = showDefaultFeed ? initialPosts : posts;
   const feedItems = useMemo(() => buildFeedItems(displayPosts), [displayPosts]);
   const displayLoading = showDefaultFeed ? false : loading;
-  const philosophersById = useMemo(
-    () => new Map(philosophers.map((philosopher) => [philosopher.id, philosopher.name])),
-    [philosophers]
-  );
-  const selectedPhilosopherName = selectedPhilosopherId
-    ? philosophersById.get(selectedPhilosopherId)
-    : undefined;
 
   if (displayLoading && displayPosts.length === 0) {
     return (
@@ -200,7 +182,7 @@ export function FeedSection({
       ) : (
         <div className="px-6 py-16 text-center">
           <p className="font-serif text-lg text-ink-light mb-2">
-            {error ?? buildEmptyStateMessage(selectedType, selectedPhilosopherName)}
+            {error ?? buildEmptyStateMessage(selectedType)}
           </p>
         </div>
       )}
