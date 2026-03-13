@@ -47,6 +47,12 @@ interface CandidateArticle {
   }>;
 }
 
+interface PhilosopherUsage {
+  posts_7d: number;
+  last_post_at: string | null;
+  days_since_last: number | null;
+}
+
 interface PipelineResult {
   fetchResult?: {
     sourcesChecked: number;
@@ -140,6 +146,7 @@ function truncate(text: string, max = 220) {
 export default function DailyContentPage() {
   const [philosophers, setPhilosophers] = useState<Philosopher[]>([]);
   const [articles, setArticles] = useState<CandidateArticle[]>([]);
+  const [philosopherUsage, setPhilosopherUsage] = useState<Record<string, PhilosopherUsage>>({});
   const [selectedArticleIds, setSelectedArticleIds] = useState<string[]>([]);
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [summary, setSummary] = useState<DailySummary | null>(null);
@@ -161,9 +168,10 @@ export default function DailyContentPage() {
     async function loadInitialData() {
       setLoadingSetup(true);
       try {
-        const [philosopherRes, candidateRes] = await Promise.all([
+        const [philosopherRes, candidateRes, usageRes] = await Promise.all([
           fetch("/api/admin/philosophers"),
           fetch("/api/admin/news-scout/candidates?status=scored&min_score=60&limit=10"),
+          fetch("/api/admin/philosopher-usage"),
         ]);
 
         if (!philosopherRes.ok) throw new Error("Failed to load philosophers.");
@@ -171,11 +179,15 @@ export default function DailyContentPage() {
 
         const philosopherData = (await philosopherRes.json()) as Philosopher[];
         const candidateData = (await candidateRes.json()) as RawCandidateArticle[];
+        const usageData = usageRes.ok
+          ? ((await usageRes.json()) as { usage: Record<string, PhilosopherUsage> })
+          : null;
         if (cancelled) return;
 
         const normalizedCandidates = candidateData.map(normalizeCandidate);
         setPhilosophers(philosopherData);
         setArticles(normalizedCandidates);
+        setPhilosopherUsage(usageData?.usage ?? {});
         setSelectedArticleIds(normalizedCandidates.slice(0, 3).map((article) => article.id));
       } catch (loadError) {
         if (!cancelled) {
@@ -577,6 +589,10 @@ export default function DailyContentPage() {
         label: TOPIC_CLUSTER_LABELS[cluster]?.label ?? cluster,
       }));
   }, [selectedClusters]);
+  const activePhilosophers = useMemo(
+    () => philosophers.filter((philosopher) => philosopher.is_active !== 0),
+    [philosophers]
+  );
   const draftItems = reviewItems.filter((item) => item.status === "draft");
   const newsReactionItems = reviewItems.filter((item) => item.type === "news_reaction");
   const crossReplyItems = reviewItems.filter((item) => item.type === "cross_reply");
@@ -632,6 +648,63 @@ export default function DailyContentPage() {
         </div>
 
         <div className="px-6 py-6 space-y-5">
+          {activePhilosophers.length > 0 && (
+            <div className="rounded-lg border border-border-light bg-parchment-dark/20 px-4 py-3">
+              <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-ink-lighter mb-2">
+                Roster - last 7 days
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {activePhilosophers.map((philosopher) => {
+                  const usage = philosopherUsage[philosopher.id];
+                  const count = usage?.posts_7d ?? 0;
+                  const daysSince = usage?.days_since_last;
+                  const isOverused = count >= 5;
+                  const isUnderused = daysSince === null || daysSince >= 7;
+                  const isIdle = daysSince === null || daysSince >= 14;
+
+                  return (
+                    <div
+                      key={philosopher.id}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 border text-[11px] font-mono ${
+                        isIdle
+                          ? "border-amber-300 bg-amber-50 text-amber-800"
+                          : isOverused
+                          ? "border-red-200 bg-red-50 text-red-700"
+                          : isUnderused
+                          ? "border-blue-200 bg-blue-50 text-blue-700"
+                          : "border-border-light bg-white text-ink-lighter"
+                      }`}
+                      title={
+                        daysSince === null
+                          ? `${philosopher.name}: never used`
+                          : `${philosopher.name}: ${count} posts this week, last used ${daysSince}d ago`
+                      }
+                    >
+                      <span
+                        className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-serif font-bold text-white"
+                        style={{ backgroundColor: philosopher.color }}
+                      >
+                        {philosopher.initials}
+                      </span>
+                      <span>{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-4 text-[10px] text-ink-lighter">
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-amber-400" /> idle (14d+)
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-blue-400" /> underused (7d+)
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-red-400" /> heavy (5+/week)
+                </span>
+              </div>
+            </div>
+          )}
+
           {pipelineResult && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="rounded-lg border border-border bg-parchment px-4 py-3">
@@ -708,10 +781,21 @@ export default function DailyContentPage() {
                             {article.suggested_philosophers.map((philosopherId) => {
                               const philosopher = philosophers.find((entry) => entry.id === philosopherId);
                               if (!philosopher) return null;
+                              const usage = philosopherUsage[philosopher.id];
+                              const count = usage?.posts_7d ?? 0;
+                              const daysSince = usage?.days_since_last;
+                              const isOverused = count >= 5;
+                              const isIdle = daysSince === null || daysSince >= 14;
+
                               return (
                                 <span
                                   key={philosopher.id}
                                   className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 border border-border-light bg-parchment text-xs text-ink"
+                                  title={
+                                    daysSince === null
+                                      ? `${philosopher.name}: never posted`
+                                      : `${philosopher.name}: ${count} posts this week, last used ${daysSince}d ago`
+                                  }
                                 >
                                   <span
                                     className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-serif font-bold text-white"
@@ -720,6 +804,18 @@ export default function DailyContentPage() {
                                     {philosopher.initials}
                                   </span>
                                   {philosopher.name}
+                                  {(isOverused || isIdle) && (
+                                    <span
+                                      className={`ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-mono font-bold ${
+                                        isOverused
+                                          ? "bg-red-100 text-red-700"
+                                          : "bg-amber-100 text-amber-700"
+                                      }`}
+                                      title={isOverused ? "Heavy usage this week" : "Idle - has not posted recently"}
+                                    >
+                                      {isOverused ? count : "!"}
+                                    </span>
+                                  )}
                                 </span>
                               );
                             })}
@@ -832,6 +928,7 @@ export default function DailyContentPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {philosophers.map((philosopher) => {
                 const excluded = config.excluded_philosophers.includes(philosopher.id);
+                const usage = philosopherUsage[philosopher.id];
                 return (
                   <button
                     key={philosopher.id}
@@ -850,7 +947,12 @@ export default function DailyContentPage() {
                       {philosopher.initials}
                     </span>
                     <span className="min-w-0">
-                      <span className="block font-serif font-bold text-sm text-ink truncate">{philosopher.name}</span>
+                      <span className="block font-serif font-bold text-sm text-ink truncate">
+                        {philosopher.name}
+                        <span className="text-[10px] font-mono text-ink-lighter ml-1">
+                          ({usage?.posts_7d ?? 0}/7d)
+                        </span>
+                      </span>
                       <span className="block text-xs text-ink-lighter truncate">{philosopher.tradition}</span>
                     </span>
                   </button>

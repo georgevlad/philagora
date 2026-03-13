@@ -4,6 +4,7 @@ export interface Philosopher {
   tradition: string;
   color: string;
   initials: string;
+  is_active?: number;
 }
 
 export type PhiloStatus = "pending" | "generating" | "preview" | "approved";
