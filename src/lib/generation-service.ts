@@ -16,6 +16,7 @@ import {
   DEFAULT_GENERATION_MODEL,
   parseGenerationModel,
 } from "@/lib/scoring-config";
+import type { PhilosopherRow, PromptRow } from "@/lib/db-types";
 
 // ── Configuration ────────────────────────────────────────────────────
 
@@ -52,23 +53,6 @@ function getGenerationModels(): {
 }
 
 // ── Types ────────────────────────────────────────────────────────────
-
-interface PhilosopherRow {
-  id: string;
-  name: string;
-  tradition: string;
-  color: string;
-  initials: string;
-  bio: string;
-  era: string;
-  core_principles: string; // JSON string
-}
-
-interface PromptRow {
-  id: number;
-  system_prompt_text: string;
-  prompt_version: number;
-}
 
 export interface GenerationResult {
   success: true;
@@ -135,7 +119,7 @@ export async function generateContent(
   // 4. Parse core principles for context
   let principlesText = "";
   try {
-    const principles = JSON.parse(philosopher.core_principles) as {
+    const principles = JSON.parse(philosopher.core_principles!) as {
       title: string;
       description: string;
     }[];
@@ -163,7 +147,7 @@ export async function generateContent(
 PHILOSOPHER METADATA:
 Name: ${philosopher.name}
 Tradition: ${philosopher.tradition}
-Era: ${philosopher.era}
+Era: ${philosopher.era!}
 Core Principles:
 ${principlesText}
 ${houseRulesBlock}

@@ -2,6 +2,17 @@ import { getDb } from "@/lib/db";
 import { timeAgo } from "@/lib/date-utils";
 import { normalizeFeedContentType } from "@/lib/feed-utils";
 import type {
+  AgoraPhilosopherRow,
+  AgoraResponseRow,
+  AgoraSynthesisRow,
+  AgoraThreadRow,
+  DebatePhilosopherRow,
+  DebatePostRow,
+  DebateRow,
+  PhilosopherRow,
+  PostRow,
+} from "@/lib/db-types";
+import type {
   Philosopher,
   FeedPost,
   PostCitation,
@@ -15,51 +26,6 @@ import type {
 
 // ── Raw DB row types (snake_case) ──────────────────────────
 
-interface PhilosopherRow {
-  id: string;
-  name: string;
-  tradition: string;
-  color: string;
-  initials: string;
-  bio: string;
-  era: string;
-  key_works: string;
-  core_principles: string;
-  followers: number;
-  posts_count: number;
-  debates_count: number;
-}
-
-interface PostRow {
-  id: string;
-  philosopher_id: string;
-  content: string;
-  thesis: string;
-  stance: string;
-  tag: string;
-  citation_title: string | null;
-  citation_source: string | null;
-  citation_url: string | null;
-  citation_image_url: string | null;
-  reply_to: string | null;
-  likes: number;
-  replies: number;
-  bookmarks: number;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  // Joined philosopher fields
-  philosopher_name: string;
-  philosopher_color: string;
-  philosopher_initials: string;
-  philosopher_tradition: string;
-  // Joined reply-target philosopher fields (may be null)
-  reply_target_philosopher_id: string | null;
-  reply_target_philosopher_name: string | null;
-  reply_target_philosopher_color: string | null;
-  reply_target_philosopher_initials: string | null;
-}
-
 // ── Mappers ────────────────────────────────────────────────
 
 function mapPhilosopher(row: PhilosopherRow): Philosopher {
@@ -69,13 +35,13 @@ function mapPhilosopher(row: PhilosopherRow): Philosopher {
     tradition: row.tradition,
     color: row.color,
     initials: row.initials,
-    bio: row.bio,
-    era: row.era,
-    followers: row.followers,
-    postsCount: row.posts_count,
-    debatesCount: row.debates_count,
-    keyWorks: JSON.parse(row.key_works || "[]"),
-    corePrinciples: JSON.parse(row.core_principles || "[]"),
+    bio: row.bio!,
+    era: row.era!,
+    followers: row.followers!,
+    postsCount: row.posts_count!,
+    debatesCount: row.debates_count!,
+    keyWorks: JSON.parse(row.key_works! || "[]"),
+    corePrinciples: JSON.parse(row.core_principles! || "[]"),
   };
 }
 
@@ -241,41 +207,6 @@ function safeJsonParse<T>(json: string, fallback: T): T {
 
 // ── Debate row types ──────────────────────────────────────────
 
-interface DebateRow {
-  id: string;
-  title: string;
-  status: string;
-  debate_date: string;
-  trigger_article_title: string;
-  trigger_article_source: string;
-  trigger_article_url: string | null;
-  synthesis_tensions: string;
-  synthesis_agreements: string;
-  synthesis_questions: string;
-  synthesis_summary_agree: string;
-  synthesis_summary_diverge: string;
-  synthesis_summary_unresolved: string;
-}
-
-interface DebatePhilosopherRow {
-  philosopher_id: string;
-}
-
-interface DebatePostRow {
-  id: string;
-  debate_id: string;
-  philosopher_id: string;
-  content: string;
-  phase: string;
-  reply_to: string | null;
-  sort_order: number;
-  // Joined
-  philosopher_name: string;
-  philosopher_color: string;
-  philosopher_initials: string;
-  philosopher_tradition: string;
-}
-
 // ── Debate queries ────────────────────────────────────────────
 
 export function getAllDebates(): DebateListItem[] {
@@ -375,38 +306,6 @@ export function getDebateById(id: string): DebateDetail | null {
 }
 
 // ── Agora row types ───────────────────────────────────────────
-
-interface AgoraThreadRow {
-  id: string;
-  question: string;
-  asked_by: string;
-  status: string;
-  created_at: string;
-}
-
-interface AgoraResponseRow {
-  id: string;
-  thread_id: string;
-  philosopher_id: string;
-  posts: string; // JSON array of strings
-  sort_order: number;
-  // Joined
-  philosopher_name: string;
-  philosopher_color: string;
-  philosopher_initials: string;
-  philosopher_tradition: string;
-}
-
-interface AgoraSynthesisRow {
-  thread_id: string;
-  tensions: string;
-  agreements: string;
-  practical_takeaways: string;
-}
-
-interface AgoraPhilosopherRow {
-  philosopher_id: string;
-}
 
 // ── Agora queries ─────────────────────────────────────────────
 

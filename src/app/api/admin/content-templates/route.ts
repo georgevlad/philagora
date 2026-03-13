@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { ADMIN_COOKIE_NAME, verifyAdminToken } from "@/lib/admin-auth";
+import type { ContentTemplateRow } from "@/lib/db-types";
 import {
   CONTENT_TEMPLATES,
   type ContentTypeKey,
@@ -18,16 +19,6 @@ const TEMPLATE_LABELS: Record<ContentTypeKey, string> = {
 };
 
 const TEMPLATE_KEYS = Object.keys(CONTENT_TEMPLATES) as ContentTypeKey[];
-
-interface ContentTemplateRow {
-  id: number;
-  template_key: ContentTypeKey;
-  version: number;
-  instructions: string;
-  is_active: number;
-  created_at: string;
-  notes: string;
-}
 
 function ensureAdmin(request: NextRequest) {
   const token = request.cookies.get(ADMIN_COOKIE_NAME)?.value;

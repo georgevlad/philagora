@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import type {
+  ArticleCandidateRow,
+  PhilosopherRow,
+  StoredPostRow,
+} from "@/lib/db-types";
 import { generateContent } from "@/lib/generation-service";
 import type { TargetLength } from "@/lib/content-templates";
 import type { Stance } from "@/lib/types";
@@ -30,45 +35,6 @@ interface DailyRegenerateRequest {
     post_id: string;
     generation_log_id?: number;
   }>;
-}
-
-interface PhilosopherRow {
-  id: string;
-  name: string;
-  tradition: string;
-  color: string;
-  initials: string;
-}
-
-interface ArticleCandidateRow {
-  id: string;
-  source_id: string;
-  title: string;
-  url: string;
-  description: string;
-  score: number | null;
-  suggested_philosophers: string;
-  suggested_stances: string;
-  philosophical_entry_point: string | null;
-  image_url: string | null;
-  status: string;
-  source_name: string;
-}
-
-interface StoredPostRow {
-  id: string;
-  philosopher_id: string;
-  philosopher_name: string;
-  content: string;
-  thesis: string;
-  stance: Stance;
-  tag: string;
-  citation_title: string | null;
-  citation_source: string | null;
-  citation_url: string | null;
-  citation_image_url: string | null;
-  reply_to: string | null;
-  status: string;
 }
 
 interface GeneratedPostPayload {
