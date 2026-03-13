@@ -15,6 +15,7 @@ interface PostRow {
   stance: string;
   citation_title: string | null;
   citation_source: string | null;
+  citation_url: string | null;
   created_at: string;
 }
 
@@ -41,6 +42,7 @@ function titleCase(value: string): string {
 function buildPostBlock(post: PostRow, index: number): string {
   const citationTitle = sanitizeText(post.citation_title);
   const citationSource = sanitizeText(post.citation_source);
+  const citationUrl = sanitizeText(post.citation_url);
   const thesis = sanitizeText(post.thesis);
   const content = sanitizeText(post.content);
   const heading = `[Post ${index}]`;
@@ -51,6 +53,7 @@ function buildPostBlock(post: PostRow, index: number): string {
   return [
     heading,
     sourceLine,
+    ...(citationUrl ? [`URL: ${citationUrl}`] : []),
     `Stance: ${titleCase(post.stance)}`,
     `Thesis: ${thesis}`,
     "",
@@ -78,7 +81,7 @@ export async function GET(request: NextRequest) {
       .all() as PhilosopherRow[];
 
     const selectPosts = db.prepare(
-      `SELECT content, thesis, stance, citation_title, citation_source, created_at
+      `SELECT content, thesis, stance, citation_title, citation_source, citation_url, created_at
        FROM posts
        WHERE philosopher_id = ? AND status = 'published'
        ORDER BY created_at DESC
