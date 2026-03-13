@@ -299,12 +299,33 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            <a
-              href="/api/admin/download-db"
-              className="inline-flex items-center gap-2 bg-terracotta hover:bg-terracotta-light text-white text-sm font-body px-5 py-2.5 rounded-full transition-colors shadow-sm"
-            >
-              <span>Download Database</span>
-            </a>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex flex-col items-start">
+                <a
+                  href="/api/admin/export-samples"
+                  title="Download .txt with sample posts for editorial review"
+                  className="inline-flex items-center gap-2 bg-white hover:bg-parchment-dark/45 text-ink text-sm font-body px-5 py-2.5 rounded-full transition-colors shadow-sm border border-border"
+                >
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                    <path d="M4 2.5H9L12 5.5V13.5H4V2.5Z" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M9 2.5V5.5H12" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M6 8H10" strokeLinecap="round" />
+                    <path d="M6 10.5H10" strokeLinecap="round" />
+                  </svg>
+                  <span>Export Content Samples</span>
+                </a>
+                <p className="text-[11px] text-ink-lighter mt-1.5 px-2">
+                  Download .txt with sample posts for editorial review
+                </p>
+              </div>
+
+              <a
+                href="/api/admin/download-db"
+                className="inline-flex items-center gap-2 bg-terracotta hover:bg-terracotta-light text-white text-sm font-body px-5 py-2.5 rounded-full transition-colors shadow-sm"
+              >
+                <span>Download Database</span>
+              </a>
+            </div>
           </div>
         </div>
       </div>
