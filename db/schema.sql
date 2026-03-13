@@ -212,6 +212,7 @@ CREATE TABLE IF NOT EXISTS article_candidates (
   suggested_stances        TEXT NOT NULL DEFAULT '{}',
   primary_tensions         TEXT NOT NULL DEFAULT '[]',
   philosophical_entry_point TEXT,
+  topic_cluster            TEXT,
   image_url                TEXT,
   status                   TEXT NOT NULL DEFAULT 'new'
                              CHECK(status IN ('new','scored','approved','dismissed','used')),

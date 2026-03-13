@@ -114,6 +114,7 @@ function runMigrations(db: Database.Database): void {
   // News Scout tables (always runs, idempotent)
   migrateNewsScout(db);
   migrateNewsSourceLogos(db);
+  migrateArticleCandidatesTopicCluster(db);
   migrateAgoraThreadsIpAddress(db);
   migratePhilosophersIsActive(db);
   migrateScoringConfig(db);
@@ -203,6 +204,7 @@ function migrateNewsScout(db: Database.Database): void {
       suggested_stances        TEXT NOT NULL DEFAULT '{}',
       primary_tensions         TEXT NOT NULL DEFAULT '[]',
       philosophical_entry_point TEXT,
+      topic_cluster            TEXT DEFAULT NULL,
       image_url                TEXT,
       status                   TEXT NOT NULL DEFAULT 'new'
                                  CHECK(status IN ('new','scored','approved','dismissed','used')),
@@ -278,6 +280,17 @@ function migrateNewsScout(db: Database.Database): void {
 
   // Deactivate deprecated sources so existing article candidates remain valid.
   db.prepare("UPDATE news_sources SET is_active = 0 WHERE id = ?").run("bbc-top");
+}
+
+/**
+ * Add topic_cluster column to article_candidates.
+ */
+function migrateArticleCandidatesTopicCluster(db: Database.Database): void {
+  const tableInfo = db.pragma("table_info(article_candidates)") as Array<{ name: string }>;
+  const hasColumn = tableInfo.some((col) => col.name === "topic_cluster");
+  if (!hasColumn) {
+    db.exec("ALTER TABLE article_candidates ADD COLUMN topic_cluster TEXT DEFAULT NULL");
+  }
 }
 
 /**

@@ -44,6 +44,7 @@ export interface ArticleCandidate {
   suggested_stances: string; // JSON object
   primary_tensions: string; // JSON array
   philosophical_entry_point: string | null;
+  topic_cluster: string | null;
   image_url: string | null;
   status: "new" | "scored" | "approved" | "dismissed" | "used";
   fetched_at: string;
@@ -72,6 +73,7 @@ interface ScoreResponse {
   suggested_stances: Record<string, string>;
   primary_tensions: string[];
   philosophical_entry_point: string;
+  topic_cluster?: string;
 }
 
 // ── Configuration ────────────────────────────────────────────────────
@@ -349,6 +351,20 @@ Always select 1-3 tensions from this list. Do not invent new labels.
 
 Suggest 2-5 philosophers (not always 3 — pick the number that genuinely fits).
 
+Assign exactly ONE topic_cluster from this list:
+- geopolitics (wars, diplomacy, international relations, territorial disputes, sanctions)
+- domestic_politics (elections, legislation, party politics, government policy, national governance)
+- technology (AI, software, hardware, internet, social media, cyber, digital infrastructure)
+- science (research, discoveries, space, physics, biology, climate science)
+- economics (markets, trade, labor, inequality, corporate, finance, central banks)
+- culture (art, media, identity, religion, education, philosophy, literature, sports, entertainment)
+- environment (climate change, energy, pollution, conservation, sustainability, natural disasters)
+- health (medicine, public health, mental health, bioethics, healthcare systems, pandemics)
+- law_justice (courts, rights, crime, policing, constitutional, civil liberties)
+- society (demographics, migration, urban life, social movements, inequality, ethics of daily life)
+
+Choose the SINGLE most dominant cluster. If an article spans two, pick the one that drives the core tension.
+
 RESPOND WITH VALID JSON ONLY — no markdown, no code fences:
 {
   "score": 75,
@@ -356,7 +372,8 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences:
   "suggested_philosophers": ["nietzsche", "kant"],
   "suggested_stances": { "nietzsche": "challenges", "kant": "defends" },
   "primary_tensions": ["freedom_vs_order"],
-  "philosophical_entry_point": "One sentence describing the key philosophical angle"
+  "philosophical_entry_point": "One sentence describing the key philosophical angle",
+  "topic_cluster": "geopolitics"
 }
 
 Use ONLY these philosopher IDs: nietzsche, marcus-aurelius, camus, confucius, kant, russell, kierkegaard, plato, seneca, jung, dostoevsky, cicero, hannah-arendt, simone-de-beauvoir. Do not use any other IDs or abbreviations.`;
@@ -525,6 +542,7 @@ ${article.description}`;
              suggested_stances = ?,
              primary_tensions = ?,
              philosophical_entry_point = ?,
+             topic_cluster = ?,
              status = 'scored',
              scored_at = datetime('now')
          WHERE id = ?`
@@ -535,6 +553,7 @@ ${article.description}`;
         JSON.stringify(parsed.suggested_stances ?? {}),
         JSON.stringify(parsed.primary_tensions ?? []),
         parsed.philosophical_entry_point ?? "",
+        parsed.topic_cluster ?? null,
         article.id
       );
 

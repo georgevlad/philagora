@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Spinner } from "@/components/Spinner";
 import { STANCE_CONFIG } from "@/lib/constants";
 import type { Philosopher } from "@/types/admin";
@@ -17,6 +17,7 @@ interface RawCandidateArticle {
   description: string;
   score: number | null;
   philosophical_entry_point: string | null;
+  topic_cluster: string | null;
   image_url: string | null;
   suggested_philosophers: string;
   suggested_stances: string;
@@ -35,6 +36,7 @@ interface CandidateArticle {
   description: string;
   score: number | null;
   philosophical_entry_point: string | null;
+  topic_cluster: string | null;
   image_url: string | null;
   suggested_philosophers: string[];
   suggested_stances: Record<string, string>;
@@ -108,6 +110,19 @@ const LENGTH_OPTIONS: Array<{ value: LengthStrategy; label: string }> = [
   { value: "medium", label: "Medium" },
   { value: "long", label: "Long" },
 ];
+
+const TOPIC_CLUSTER_LABELS: Record<string, { label: string; color: string }> = {
+  geopolitics: { label: "Geopolitics", color: "bg-red-100 text-red-800 border-red-200" },
+  domestic_politics: { label: "Politics", color: "bg-orange-100 text-orange-800 border-orange-200" },
+  technology: { label: "Technology", color: "bg-blue-100 text-blue-800 border-blue-200" },
+  science: { label: "Science", color: "bg-purple-100 text-purple-800 border-purple-200" },
+  economics: { label: "Economics", color: "bg-yellow-100 text-yellow-800 border-yellow-200" },
+  culture: { label: "Culture", color: "bg-pink-100 text-pink-800 border-pink-200" },
+  environment: { label: "Environment", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+  health: { label: "Health", color: "bg-teal-100 text-teal-800 border-teal-200" },
+  law_justice: { label: "Law & Justice", color: "bg-indigo-100 text-indigo-800 border-indigo-200" },
+  society: { label: "Society", color: "bg-amber-100 text-amber-800 border-amber-200" },
+};
 
 function parseJson<T>(raw: string, fallback: T): T {
   try {
@@ -540,6 +555,28 @@ export default function DailyContentPage() {
   const expectedNewsReactions = selectedArticleIds.length * config.reactions_per_article;
   const expectedCrossReplies = Math.min(config.cross_replies, expectedNewsReactions);
   const estimatedTotal = expectedNewsReactions + expectedCrossReplies + config.timeless_reflections;
+  const selectedClusters = useMemo(() => {
+    const selected = articles.filter((article) => selectedArticleIds.includes(article.id));
+    const clusterCounts: Record<string, number> = {};
+
+    for (const article of selected) {
+      const cluster = article.topic_cluster;
+      if (cluster) {
+        clusterCounts[cluster] = (clusterCounts[cluster] || 0) + 1;
+      }
+    }
+
+    return clusterCounts;
+  }, [articles, selectedArticleIds]);
+  const clusterWarnings = useMemo(() => {
+    return Object.entries(selectedClusters)
+      .filter(([, count]) => count >= 2)
+      .map(([cluster, count]) => ({
+        cluster,
+        count,
+        label: TOPIC_CLUSTER_LABELS[cluster]?.label ?? cluster,
+      }));
+  }, [selectedClusters]);
   const draftItems = reviewItems.filter((item) => item.status === "draft");
   const newsReactionItems = reviewItems.filter((item) => item.type === "news_reaction");
   const crossReplyItems = reviewItems.filter((item) => item.type === "cross_reply");
@@ -647,6 +684,13 @@ export default function DailyContentPage() {
                             Score {article.score ?? "-"}
                           </span>
                           <span className="text-xs text-ink-lighter">{article.source_name}</span>
+                          {article.topic_cluster && TOPIC_CLUSTER_LABELS[article.topic_cluster] && (
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-medium border ${TOPIC_CLUSTER_LABELS[article.topic_cluster].color}`}
+                            >
+                              {TOPIC_CLUSTER_LABELS[article.topic_cluster].label}
+                            </span>
+                          )}
                           {article.published_posts.length > 0 && (
                             <span className="text-xs text-ink-lighter">
                               {article.published_posts.length} related post{article.published_posts.length === 1 ? "" : "s"}
@@ -686,6 +730,19 @@ export default function DailyContentPage() {
                   </label>
                 );
               })}
+            </div>
+          )}
+
+          {clusterWarnings.length > 0 && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 space-y-1">
+              <p className="text-sm font-semibold text-amber-900">
+                Topic clustering detected
+              </p>
+              {clusterWarnings.map(({ cluster, count, label }) => (
+                <p key={cluster} className="text-sm text-amber-800">
+                  {count} of {selectedArticleIds.length} selected articles are <strong>{label}</strong> - consider swapping one for a different topic.
+                </p>
+              ))}
             </div>
           )}
         </div>
@@ -811,6 +868,13 @@ export default function DailyContentPage() {
               <p className="text-sm text-ink-lighter mt-1">
                 {expectedNewsReactions} news reactions + {expectedCrossReplies} cross-replies + {config.timeless_reflections} reflections using about {estimatedTotal} generation calls.
               </p>
+              {Object.keys(selectedClusters).length > 0 && (
+                <p className="text-sm text-ink-lighter mt-1">
+                  Topics: {Object.entries(selectedClusters)
+                    .map(([cluster, count]) => `${TOPIC_CLUSTER_LABELS[cluster]?.label ?? cluster}${count > 1 ? ` (x${count})` : ""}`)
+                    .join(", ")}
+                </p>
+              )}
             </div>
             <button
               onClick={handleGenerateDailyFeed}
