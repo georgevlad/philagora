@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { ADMIN_COOKIE_NAME, verifyAdminToken } from "@/lib/admin-auth";
 import {
+  DEFAULT_SCORING_MODEL,
   DEFAULT_SCORING_CONFIG_VALUES,
+  parseScoringModel,
   parseScoreTiers,
   parseStanceGuidance,
   parseTensionVocabulary,
   SCORING_CONFIG_KEYS,
   slugifyTensionLabel,
   type ScoringConfigKey,
+  type ScoringModelName,
   type StanceGuidanceConfig,
   type TensionVocabularyItem,
 } from "@/lib/scoring-config";
@@ -26,6 +29,9 @@ function readConfig() {
   const byKey = new Map(rows.map((row) => [row.key, row.value]));
 
   return {
+    scoring_model: parseScoringModel(
+      byKey.get("scoring_model") ?? DEFAULT_SCORING_CONFIG_VALUES.scoring_model
+    ),
     score_tiers: parseScoreTiers(
       byKey.get("score_tiers") ?? DEFAULT_SCORING_CONFIG_VALUES.score_tiers
     ),
@@ -39,6 +45,10 @@ function readConfig() {
 }
 
 function normalizeValue(key: ScoringConfigKey, value: unknown) {
+  if (key === "scoring_model") {
+    return parseScoringModel(JSON.stringify(value ?? DEFAULT_SCORING_MODEL));
+  }
+
   if (key === "score_tiers") {
     return parseScoreTiers(JSON.stringify(value));
   }

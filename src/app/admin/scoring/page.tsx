@@ -5,19 +5,23 @@ import { useEffect, useState } from "react";
 import { Spinner } from "@/components/Spinner";
 import { STANCE_CONFIG } from "@/lib/constants";
 import {
+  DEFAULT_SCORING_MODEL,
   DEFAULT_SCORE_TIERS,
   DEFAULT_STANCE_GUIDANCE,
   DEFAULT_TENSION_VOCABULARY,
+  SCORING_MODEL_OPTIONS,
   slugifyTensionLabel,
   type ScoreTierKey,
   type ScoreTierMap,
   type ScoringConfigKey,
+  type ScoringModelName,
   type StanceGuidanceConfig,
   type TensionVocabularyItem,
 } from "@/lib/scoring-config";
 import type { Stance } from "@/lib/types";
 
 interface ScoringConfigResponse {
+  scoring_model: ScoringModelName;
   score_tiers: ScoreTierMap;
   tension_vocabulary: TensionVocabularyItem[];
   stance_guidance: StanceGuidanceConfig;
@@ -31,6 +35,7 @@ export default function ScoringSettingsPage() {
   const [savingKey, setSavingKey] = useState<ScoringConfigKey | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
+  const [scoringModel, setScoringModel] = useState<ScoringModelName>(DEFAULT_SCORING_MODEL);
   const [scoreTiers, setScoreTiers] = useState<ScoreTierMap>(DEFAULT_SCORE_TIERS);
   const [tensionVocabulary, setTensionVocabulary] = useState<TensionVocabularyItem[]>(DEFAULT_TENSION_VOCABULARY);
   const [stanceGuidance, setStanceGuidance] = useState<StanceGuidanceConfig>(DEFAULT_STANCE_GUIDANCE);
@@ -52,6 +57,7 @@ export default function ScoringSettingsPage() {
         }
 
         if ("score_tiers" in data) {
+          setScoringModel(data.scoring_model);
           setScoreTiers(data.score_tiers);
           setTensionVocabulary(data.tension_vocabulary);
           setStanceGuidance(data.stance_guidance);
@@ -94,6 +100,7 @@ export default function ScoringSettingsPage() {
       }
 
       if ("score_tiers" in data) {
+        setScoringModel(data.scoring_model);
         setScoreTiers(data.score_tiers);
         setTensionVocabulary(data.tension_vocabulary);
         setStanceGuidance(data.stance_guidance);
@@ -236,6 +243,49 @@ export default function ScoringSettingsPage() {
           {successMessage}
         </div>
       )}
+
+      <section className="border border-border rounded-xl bg-white/40 overflow-hidden">
+        <div className="px-5 py-4 border-b border-border bg-parchment-dark/30">
+          <h2 className="font-serif text-lg font-semibold text-ink">Scoring Model</h2>
+          <p className="text-sm text-ink-lighter mt-1">
+            Choose which Anthropic model scores News Scout article candidates.
+          </p>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-end">
+            <div>
+              <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                Model
+              </label>
+              <select
+                value={scoringModel}
+                onChange={(event) => setScoringModel(event.target.value as ScoringModelName)}
+                className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
+              >
+                {SCORING_MODEL_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => saveSection("scoring_model", scoringModel, "Scoring model saved.")}
+              disabled={savingKey !== null}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-terracotta hover:bg-terracotta-light disabled:opacity-50 text-white text-sm font-serif font-semibold rounded-lg transition-colors duration-150 shadow-sm"
+            >
+              {savingKey === "scoring_model" ? <Spinner className="h-4 w-4" /> : null}
+              Save Model
+            </button>
+          </div>
+
+          <p className="text-xs text-ink-lighter">
+            Affects all future scoring runs. Haiku: ~$0.01/batch. Sonnet: ~$0.10/batch.
+          </p>
+        </div>
+      </section>
 
       <section className="border border-border rounded-xl bg-white/40 overflow-hidden">
         <button

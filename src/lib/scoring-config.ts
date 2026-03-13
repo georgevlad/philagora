@@ -1,6 +1,15 @@
 import type { Stance } from "@/lib/types";
 
-export type ScoringConfigKey = "score_tiers" | "tension_vocabulary" | "stance_guidance";
+export type ScoringModelName =
+  | "claude-haiku-4-5-20251001"
+  | "claude-sonnet-4-5-20241022"
+  | "claude-sonnet-4-20250514";
+
+export type ScoringConfigKey =
+  | "scoring_model"
+  | "score_tiers"
+  | "tension_vocabulary"
+  | "stance_guidance";
 export type ScoreTierKey = "reject" | "low" | "decent" | "good" | "excellent";
 
 export interface ScoreTierDefinition {
@@ -24,7 +33,28 @@ export interface StanceGuidanceConfig {
   guidance_text: string;
 }
 
+export const DEFAULT_SCORING_MODEL: ScoringModelName = "claude-haiku-4-5-20251001";
+
+export const SCORING_MODEL_OPTIONS: Array<{
+  value: ScoringModelName;
+  label: string;
+}> = [
+  {
+    value: "claude-haiku-4-5-20251001",
+    label: "Haiku 4.5 (fast, cheapest)",
+  },
+  {
+    value: "claude-sonnet-4-5-20241022",
+    label: "Sonnet 4.5 (balanced)",
+  },
+  {
+    value: "claude-sonnet-4-20250514",
+    label: "Sonnet 4 (best reasoning)",
+  },
+];
+
 export const SCORING_CONFIG_KEYS: ScoringConfigKey[] = [
+  "scoring_model",
   "score_tiers",
   "tension_vocabulary",
   "stance_guidance",
@@ -127,6 +157,7 @@ export const DEFAULT_STANCE_GUIDANCE: StanceGuidanceConfig = {
 };
 
 export const DEFAULT_SCORING_CONFIG_VALUES: Record<ScoringConfigKey, string> = {
+  scoring_model: JSON.stringify(DEFAULT_SCORING_MODEL),
   score_tiers: JSON.stringify(DEFAULT_SCORE_TIERS),
   tension_vocabulary: JSON.stringify(DEFAULT_TENSION_VOCABULARY),
   stance_guidance: JSON.stringify(DEFAULT_STANCE_GUIDANCE),
@@ -140,6 +171,14 @@ function safeParseJson<T>(raw: string | undefined, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+export function parseScoringModel(raw: string | undefined): ScoringModelName {
+  const parsed = safeParseJson<string>(raw, DEFAULT_SCORING_MODEL);
+
+  return SCORING_MODEL_OPTIONS.some((option) => option.value === parsed)
+    ? (parsed as ScoringModelName)
+    : DEFAULT_SCORING_MODEL;
 }
 
 export function parseScoreTiers(raw: string | undefined): ScoreTierMap {

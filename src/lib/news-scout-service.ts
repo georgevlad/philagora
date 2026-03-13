@@ -10,7 +10,9 @@ import Parser from "rss-parser";
 import { getDb } from "@/lib/db";
 import { getAnthropicClient, parseJsonResponse } from "@/lib/anthropic-utils";
 import {
+  DEFAULT_SCORING_MODEL,
   DEFAULT_SCORING_CONFIG_VALUES,
+  parseScoringModel,
   DEFAULT_SCORE_TIERS,
   parseScoreTiers,
   parseStanceGuidance,
@@ -74,7 +76,7 @@ interface ScoreResponse {
 
 // ── Configuration ────────────────────────────────────────────────────
 
-const SCORING_MODEL = "claude-haiku-4-5-20251001";
+const SCORING_MODEL = DEFAULT_SCORING_MODEL;
 const SCORING_MAX_TOKENS = 1024;
 const SCORING_TEMPERATURE = 0.5;
 
@@ -443,6 +445,10 @@ export async function scoreUnscored(
   const db = getDb();
   const result: ScoreResult = { scored: 0, errors: [] };
   const scoringPrompt = buildScoringPrompt();
+  const modelConfig = db
+    .prepare("SELECT value FROM scoring_config WHERE key = 'scoring_model'")
+    .get() as { value: string } | undefined;
+  const scoringModel = parseScoringModel(modelConfig?.value ?? JSON.stringify(SCORING_MODEL));
 
   const client = getAnthropicClient();
   if (!client) {
@@ -493,7 +499,7 @@ Description:
 ${article.description}`;
 
       const response = await client.messages.create({
-        model: SCORING_MODEL,
+        model: scoringModel,
         max_tokens: SCORING_MAX_TOKENS,
         temperature: SCORING_TEMPERATURE,
         system: scoringPrompt,
