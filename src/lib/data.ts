@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db";
 import { timeAgo } from "@/lib/date-utils";
+import { normalizeFeedContentType } from "@/lib/feed-utils";
 import type {
   Philosopher,
   FeedPost,
@@ -139,6 +140,38 @@ export function getPublishedPosts(): FeedPost[] {
   const rows = db
     .prepare(FEED_POST_QUERY + " WHERE p.status = 'published' ORDER BY p.created_at DESC")
     .all() as PostRow[];
+  return rows.map(mapFeedPost);
+}
+
+export function getFilteredPublishedPosts(
+  contentType?: string,
+  philosopherId?: string
+): FeedPost[] {
+  const db = getDb();
+  const conditions: string[] = ["p.status = 'published'"];
+  const params: (string | number)[] = [];
+  const normalizedContentType = normalizeFeedContentType(contentType);
+
+  if (normalizedContentType === "reactions") {
+    conditions.push("p.citation_url IS NOT NULL AND p.citation_url != ''");
+    conditions.push("(p.reply_to IS NULL OR p.reply_to = '')");
+  } else if (normalizedContentType === "reflections") {
+    conditions.push("(p.citation_url IS NULL OR p.citation_url = '')");
+    conditions.push("(p.reply_to IS NULL OR p.reply_to = '')");
+  } else if (normalizedContentType === "replies") {
+    conditions.push("p.reply_to IS NOT NULL AND p.reply_to != ''");
+  }
+
+  if (philosopherId) {
+    conditions.push("p.philosopher_id = ?");
+    params.push(philosopherId);
+  }
+
+  const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+  const rows = db
+    .prepare(FEED_POST_QUERY + where + " ORDER BY p.created_at DESC")
+    .all(...params) as PostRow[];
+
   return rows.map(mapFeedPost);
 }
 
