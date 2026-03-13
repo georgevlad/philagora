@@ -1,3 +1,4 @@
+import { safeJsonParse } from "@/lib/json-utils";
 import type { Stance } from "@/lib/types";
 
 export type ScoringModelName =
@@ -197,18 +198,8 @@ export const DEFAULT_SCORING_CONFIG_VALUES: Record<ScoringConfigKey, string> = {
   stance_guidance: JSON.stringify(DEFAULT_STANCE_GUIDANCE),
 };
 
-function safeParseJson<T>(raw: string | undefined, fallback: T): T {
-  if (!raw) return fallback;
-
-  try {
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
-}
-
 export function parseScoringModel(raw: string | undefined): ScoringModelName {
-  const parsed = safeParseJson<string>(raw, DEFAULT_SCORING_MODEL);
+  const parsed = safeJsonParse<string>(raw, DEFAULT_SCORING_MODEL);
 
   return SCORING_MODEL_OPTIONS.some((option) => option.value === parsed)
     ? (parsed as ScoringModelName)
@@ -218,7 +209,7 @@ export function parseScoringModel(raw: string | undefined): ScoringModelName {
 export function parseGenerationModel(
   raw: string | undefined
 ): GenerationModelName {
-  const parsed = safeParseJson<string>(raw, DEFAULT_GENERATION_MODEL);
+  const parsed = safeJsonParse<string>(raw, DEFAULT_GENERATION_MODEL);
 
   return GENERATION_MODEL_OPTIONS.some((option) => option.value === parsed)
     ? (parsed as GenerationModelName)
@@ -226,7 +217,10 @@ export function parseGenerationModel(
 }
 
 export function parseScoreTiers(raw: string | undefined): ScoreTierMap {
-  const parsed = safeParseJson<Partial<Record<ScoreTierKey, Partial<ScoreTierDefinition>>>>(raw, {});
+  const parsed = safeJsonParse<Partial<Record<ScoreTierKey, Partial<ScoreTierDefinition>>>>(
+    raw,
+    {}
+  );
 
   return {
     reject: { ...DEFAULT_SCORE_TIERS.reject, ...parsed.reject },
@@ -245,7 +239,10 @@ export function slugifyTensionLabel(label: string): string {
 }
 
 export function parseTensionVocabulary(raw: string | undefined): TensionVocabularyItem[] {
-  const parsed = safeParseJson<Partial<TensionVocabularyItem>[]>(raw, DEFAULT_TENSION_VOCABULARY);
+  const parsed = safeJsonParse<Partial<TensionVocabularyItem>[]>(
+    raw,
+    DEFAULT_TENSION_VOCABULARY
+  );
 
   if (!Array.isArray(parsed)) {
     return DEFAULT_TENSION_VOCABULARY;
@@ -268,7 +265,10 @@ export function parseTensionVocabulary(raw: string | undefined): TensionVocabula
 }
 
 export function parseStanceGuidance(raw: string | undefined): StanceGuidanceConfig {
-  const parsed = safeParseJson<Partial<StanceGuidanceConfig>>(raw, DEFAULT_STANCE_GUIDANCE);
+  const parsed = safeJsonParse<Partial<StanceGuidanceConfig>>(
+    raw,
+    DEFAULT_STANCE_GUIDANCE
+  );
 
   return {
     preferred_friction_pairs: Array.isArray(parsed.preferred_friction_pairs)

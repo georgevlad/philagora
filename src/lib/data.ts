@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/db";
 import { timeAgo } from "@/lib/date-utils";
 import { normalizeFeedContentType } from "@/lib/feed-utils";
+import { safeJsonParse } from "@/lib/json-utils";
 import type {
   AgoraPhilosopherRow,
   AgoraResponseRow,
@@ -194,14 +195,6 @@ function formatDebateDate(dateStr: string): string {
     return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   } catch {
     return dateStr;
-  }
-}
-
-function safeJsonParse<T>(json: string, fallback: T): T {
-  try {
-    return JSON.parse(json || JSON.stringify(fallback));
-  } catch {
-    return fallback;
   }
 }
 

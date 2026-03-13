@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Spinner } from "@/components/Spinner";
 import { formatDate } from "@/lib/date-utils";
+import { safeJsonParse } from "@/lib/json-utils";
 import { STANCE_CONFIG } from "@/lib/constants";
 import type { Stance } from "@/lib/types";
 import type {
@@ -40,14 +41,6 @@ interface ScoreDistributionBucket {
   count: number;
   segmentClass: string;
   badgeClass: string;
-}
-
-function parseJSON<T>(raw: string, fallback: T): T {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return fallback;
-  }
 }
 
 function scoreBadgeClasses(score: number | null): string {
@@ -463,7 +456,7 @@ export default function NewsScoutPage() {
   }
 
   function openGeneratePanel(candidate: CandidateWithUsage) {
-    const suggested = parseJSON<string[]>(candidate.suggested_philosophers, []);
+    const suggested = safeJsonParse<string[]>(candidate.suggested_philosophers, []);
     setGeneratePanelCandidate(candidate);
     setSelectedGenPhilosophers(
       suggested.filter((philosopherId) => philosopherId in philosopherMeta)
@@ -959,15 +952,15 @@ ${candidate.description}`;
 
           {statusFilter === "scored"
             ? candidates.map((candidate) => {
-                const philosophers = parseJSON<string[]>(
+                const philosophers = safeJsonParse<string[]>(
                   candidate.suggested_philosophers,
                   []
                 );
-                const stances = parseJSON<Record<string, string>>(
+                const stances = safeJsonParse<Record<string, string>>(
                   candidate.suggested_stances,
                   {}
                 );
-                const tensions = parseJSON<string[]>(
+                const tensions = safeJsonParse<string[]>(
                   candidate.primary_tensions,
                   []
                 );
@@ -1120,15 +1113,15 @@ ${candidate.description}`;
                 );
               })
             : candidates.map((candidate) => {
-                const philosophers = parseJSON<string[]>(
+                const philosophers = safeJsonParse<string[]>(
                   candidate.suggested_philosophers,
                   []
                 );
-                const stances = parseJSON<Record<string, string>>(
+                const stances = safeJsonParse<Record<string, string>>(
                   candidate.suggested_stances,
                   {}
                 );
-                const tensions = parseJSON<string[]>(
+                const tensions = safeJsonParse<string[]>(
                   candidate.primary_tensions,
                   []
                 );
@@ -1583,12 +1576,12 @@ ${candidate.description}`;
                   Suggested Philosophers
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {parseJSON<string[]>(
+                  {safeJsonParse<string[]>(
                     generatePanelCandidate.suggested_philosophers,
                     []
                   ).map((philosopherId) => {
                     const meta = philosopherMeta[philosopherId];
-                    const stance = parseJSON<Record<string, string>>(
+                    const stance = safeJsonParse<Record<string, string>>(
                       generatePanelCandidate.suggested_stances,
                       {}
                     )[philosopherId] as Stance | undefined;
@@ -1641,7 +1634,7 @@ ${candidate.description}`;
                     const result = genResults.find(
                       (entry) => entry.philosopherId === philosopherId
                     );
-                    const suggestedStance = parseJSON<Record<string, string>>(
+                    const suggestedStance = safeJsonParse<Record<string, string>>(
                       generatePanelCandidate.suggested_stances,
                       {}
                     )[philosopherId] as Stance | undefined;
