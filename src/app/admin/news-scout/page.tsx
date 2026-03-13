@@ -96,6 +96,8 @@ export default function NewsScoutPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [cleanupConfirm, setCleanupConfirm] = useState(false);
   const [cleanupRunning, setCleanupRunning] = useState(false);
+  const [clearAllConfirm, setClearAllConfirm] = useState(false);
+  const [clearAllRunning, setClearAllRunning] = useState(false);
 
   // Philosopher lookup (fetched dynamically so it stays current)
   const [philosopherMeta, setPhilosopherMeta] = useState<
@@ -258,6 +260,31 @@ export default function NewsScoutPage() {
       setError("Failed to clean up old articles. Please try again.");
     } finally {
       setCleanupRunning(false);
+    }
+  }
+
+  async function handleClearAll() {
+    setClearAllRunning(true);
+    try {
+      const res = await fetch("/api/admin/news-scout/candidates", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "clear_all" }),
+      });
+
+      if (!res.ok) throw new Error("Failed to clear all candidates");
+
+      const data = await res.json();
+      setClearAllConfirm(false);
+      setPipelineStatus(`Cleared ${data.deleted} articles`);
+      setTimeout(() => setPipelineStatus(""), 4000);
+
+      fetchStats();
+      fetchCandidates();
+    } catch {
+      setError("Failed to clear all articles. Please try again.");
+    } finally {
+      setClearAllRunning(false);
     }
   }
 
@@ -479,13 +506,59 @@ ${candidate.description}`;
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => setCleanupConfirm(true)}
-              disabled={pipelineRunning}
-              className="text-sm font-body text-ink-light hover:text-red-600 px-4 py-2.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
-            >
-              Clean up old
-            </button>
+            !clearAllConfirm && (
+              <button
+                onClick={() => {
+                  setCleanupConfirm(true);
+                  setClearAllConfirm(false);
+                }}
+                disabled={pipelineRunning}
+                className="text-sm font-body text-ink-light hover:text-red-600 px-4 py-2.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+              >
+                Clean up old
+              </button>
+            )
+          )}
+
+          {clearAllConfirm ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-red-600 font-mono mr-1">
+                Delete ALL {stats?.total ?? ""} articles?
+              </span>
+              <button
+                onClick={handleClearAll}
+                disabled={clearAllRunning}
+                className="inline-flex items-center gap-1 px-3.5 py-1.5 text-xs font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
+              >
+                {clearAllRunning ? (
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
+                    Clearing
+                  </span>
+                ) : (
+                  "Yes, clear all"
+                )}
+              </button>
+              <button
+                onClick={() => setClearAllConfirm(false)}
+                className="inline-flex items-center px-3.5 py-1.5 text-xs font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:bg-parchment-dark/50"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            !cleanupConfirm && (
+              <button
+                onClick={() => {
+                  setClearAllConfirm(true);
+                  setCleanupConfirm(false);
+                }}
+                disabled={pipelineRunning}
+                className="text-sm font-body text-ink-light hover:text-red-600 px-4 py-2.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+              >
+                Clear all
+              </button>
+            )
           )}
 
           <Link

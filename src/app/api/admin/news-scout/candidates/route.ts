@@ -171,6 +171,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ deleted: result.changes });
     }
 
+    if (body.action === "clear_all") {
+      const result = db
+        .prepare("DELETE FROM article_candidates")
+        .run();
+
+      return NextResponse.json({ deleted: result.changes });
+    }
+
     const { id } = body;
 
     if (!id) {
