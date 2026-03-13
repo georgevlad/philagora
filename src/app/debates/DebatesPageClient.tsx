@@ -7,6 +7,7 @@ import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
 import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { isValidHttpUrl } from "@/lib/url-utils";
 
 function DebateListCard({
   debate,
@@ -22,6 +23,7 @@ function DebateListCard({
   const isInProgress = debate.status === "In Progress";
   const accent = isInProgress ? "var(--color-burgundy)" : "var(--color-athenian)";
   const softBg = isInProgress ? "rgba(122, 62, 58, 0.05)" : "rgba(49, 78, 61, 0.05)";
+  const hasTriggerArticle = isValidHttpUrl(debate.triggerArticleUrl);
 
   return (
     <Link href={`/debates/${debate.id}`}>
@@ -50,33 +52,35 @@ function DebateListCard({
                 {debate.title}
               </h3>
 
-              <div
-                className="rounded-2xl px-4 py-3 mb-5 border"
-                style={{
-                  background: `linear-gradient(180deg, ${softBg}, rgba(248,243,234,0.78))`,
-                  borderColor: isInProgress ? "rgba(122, 62, 58, 0.14)" : "rgba(49, 78, 61, 0.12)",
-                }}
-              >
-                <div className="flex items-center gap-2 mb-1.5 text-[10px] font-mono tracking-[0.18em] uppercase text-ink-faint">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    className="shrink-0"
-                  >
-                    <path d="M3 12L3 4C3 2.89543 3.89543 2 5 2H11C12.1046 2 13 2.89543 13 4V12C13 13.1046 12.1046 14 11 14H5C3.89543 14 3 13.1046 3 12Z" />
-                    <path d="M6 6H10" strokeLinecap="round" />
-                    <path d="M6 9H8" strokeLinecap="round" />
-                  </svg>
-                  Trigger article
+              {hasTriggerArticle && (
+                <div
+                  className="rounded-2xl px-4 py-3 mb-5 border"
+                  style={{
+                    background: `linear-gradient(180deg, ${softBg}, rgba(248,243,234,0.78))`,
+                    borderColor: isInProgress ? "rgba(122, 62, 58, 0.14)" : "rgba(49, 78, 61, 0.12)",
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-1.5 text-[10px] font-mono tracking-[0.18em] uppercase text-ink-faint">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      className="shrink-0"
+                    >
+                      <path d="M3 12L3 4C3 2.89543 3.89543 2 5 2H11C12.1046 2 13 2.89543 13 4V12C13 13.1046 12.1046 14 11 14H5C3.89543 14 3 13.1046 3 12Z" />
+                      <path d="M6 6H10" strokeLinecap="round" />
+                      <path d="M6 9H8" strokeLinecap="round" />
+                    </svg>
+                    Trigger article
+                  </div>
+                  <p className="text-[15px] leading-snug text-ink-light">
+                    {debate.triggerArticleTitle} <span className="text-ink-lighter">- {debate.triggerArticleSource}</span>
+                  </p>
                 </div>
-                <p className="text-[15px] leading-snug text-ink-light">
-                  {debate.triggerArticleTitle} <span className="text-ink-lighter">- {debate.triggerArticleSource}</span>
-                </p>
-              </div>
+              )}
 
               <p className="prose-reading text-[17px] text-ink-light leading-[1.75] max-w-3xl">
                 {preview}
