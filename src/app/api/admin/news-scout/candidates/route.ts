@@ -93,18 +93,29 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * PATCH — Update candidate status (approve/dismiss).
- * Body: { id: string, status: 'approved' | 'dismissed' }
+ * PATCH — Update candidate status (single or bulk).
+ * Body: { id: string, status: 'approved' | 'dismissed' | 'scored' | 'used' }
+ *    or { ids: string[], status: 'approved' | 'dismissed' | 'scored' | 'used' }
  */
 export async function PATCH(request: NextRequest) {
   try {
     const db = getDb();
     const body = await request.json();
-    const { id, status } = body;
+    const { id, ids, status } = body as {
+      id?: string;
+      ids?: string[];
+      status?: string;
+    };
 
-    if (!id || !status) {
+    const targetIds = Array.isArray(ids)
+      ? ids.filter((candidateId): candidateId is string => typeof candidateId === "string" && candidateId.length > 0)
+      : id
+      ? [id]
+      : [];
+
+    if (targetIds.length === 0 || !status) {
       return NextResponse.json(
-        { error: "id and status are required" },
+        { error: "id or ids, plus status, are required" },
         { status: 400 }
       );
     }
@@ -117,9 +128,20 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    if (targetIds.length > 1) {
+      const placeholders = targetIds.map(() => "?").join(",");
+      db.prepare(
+        `UPDATE article_candidates
+         SET status = ?
+         WHERE id IN (${placeholders})`
+      ).run(status, ...targetIds);
+
+      return NextResponse.json({ updated: targetIds.length, ids: targetIds, status });
+    }
+
     db.prepare("UPDATE article_candidates SET status = ? WHERE id = ?").run(
       status,
-      id
+      targetIds[0]
     );
 
     const updated = db
@@ -129,7 +151,7 @@ export async function PATCH(request: NextRequest) {
          JOIN news_sources ns ON ac.source_id = ns.id
          WHERE ac.id = ?`
       )
-      .get(id) as ArticleCandidate | undefined;
+      .get(targetIds[0]) as ArticleCandidate | undefined;
 
     if (!updated) {
       return NextResponse.json(

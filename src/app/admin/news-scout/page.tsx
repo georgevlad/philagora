@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Spinner } from "@/components/Spinner";
 import { formatDate } from "@/lib/date-utils";
 import { STANCE_CONFIG } from "@/lib/constants";
 import type { Stance } from "@/lib/types";
-
-// Types
-
 import type {
   ArticleCandidate,
   FetchResult,
@@ -32,7 +29,18 @@ interface CandidateWithUsage extends ArticleCandidate {
   }>;
 }
 
-// Helpers
+interface PhilosopherMeta {
+  name: string;
+  initials: string;
+  color: string;
+}
+
+interface ScoreDistributionBucket {
+  label: string;
+  count: number;
+  segmentClass: string;
+  badgeClass: string;
+}
 
 function parseJSON<T>(raw: string, fallback: T): T {
   try {
@@ -44,10 +52,65 @@ function parseJSON<T>(raw: string, fallback: T): T {
 
 function scoreBadgeClasses(score: number | null): string {
   if (score === null) return "bg-gray-100 text-gray-600";
-  if (score >= 80) return "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300";
+  if (score >= 80) {
+    return "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300";
+  }
   if (score >= 60) return "bg-green-100 text-green-800";
   if (score >= 40) return "bg-yellow-100 text-yellow-800";
   return "bg-red-100 text-red-800";
+}
+
+function formatTensionLabel(tension: string): string {
+  return tension.replace(/_/g, " ");
+}
+
+function getScoreDistribution(
+  items: CandidateWithUsage[]
+): ScoreDistributionBucket[] {
+  const buckets: ScoreDistributionBucket[] = [
+    {
+      label: "0s",
+      count: 0,
+      segmentClass: "bg-red-200",
+      badgeClass: "text-red-700",
+    },
+    {
+      label: "1-39",
+      count: 0,
+      segmentClass: "bg-red-300",
+      badgeClass: "text-red-700",
+    },
+    {
+      label: "40-59",
+      count: 0,
+      segmentClass: "bg-yellow-300",
+      badgeClass: "text-yellow-800",
+    },
+    {
+      label: "60-79",
+      count: 0,
+      segmentClass: "bg-green-300",
+      badgeClass: "text-green-800",
+    },
+    {
+      label: "80+",
+      count: 0,
+      segmentClass: "bg-emerald-400",
+      badgeClass: "text-emerald-800",
+    },
+  ];
+
+  for (const item of items) {
+    if (typeof item.score !== "number") continue;
+
+    if (item.score === 0) buckets[0].count += 1;
+    else if (item.score <= 39) buckets[1].count += 1;
+    else if (item.score <= 59) buckets[2].count += 1;
+    else if (item.score <= 79) buckets[3].count += 1;
+    else buckets[4].count += 1;
+  }
+
+  return buckets;
 }
 
 const CATEGORIES = [
@@ -62,22 +125,33 @@ const CATEGORIES = [
   "tech",
   "culture",
 ];
+
 const MIN_SCORES = [
   { label: "All scores", value: "" },
   { label: "40+", value: "40" },
   { label: "60+", value: "60" },
   { label: "80+", value: "80" },
 ];
-const STATUS_TABS = ["scored", "approved", "dismissed", "all"];
 
-// Component
+const STATUS_TABS = ["scored", "approved", "dismissed", "all"] as const;
+
+const STANCE_SHORT_LABELS: Record<Stance, string> = {
+  challenges: "chall",
+  defends: "def",
+  reframes: "refrm",
+  questions: "quest",
+  warns: "warn",
+  observes: "obs",
+};
 
 export default function NewsScoutPage() {
-  // State
-
   const [stats, setStats] = useState<Stats | null>(null);
   const [candidates, setCandidates] = useState<CandidateWithUsage[]>([]);
+  const [overviewCandidates, setOverviewCandidates] = useState<
+    CandidateWithUsage[]
+  >([]);
   const [loading, setLoading] = useState(true);
+  const [listLoading, setListLoading] = useState(false);
   const [pipelineRunning, setPipelineRunning] = useState(false);
   const [pipelineStatus, setPipelineStatus] = useState("");
   const [pipelineResult, setPipelineResult] = useState<{
@@ -86,31 +160,39 @@ export default function NewsScoutPage() {
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Filters
   const [statusFilter, setStatusFilter] = useState("scored");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [minScoreFilter, setMinScoreFilter] = useState("");
+  const [minScoreFilter, setMinScoreFilter] = useState("60");
 
-  // Delete / cleanup
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [cleanupConfirm, setCleanupConfirm] = useState(false);
   const [cleanupRunning, setCleanupRunning] = useState(false);
   const [clearAllConfirm, setClearAllConfirm] = useState(false);
   const [clearAllRunning, setClearAllRunning] = useState(false);
+  const [dangerMenuOpen, setDangerMenuOpen] = useState(false);
 
-  // Philosopher lookup (fetched dynamically so it stays current)
   const [philosopherMeta, setPhilosopherMeta] = useState<
-    Record<string, { name: string; initials: string; color: string }>
+    Record<string, PhilosopherMeta>
   >({});
 
-  // Inline generation
-  const [expandedGenId, setExpandedGenId] = useState<string | null>(null);
-  const [selectedGenPhilosophers, setSelectedGenPhilosophers] = useState<string[]>([]);
-  const [genResults, setGenResults] = useState<Array<{ philosopherId: string; success: boolean; error?: string }>>([]);
+  const [expandedDetailIds, setExpandedDetailIds] = useState<string[]>([]);
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>(
+    []
+  );
+  const [bulkStatusRunning, setBulkStatusRunning] = useState(false);
+
+  const [generatePanelCandidate, setGeneratePanelCandidate] =
+    useState<CandidateWithUsage | null>(null);
+  const [selectedGenPhilosophers, setSelectedGenPhilosophers] = useState<
+    string[]
+  >([]);
+  const [genResults, setGenResults] = useState<
+    Array<{ philosopherId: string; success: boolean; error?: string }>
+  >([]);
   const [genInProgress, setGenInProgress] = useState(false);
 
-  // Data fetching
+  const hasInitialized = useRef(false);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -136,31 +218,96 @@ export default function NewsScoutPage() {
     } catch {
       setError("Failed to fetch candidates");
     }
-  }, [statusFilter, categoryFilter, minScoreFilter]);
+  }, [categoryFilter, minScoreFilter, statusFilter]);
+
+  const fetchOverviewCandidates = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({
+        status: "all",
+        limit: "500",
+      });
+      const res = await fetch(`/api/admin/news-scout/candidates?${params}`);
+      const data = await res.json();
+      setOverviewCandidates(data);
+    } catch {
+      // overview is non-critical
+    }
+  }, []);
+
+  const fetchPhilosophers = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/philosophers");
+      const data = (await res.json()) as Array<{
+        id: string;
+        name: string;
+        initials: string;
+        color: string;
+      }>;
+
+      const lookup: Record<string, PhilosopherMeta> = {};
+      for (const philosopher of data) {
+        lookup[philosopher.id] = {
+          name: philosopher.name,
+          initials: philosopher.initials,
+          color: philosopher.color,
+        };
+      }
+      setPhilosopherMeta(lookup);
+    } catch (fetchError) {
+      console.error("Failed to fetch philosophers:", fetchError);
+    }
+  }, []);
+
+  const refreshLists = useCallback(async () => {
+    await Promise.all([fetchStats(), fetchCandidates(), fetchOverviewCandidates()]);
+  }, [fetchCandidates, fetchOverviewCandidates, fetchStats]);
 
   useEffect(() => {
-    fetch("/api/admin/philosophers")
-      .then((r) => r.json())
-      .then((data: Array<{ id: string; name: string; initials: string; color: string }>) => {
-        const lookup: Record<string, { name: string; initials: string; color: string }> = {};
-        for (const p of data) {
-          lookup[p.id] = { name: p.name, initials: p.initials, color: p.color };
-        }
-        setPhilosopherMeta(lookup);
-      })
-      .catch((e) => console.error("Failed to fetch philosophers:", e));
+    if (hasInitialized.current) return;
 
-    Promise.all([fetchStats(), fetchCandidates()]).finally(() =>
-      setLoading(false)
-    );
-  }, [fetchStats, fetchCandidates]);
+    Promise.all([
+      fetchPhilosophers(),
+      fetchStats(),
+      fetchCandidates(),
+      fetchOverviewCandidates(),
+    ]).finally(() => {
+      hasInitialized.current = true;
+      setLoading(false);
+    });
+  }, [fetchCandidates, fetchOverviewCandidates, fetchPhilosophers, fetchStats]);
 
-  // Re-fetch candidates when filters change
   useEffect(() => {
-    fetchCandidates();
+    if (!hasInitialized.current) return;
+
+    setListLoading(true);
+    fetchCandidates().finally(() => setListLoading(false));
   }, [fetchCandidates]);
 
-  // Pipeline actions
+  useEffect(() => {
+    setSelectedCandidateIds((prev) =>
+      prev.filter((id) => candidates.some((candidate) => candidate.id === id))
+    );
+  }, [candidates]);
+
+  useEffect(() => {
+    if (statusFilter !== "scored") {
+      setSelectedCandidateIds([]);
+    }
+  }, [statusFilter]);
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setGeneratePanelCandidate(null);
+        setDangerMenuOpen(false);
+        setCleanupConfirm(false);
+        setClearAllConfirm(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, []);
 
   const runPipeline = async (action: "fetch" | "score" | "fetch_and_score") => {
     setPipelineRunning(true);
@@ -182,17 +329,14 @@ export default function NewsScoutPage() {
       if (!res.ok) throw new Error(data.error || "Pipeline failed");
 
       setPipelineResult(data);
-      // Refresh all data
-      await Promise.all([fetchStats(), fetchCandidates()]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Pipeline failed");
+      await refreshLists();
+    } catch (runError) {
+      setError(runError instanceof Error ? runError.message : "Pipeline failed");
     } finally {
       setPipelineRunning(false);
       setPipelineStatus("");
     }
   };
-
-  // Candidate actions
 
   const updateCandidateStatus = async (
     id: string,
@@ -204,15 +348,44 @@ export default function NewsScoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, status: newStatus }),
       });
+
       if (!res.ok) throw new Error("Failed to update");
 
-      const updated = await res.json();
-      setCandidates((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, ...updated } : c))
-      );
-      fetchStats();
+      await refreshLists();
+      if (generatePanelCandidate?.id === id && newStatus !== "approved") {
+        setGeneratePanelCandidate(null);
+      }
     } catch {
       setError("Failed to update candidate status");
+    }
+  };
+
+  const updateCandidateStatuses = async (
+    ids: string[],
+    newStatus: "approved" | "dismissed"
+  ) => {
+    if (ids.length === 0) return;
+
+    setBulkStatusRunning(true);
+    try {
+      const res = await fetch("/api/admin/news-scout/candidates", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, status: newStatus }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update selection");
+
+      setSelectedCandidateIds([]);
+      await refreshLists();
+      setPipelineStatus(
+        `${newStatus === "approved" ? "Approved" : "Dismissed"} ${ids.length} articles`
+      );
+      setTimeout(() => setPipelineStatus(""), 4000);
+    } catch {
+      setError("Failed to update selected articles");
+    } finally {
+      setBulkStatusRunning(false);
     }
   };
 
@@ -227,9 +400,8 @@ export default function NewsScoutPage() {
 
       if (!res.ok) throw new Error("Failed to delete candidate");
 
-      setCandidates((prev) => prev.filter((c) => c.id !== id));
       setConfirmDeleteId(null);
-      fetchStats();
+      await refreshLists();
     } catch {
       setError("Failed to delete candidate. Please try again.");
     } finally {
@@ -250,12 +422,10 @@ export default function NewsScoutPage() {
 
       const data = await res.json();
       setCleanupConfirm(false);
-      setPipelineResult({ ...pipelineResult });
+      setDangerMenuOpen(false);
       setPipelineStatus(`Cleaned up ${data.deleted} old articles`);
       setTimeout(() => setPipelineStatus(""), 4000);
-
-      fetchStats();
-      fetchCandidates();
+      await refreshLists();
     } catch {
       setError("Failed to clean up old articles. Please try again.");
     } finally {
@@ -276,11 +446,12 @@ export default function NewsScoutPage() {
 
       const data = await res.json();
       setClearAllConfirm(false);
+      setDangerMenuOpen(false);
+      setSelectedCandidateIds([]);
+      setGeneratePanelCandidate(null);
       setPipelineStatus(`Cleared ${data.deleted} articles`);
       setTimeout(() => setPipelineStatus(""), 4000);
-
-      fetchStats();
-      fetchCandidates();
+      await refreshLists();
     } catch {
       setError("Failed to clear all articles. Please try again.");
     } finally {
@@ -288,7 +459,20 @@ export default function NewsScoutPage() {
     }
   }
 
-  // Inline bulk generation
+  function openGeneratePanel(candidate: CandidateWithUsage) {
+    const suggested = parseJSON<string[]>(candidate.suggested_philosophers, []);
+    setGeneratePanelCandidate(candidate);
+    setSelectedGenPhilosophers(
+      suggested.filter((philosopherId) => philosopherId in philosopherMeta)
+    );
+    setGenResults([]);
+  }
+
+  function closeGeneratePanel() {
+    if (genInProgress) return;
+    setGeneratePanelCandidate(null);
+    setGenResults([]);
+  }
 
   async function handleBulkGenerate(candidate: CandidateWithUsage) {
     setGenInProgress(true);
@@ -297,11 +481,12 @@ export default function NewsScoutPage() {
     const sourceMaterial = `${candidate.title} - ${candidate.source_name}
 
 ${candidate.description}`;
-    const validPhilosophers = selectedGenPhilosophers.filter(pid => pid in philosopherMeta);
+    const validPhilosophers = selectedGenPhilosophers.filter(
+      (philosopherId) => philosopherId in philosopherMeta
+    );
 
     for (const philosopherId of validPhilosophers) {
       try {
-        // 1. Generate content
         const genRes = await fetch("/api/admin/content", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -316,7 +501,6 @@ ${candidate.description}`;
         const genData = await genRes.json();
         if (!genRes.ok) throw new Error(genData.error || "Generation failed");
 
-        // 2. Save as draft post with citation data
         const postRes = await fetch("/api/admin/posts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -335,7 +519,6 @@ ${candidate.description}`;
 
         if (!postRes.ok) throw new Error("Failed to save post");
 
-        // 3. Update generation log to approved
         if (genData.log_entry?.id) {
           await fetch("/api/admin/content", {
             method: "PATCH",
@@ -344,21 +527,65 @@ ${candidate.description}`;
           });
         }
 
-        setGenResults(prev => [...prev, { philosopherId, success: true }]);
-      } catch (err) {
-        setGenResults(prev => [...prev, {
-          philosopherId,
-          success: false,
-          error: err instanceof Error ? err.message : "Failed",
-        }]);
+        setGenResults((prev) => [...prev, { philosopherId, success: true }]);
+      } catch (generationError) {
+        setGenResults((prev) => [
+          ...prev,
+          {
+            philosopherId,
+            success: false,
+            error:
+              generationError instanceof Error
+                ? generationError.message
+                : "Failed",
+          },
+        ]);
       }
     }
 
     setGenInProgress(false);
-    fetchCandidates();
+    await refreshLists();
   }
 
-  // Render
+  function toggleDetailRow(candidateId: string) {
+    setExpandedDetailIds((prev) =>
+      prev.includes(candidateId)
+        ? prev.filter((id) => id !== candidateId)
+        : [...prev, candidateId]
+    );
+  }
+
+  function toggleCandidateSelection(candidateId: string) {
+    setSelectedCandidateIds((prev) =>
+      prev.includes(candidateId)
+        ? prev.filter((id) => id !== candidateId)
+        : [...prev, candidateId]
+    );
+  }
+
+  function toggleSelectAllOnPage() {
+    const visibleIds = candidates.map((candidate) => candidate.id);
+    const allSelected =
+      visibleIds.length > 0 &&
+      visibleIds.every((candidateId) => selectedCandidateIds.includes(candidateId));
+
+    setSelectedCandidateIds(allSelected ? [] : visibleIds);
+  }
+
+  const scoreDistribution = getScoreDistribution(overviewCandidates);
+  const totalScoredArticles = scoreDistribution.reduce(
+    (sum, bucket) => sum + bucket.count,
+    0
+  );
+  const tabCounts = {
+    scored: stats?.scored ?? 0,
+    approved: stats?.approved ?? 0,
+    dismissed: stats?.dismissed ?? 0,
+    all: stats?.total ?? 0,
+  };
+  const allSelectedOnPage =
+    candidates.length > 0 &&
+    candidates.every((candidate) => selectedCandidateIds.includes(candidate.id));
 
   if (loading) {
     return (
@@ -369,706 +596,1149 @@ ${candidate.description}`;
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="font-serif text-2xl font-bold text-ink">News Scout</h1>
-        <p className="text-sm text-ink-light font-body mt-1">
-          Discover and score articles for philosophical potential
-        </p>
-      </div>
-
-      {/* Error message */}
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 flex items-center justify-between">
-          <span>{error}</span>
-          <button
-            onClick={() => setError(null)}
-            className="text-red-600 hover:text-red-800 ml-3"
-          >
-            x
-          </button>
+    <>
+      <div className="space-y-8 pb-24">
+        <div>
+          <h1 className="font-serif text-2xl font-bold text-ink">News Scout</h1>
+          <p className="mt-1 text-sm font-body text-ink-light">
+            Discover and score articles for philosophical potential
+          </p>
         </div>
-      )}
 
-      {/* Pipeline result */}
-      {pipelineResult && (
-        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-          {pipelineResult.fetchResult && (
-            <p>
-              Fetched {pipelineResult.fetchResult.sourcesChecked} sources -&gt;{" "}
-              <strong>{pipelineResult.fetchResult.newArticles}</strong> new articles
-              {pipelineResult.fetchResult.errors.length > 0 && (
-                <span className="text-yellow-700">
-                  {" "}
-                  ({pipelineResult.fetchResult.errors.length} errors)
-                </span>
-              )}
-            </p>
-          )}
-          {pipelineResult.scoreResult && (
-            <p>
-              Scored <strong>{pipelineResult.scoreResult.scored}</strong> articles
-              {pipelineResult.scoreResult.errors.length > 0 && (
-                <span className="text-yellow-700">
-                  {" "}
-                  ({pipelineResult.scoreResult.errors.length} errors)
-                </span>
-              )}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Stats Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
-        {[
-          { label: "Total", value: stats?.total ?? 0, icon: "#" },
-          { label: "Unscored", value: stats?.new ?? 0, icon: "~" },
-          { label: "Scored", value: stats?.scored ?? 0, icon: "+" },
-          { label: "Approved", value: stats?.approved ?? 0, icon: "ok" },
-        ].map((card) => (
-          <div
-            key={card.label}
-            className="bg-white border border-border rounded-xl px-6 py-5 shadow-sm"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-mono uppercase tracking-wider text-ink-lighter">
-                {card.label}
-              </span>
-              <span className="text-lg">{card.icon}</span>
-            </div>
-            <p className="font-serif text-3xl font-bold text-ink">
-              {card.value}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* Action Buttons */}
-      <div className="bg-white border border-border rounded-xl shadow-sm overflow-hidden">
-        <div className="px-6 py-5 flex items-center gap-3 flex-wrap">
-          <button
-            onClick={() => runPipeline("fetch_and_score")}
-            disabled={pipelineRunning}
-            className="bg-terracotta hover:bg-terracotta-light text-white text-sm font-body px-5 py-2.5 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {pipelineRunning ? (
-              <>
-                <Spinner className="h-4 w-4" />
-                <span>{pipelineStatus}</span>
-              </>
-            ) : (
-              <>Fetch &amp; Score</>
-            )}
-          </button>
-
-          <button
-            onClick={() => runPipeline("fetch")}
-            disabled={pipelineRunning}
-            className="text-sm font-body text-ink-light hover:text-ink px-4 py-2.5 rounded-lg hover:bg-parchment-dark transition-colors disabled:opacity-50"
-          >
-            Fetch Only
-          </button>
-
-          <button
-            onClick={() => runPipeline("score")}
-            disabled={pipelineRunning}
-            className="text-sm font-body text-ink-light hover:text-ink px-4 py-2.5 rounded-lg hover:bg-parchment-dark transition-colors disabled:opacity-50"
-          >
-            Score Only
-          </button>
-
-          {cleanupConfirm ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-ink-lighter font-mono mr-1">
-                Delete old dismissed/new articles?
-              </span>
-              <button
-                onClick={handleCleanup}
-                disabled={cleanupRunning}
-                className="inline-flex items-center gap-1 px-3.5 py-1.5 text-xs font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
-              >
-                {cleanupRunning ? (
-                  <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
-                    Cleaning
-                  </span>
-                ) : (
-                  "Confirm"
-                )}
-              </button>
-              <button
-                onClick={() => setCleanupConfirm(false)}
-                className="inline-flex items-center px-3.5 py-1.5 text-xs font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:bg-parchment-dark/50"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            !clearAllConfirm && (
-              <button
-                onClick={() => {
-                  setCleanupConfirm(true);
-                  setClearAllConfirm(false);
-                }}
-                disabled={pipelineRunning}
-                className="text-sm font-body text-ink-light hover:text-red-600 px-4 py-2.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
-              >
-                Clean up old
-              </button>
-            )
-          )}
-
-          {clearAllConfirm ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-red-600 font-mono mr-1">
-                Delete ALL {stats?.total ?? ""} articles?
-              </span>
-              <button
-                onClick={handleClearAll}
-                disabled={clearAllRunning}
-                className="inline-flex items-center gap-1 px-3.5 py-1.5 text-xs font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
-              >
-                {clearAllRunning ? (
-                  <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
-                    Clearing
-                  </span>
-                ) : (
-                  "Yes, clear all"
-                )}
-              </button>
-              <button
-                onClick={() => setClearAllConfirm(false)}
-                className="inline-flex items-center px-3.5 py-1.5 text-xs font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:bg-parchment-dark/50"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            !cleanupConfirm && (
-              <button
-                onClick={() => {
-                  setClearAllConfirm(true);
-                  setCleanupConfirm(false);
-                }}
-                disabled={pipelineRunning}
-                className="text-sm font-body text-ink-light hover:text-red-600 px-4 py-2.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
-              >
-                Clear all
-              </button>
-            )
-          )}
-
-          <Link
-            href="/admin/scoring"
-            className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors ml-auto"
-          >
-            Scoring Settings -&gt;
-          </Link>
-
-          <Link
-            href="/admin/news-scout/sources"
-            className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors"
-          >
-            Manage RSS Sources -&gt;
-          </Link>
-        </div>
-      </div>
-
-      {/* Filter Bar */}
-      <div className="bg-white border border-border rounded-xl shadow-sm sticky top-0 z-10">
-        <div className="px-6 py-5 space-y-4">
-          {/* Status tabs */}
-          <div className="flex gap-1">
-            {STATUS_TABS.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setStatusFilter(tab)}
-                className={`px-5 py-2.5 text-sm font-body rounded-lg transition-colors capitalize ${
-                  statusFilter === tab
-                    ? "bg-terracotta/10 text-terracotta ring-1 ring-terracotta/30 font-medium"
-                    : "text-ink-light hover:text-ink hover:bg-parchment-dark"
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-
-          {/* Dropdowns */}
-          <div className="flex gap-3">
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+        {error && (
+          <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <span>{error}</span>
+            <button
+              onClick={() => setError(null)}
+              className="ml-3 text-red-600 hover:text-red-800"
             >
-              {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat === "all" ? "All categories" : cat.charAt(0).toUpperCase() + cat.slice(1)}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={minScoreFilter}
-              onChange={(e) => setMinScoreFilter(e.target.value)}
-              className="rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-            >
-              {MIN_SCORES.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Candidates List */}
-      {statusFilter === "approved" && candidates.length > 0 && (
-        <div className="text-xs font-mono text-ink-lighter px-1 mb-2">
-          {candidates.filter(c => (c.published_posts?.length || 0) > 0).length} of {candidates.length} approved articles have posts
-        </div>
-      )}
-      <div className="space-y-4">
-        {candidates.length === 0 && (
-          <div className="bg-white border border-border rounded-xl px-6 py-12 text-center">
-            <p className="text-ink-lighter font-body text-sm">
-              No candidates found. Try adjusting your filters or running the
-              pipeline.
-            </p>
+              x
+            </button>
           </div>
         )}
 
-        {candidates.map((candidate) => {
-          const philosophers = parseJSON<string[]>(
-            candidate.suggested_philosophers,
-            []
-          );
-          const stances = parseJSON<Record<string, string>>(
-            candidate.suggested_stances,
-            {}
-          );
-          const tensions = parseJSON<string[]>(candidate.primary_tensions, []);
-          const isApproved = candidate.status === "approved";
-          const isDismissed = candidate.status === "dismissed";
+        {pipelineResult && (
+          <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+            {pipelineResult.fetchResult && (
+              <p>
+                Fetched {pipelineResult.fetchResult.sourcesChecked} sources -&gt;{" "}
+                <strong>{pipelineResult.fetchResult.newArticles}</strong> new articles
+                {pipelineResult.fetchResult.errors.length > 0 && (
+                  <span className="text-yellow-700">
+                    {" "}
+                    ({pipelineResult.fetchResult.errors.length} errors)
+                  </span>
+                )}
+              </p>
+            )}
+            {pipelineResult.scoreResult && (
+              <p>
+                Scored <strong>{pipelineResult.scoreResult.scored}</strong> articles
+                {pipelineResult.scoreResult.errors.length > 0 && (
+                  <span className="text-yellow-700">
+                    {" "}
+                    ({pipelineResult.scoreResult.errors.length} errors)
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
+        )}
 
-          return (
+        <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+          {[
+            {
+              label: "Total",
+              value: stats?.total ?? 0,
+              shell: "border-l-4 border-l-border bg-white",
+            },
+            {
+              label: "Unscored",
+              value: stats?.new ?? 0,
+              shell: "border-l-4 border-l-amber-300 bg-amber-50/60",
+            },
+            {
+              label: "Scored",
+              value: stats?.scored ?? 0,
+              shell: "border-l-4 border-l-blue-300 bg-blue-50/60",
+            },
+            {
+              label: "Approved",
+              value: stats?.approved ?? 0,
+              shell: "border-l-4 border-l-green-300 bg-green-50/60",
+            },
+          ].map((card) => (
             <div
-              key={candidate.id}
-              className={`bg-white border rounded-xl shadow-sm overflow-hidden transition-colors ${
-                isApproved
-                  ? "border-green-300 bg-green-50/30"
-                  : isDismissed
-                  ? "border-border opacity-50"
-                  : "border-border"
-              }`}
+              key={card.label}
+              className={`rounded-xl border border-border px-6 py-5 shadow-sm ${card.shell}`}
             >
-              <div className="px-6 py-5">
-                <div className="flex gap-5">
-                  {/* Thumbnail: article image or source logo fallback */}
-                  {(() => {
-                    const displayImage =
-                      candidate.image_url || candidate.source_logo_url;
-                    const isLogo =
-                      !candidate.image_url && !!candidate.source_logo_url;
-                    if (!displayImage) return null;
-                    return (
-                      <div
-                        className={`shrink-0 rounded-lg overflow-hidden ${
-                          isLogo
-                            ? "w-12 h-12 flex items-center justify-center bg-parchment-dark/20"
-                            : "w-20 h-16"
-                        }`}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={displayImage}
-                          alt=""
-                          className={
-                            isLogo
-                              ? "w-8 h-8 object-contain"
-                              : "w-full h-full object-cover"
-                          }
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display =
-                              "none";
-                          }}
-                        />
+              <span className="text-xs font-mono uppercase tracking-wider text-ink-lighter">
+                {card.label}
+              </span>
+              <p className="mt-2 font-serif text-3xl font-bold text-ink">
+                {card.value}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-xl border border-border bg-white shadow-sm">
+          <div className="border-b border-border px-6 py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-ink-lighter">
+                  Score Distribution
+                </p>
+                <p className="mt-1 text-sm font-body text-ink-light">
+                  Instant read on how many candidates are actually worth reviewing.
+                </p>
+              </div>
+              <span className="text-xs font-mono text-ink-lighter">
+                {totalScoredArticles} scored articles
+              </span>
+            </div>
+          </div>
+          <div className="px-6 py-5">
+            <div className="h-3 overflow-hidden rounded-full bg-parchment-dark/40">
+              <div className="flex h-full w-full">
+                {scoreDistribution.map((bucket) => (
+                  <div
+                    key={bucket.label}
+                    className={bucket.segmentClass}
+                    style={{
+                      width:
+                        totalScoredArticles === 0
+                          ? "0%"
+                          : `${(bucket.count / totalScoredArticles) * 100}%`,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-3">
+              {scoreDistribution.map((bucket) => (
+                <div
+                  key={bucket.label}
+                  className="inline-flex items-center gap-2 rounded-full bg-parchment px-3 py-1 text-xs font-mono"
+                >
+                  <span className={`font-semibold ${bucket.badgeClass}`}>
+                    {bucket.label}
+                  </span>
+                  <span className="text-ink-lighter">{bucket.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+          <div className="flex flex-wrap items-center gap-3 px-6 py-5">
+            <div className="inline-flex overflow-hidden rounded-xl border border-border">
+              <button
+                onClick={() => runPipeline("fetch_and_score")}
+                disabled={pipelineRunning}
+                className="inline-flex items-center gap-2 bg-terracotta px-5 py-2.5 text-sm font-body text-white transition-colors hover:bg-terracotta-light disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {pipelineRunning ? (
+                  <>
+                    <Spinner className="h-4 w-4" />
+                    <span>{pipelineStatus}</span>
+                  </>
+                ) : (
+                  "Fetch & Score"
+                )}
+              </button>
+              <button
+                onClick={() => runPipeline("fetch")}
+                disabled={pipelineRunning}
+                className="border-l border-border bg-parchment px-4 py-2.5 text-sm font-body text-ink-light transition-colors hover:bg-parchment-dark hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Fetch Only
+              </button>
+              <button
+                onClick={() => runPipeline("score")}
+                disabled={pipelineRunning}
+                className="border-l border-border bg-parchment px-4 py-2.5 text-sm font-body text-ink-light transition-colors hover:bg-parchment-dark hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Score Only
+              </button>
+            </div>
+
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setDangerMenuOpen((prev) => !prev);
+                  if (dangerMenuOpen) {
+                    setCleanupConfirm(false);
+                    setClearAllConfirm(false);
+                  }
+                }}
+                className="rounded-lg border border-border px-3 py-2 text-sm font-mono text-ink-lighter transition-colors hover:bg-parchment-dark/50 hover:text-ink"
+              >
+                ...
+              </button>
+
+              {dangerMenuOpen && (
+                <div className="absolute left-0 top-[calc(100%+0.5rem)] z-20 min-w-[280px] rounded-xl border border-border bg-white p-3 shadow-lg">
+                  {cleanupConfirm ? (
+                    <div className="space-y-3">
+                      <p className="text-xs font-mono text-ink-lighter">
+                        Delete old dismissed/new articles?
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleCleanup}
+                          disabled={cleanupRunning}
+                          className="inline-flex items-center gap-1 rounded-full bg-red-600 px-3.5 py-1.5 text-xs font-mono tracking-wide text-white transition-all duration-200 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {cleanupRunning ? (
+                            <span className="flex items-center gap-1">
+                              <span className="h-3 w-3 animate-spin rounded-full border border-white/40 border-t-white" />
+                              Cleaning
+                            </span>
+                          ) : (
+                            "Confirm"
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setCleanupConfirm(false)}
+                          className="inline-flex items-center rounded-full border border-border-light px-3.5 py-1.5 text-xs font-mono tracking-wide text-ink-lighter transition-all duration-200 hover:bg-parchment-dark/50"
+                        >
+                          Cancel
+                        </button>
                       </div>
-                    );
-                  })()}
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    {/* Top row: score + title */}
-                    <div className="flex items-start gap-3 mb-2">
-                      <span
-                        className={`shrink-0 inline-flex items-center justify-center w-10 h-7 text-xs font-mono font-bold rounded-md ${scoreBadgeClasses(
-                          candidate.score
-                        )}`}
-                      >
-                        {candidate.score ?? "--"}
-                      </span>
-
-                      <a
-                        href={candidate.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-serif text-sm font-bold text-ink hover:text-terracotta transition-colors line-clamp-2 leading-snug"
-                      >
-                        {candidate.title}
-                      </a>
                     </div>
+                  ) : clearAllConfirm ? (
+                    <div className="space-y-3">
+                      <p className="text-xs font-mono text-red-600">
+                        Delete ALL {stats?.total ?? ""} articles?
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleClearAll}
+                          disabled={clearAllRunning}
+                          className="inline-flex items-center gap-1 rounded-full bg-red-600 px-3.5 py-1.5 text-xs font-mono tracking-wide text-white transition-all duration-200 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {clearAllRunning ? (
+                            <span className="flex items-center gap-1">
+                              <span className="h-3 w-3 animate-spin rounded-full border border-white/40 border-t-white" />
+                              Clearing
+                            </span>
+                          ) : (
+                            "Yes, clear all"
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setClearAllConfirm(false)}
+                          className="inline-flex items-center rounded-full border border-border-light px-3.5 py-1.5 text-xs font-mono tracking-wide text-ink-lighter transition-all duration-200 hover:bg-parchment-dark/50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <button
+                        onClick={() => {
+                          setCleanupConfirm(true);
+                          setClearAllConfirm(false);
+                        }}
+                        className="w-full rounded-lg px-3 py-2 text-left text-sm font-body text-ink-light transition-colors hover:bg-parchment-dark hover:text-ink"
+                      >
+                        Clean up old
+                      </button>
+                      <button
+                        onClick={() => {
+                          setClearAllConfirm(true);
+                          setCleanupConfirm(false);
+                        }}
+                        className="w-full rounded-lg px-3 py-2 text-left text-sm font-body text-red-600 transition-colors hover:bg-red-50"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
-                    {/* Source + category + date */}
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span className="text-xs font-mono text-ink-lighter">
-                        {candidate.source_name}
-                      </span>
-                      <span className="inline-block px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider rounded-full bg-parchment-dark/40 text-ink-lighter">
-                        {candidate.source_category}
-                      </span>
-                      {candidate.pub_date && (
-                        <span className="text-xs font-mono text-ink-lighter">
-                          {formatDate(candidate.pub_date)}
+            <Link
+              href="/admin/scoring"
+              className="ml-auto text-xs font-mono text-terracotta transition-colors hover:text-terracotta-light"
+            >
+              Scoring Settings -&gt;
+            </Link>
+
+            <Link
+              href="/admin/news-scout/sources"
+              className="text-xs font-mono text-terracotta transition-colors hover:text-terracotta-light"
+            >
+              Manage RSS Sources -&gt;
+            </Link>
+          </div>
+        </div>
+
+        <div className="sticky top-0 z-10 rounded-xl border border-border bg-white shadow-sm">
+          <div className="space-y-4 px-6 py-5">
+            <div className="flex flex-wrap gap-1">
+              {STATUS_TABS.map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setStatusFilter(tab)}
+                  className={`rounded-lg px-5 py-2.5 text-sm font-body capitalize transition-colors ${
+                    statusFilter === tab
+                      ? "bg-terracotta/10 font-medium text-terracotta ring-1 ring-terracotta/30"
+                      : "text-ink-light hover:bg-parchment-dark hover:text-ink"
+                  }`}
+                >
+                  {tab} ({tabCounts[tab]})
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <select
+                value={categoryFilter}
+                onChange={(event) => setCategoryFilter(event.target.value)}
+                className="rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm font-body text-ink transition-colors focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+              >
+                {CATEGORIES.map((category) => (
+                  <option key={category} value={category}>
+                    {category === "all"
+                      ? "All categories"
+                      : category.charAt(0).toUpperCase() + category.slice(1)}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={minScoreFilter}
+                onChange={(event) => setMinScoreFilter(event.target.value)}
+                className="rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm font-body text-ink transition-colors focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+              >
+                {MIN_SCORES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              {listLoading && (
+                <span className="inline-flex items-center gap-2 text-xs font-mono text-ink-lighter">
+                  <Spinner className="h-3.5 w-3.5 text-terracotta" />
+                  Refreshing
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {statusFilter === "approved" && candidates.length > 0 && (
+          <div className="mb-2 px-1 text-xs font-mono text-ink-lighter">
+            {
+              candidates.filter(
+                (candidate) => (candidate.published_posts?.length || 0) > 0
+              ).length
+            }{" "}
+            of {candidates.length} approved articles have posts
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {candidates.length === 0 && (
+            <div className="rounded-xl border border-border bg-white px-6 py-12 text-center">
+              <p className="text-sm font-body text-ink-lighter">
+                No candidates found. Try adjusting your filters or running the
+                pipeline.
+              </p>
+            </div>
+          )}
+
+          {statusFilter === "scored"
+            ? candidates.map((candidate) => {
+                const philosophers = parseJSON<string[]>(
+                  candidate.suggested_philosophers,
+                  []
+                );
+                const stances = parseJSON<Record<string, string>>(
+                  candidate.suggested_stances,
+                  {}
+                );
+                const tensions = parseJSON<string[]>(
+                  candidate.primary_tensions,
+                  []
+                );
+                const expanded = expandedDetailIds.includes(candidate.id);
+                const selected = selectedCandidateIds.includes(candidate.id);
+
+                return (
+                  <div
+                    key={candidate.id}
+                    className="overflow-hidden rounded-xl border border-border bg-white shadow-sm"
+                  >
+                    <div className="px-4 py-3 sm:px-5">
+                      <div className="flex flex-col gap-3 xl:grid xl:grid-cols-[auto_auto_minmax(0,2.7fr)_minmax(180px,1.2fr)_minmax(120px,0.9fr)_auto_auto] xl:items-center">
+                        <label className="flex items-center justify-center pt-1 xl:pt-0">
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => toggleCandidateSelection(candidate.id)}
+                            className="h-4 w-4 rounded border-border text-terracotta focus:ring-terracotta/40"
+                          />
+                        </label>
+
+                        <span
+                          className={`inline-flex h-10 w-10 items-center justify-center rounded-lg text-sm font-mono font-bold ${scoreBadgeClasses(
+                            candidate.score
+                          )}`}
+                        >
+                          {candidate.score ?? "--"}
                         </span>
-                      )}
-                    </div>
 
-                    {/* Philosophers + stances */}
-                    {philosophers.length > 0 && (
-                      <div className="flex items-center gap-2 mb-3 flex-wrap">
-                        {philosophers.map((pid) => {
-                          const meta = philosopherMeta[pid];
-                          const stance = stances[pid] as Stance | undefined;
-                          const stanceStyle = stance
-                            ? STANCE_CONFIG[stance]
-                            : null;
+                        <div className="min-w-0">
+                          <a
+                            href={candidate.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block truncate font-serif text-base font-bold text-ink transition-colors hover:text-terracotta"
+                            title={candidate.title}
+                          >
+                            {candidate.title}
+                          </a>
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs font-mono text-ink-lighter">
+                            <span>{candidate.source_name}</span>
+                            <span className="rounded-full bg-parchment-dark/40 px-2.5 py-0.5 uppercase tracking-wider">
+                              {candidate.source_category}
+                            </span>
+                            {candidate.pub_date && (
+                              <span>{formatDate(candidate.pub_date)}</span>
+                            )}
+                          </div>
+                        </div>
 
-                          return (
-                            <div key={pid} className="flex items-center gap-1">
-                              <span
-                                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-serif font-bold"
-                                style={{
-                                  backgroundColor: meta?.color || "#666",
-                                }}
-                                title={meta?.name || pid}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {philosophers.map((philosopherId) => {
+                            const meta = philosopherMeta[philosopherId];
+                            const stance = stances[philosopherId] as
+                              | Stance
+                              | undefined;
+                            const stanceStyle = stance
+                              ? STANCE_CONFIG[stance]
+                              : undefined;
+
+                            return (
+                              <div
+                                key={philosopherId}
+                                className="flex min-w-[40px] flex-col items-center"
+                                title={meta?.name || philosopherId}
                               >
-                                {meta?.initials || pid.slice(0, 2).toUpperCase()}
-                              </span>
-                              {stanceStyle && (
                                 <span
-                                  className="text-[11px] font-mono px-2 py-0.5 rounded-full"
+                                  className="flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-serif font-bold text-white"
                                   style={{
-                                    backgroundColor: stanceStyle.bg,
-                                    color: stanceStyle.color,
-                                    border: `1px solid ${stanceStyle.border}`,
+                                    backgroundColor: meta?.color || "#666",
                                   }}
                                 >
-                                  {stanceStyle.label}
+                                  {meta?.initials ||
+                                    philosopherId.slice(0, 2).toUpperCase()}
                                 </span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                                {stance && stanceStyle && (
+                                  <span
+                                    className="mt-1 text-[9px] font-mono uppercase tracking-wide"
+                                    style={{ color: stanceStyle.color }}
+                                  >
+                                    {STANCE_SHORT_LABELS[stance]}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
 
-                    {/* Philosophical entry point */}
-                    {candidate.philosophical_entry_point && (
-                      <p className="text-sm text-ink-light font-body italic mb-2 line-clamp-2">
-                        {candidate.philosophical_entry_point}
-                      </p>
-                    )}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {tensions.slice(0, 2).map((tension) => (
+                            <span
+                              key={tension}
+                              className="rounded-full bg-parchment-dark/30 px-2.5 py-0.5 text-[11px] font-mono text-ink-lighter"
+                            >
+                              {formatTensionLabel(tension)}
+                            </span>
+                          ))}
+                          {tensions.length > 2 && (
+                            <span className="rounded-full bg-parchment-dark/20 px-2.5 py-0.5 text-[11px] font-mono text-ink-lighter">
+                              +{tensions.length - 2}
+                            </span>
+                          )}
+                        </div>
 
-                    {/* Tensions */}
-                    {tensions.length > 0 && (
-                      <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                        {tensions.map((t) => (
-                          <span
-                            key={t}
-                            className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-parchment-dark/30 text-ink-lighter"
+                        <div className="flex items-center gap-2 xl:justify-end">
+                          <button
+                            onClick={() =>
+                              updateCandidateStatus(candidate.id, "approved")
+                            }
+                            className="rounded-full bg-green-700 px-3.5 py-1.5 text-xs font-body text-white transition-colors hover:bg-green-800"
                           >
-                            {t.replace(/_/g, " ")}
-                          </span>
-                        ))}
+                            Approve
+                          </button>
+                          <button
+                            onClick={() =>
+                              updateCandidateStatus(candidate.id, "dismissed")
+                            }
+                            className="rounded-full bg-parchment-dark px-3.5 py-1.5 text-xs font-body text-ink-light transition-colors hover:bg-parchment-dark/80"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={() => toggleDetailRow(candidate.id)}
+                          className="flex h-9 w-9 items-center justify-center rounded-full text-ink-lighter transition-colors hover:bg-parchment-dark/60 hover:text-ink"
+                          aria-label={expanded ? "Collapse details" : "Expand details"}
+                        >
+                          {expanded ? "^" : "v"}
+                        </button>
                       </div>
-                    )}
+                    </div>
 
-                    {/* Post usage indicator (approved cards only) */}
-                    {isApproved && (() => {
-                      const posts = candidate.published_posts || [];
-                      const postedPhilosopherIds = new Set(posts.map(p => p.philosopher_id));
-                      const unusedPhilosophers = philosophers.filter(pid => !postedPhilosopherIds.has(pid));
-
-                      if (posts.length > 0 && unusedPhilosophers.length === 0) {
-                        // Fully used
-                        return (
-                          <div className="flex items-center gap-2 mt-2 py-1.5 px-2.5 rounded-lg bg-green-50 border border-green-200">
-                            <span className="text-[11px] font-mono text-green-700">
-                              Approved: {posts.length} post{posts.length !== 1 ? 's' : ''} generated
-                            </span>
-                            <div className="flex items-center gap-1">
-                              {posts.map(p => {
-                                const meta = philosopherMeta[p.philosopher_id];
-                                return meta ? (
-                                  <span
-                                    key={p.post_id}
-                                    className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-bold text-white"
-                                    style={{ backgroundColor: meta.color }}
-                                    title={`${meta.name} - ${p.status}`}
-                                  >
-                                    {meta.initials}
-                                  </span>
-                                ) : null;
-                              })}
-                            </div>
-                          </div>
-                        );
-                      } else if (posts.length > 0) {
-                        // Partially used
-                        return (
-                          <div className="flex items-center gap-2 mt-2 py-1.5 px-2.5 rounded-lg bg-amber-50 border border-amber-200">
-                            <span className="text-[11px] font-mono text-amber-700">
-                              {posts.length}/{philosophers.length} posts
-                            </span>
-                            <div className="flex items-center gap-1">
-                              {posts.map(p => {
-                                const meta = philosopherMeta[p.philosopher_id];
-                                return meta ? (
-                                  <span
-                                    key={p.post_id}
-                                    className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-bold text-white"
-                                    style={{ backgroundColor: meta.color }}
-                                    title={`${meta.name} - ${p.status}`}
-                                  >
-                                    {meta.initials}
-                                  </span>
-                                ) : null;
-                              })}
-                              {unusedPhilosophers.map(pid => {
-                                const meta = philosopherMeta[pid];
-                                return meta ? (
-                                  <span
-                                    key={pid}
-                                    className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-bold border border-dashed opacity-40"
-                                    style={{ borderColor: meta.color, color: meta.color }}
-                                    title={`${meta.name} - not yet generated`}
-                                  >
-                                    {meta.initials}
-                                  </span>
-                                ) : null;
-                              })}
-                            </div>
-                          </div>
-                        );
-                      } else {
-                        // No posts
-                        return (
-                          <div className="flex items-center gap-2 mt-2 py-1.5 px-2.5 rounded-lg bg-parchment-dark/20 border border-border-light">
-                            <span className="text-[11px] font-mono text-ink-lighter">
-                              No posts generated
-                            </span>
-                          </div>
-                        );
-                      }
-                    })()}
-
-                    {/* Score reasoning (collapsed) */}
-                    {candidate.score_reasoning && (
-                      <details className="mb-2">
-                        <summary className="text-xs font-mono text-ink-lighter cursor-pointer hover:text-ink-light">
-                          Scoring reasoning
-                        </summary>
-                        <p className="text-sm text-ink-light font-body mt-1 pl-2 border-l-2 border-border">
-                          {candidate.score_reasoning}
-                        </p>
-                      </details>
+                    {expanded && (
+                      <div className="border-t border-border bg-parchment-dark/10 px-5 py-4">
+                        {candidate.philosophical_entry_point && (
+                          <p className="text-sm font-body italic text-ink-light">
+                            {candidate.philosophical_entry_point}
+                          </p>
+                        )}
+                        {candidate.score_reasoning && (
+                          <p className="mt-3 border-l-2 border-border pl-3 text-sm font-body text-ink-light">
+                            {candidate.score_reasoning}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
+                );
+              })
+            : candidates.map((candidate) => {
+                const philosophers = parseJSON<string[]>(
+                  candidate.suggested_philosophers,
+                  []
+                );
+                const stances = parseJSON<Record<string, string>>(
+                  candidate.suggested_stances,
+                  {}
+                );
+                const tensions = parseJSON<string[]>(
+                  candidate.primary_tensions,
+                  []
+                );
+                const isApproved = candidate.status === "approved";
+                const isDismissed = candidate.status === "dismissed";
 
-                  {/* Actions */}
-                  <div className="shrink-0 flex flex-col gap-3">
-                    {candidate.status === "scored" && (
-                      <>
-                        <button
-                          onClick={() =>
-                            updateCandidateStatus(candidate.id, "approved")
-                          }
-                          className="bg-green-700 hover:bg-green-800 text-white text-xs font-body px-4 py-2 rounded-full transition-colors"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() =>
-                            updateCandidateStatus(candidate.id, "dismissed")
-                          }
-                          className="bg-parchment-dark hover:bg-parchment-dark/80 text-ink-light text-xs font-body px-4 py-2 rounded-full transition-colors"
-                        >
-                          Dismiss
-                        </button>
-                      </>
-                    )}
+                return (
+                  <div
+                    key={candidate.id}
+                    className={`overflow-hidden rounded-xl border shadow-sm transition-colors ${
+                      isApproved
+                        ? "border-green-300 bg-green-50/30"
+                        : isDismissed
+                        ? "border-border bg-white opacity-60"
+                        : "border-border bg-white"
+                    }`}
+                  >
+                    <div className="px-6 py-5">
+                      <div className="flex flex-col gap-5 lg:flex-row">
+                        {(() => {
+                          const displayImage =
+                            candidate.image_url || candidate.source_logo_url;
+                          const isLogo =
+                            !candidate.image_url && !!candidate.source_logo_url;
 
-                    {isApproved && (
-                      <>
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-100 px-2.5 py-1 rounded-full">
-                          Approved
-                        </span>
-                        <a
-                          href={
-                            `/admin/content?` +
-                            new URLSearchParams({
-                              article_title: candidate.title,
-                              article_source: candidate.source_name || "",
-                              article_url: candidate.url,
-                              article_description: candidate.description || "",
-                              article_image_url: candidate.image_url || "",
-                              suggested_philosophers: candidate.suggested_philosophers || "[]",
-                            }).toString()
-                          }
-                          className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors text-center px-3 py-1.5 rounded-full border border-terracotta/20 bg-terracotta/5 hover:bg-terracotta/10"
-                        >
-                          Generate -&gt;
-                        </a>
-                        <button
-                          onClick={() =>
-                            updateCandidateStatus(candidate.id, "scored")
-                          }
-                          className="text-[11px] font-mono text-ink-lighter hover:text-ink-light transition-colors"
-                        >
-                          Undo
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (expandedGenId === candidate.id) {
-                              setExpandedGenId(null);
-                            } else {
-                              setExpandedGenId(candidate.id);
-                              const suggested = parseJSON<string[]>(candidate.suggested_philosophers, []);
-                              setSelectedGenPhilosophers(suggested.filter(pid => pid in philosopherMeta));
-                              setGenResults([]);
-                            }
-                          }}
-                          className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors px-3 py-1.5 rounded-full border border-terracotta/20 bg-terracotta/5 hover:bg-terracotta/10"
-                        >
-                          {expandedGenId === candidate.id ? "Close" : "Quick Generate"}
-                        </button>
-                      </>
-                    )}
+                          if (!displayImage) return null;
 
-                    {isDismissed && (
-                      <>
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-ink-lighter bg-parchment-dark/30 px-2.5 py-1 rounded-full">
-                          Dismissed
-                        </span>
-                        <button
-                          onClick={() =>
-                            updateCandidateStatus(candidate.id, "scored")
-                          }
-                          className="text-[11px] font-mono text-ink-lighter hover:text-ink-light transition-colors"
-                        >
-                          Undo
-                        </button>
-                        {confirmDeleteId === candidate.id ? (
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => handleDeleteCandidate(candidate.id)}
-                              disabled={deletingId === candidate.id}
-                              className="inline-flex items-center gap-1 px-3 py-1 text-[11px] font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 hover:bg-red-700"
+                          return (
+                            <div
+                              className={`shrink-0 overflow-hidden rounded-lg ${
+                                isLogo
+                                  ? "flex h-12 w-12 items-center justify-center bg-parchment-dark/20"
+                                  : "h-16 w-20"
+                              }`}
                             >
-                              {deletingId === candidate.id ? "..." : "Delete"}
-                            </button>
-                            <button
-                              onClick={() => setConfirmDeleteId(null)}
-                              className="text-[11px] font-mono text-ink-lighter hover:text-ink-light transition-colors"
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={displayImage}
+                                alt=""
+                                className={
+                                  isLogo
+                                    ? "h-8 w-8 object-contain"
+                                    : "h-full w-full object-cover"
+                                }
+                                onError={(event) => {
+                                  (
+                                    event.target as HTMLImageElement
+                                  ).style.display = "none";
+                                }}
+                              />
+                            </div>
+                          );
+                        })()}
+
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-2 flex items-start gap-3">
+                            <span
+                              className={`inline-flex h-7 w-10 shrink-0 items-center justify-center rounded-md text-xs font-mono font-bold ${scoreBadgeClasses(
+                                candidate.score
+                              )}`}
                             >
-                              Cancel
-                            </button>
+                              {candidate.score ?? "--"}
+                            </span>
+
+                            <a
+                              href={candidate.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="line-clamp-2 font-serif text-sm font-bold leading-snug text-ink transition-colors hover:text-terracotta"
+                            >
+                              {candidate.title}
+                            </a>
                           </div>
-                        ) : (
-                          <button
-                            onClick={() => setConfirmDeleteId(candidate.id)}
-                            className="text-[11px] font-mono text-red-400 hover:text-red-600 transition-colors"
-                            title="Permanently delete"
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </>
+
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-mono text-ink-lighter">
+                              {candidate.source_name}
+                            </span>
+                            <span className="inline-block rounded-full bg-parchment-dark/40 px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider text-ink-lighter">
+                              {candidate.source_category}
+                            </span>
+                            {candidate.pub_date && (
+                              <span className="text-xs font-mono text-ink-lighter">
+                                {formatDate(candidate.pub_date)}
+                              </span>
+                            )}
+                          </div>
+
+                          {philosophers.length > 0 && (
+                            <div className="mb-3 flex flex-wrap items-center gap-2">
+                              {philosophers.map((philosopherId) => {
+                                const meta = philosopherMeta[philosopherId];
+                                const stance = stances[philosopherId] as
+                                  | Stance
+                                  | undefined;
+                                const stanceStyle = stance
+                                  ? STANCE_CONFIG[stance]
+                                  : null;
+
+                                return (
+                                  <div
+                                    key={philosopherId}
+                                    className="flex items-center gap-1"
+                                  >
+                                    <span
+                                      className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-serif font-bold text-white"
+                                      style={{
+                                        backgroundColor: meta?.color || "#666",
+                                      }}
+                                      title={meta?.name || philosopherId}
+                                    >
+                                      {meta?.initials ||
+                                        philosopherId.slice(0, 2).toUpperCase()}
+                                    </span>
+                                    {stanceStyle && stance && (
+                                      <span
+                                        className="rounded-full px-2 py-0.5 text-[11px] font-mono"
+                                        style={{
+                                          backgroundColor: stanceStyle.bg,
+                                          color: stanceStyle.color,
+                                          border: `1px solid ${stanceStyle.border}`,
+                                        }}
+                                      >
+                                        {STANCE_CONFIG[stance].label}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {candidate.philosophical_entry_point && (
+                            <p className="mb-2 text-sm font-body italic text-ink-light">
+                              {candidate.philosophical_entry_point}
+                            </p>
+                          )}
+
+                          {tensions.length > 0 && (
+                            <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                              {tensions.map((tension) => (
+                                <span
+                                  key={tension}
+                                  className="rounded-full bg-parchment-dark/30 px-2.5 py-0.5 text-[11px] font-mono text-ink-lighter"
+                                >
+                                  {formatTensionLabel(tension)}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {isApproved &&
+                            (() => {
+                              const posts = candidate.published_posts || [];
+                              const postedPhilosopherIds = new Set(
+                                posts.map((post) => post.philosopher_id)
+                              );
+                              const unusedPhilosophers = philosophers.filter(
+                                (philosopherId) =>
+                                  !postedPhilosopherIds.has(philosopherId)
+                              );
+
+                              if (
+                                posts.length > 0 &&
+                                unusedPhilosophers.length === 0
+                              ) {
+                                return (
+                                  <div className="mt-2 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-2.5 py-1.5">
+                                    <span className="text-[11px] font-mono text-green-700">
+                                      Approved: {posts.length} post
+                                      {posts.length !== 1 ? "s" : ""} generated
+                                    </span>
+                                    <div className="flex items-center gap-1">
+                                      {posts.map((post) => {
+                                        const meta =
+                                          philosopherMeta[post.philosopher_id];
+
+                                        return meta ? (
+                                          <span
+                                            key={post.post_id}
+                                            className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                                            style={{
+                                              backgroundColor: meta.color,
+                                            }}
+                                            title={`${meta.name} - ${post.status}`}
+                                          >
+                                            {meta.initials}
+                                          </span>
+                                        ) : null;
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              if (posts.length > 0) {
+                                return (
+                                  <div className="mt-2 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5">
+                                    <span className="text-[11px] font-mono text-amber-700">
+                                      {posts.length}/{philosophers.length} posts
+                                    </span>
+                                    <div className="flex items-center gap-1">
+                                      {posts.map((post) => {
+                                        const meta =
+                                          philosopherMeta[post.philosopher_id];
+
+                                        return meta ? (
+                                          <span
+                                            key={post.post_id}
+                                            className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                                            style={{
+                                              backgroundColor: meta.color,
+                                            }}
+                                            title={`${meta.name} - ${post.status}`}
+                                          >
+                                            {meta.initials}
+                                          </span>
+                                        ) : null;
+                                      })}
+                                      {unusedPhilosophers.map((philosopherId) => {
+                                        const meta =
+                                          philosopherMeta[philosopherId];
+
+                                        return meta ? (
+                                          <span
+                                            key={philosopherId}
+                                            className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-dashed text-[9px] font-bold opacity-40"
+                                            style={{
+                                              borderColor: meta.color,
+                                              color: meta.color,
+                                            }}
+                                            title={`${meta.name} - not yet generated`}
+                                          >
+                                            {meta.initials}
+                                          </span>
+                                        ) : null;
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <div className="mt-2 flex items-center gap-2 rounded-lg border border-border-light bg-parchment-dark/20 px-2.5 py-1.5">
+                                  <span className="text-[11px] font-mono text-ink-lighter">
+                                    No posts generated
+                                  </span>
+                                </div>
+                              );
+                            })()}
+
+                          {candidate.score_reasoning && (
+                            <details className="mb-2">
+                              <summary className="cursor-pointer text-xs font-mono text-ink-lighter hover:text-ink-light">
+                                Scoring reasoning
+                              </summary>
+                              <p className="mt-1 border-l-2 border-border pl-2 text-sm font-body text-ink-light">
+                                {candidate.score_reasoning}
+                              </p>
+                            </details>
+                          )}
+                        </div>
+
+                        <div className="flex shrink-0 flex-col gap-3">
+                          {candidate.status === "scored" && (
+                            <>
+                              <button
+                                onClick={() =>
+                                  updateCandidateStatus(candidate.id, "approved")
+                                }
+                                className="rounded-full bg-green-700 px-4 py-2 text-xs font-body text-white transition-colors hover:bg-green-800"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() =>
+                                  updateCandidateStatus(candidate.id, "dismissed")
+                                }
+                                className="rounded-full bg-parchment-dark px-4 py-2 text-xs font-body text-ink-light transition-colors hover:bg-parchment-dark/80"
+                              >
+                                Dismiss
+                              </button>
+                            </>
+                          )}
+
+                          {isApproved && (
+                            <>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
+                                Approved
+                              </span>
+                              <button
+                                onClick={() => openGeneratePanel(candidate)}
+                                className="rounded-full border border-terracotta/20 bg-terracotta/5 px-3 py-1.5 text-xs font-mono text-terracotta transition-colors hover:bg-terracotta/10 hover:text-terracotta-light"
+                              >
+                                Generate -&gt;
+                              </button>
+                              <button
+                                onClick={() =>
+                                  updateCandidateStatus(candidate.id, "scored")
+                                }
+                                className="text-[11px] font-mono text-ink-lighter transition-colors hover:text-ink-light"
+                              >
+                                Undo
+                              </button>
+                            </>
+                          )}
+
+                          {isDismissed && (
+                            <>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-parchment-dark/30 px-2.5 py-1 text-xs font-medium text-ink-lighter">
+                                Dismissed
+                              </span>
+                              <button
+                                onClick={() =>
+                                  updateCandidateStatus(candidate.id, "scored")
+                                }
+                                className="text-[11px] font-mono text-ink-lighter transition-colors hover:text-ink-light"
+                              >
+                                Undo
+                              </button>
+                              {confirmDeleteId === candidate.id ? (
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteCandidate(candidate.id)
+                                    }
+                                    disabled={deletingId === candidate.id}
+                                    className="inline-flex items-center gap-1 rounded-full bg-red-600 px-3 py-1 text-[11px] font-mono tracking-wide text-white transition-all duration-200 hover:bg-red-700 disabled:opacity-50"
+                                  >
+                                    {deletingId === candidate.id
+                                      ? "..."
+                                      : "Delete"}
+                                  </button>
+                                  <button
+                                    onClick={() => setConfirmDeleteId(null)}
+                                    className="text-[11px] font-mono text-ink-lighter transition-colors hover:text-ink-light"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setConfirmDeleteId(candidate.id)}
+                                  className="text-[11px] font-mono text-red-400 transition-colors hover:text-red-600"
+                                  title="Permanently delete"
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+        </div>
+      </div>
+
+      {selectedCandidateIds.length > 0 && statusFilter === "scored" && (
+        <div className="fixed inset-x-0 bottom-4 z-30 flex justify-center px-4">
+          <div className="flex w-full max-w-4xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-white px-5 py-4 shadow-xl">
+            <div className="flex flex-wrap items-center gap-4">
+              <button
+                onClick={() =>
+                  updateCandidateStatuses(selectedCandidateIds, "approved")
+                }
+                disabled={bulkStatusRunning}
+                className="rounded-full bg-green-700 px-4 py-2 text-sm font-body text-white transition-colors hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Approve {selectedCandidateIds.length} selected
+              </button>
+              <button
+                onClick={() =>
+                  updateCandidateStatuses(selectedCandidateIds, "dismissed")
+                }
+                disabled={bulkStatusRunning}
+                className="rounded-full bg-red-600 px-4 py-2 text-sm font-body text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Dismiss {selectedCandidateIds.length} selected
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 text-sm">
+              <label className="flex items-center gap-2 font-mono text-ink-lighter">
+                <input
+                  type="checkbox"
+                  checked={allSelectedOnPage}
+                  onChange={toggleSelectAllOnPage}
+                  className="h-4 w-4 rounded border-border text-terracotta focus:ring-terracotta/40"
+                />
+                Select all on page
+              </label>
+              <button
+                onClick={() => setSelectedCandidateIds([])}
+                className="text-sm font-mono text-terracotta transition-colors hover:text-terracotta-light"
+              >
+                Clear selection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {generatePanelCandidate && (
+        <div className="fixed inset-0 z-40">
+          <button
+            onClick={closeGeneratePanel}
+            className="absolute inset-0 bg-black/40"
+            aria-label="Close generate panel"
+          />
+
+          <div className="absolute right-0 top-0 z-50 flex h-screen w-full max-w-xl flex-col border-l border-border bg-parchment shadow-2xl">
+            <div className="border-b border-border bg-parchment-dark/40 px-6 py-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-ink-lighter">
+                    Generate Reactions
+                  </p>
+                  <h2 className="mt-2 font-serif text-xl font-bold text-ink">
+                    {generatePanelCandidate.title}
+                  </h2>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-mono text-ink-lighter">
+                    <span>{generatePanelCandidate.source_name}</span>
+                    <span className="rounded-full bg-white/70 px-2 py-0.5 uppercase tracking-wider">
+                      {generatePanelCandidate.source_category}
+                    </span>
+                    {generatePanelCandidate.pub_date && (
+                      <span>{formatDate(generatePanelCandidate.pub_date)}</span>
                     )}
                   </div>
                 </div>
+                <button
+                  onClick={closeGeneratePanel}
+                  className="rounded-full border border-border bg-white/70 px-3 py-1 text-sm font-mono text-ink-lighter transition-colors hover:bg-white hover:text-ink"
+                >
+                  X
+                </button>
               </div>
 
-              {/* Quick Generate panel */}
-              {isApproved && expandedGenId === candidate.id && (
-                <div className="border-t border-border px-6 py-5 bg-parchment-dark/10">
-                  <div className="flex flex-wrap gap-3 mb-3">
-                    {Object.entries(philosopherMeta).map(([pid, meta]) => {
-                      const isSelected = selectedGenPhilosophers.includes(pid);
-                      const result = genResults.find(r => r.philosopherId === pid);
-                      return (
-                        <button
-                          key={pid}
-                          onClick={() => {
-                            if (genInProgress) return;
-                            setSelectedGenPhilosophers(prev =>
-                              isSelected ? prev.filter(p => p !== pid) : [...prev, pid]
-                            );
-                          }}
-                          disabled={genInProgress}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono transition-all ${
-                            isSelected
-                              ? "ring-2 ring-offset-1 opacity-100"
-                              : "opacity-40 hover:opacity-70"
-                          } ${result?.success === true ? "ring-green-400" : result?.success === false ? "ring-red-400" : ""}`}
-                          style={{
-                            backgroundColor: `${meta.color}15`,
-                            color: meta.color,
-                            ...(isSelected && !result ? { ["--tw-ring-color" as string]: meta.color } : {}),
-                          }}
+              {generatePanelCandidate.philosophical_entry_point && (
+                <p className="mt-4 text-sm font-body italic text-ink-light">
+                  {generatePanelCandidate.philosophical_entry_point}
+                </p>
+              )}
+            </div>
+
+            <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
+              <div>
+                <p className="mb-2 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-lighter">
+                  Suggested Philosophers
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {parseJSON<string[]>(
+                    generatePanelCandidate.suggested_philosophers,
+                    []
+                  ).map((philosopherId) => {
+                    const meta = philosopherMeta[philosopherId];
+                    const stance = parseJSON<Record<string, string>>(
+                      generatePanelCandidate.suggested_stances,
+                      {}
+                    )[philosopherId] as Stance | undefined;
+                    const stanceStyle = stance
+                      ? STANCE_CONFIG[stance]
+                      : undefined;
+
+                    if (!meta) return null;
+
+                    return (
+                      <div
+                        key={philosopherId}
+                        className="flex items-center gap-2 rounded-full border border-border bg-white px-3 py-1.5"
+                      >
+                        <span
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-serif font-bold text-white"
+                          style={{ backgroundColor: meta.color }}
                         >
+                          {meta.initials}
+                        </span>
+                        <span className="text-sm font-body text-ink">
+                          {meta.name}
+                        </span>
+                        {stance && stanceStyle && (
                           <span
-                            className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white"
+                            className="rounded-full px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide"
+                            style={{
+                              backgroundColor: stanceStyle.bg,
+                              color: stanceStyle.color,
+                              border: `1px solid ${stanceStyle.border}`,
+                            }}
+                          >
+                            {STANCE_CONFIG[stance].label}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-lighter">
+                  Philosopher Selection
+                </p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {Object.entries(philosopherMeta).map(([philosopherId, meta]) => {
+                    const isSelected =
+                      selectedGenPhilosophers.includes(philosopherId);
+                    const result = genResults.find(
+                      (entry) => entry.philosopherId === philosopherId
+                    );
+                    const suggestedStance = parseJSON<Record<string, string>>(
+                      generatePanelCandidate.suggested_stances,
+                      {}
+                    )[philosopherId] as Stance | undefined;
+                    const stanceStyle = suggestedStance
+                      ? STANCE_CONFIG[suggestedStance]
+                      : undefined;
+
+                    return (
+                      <button
+                        key={philosopherId}
+                        onClick={() => {
+                          if (genInProgress) return;
+                          setSelectedGenPhilosophers((prev) =>
+                            isSelected
+                              ? prev.filter((id) => id !== philosopherId)
+                              : [...prev, philosopherId]
+                          );
+                        }}
+                        disabled={genInProgress}
+                        className={`rounded-xl border px-3 py-3 text-left transition-all ${
+                          isSelected
+                            ? "border-terracotta bg-white shadow-sm"
+                            : "border-border bg-white/70 hover:bg-white"
+                        } ${genInProgress ? "cursor-not-allowed opacity-70" : ""}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-xs font-serif font-bold text-white"
                             style={{ backgroundColor: meta.color }}
                           >
                             {meta.initials}
                           </span>
-                          {meta.name.split(" ").pop()}
-                          {result?.success === true && " ok"}
-                          {result?.success === false && " x"}
-                        </button>
-                      );
-                    })}
-                  </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-body font-semibold text-ink">
+                              {meta.name}
+                            </p>
+                            {suggestedStance && stanceStyle && (
+                              <span
+                                className="mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide"
+                                style={{
+                                  backgroundColor: stanceStyle.bg,
+                                  color: stanceStyle.color,
+                                  border: `1px solid ${stanceStyle.border}`,
+                                }}
+                              >
+                                {STANCE_CONFIG[suggestedStance].label}
+                              </span>
+                            )}
+                          </div>
+                          {result?.success === true && (
+                            <span className="text-xs font-mono text-green-700">
+                              OK
+                            </span>
+                          )}
+                          {result?.success === false && (
+                            <span className="text-xs font-mono text-red-600">
+                              ERR
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-                  <button
-                    onClick={() => handleBulkGenerate(candidate)}
-                    disabled={genInProgress || selectedGenPhilosophers.length === 0}
-                    className="inline-flex items-center gap-2 bg-terracotta hover:bg-terracotta-light disabled:opacity-50 text-white font-body font-medium text-sm px-4 py-2 rounded-lg shadow-sm transition-colors"
-                  >
-                    {genInProgress
-                      ? `Generating... (${genResults.length}/${selectedGenPhilosophers.length})`
-                      : `Generate for ${selectedGenPhilosophers.length} philosopher${selectedGenPhilosophers.length !== 1 ? "s" : ""}`
-                    }
-                  </button>
-
-                  {genResults.filter(r => !r.success).map(r => (
-                    <p key={r.philosopherId} className="text-xs text-red-600 mt-1">
-                      {philosopherMeta[r.philosopherId]?.name}: {r.error}
-                    </p>
-                  ))}
+              {genResults.filter((entry) => !entry.success).length > 0 && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                  {genResults
+                    .filter((entry) => !entry.success)
+                    .map((entry) => (
+                      <p
+                        key={entry.philosopherId}
+                        className="text-xs text-red-700"
+                      >
+                        {philosopherMeta[entry.philosopherId]?.name}: {entry.error}
+                      </p>
+                    ))}
                 </div>
               )}
             </div>
-          );
-        })}
-      </div>
 
-    </div>
+            <div className="border-t border-border bg-white/80 px-6 py-4">
+              <button
+                onClick={() => handleBulkGenerate(generatePanelCandidate)}
+                disabled={
+                  genInProgress || selectedGenPhilosophers.length === 0
+                }
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-terracotta px-4 py-3 text-sm font-body font-medium text-white shadow-sm transition-colors hover:bg-terracotta-light disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {genInProgress
+                  ? `Generating... (${genResults.length}/${selectedGenPhilosophers.length})`
+                  : `Generate for ${selectedGenPhilosophers.length} philosopher${
+                      selectedGenPhilosophers.length !== 1 ? "s" : ""
+                    }`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
