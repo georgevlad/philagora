@@ -8,6 +8,9 @@ export const STANCE_CONFIG: Record<Stance, { label: string; color: string; bg: s
   questions:  { label: "Questions",  color: "#3E5166", bg: "#E0E6ED", border: "#BECCD9" },
   warns:      { label: "Warns",      color: "#8B5F37", bg: "#F0E2D2", border: "#D9C0A4" },
   observes:   { label: "Observes",   color: "#58544E", bg: "#E7E2DB", border: "#CFC4B6" },
+  diagnoses:  { label: "Diagnoses",  color: "#4A6670", bg: "#E0E9EC", border: "#B8CDD4" },
+  provokes:   { label: "Provokes",   color: "#9B2C2C", bg: "#F5E1E1", border: "#E2B4B4" },
+  laments:    { label: "Laments",    color: "#5B4A8A", bg: "#E8E3F1", border: "#CBBFE0" },
 };
 
 // Workshop status badge colors (Tailwind classes)

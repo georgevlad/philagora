@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { generateContent } from "@/lib/generation-service";
 import type { TargetLength } from "@/lib/content-templates";
@@ -103,6 +103,9 @@ const VALID_STANCES = new Set<Stance>([
   "questions",
   "warns",
   "observes",
+  "diagnoses",
+  "provokes",
+  "laments",
 ]);
 
 const CROSS_REPLY_CANDIDATES: Record<string, string[]> = {
@@ -121,10 +124,13 @@ const CROSS_REPLY_CANDIDATES: Record<string, string[]> = {
 };
 
 const PROVOCATION_PRIORITY: Record<Stance, number> = {
+  provokes: 7,
   challenges: 6,
   warns: 5,
+  diagnoses: 4,
   questions: 4,
   reframes: 3,
+  laments: 3,
   defends: 2,
   observes: 1,
 };
@@ -1065,5 +1071,7 @@ function isIntegerInRange(value: number, min: number, max: number) {
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+
 
 

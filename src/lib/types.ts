@@ -4,7 +4,10 @@ export type Stance =
   | "reframes"
   | "questions"
   | "warns"
-  | "observes";
+  | "observes"
+  | "diagnoses"
+  | "provokes"
+  | "laments";
 
 export interface PostCitation {
   title: string;

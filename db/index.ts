@@ -117,12 +117,13 @@ function runMigrations(db: Database.Database): void {
   migrateAgoraThreadsIpAddress(db);
   migratePhilosophersIsActive(db);
   migrateScoringConfig(db);
+  migrateContentTemplates(db);
 
   // Table-rebuild migrations can race with parallel build workers.
   // Wrap each in try-catch so a concurrent "table already dropped" or
   // "table not found" error from another worker doesn't crash the build.
   try {
-    migratePostsArchivedStatus(db);
+    migratePostsSchema(db);
   } catch (err) {
     if (!(err instanceof Error && err.message.includes("SQLITE_ERROR"))) throw err;
   }
@@ -343,18 +344,23 @@ function migrateNewsSourceLogos(db: Database.Database): void {
 }
 
 /**
- * Add 'archived' to the posts status CHECK constraint.
+ * Keep the posts table CHECK constraints in sync.
  * SQLite requires rebuilding the table to alter a CHECK constraint.
  */
-function migratePostsArchivedStatus(db: Database.Database): void {
+function migratePostsSchema(db: Database.Database): void {
   const tableInfo = db
     .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='posts'")
     .get() as { sql: string } | undefined;
 
   if (!tableInfo) return;
 
-  // Already migrated if 'archived' is in the CHECK constraint
-  if (tableInfo.sql.includes("archived")) return;
+  const hasArchivedStatus = tableInfo.sql.includes("archived");
+  const hasExpandedStances =
+    tableInfo.sql.includes("diagnoses") &&
+    tableInfo.sql.includes("provokes") &&
+    tableInfo.sql.includes("laments");
+
+  if (hasArchivedStatus && hasExpandedStances) return;
 
   db.exec("PRAGMA foreign_keys = OFF;");
 
@@ -365,7 +371,7 @@ function migratePostsArchivedStatus(db: Database.Database): void {
         philosopher_id  TEXT NOT NULL REFERENCES philosophers(id),
         content         TEXT NOT NULL,
         thesis          TEXT NOT NULL DEFAULT '',
-        stance          TEXT NOT NULL CHECK(stance IN ('challenges','defends','reframes','questions','warns','observes')),
+        stance          TEXT NOT NULL CHECK(stance IN ('challenges','defends','reframes','questions','warns','observes','diagnoses','provokes','laments')),
         tag             TEXT NOT NULL DEFAULT '',
         citation_title     TEXT,
         citation_source    TEXT,
@@ -439,6 +445,31 @@ function migrateScoringConfig(db: Database.Database): void {
   }
 
   migrateScoringStanceGuidanceV2(db);
+}
+
+function migrateContentTemplates(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS content_templates (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      template_key    TEXT NOT NULL,
+      version         INTEGER NOT NULL DEFAULT 1,
+      instructions    TEXT NOT NULL,
+      is_active       INTEGER NOT NULL DEFAULT 0,
+      created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+      notes           TEXT NOT NULL DEFAULT ''
+    );
+    CREATE INDEX IF NOT EXISTS idx_content_templates_key ON content_templates(template_key);
+    CREATE INDEX IF NOT EXISTS idx_content_templates_active ON content_templates(template_key, is_active);
+
+    CREATE TABLE IF NOT EXISTS house_rules (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      version         INTEGER NOT NULL DEFAULT 1,
+      rules_text      TEXT NOT NULL,
+      is_active       INTEGER NOT NULL DEFAULT 0,
+      created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+      notes           TEXT NOT NULL DEFAULT ''
+    );
+  `);
 }
 
 function migrateScoringStanceGuidanceV2(db: Database.Database): void {

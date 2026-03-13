@@ -142,6 +142,9 @@ const STANCE_SHORT_LABELS: Record<Stance, string> = {
   questions: "quest",
   warns: "warn",
   observes: "obs",
+  diagnoses: "diag",
+  provokes: "prov",
+  laments: "lam",
 };
 
 export default function NewsScoutPage() {
@@ -731,7 +734,7 @@ ${candidate.description}`;
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+        <div className="relative overflow-visible rounded-xl border border-border bg-white shadow-sm">
           <div className="flex flex-wrap items-center gap-3 px-6 py-5">
             <div className="inline-flex overflow-hidden rounded-xl border border-border">
               <button
@@ -779,7 +782,7 @@ ${candidate.description}`;
               </button>
 
               {dangerMenuOpen && (
-                <div className="absolute left-0 top-[calc(100%+0.5rem)] z-20 min-w-[280px] rounded-xl border border-border bg-white p-3 shadow-lg">
+                <div className="absolute left-0 top-[calc(100%+0.5rem)] z-30 min-w-[280px] rounded-xl border border-border bg-white p-3 shadow-lg">
                   {cleanupConfirm ? (
                     <div className="space-y-3">
                       <p className="text-xs font-mono text-ink-lighter">

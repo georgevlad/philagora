@@ -6,7 +6,8 @@
 import { getDb } from "@/lib/db";
 import { getAnthropicClient, parseJsonResponse } from "@/lib/anthropic-utils";
 import {
-  CONTENT_TEMPLATES,
+  getActiveHouseRules,
+  getActiveTemplate,
   getLengthGuidance,
   type ContentTypeKey,
   type TargetLength,
@@ -105,16 +106,8 @@ export async function generateContent(
     };
   }
 
-  // 3. Get the content template
-  const template = CONTENT_TEMPLATES[contentTypeKey];
-  if (!template) {
-    return {
-      success: false,
-      error: `Unknown content type: ${contentTypeKey}`,
-      rawOutput: "",
-      systemPromptId: activePrompt.id,
-    };
-  }
+  // 3. Get the content template (DB-first, code fallback)
+  const templateInstructions = getActiveTemplate(contentTypeKey);
 
   // 4. Parse core principles for context
   let principlesText = "";
@@ -133,7 +126,12 @@ export async function generateContent(
   // 5. Compose the system message: persona prompt + metadata + template
   //    Substitute {LENGTH_GUIDANCE} if the template uses variable lengths
   const lengthGuidance = getLengthGuidance(contentTypeKey, targetLength ?? "medium");
-  const instructions = template.instructions.replace("{LENGTH_GUIDANCE}", lengthGuidance);
+  const instructions = templateInstructions.replace(
+    "{LENGTH_GUIDANCE}",
+    lengthGuidance
+  );
+  const houseRules = getActiveHouseRules();
+  const houseRulesBlock = houseRules ? `\n---\n\n${houseRules}\n` : "";
 
   const systemMessage = `${activePrompt.system_prompt_text}
 
@@ -145,6 +143,7 @@ Tradition: ${philosopher.tradition}
 Era: ${philosopher.era}
 Core Principles:
 ${principlesText}
+${houseRulesBlock}
 
 ---
 
@@ -234,19 +233,8 @@ export async function generateSynthesis(
   synthesisType: "debate_synthesis" | "agora_synthesis",
   sourceMaterial: string
 ): Promise<GenerationOutcome> {
-  // 1. Get the synthesis template
-  const template = CONTENT_TEMPLATES[synthesisType];
-  if (!template) {
-    return {
-      success: false,
-      error: `Unknown synthesis type: ${synthesisType}`,
-      rawOutput: "",
-      systemPromptId: null,
-    };
-  }
-
-  // 2. System message is ONLY the template instructions (no philosopher persona)
-  const systemMessage = template.instructions;
+  // 1. Get the synthesis template (DB-first, code fallback)
+  const systemMessage = getActiveTemplate(synthesisType);
 
   // 3. Call the Anthropic API with lower temperature
   const client = getAnthropicClient();

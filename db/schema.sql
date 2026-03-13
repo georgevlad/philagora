@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS posts (
   philosopher_id  TEXT NOT NULL REFERENCES philosophers(id),
   content         TEXT NOT NULL,
   thesis          TEXT NOT NULL DEFAULT '',
-  stance          TEXT NOT NULL CHECK(stance IN ('challenges','defends','reframes','questions','warns','observes')),
+  stance          TEXT NOT NULL CHECK(stance IN ('challenges','defends','reframes','questions','warns','observes','diagnoses','provokes','laments')),
   tag             TEXT NOT NULL DEFAULT '',
   citation_title     TEXT,
   citation_source    TEXT,
@@ -141,6 +141,32 @@ CREATE TABLE IF NOT EXISTS system_prompts (
 
 CREATE INDEX IF NOT EXISTS idx_system_prompts_philosopher ON system_prompts(philosopher_id);
 CREATE INDEX IF NOT EXISTS idx_system_prompts_active ON system_prompts(philosopher_id, is_active);
+
+-- ── Content Templates (admin-editable) ──────────────────────────────
+
+CREATE TABLE IF NOT EXISTS content_templates (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  template_key    TEXT NOT NULL,
+  version         INTEGER NOT NULL DEFAULT 1,
+  instructions    TEXT NOT NULL,
+  is_active       INTEGER NOT NULL DEFAULT 0,
+  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  notes           TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS idx_content_templates_key ON content_templates(template_key);
+CREATE INDEX IF NOT EXISTS idx_content_templates_active ON content_templates(template_key, is_active);
+
+-- ── House Rules (global generation rules) ───────────────────────────
+
+CREATE TABLE IF NOT EXISTS house_rules (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  version         INTEGER NOT NULL DEFAULT 1,
+  rules_text      TEXT NOT NULL,
+  is_active       INTEGER NOT NULL DEFAULT 0,
+  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  notes           TEXT NOT NULL DEFAULT ''
+);
 
 -- ── Generation Log ───────────────────────────────────────────────────
 

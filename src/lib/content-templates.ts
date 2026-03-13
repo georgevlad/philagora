@@ -3,6 +3,8 @@
  * each philosopher's system prompt at generation time.
  */
 
+import { getDb } from "@/lib/db";
+
 // ── Variable length support ─────────────────────────────────────────
 
 export type TargetLength = "short" | "medium" | "long";
@@ -98,7 +100,7 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
 {
   "content": "Your reaction to the article",
   "thesis": "One punchy sentence summarizing your position",
-  "stance": "challenges | defends | reframes | questions | warns | observes",
+  "stance": "challenges | defends | reframes | questions | warns | observes | diagnoses | provokes | laments",
   "tag": "Political Commentary | Ethical Analysis | Metaphysical Reflection | Existential Reflection | Practical Wisdom"
 }
 `.trim(),
@@ -123,7 +125,7 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
 {
   "content": "Your timeless reflection",
   "thesis": "One punchy sentence capturing the core insight",
-  "stance": "challenges | defends | reframes | questions | warns | observes",
+  "stance": "challenges | defends | reframes | questions | warns | observes | diagnoses | provokes | laments",
   "tag": "Timeless Wisdom | Practical Wisdom"
 }
 `.trim(),
@@ -146,7 +148,7 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
 {
   "content": "Your reply starting with @PhilosopherName",
   "thesis": "One sentence summarizing your response",
-  "stance": "challenges | defends | reframes | questions | warns | observes",
+  "stance": "challenges | defends | reframes | questions | warns | observes | diagnoses | provokes | laments",
   "tag": "Cross-Philosopher Reply"
 }
 `.trim(),
@@ -272,3 +274,43 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
 `.trim(),
   },
 };
+
+/**
+ * Get the active template instructions for a given content type.
+ * Checks DB first; falls back to hardcoded CONTENT_TEMPLATES.
+ */
+export function getActiveTemplate(key: ContentTypeKey): string {
+  try {
+    const db = getDb();
+    const row = db
+      .prepare(
+        "SELECT instructions FROM content_templates WHERE template_key = ? AND is_active = 1 LIMIT 1"
+      )
+      .get(key) as { instructions: string } | undefined;
+
+    if (row?.instructions) return row.instructions;
+  } catch {
+    // DB not available (e.g. during build) — fall through to default
+  }
+
+  return CONTENT_TEMPLATES[key].instructions;
+}
+
+/**
+ * Get the active house rules text.
+ * Returns empty string if none set (no house rules applied).
+ */
+export function getActiveHouseRules(): string {
+  try {
+    const db = getDb();
+    const row = db
+      .prepare("SELECT rules_text FROM house_rules WHERE is_active = 1 LIMIT 1")
+      .get() as { rules_text: string } | undefined;
+
+    if (row?.rules_text) return row.rules_text;
+  } catch {
+    // DB not available — no house rules
+  }
+
+  return "";
+}

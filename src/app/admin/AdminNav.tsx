@@ -15,6 +15,7 @@ const navItems: NavItem[] = [
   { href: "/admin/philosophers", label: "Philosophers", icon: "🏛️" },
   { href: "/admin/posts", label: "Posts", icon: "📝" },
   { href: "/admin/prompts", label: "Prompts", icon: "💬" },
+  { href: "/admin/templates", label: "Templates", icon: "📋" },
   { href: "/admin/debates", label: "Debates", icon: "⚔️" },
   { href: "/admin/agora", label: "Agora", icon: "❓" },
   { href: "/admin/content", label: "Generate", icon: "⚡" },
