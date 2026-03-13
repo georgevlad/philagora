@@ -76,7 +76,7 @@ interface ScoreResponse {
 
 const SCORING_MODEL = "claude-haiku-4-5-20251001";
 const SCORING_MAX_TOKENS = 1024;
-const SCORING_TEMPERATURE = 0.3;
+const SCORING_TEMPERATURE = 0.5;
 
 /**
  * Fetch the og:image meta tag from an article's HTML page.
@@ -258,19 +258,28 @@ The philosopher roster is: Nietzsche, Marcus Aurelius, Camus, Confucius, Kant, B
 
 {{SCORE_TIERS}}
 
+## SCORING PRECISION
+
+Score to ODD or PRIME numbers when possible. Do NOT default to round numbers or multiples of 5.
+- BAD scores: 50, 55, 60, 65, 70, 72, 75, 80 (these indicate lazy bucketing)
+- GOOD scores: 47, 53, 58, 63, 67, 71, 73, 77, 79, 81, 83, 86
+Think: "Is this a 71 or a 74?" not "Is this roughly a 70?"
+
+Each article is unique. Two articles that are both "good" should NOT get the same score. If you would give two articles the same number, one of them is slightly better — find the difference.
+
 ## CALIBRATION EXAMPLES
 
-EXAMPLE 1 — Score: 85
+EXAMPLE 1 — Score: 83
 Title: "EU votes to ban AI-generated faces in political advertising, US calls it censorship"
-Why 85: Genuine framework collision — Kant's duty-based ethics supports the ban (truth as categorical imperative), while Russell's empiricism questions whether restricting speech ever serves truth. Nietzsche would see both sides as power plays. Concrete policy details + specific US/EU clash + timeless truth_vs_power and freedom_vs_order tensions. Multiple stances possible: defends, challenges, reframes.
+Why 83: Genuine framework collision — Kant's duty-based ethics supports the ban (truth as categorical imperative), while Russell's empiricism questions whether restricting speech ever serves truth. Nietzsche sees both sides as power plays. Concrete policy details + specific US/EU clash. Stances: Kant defends, Russell challenges, Nietzsche reframes.
 
-EXAMPLE 2 — Score: 68
+EXAMPLE 2 — Score: 67
 Title: "Japan's birth rate hits new low as young workers cite 'no point in family life'"
-Why 68: Strong existential angle — Camus on meaning-making, Confucius on filial duty, Kierkegaard on despair. But the philosophical tension is somewhat one-directional (most philosophers would express concern, differing only in diagnosis). Fewer genuinely opposed stances, more "agrees but for different reasons."
+Why 67 (not higher): Strong existential angle — Camus on meaning-making, Confucius on filial duty, Kierkegaard on despair. But the philosophical tension is somewhat one-directional: most philosophers would express concern, differing only in diagnosis. Fewer genuinely opposed stances, more "agrees but for different reasons." That ceiling caps it below 70.
 
-EXAMPLE 3 — Score: 42
+EXAMPLE 3 — Score: 41
 Title: "New study finds Mediterranean diet reduces inflammation markers by 30%"
-Why 42: Seneca and Marcus Aurelius could discuss discipline and bodily care, but the article is primarily empirical/medical. Limited ethical ambiguity, limited framework collision. Only 2 philosophers would engage meaningfully, and they'd largely agree.
+Why 41 (not higher): Seneca and Marcus Aurelius could discuss discipline and bodily care, but the article is primarily empirical/medical. Limited ethical ambiguity, limited framework collision. Only 2 philosophers would engage meaningfully, and they'd largely agree. Barely clears the "decent" threshold.
 
 EXAMPLE 4 — Score: 0 (reject)
 Title: "Champions League quarterfinal draw: Real Madrid vs Bayern Munich"
@@ -279,6 +288,25 @@ Why 0: Pure sports scheduling, no narrative depth, no philosophical hooks.
 EXAMPLE 5 — Score: 0 (reject)
 Title: "10 Best Noise-Canceling Headphones of 2026"
 Why 0: Listicle/promotional content with no philosophical engagement surface.
+
+## PHILOSOPHER DIVERSITY
+
+The full roster: Nietzsche, Marcus Aurelius, Camus, Confucius, Kant, Bertrand Russell, Kierkegaard, Plato, Seneca, Carl Jung, Dostoevsky, Cicero.
+
+Do NOT default to Kant, Nietzsche, and Russell for every article. These three have broad applicability, but overusing them produces a monotonous feed.
+
+For each article, ask: "Which philosopher's SPECIFIC framework is most activated by this particular story?" not "Which philosopher could say something about this?"
+
+Actively consider underused voices:
+- **Camus** — absurdity, revolt, meaning in meaninglessness, Mediterranean thought
+- **Jung** — shadow, collective unconscious, archetypes, individuation, psyche of nations
+- **Dostoevsky** — suffering as knowledge, underground psychology, faith vs nihilism, moral freedom
+- **Plato** — forms vs appearances, philosopher-kings, justice as harmony, cave allegory
+- **Confucius** — ritual propriety, filial duty, rectification of names, harmony, education
+- **Kierkegaard** — anxiety, leap of faith, aesthetic vs ethical life, despair, authentic choice
+- **Cicero** — natural law, republican duty, oratory, institutional legitimacy, exile and resilience
+
+Constraint: Do not suggest Kant, Nietzsche, or Russell as more than 2 of the suggested philosophers for any single article. At least one suggestion must come from the underused list above.
 
 ## TENSION VOCABULARY (use ONLY these canonical labels)
 

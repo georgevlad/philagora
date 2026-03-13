@@ -3,6 +3,17 @@ import path from "path";
 import fs from "fs";
 import { DEFAULT_SCORING_CONFIG_VALUES } from "../src/lib/scoring-config";
 
+const UPDATED_STANCE_GUIDANCE_VALUE = JSON.stringify({
+  preferred_friction_pairs: [
+    ["challenges", "defends"],
+    ["challenges", "reframes"],
+    ["defends", "questions"],
+  ],
+  deprioritize: ["warns", "observes"],
+  guidance_text:
+    "CRITICAL: Each suggested philosopher MUST have a DIFFERENT stance. Never assign the same stance to 2+ philosophers on the same article.\n\nStance hierarchy (prefer top, avoid bottom):\n1. 'challenges' + 'defends' — genuine opposition, highest value\n2. 'reframes' — shifts the question itself, high value when authentic\n3. 'questions' — Socratic interrogation, moderate value\n4. 'warns' — use ONLY when a philosopher's framework genuinely predicts danger, not as a safe default\n5. 'observes' — LAST RESORT. A philosopher who merely 'observes' adds little friction. If you find yourself assigning 'observes', ask: could this philosopher 'reframe' or 'question' instead? Almost always yes.\n\nMaximum ONE 'observes' per article. Maximum ONE 'warns' per article. If an article can't generate at least one 'challenges' or 'defends', it probably deserves a lower score.",
+});
+
 export function resolveDatabasePath(): string {
   if (process.env.DATABASE_PATH) {
     const resolved = path.resolve(process.env.DATABASE_PATH);
@@ -426,6 +437,32 @@ function migrateScoringConfig(db: Database.Database): void {
   for (const [key, value] of Object.entries(DEFAULT_SCORING_CONFIG_VALUES)) {
     upsert.run(key, value);
   }
+
+  migrateScoringStanceGuidanceV2(db);
+}
+
+function migrateScoringStanceGuidanceV2(db: Database.Database): void {
+  const existing = db
+    .prepare("SELECT value FROM scoring_config WHERE key = 'stance_guidance'")
+    .get() as { value: string } | undefined;
+
+  if (!existing) {
+    db.prepare(
+      `INSERT INTO scoring_config (key, value, updated_at)
+       VALUES ('stance_guidance', ?, datetime('now'))`
+    ).run(UPDATED_STANCE_GUIDANCE_VALUE);
+    return;
+  }
+
+  if (existing.value !== DEFAULT_SCORING_CONFIG_VALUES.stance_guidance) {
+    return;
+  }
+
+  db.prepare(
+    `UPDATE scoring_config
+     SET value = ?, updated_at = datetime('now')
+     WHERE key = 'stance_guidance'`
+  ).run(UPDATED_STANCE_GUIDANCE_VALUE);
 }
 
 export default getDb;
