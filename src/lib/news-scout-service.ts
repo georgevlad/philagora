@@ -9,6 +9,13 @@ import type Anthropic from "@anthropic-ai/sdk";
 import Parser from "rss-parser";
 import { getDb } from "@/lib/db";
 import { getAnthropicClient, parseJsonResponse } from "@/lib/anthropic-utils";
+import {
+  DEFAULT_SCORING_CONFIG_VALUES,
+  DEFAULT_SCORE_TIERS,
+  parseScoreTiers,
+  parseStanceGuidance,
+  parseTensionVocabulary,
+} from "@/lib/scoring-config";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -190,34 +197,128 @@ const rssParser = new Parser<CustomFeed, CustomItem>({
 
 // ── Scoring Prompt ───────────────────────────────────────────────────
 
-const SCORING_SYSTEM_PROMPT = `You are a content curator for Philagora, a social media platform where AI agents impersonate historical philosophers to debate current events. Your job is to evaluate whether a news article would produce rich, differentiated philosophical commentary.
+function getScoringConfig(): {
+  scoreTiers: string;
+  tensionVocabulary: string;
+  stanceGuidance: string;
+} {
+  const db = getDb();
+  const getConfig = (key: keyof typeof DEFAULT_SCORING_CONFIG_VALUES, fallback: string) => {
+    const row = db.prepare("SELECT value FROM scoring_config WHERE key = ?").get(key) as { value: string } | undefined;
+    return row?.value ?? fallback;
+  };
+
+  const tiers = parseScoreTiers(
+    getConfig("score_tiers", DEFAULT_SCORING_CONFIG_VALUES.score_tiers)
+  );
+  const tensions = parseTensionVocabulary(
+    getConfig("tension_vocabulary", DEFAULT_SCORING_CONFIG_VALUES.tension_vocabulary)
+  );
+  const stanceConfig = parseStanceGuidance(
+    getConfig("stance_guidance", DEFAULT_SCORING_CONFIG_VALUES.stance_guidance)
+  );
+
+  const tierOrder = Object.keys(DEFAULT_SCORE_TIERS).filter(
+    (key) => key !== "reject"
+  ) as Array<Exclude<keyof typeof DEFAULT_SCORE_TIERS, "reject">>;
+
+  const tierText = tierOrder
+    .map((key) => {
+      const tier = tiers[key];
+      return `- ${tier.min}-${tier.max}: ${tier.label} — ${tier.description}`;
+    })
+    .join("\n");
+
+  const tensionText = tensions
+    .map((tension) => `- ${tension.id}: ${tension.description}`)
+    .join("\n");
+
+  const stanceText = stanceConfig.guidance_text || "";
+
+  return {
+    scoreTiers: tierText,
+    tensionVocabulary: tensionText,
+    stanceGuidance: stanceText,
+  };
+}
+
+const SCORING_PROMPT_TEMPLATE = `You are a content curator for Philagora, a social media platform where AI agents impersonate historical philosophers to debate current events. Your job is to evaluate whether a news article would produce rich, differentiated philosophical commentary.
 
 The philosopher roster is: Nietzsche, Marcus Aurelius, Camus, Confucius, Kant, Bertrand Russell, Kierkegaard, Plato, Seneca, Carl Jung, Dostoevsky, Cicero.
 
-Score each article on philosophical potential (0-100) based on:
-1. Multi-framework applicability: Would 2+ philosophers have meaningfully DIFFERENT reactions?
-2. Ethical/existential ambiguity: Does it sit at a fault line where reasonable frameworks disagree?
-3. Concreteness + depth: Does it have specific details philosophers can grab onto, while implying bigger questions?
-4. Stance diversity: Would it produce varied stances (challenges, defends, reframes, questions, warns, observes)?
-5. Cross-domain resonance: Does it touch on timeless themes (freedom vs order, truth vs power, individual vs collective, duty vs desire)?
+## SCORING CRITERIA (0-100)
 
-Articles scoring below 40 are not worth reacting to. 40-60 are decent. 60-80 are good. 80+ are excellent.
+1. **Multi-framework friction**: Would 2+ philosophers have genuinely OPPOSED reactions — not just different emphases, but real disagreement? (weight: high)
+2. **Ethical/existential ambiguity**: Does it sit at a fault line where reasonable frameworks disagree? Is there a genuine dilemma, not just a clear villain?
+3. **Concreteness + depth**: Does it have specific details philosophers can grab onto (names, numbers, decisions, consequences), while implying bigger questions?
+4. **Stance friction potential**: Would it produce genuinely varied stances? Prioritize articles where "challenges" vs "defends" is possible — not just articles where everyone "warns" or "questions" from different angles. Two philosophers in genuine tension > four philosophers who loosely agree.
+5. **Cross-domain resonance**: Does it connect to timeless themes? (See TENSION VOCABULARY below.)
 
-Reject (score 0) articles that are:
-- Pure scores/results with no narrative depth
-- Listicles or promotional content
-- Too narrowly technical for philosophical engagement
-- Breaking news with no substance yet (just "X happened")
+## SCORE TIERS
+
+{{SCORE_TIERS}}
+
+## CALIBRATION EXAMPLES
+
+EXAMPLE 1 — Score: 85
+Title: "EU votes to ban AI-generated faces in political advertising, US calls it censorship"
+Why 85: Genuine framework collision — Kant's duty-based ethics supports the ban (truth as categorical imperative), while Russell's empiricism questions whether restricting speech ever serves truth. Nietzsche would see both sides as power plays. Concrete policy details + specific US/EU clash + timeless truth_vs_power and freedom_vs_order tensions. Multiple stances possible: defends, challenges, reframes.
+
+EXAMPLE 2 — Score: 68
+Title: "Japan's birth rate hits new low as young workers cite 'no point in family life'"
+Why 68: Strong existential angle — Camus on meaning-making, Confucius on filial duty, Kierkegaard on despair. But the philosophical tension is somewhat one-directional (most philosophers would express concern, differing only in diagnosis). Fewer genuinely opposed stances, more "agrees but for different reasons."
+
+EXAMPLE 3 — Score: 42
+Title: "New study finds Mediterranean diet reduces inflammation markers by 30%"
+Why 42: Seneca and Marcus Aurelius could discuss discipline and bodily care, but the article is primarily empirical/medical. Limited ethical ambiguity, limited framework collision. Only 2 philosophers would engage meaningfully, and they'd largely agree.
+
+EXAMPLE 4 — Score: 0 (reject)
+Title: "Champions League quarterfinal draw: Real Madrid vs Bayern Munich"
+Why 0: Pure sports scheduling, no narrative depth, no philosophical hooks.
+
+EXAMPLE 5 — Score: 0 (reject)
+Title: "10 Best Noise-Canceling Headphones of 2026"
+Why 0: Listicle/promotional content with no philosophical engagement surface.
+
+## TENSION VOCABULARY (use ONLY these canonical labels)
+
+{{TENSION_VOCABULARY}}
+
+Always select 1-3 tensions from this list. Do not invent new labels.
+
+## STANCE GUIDANCE
+
+{{STANCE_GUIDANCE}}
+
+## REJECT (score 0) articles that are:
+- Pure scores/results/schedules with no narrative depth
+- Listicles, rankings, or promotional content
+- Too narrowly technical for philosophical engagement (pure code, pure medicine, pure sports stats)
+- Breaking news with no substance yet (just "X happened" with no details, decisions, or consequences)
+- Celebrity gossip or entertainment news with no ethical/existential dimension
+
+## RESPONSE FORMAT
+
+Suggest 2-5 philosophers (not always 3 — pick the number that genuinely fits).
 
 RESPOND WITH VALID JSON ONLY — no markdown, no code fences:
 {
   "score": 75,
-  "reasoning": "Brief explanation of why this score",
-  "suggested_philosophers": ["nietzsche", "kant", "confucius"],
-  "suggested_stances": { "nietzsche": "challenges", "kant": "questions", "confucius": "reframes" },
-  "primary_tensions": ["freedom_vs_order", "individual_vs_collective"],
+  "reasoning": "Brief explanation of why this score, referencing which criteria drove it up or down",
+  "suggested_philosophers": ["nietzsche", "kant"],
+  "suggested_stances": { "nietzsche": "challenges", "kant": "defends" },
+  "primary_tensions": ["freedom_vs_order"],
   "philosophical_entry_point": "One sentence describing the key philosophical angle"
 }`;
+
+function buildScoringPrompt(): string {
+  const { scoreTiers, tensionVocabulary, stanceGuidance } = getScoringConfig();
+
+  return SCORING_PROMPT_TEMPLATE
+    .replace("{{SCORE_TIERS}}", scoreTiers)
+    .replace("{{TENSION_VOCABULARY}}", tensionVocabulary)
+    .replace("{{STANCE_GUIDANCE}}", stanceGuidance);
+}
 
 // ── Public API ───────────────────────────────────────────────────────
 
@@ -293,6 +394,7 @@ export async function scoreUnscored(
 ): Promise<ScoreResult> {
   const db = getDb();
   const result: ScoreResult = { scored: 0, errors: [] };
+  const scoringPrompt = buildScoringPrompt();
 
   const client = getAnthropicClient();
   if (!client) {
@@ -346,7 +448,7 @@ ${article.description}`;
         model: SCORING_MODEL,
         max_tokens: SCORING_MAX_TOKENS,
         temperature: SCORING_TEMPERATURE,
-        system: SCORING_SYSTEM_PROMPT,
+        system: scoringPrompt,
         messages: [{ role: "user", content: userMessage }],
       });
 

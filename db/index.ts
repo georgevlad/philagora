@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
+import { DEFAULT_SCORING_CONFIG_VALUES } from "../src/lib/scoring-config";
 
 export function resolveDatabasePath(): string {
   if (process.env.DATABASE_PATH) {
@@ -104,6 +105,7 @@ function runMigrations(db: Database.Database): void {
   migrateNewsSourceLogos(db);
   migrateAgoraThreadsIpAddress(db);
   migratePhilosophersIsActive(db);
+  migrateScoringConfig(db);
 
   // Table-rebuild migrations can race with parallel build workers.
   // Wrap each in try-catch so a concurrent "table already dropped" or
@@ -405,6 +407,25 @@ function migratePhilosophersIsActive(db: Database.Database): void {
   if (hasColumn) return;
 
   db.exec("ALTER TABLE philosophers ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1");
+}
+
+function migrateScoringConfig(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS scoring_config (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
+  const upsert = db.prepare(
+    `INSERT OR IGNORE INTO scoring_config (key, value)
+     VALUES (?, ?)`
+  );
+
+  for (const [key, value] of Object.entries(DEFAULT_SCORING_CONFIG_VALUES)) {
+    upsert.run(key, value);
+  }
 }
 
 export default getDb;

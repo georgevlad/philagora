@@ -196,3 +196,9 @@ CREATE TABLE IF NOT EXISTS article_candidates (
 CREATE INDEX IF NOT EXISTS idx_article_candidates_status ON article_candidates(status);
 CREATE INDEX IF NOT EXISTS idx_article_candidates_score ON article_candidates(score);
 CREATE INDEX IF NOT EXISTS idx_article_candidates_url ON article_candidates(url);
+
+CREATE TABLE IF NOT EXISTS scoring_config (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT DEFAULT (datetime('now'))
+);

@@ -562,8 +562,15 @@ ${candidate.description}`;
           )}
 
           <Link
-            href="/admin/news-scout/sources"
+            href="/admin/scoring"
             className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors ml-auto"
+          >
+            Scoring Settings -&gt;
+          </Link>
+
+          <Link
+            href="/admin/news-scout/sources"
+            className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors"
           >
             Manage RSS Sources -&gt;
           </Link>
