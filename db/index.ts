@@ -440,6 +440,7 @@ function migrateScoringConfig(db: Database.Database): void {
      VALUES (?, ?)`
   );
 
+  // Seeds all admin-configurable defaults, including scoring and generation models.
   for (const [key, value] of Object.entries(DEFAULT_SCORING_CONFIG_VALUES)) {
     upsert.run(key, value);
   }

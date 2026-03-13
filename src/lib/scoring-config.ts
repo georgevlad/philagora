@@ -5,8 +5,14 @@ export type ScoringModelName =
   | "claude-sonnet-4-5-20241022"
   | "claude-sonnet-4-20250514";
 
+export type GenerationModelName =
+  | ScoringModelName
+  | "claude-opus-4-20250514";
+
 export type ScoringConfigKey =
   | "scoring_model"
+  | "generation_model"
+  | "synthesis_model"
   | "score_tiers"
   | "tension_vocabulary"
   | "stance_guidance";
@@ -34,6 +40,8 @@ export interface StanceGuidanceConfig {
 }
 
 export const DEFAULT_SCORING_MODEL: ScoringModelName = "claude-haiku-4-5-20251001";
+export const DEFAULT_GENERATION_MODEL: GenerationModelName =
+  "claude-sonnet-4-20250514";
 
 export const SCORING_MODEL_OPTIONS: Array<{
   value: ScoringModelName;
@@ -53,8 +61,32 @@ export const SCORING_MODEL_OPTIONS: Array<{
   },
 ];
 
+export const GENERATION_MODEL_OPTIONS: Array<{
+  value: GenerationModelName;
+  label: string;
+}> = [
+  {
+    value: "claude-haiku-4-5-20251001",
+    label: "Haiku 4.5 (fastest, cheapest - lower quality)",
+  },
+  {
+    value: "claude-sonnet-4-5-20241022",
+    label: "Sonnet 4.5 (fast, good quality)",
+  },
+  {
+    value: "claude-sonnet-4-20250514",
+    label: "Sonnet 4 (best reasoning, current default)",
+  },
+  {
+    value: "claude-opus-4-20250514",
+    label: "Opus 4 (highest quality, slowest, most expensive)",
+  },
+];
+
 export const SCORING_CONFIG_KEYS: ScoringConfigKey[] = [
   "scoring_model",
+  "generation_model",
+  "synthesis_model",
   "score_tiers",
   "tension_vocabulary",
   "stance_guidance",
@@ -158,6 +190,8 @@ export const DEFAULT_STANCE_GUIDANCE: StanceGuidanceConfig = {
 
 export const DEFAULT_SCORING_CONFIG_VALUES: Record<ScoringConfigKey, string> = {
   scoring_model: JSON.stringify(DEFAULT_SCORING_MODEL),
+  generation_model: JSON.stringify(DEFAULT_GENERATION_MODEL),
+  synthesis_model: JSON.stringify(DEFAULT_GENERATION_MODEL),
   score_tiers: JSON.stringify(DEFAULT_SCORE_TIERS),
   tension_vocabulary: JSON.stringify(DEFAULT_TENSION_VOCABULARY),
   stance_guidance: JSON.stringify(DEFAULT_STANCE_GUIDANCE),
@@ -179,6 +213,16 @@ export function parseScoringModel(raw: string | undefined): ScoringModelName {
   return SCORING_MODEL_OPTIONS.some((option) => option.value === parsed)
     ? (parsed as ScoringModelName)
     : DEFAULT_SCORING_MODEL;
+}
+
+export function parseGenerationModel(
+  raw: string | undefined
+): GenerationModelName {
+  const parsed = safeParseJson<string>(raw, DEFAULT_GENERATION_MODEL);
+
+  return GENERATION_MODEL_OPTIONS.some((option) => option.value === parsed)
+    ? (parsed as GenerationModelName)
+    : DEFAULT_GENERATION_MODEL;
 }
 
 export function parseScoreTiers(raw: string | undefined): ScoreTierMap {

@@ -22,7 +22,18 @@ const navItems: NavItem[] = [
   { href: "/admin/daily", label: "Daily Feed", icon: "🗓️" },
   { href: "/admin/news-scout", label: "News Scout", icon: "📰" },
   { href: "/admin/scoring", label: "Scoring", icon: "⚙️", indent: true },
-  { href: "/admin/news-scout/sources", label: "RSS Sources", icon: "📡", indent: true },
+  {
+    href: "/admin/generation-settings",
+    label: "AI Models",
+    icon: "🤖",
+    indent: true,
+  },
+  {
+    href: "/admin/news-scout/sources",
+    label: "RSS Sources",
+    icon: "📡",
+    indent: true,
+  },
 ];
 
 export function AdminNav() {
@@ -54,7 +65,9 @@ export function AdminNav() {
                 : "text-ink-light hover:bg-parchment-dark hover:text-ink"
             }`}
           >
-            <span className={`text-base ${item.indent ? "text-sm" : ""}`}>{item.icon}</span>
+            <span className={`text-base ${item.indent ? "text-sm" : ""}`}>
+              {item.icon}
+            </span>
             <span className="font-body">{item.label}</span>
           </Link>
         );

@@ -398,14 +398,22 @@ function ContentGenerationPageInner() {
   return (
     <div>
       {/* Page header */}
-      <div className="mb-8">
-        <h1 className="font-serif text-2xl font-bold text-ink">
-          Generate Content
-        </h1>
-        <p className="text-sm text-ink-lighter mt-1">
-          Create AI-generated philosophical content. Select a philosopher,
-          choose a content type, and provide source material.
-        </p>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-2xl font-bold text-ink">
+            Generate Content
+          </h1>
+          <p className="text-sm text-ink-lighter mt-1">
+            Create AI-generated philosophical content. Select a philosopher,
+            choose a content type, and provide source material.
+          </p>
+        </div>
+        <Link
+          href="/admin/generation-settings"
+          className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-[0.18em] text-terracotta hover:text-terracotta-light transition-colors"
+        >
+          AI Model Settings &rarr;
+        </Link>
       </div>
 
       {/* ── Generation Form ─────────────────────────────────────────── */}

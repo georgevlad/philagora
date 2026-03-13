@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { ADMIN_COOKIE_NAME, verifyAdminToken } from "@/lib/admin-auth";
 import {
+  DEFAULT_GENERATION_MODEL,
   DEFAULT_SCORING_MODEL,
   DEFAULT_SCORING_CONFIG_VALUES,
+  parseGenerationModel,
   parseScoringModel,
   parseScoreTiers,
   parseStanceGuidance,
@@ -32,6 +34,14 @@ function readConfig() {
     scoring_model: parseScoringModel(
       byKey.get("scoring_model") ?? DEFAULT_SCORING_CONFIG_VALUES.scoring_model
     ),
+    generation_model: parseGenerationModel(
+      byKey.get("generation_model") ??
+        DEFAULT_SCORING_CONFIG_VALUES.generation_model
+    ),
+    synthesis_model: parseGenerationModel(
+      byKey.get("synthesis_model") ??
+        DEFAULT_SCORING_CONFIG_VALUES.synthesis_model
+    ),
     score_tiers: parseScoreTiers(
       byKey.get("score_tiers") ?? DEFAULT_SCORING_CONFIG_VALUES.score_tiers
     ),
@@ -47,6 +57,12 @@ function readConfig() {
 function normalizeValue(key: ScoringConfigKey, value: unknown) {
   if (key === "scoring_model") {
     return parseScoringModel(JSON.stringify(value ?? DEFAULT_SCORING_MODEL));
+  }
+
+  if (key === "generation_model" || key === "synthesis_model") {
+    return parseGenerationModel(
+      JSON.stringify(value ?? DEFAULT_GENERATION_MODEL)
+    );
   }
 
   if (key === "score_tiers") {

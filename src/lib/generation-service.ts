@@ -12,10 +12,13 @@ import {
   type ContentTypeKey,
   type TargetLength,
 } from "@/lib/content-templates";
+import {
+  DEFAULT_GENERATION_MODEL,
+  parseGenerationModel,
+} from "@/lib/scoring-config";
 
 // ── Configuration ────────────────────────────────────────────────────
 
-const MODEL = "claude-sonnet-4-20250514";
 const DEFAULT_MAX_TOKENS = 1024;
 const TEMPERATURE = 0.8; // Tunable — higher = more creative variation
 
@@ -28,6 +31,25 @@ const LENGTH_MAX_TOKENS: Record<string, number> = {
 
 const SYNTHESIS_TEMPERATURE = 0.4; // Lower for precision and consistency
 const SYNTHESIS_MAX_TOKENS = 2048; // Synthesis output is longer
+
+function getGenerationModels(): {
+  generationModel: string;
+  synthesisModel: string;
+} {
+  const db = getDb();
+  const getConfig = (key: string, fallback: string): string => {
+    const row = db
+      .prepare("SELECT value FROM scoring_config WHERE key = ?")
+      .get(key) as { value: string } | undefined;
+
+    return parseGenerationModel(row?.value ?? JSON.stringify(fallback));
+  };
+
+  return {
+    generationModel: getConfig("generation_model", DEFAULT_GENERATION_MODEL),
+    synthesisModel: getConfig("synthesis_model", DEFAULT_GENERATION_MODEL),
+  };
+}
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -73,6 +95,7 @@ export async function generateContent(
   targetLength?: TargetLength
 ): Promise<GenerationOutcome> {
   const db = getDb();
+  const { generationModel } = getGenerationModels();
 
   // 1. Fetch the philosopher's metadata
   const philosopher = db
@@ -182,7 +205,7 @@ ${instructions}`;
 
   try {
     const response = await client.messages.create({
-      model: MODEL,
+      model: generationModel,
       max_tokens: maxTokens,
       temperature: TEMPERATURE,
       system: systemMessage,
@@ -233,6 +256,8 @@ export async function generateSynthesis(
   synthesisType: "debate_synthesis" | "agora_synthesis",
   sourceMaterial: string
 ): Promise<GenerationOutcome> {
+  const { synthesisModel } = getGenerationModels();
+
   // 1. Get the synthesis template (DB-first, code fallback)
   const systemMessage = getActiveTemplate(synthesisType);
 
@@ -252,7 +277,7 @@ export async function generateSynthesis(
 
   try {
     const response = await client.messages.create({
-      model: MODEL,
+      model: synthesisModel,
       max_tokens: SYNTHESIS_MAX_TOKENS,
       temperature: SYNTHESIS_TEMPERATURE,
       system: systemMessage,
