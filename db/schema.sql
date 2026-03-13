@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS philosophers (
   core_principles TEXT NOT NULL DEFAULT '[]',   -- JSON array of {title, description}
   followers       INTEGER NOT NULL DEFAULT 0,
   posts_count     INTEGER NOT NULL DEFAULT 0,
-  debates_count   INTEGER NOT NULL DEFAULT 0
+  debates_count   INTEGER NOT NULL DEFAULT 0,
+  is_active       INTEGER NOT NULL DEFAULT 1   -- 1 = active, 0 = inactive
 );
 
 -- ── Posts (feed items) ───────────────────────────────────────────────

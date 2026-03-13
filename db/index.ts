@@ -103,6 +103,7 @@ function runMigrations(db: Database.Database): void {
   migrateNewsScout(db);
   migrateNewsSourceLogos(db);
   migrateAgoraThreadsIpAddress(db);
+  migratePhilosophersIsActive(db);
 
   // Table-rebuild migrations can race with parallel build workers.
   // Wrap each in try-catch so a concurrent "table already dropped" or
@@ -396,6 +397,14 @@ function migrateAgoraThreadsIpAddress(db: Database.Database): void {
     if (err instanceof Error && err.message.includes("duplicate column")) return;
     throw err;
   }
+}
+
+function migratePhilosophersIsActive(db: Database.Database): void {
+  const tableInfo = db.prepare("PRAGMA table_info(philosophers)").all() as { name: string }[];
+  const hasColumn = tableInfo.some((col) => col.name === "is_active");
+  if (hasColumn) return;
+
+  db.exec("ALTER TABLE philosophers ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1");
 }
 
 export default getDb;
