@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
 
-function resolveDatabasePath(): string {
+export function resolveDatabasePath(): string {
   if (process.env.DATABASE_PATH) {
     const resolved = path.resolve(process.env.DATABASE_PATH);
     const dir = path.dirname(resolved);

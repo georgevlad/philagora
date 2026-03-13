@@ -1,7 +1,9 @@
 import Link from "next/link";
+import fs from "fs";
 import { getDb } from "@/lib/db";
 import { formatDateTime } from "@/lib/date-utils";
 import { STATUS_STYLES, CONTENT_TYPE_LABELS } from "@/lib/constants";
+import { resolveDatabasePath } from "../../../db/index";
 
 interface StatRow {
   count: number;
@@ -95,10 +97,31 @@ function getRecentGenerations(): GenerationLogRow[] {
   return rows;
 }
 
+function getDatabaseMeta() {
+  try {
+    const dbPath = resolveDatabasePath();
+    const stats = fs.statSync(dbPath);
+
+    return {
+      size: stats.size,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
 export default function AdminDashboard() {
   const actions = getActionStats();
   const quick = getQuickStats();
   const recentGenerations = getRecentGenerations();
+  const databaseMeta = getDatabaseMeta();
 
   const actionCards = [
     {
@@ -259,6 +282,31 @@ export default function AdminDashboard() {
             </table>
           </div>
         )}
+      </div>
+
+      <div className="mt-8">
+        <div className="bg-white border border-border rounded-xl px-6 py-5 shadow-sm">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h2 className="font-serif text-lg font-bold text-ink">Database</h2>
+              <p className="text-sm text-ink-lighter mt-1">
+                Download a snapshot of the current SQLite database for local browsing or backup.
+              </p>
+              {databaseMeta && (
+                <p className="text-xs font-mono text-ink-lighter mt-2">
+                  Current size: {formatBytes(databaseMeta.size)}
+                </p>
+              )}
+            </div>
+
+            <a
+              href="/api/admin/download-db"
+              className="inline-flex items-center gap-2 bg-terracotta hover:bg-terracotta-light text-white text-sm font-body px-5 py-2.5 rounded-full transition-colors shadow-sm"
+            >
+              <span>Download Database</span>
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   );

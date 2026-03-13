@@ -22,6 +22,7 @@ interface PhilosopherData {
   followers: number;
   posts_count: number;
   debates_count: number;
+  is_active: number;
 }
 
 export default function EditPhilosopherPage() {
@@ -42,6 +43,8 @@ export default function EditPhilosopherPage() {
   const [era, setEra] = useState("");
   const [keyWorksText, setKeyWorksText] = useState("");
   const [corePrinciples, setCorePrinciples] = useState<CorePrinciple[]>([]);
+  const [followers, setFollowers] = useState<number>(0);
+  const [isActive, setIsActive] = useState<boolean>(true);
 
   const fetchPhilosopher = useCallback(async () => {
     try {
@@ -69,6 +72,8 @@ export default function EditPhilosopherPage() {
       setEra(data.era);
       setKeyWorksText(keyWorks.join("\n"));
       setCorePrinciples(principles);
+      setFollowers(data.followers ?? 0);
+      setIsActive(data.is_active === 1 || data.is_active === true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load philosopher");
     } finally {
@@ -121,6 +126,8 @@ export default function EditPhilosopherPage() {
       core_principles: corePrinciples.filter(
         (p) => p.title.trim() || p.description.trim()
       ),
+      followers,
+      is_active: isActive ? 1 : 0,
     };
 
     try {
@@ -316,6 +323,53 @@ export default function EditPhilosopherPage() {
                 required
                 className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors resize-y leading-relaxed"
               />
+            </div>
+          </div>
+        </section>
+
+        {/* Status & Followers */}
+        <section className="border border-border rounded-xl bg-white/40 overflow-hidden">
+          <div className="px-5 py-3 border-b border-border bg-parchment-dark/30">
+            <h2 className="text-[10px] font-mono tracking-wider uppercase text-ink-lighter">
+              Status &amp; Stats
+            </h2>
+          </div>
+          <div className="p-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                  Status
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsActive((prev) => !prev)}
+                  className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-body rounded-lg border transition-colors ${
+                    isActive
+                      ? "bg-stoic/10 border-stoic/30 text-stoic"
+                      : "bg-parchment-dark/50 border-border text-ink-lighter"
+                  }`}
+                >
+                  <span
+                    className={`inline-block w-2.5 h-2.5 rounded-full ${
+                      isActive ? "bg-stoic" : "bg-border"
+                    }`}
+                  />
+                  {isActive ? "Active" : "Inactive"}
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                  Followers
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={followers}
+                  onChange={(e) => setFollowers(parseInt(e.target.value, 10) || 0)}
+                  className="w-full px-3 py-2 text-sm font-mono text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
+                />
+              </div>
             </div>
           </div>
         </section>
