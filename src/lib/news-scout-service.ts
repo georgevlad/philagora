@@ -506,6 +506,10 @@ ${article.description}`;
         .join("");
 
       const parsed = parseJsonResponse(rawOutput) as unknown as ScoreResponse;
+      // Break LLM score clustering with ±2 jitter (clamped to 0-100)
+      const rawScore = parsed.score ?? 0;
+      const jitter = rawScore > 0 ? Math.floor(Math.random() * 5) - 2 : 0;
+      const finalScore = Math.max(0, Math.min(100, rawScore + jitter));
 
       db.prepare(
         `UPDATE article_candidates
@@ -519,7 +523,7 @@ ${article.description}`;
              scored_at = datetime('now')
          WHERE id = ?`
       ).run(
-        parsed.score ?? 0,
+        finalScore,
         parsed.reasoning ?? "",
         JSON.stringify(parsed.suggested_philosophers ?? []),
         JSON.stringify(parsed.suggested_stances ?? {}),
