@@ -153,6 +153,14 @@ export function getPostsByPhilosopher(philosopherId: string): FeedPost[] {
   return rows.map(mapFeedPost);
 }
 
+export function getPostById(id: string): FeedPost | null {
+  const db = getDb();
+  const row = db
+    .prepare(FEED_POST_QUERY + " WHERE p.id = ? AND p.status = 'published'")
+    .get(id) as PostRow | undefined;
+  return row ? mapFeedPost(row) : null;
+}
+
 export function getAllPhilosophers(): Philosopher[] {
   const db = getDb();
   const rows = db

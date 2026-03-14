@@ -8,11 +8,16 @@ type ToastState = {
   message: string;
 };
 
-let globalShow: ((feature: string) => void) | null = null;
+let globalShow: ((message: string) => void) | null = null;
 let toastId = 0;
 
+export function showToast(message: string) {
+  globalShow?.(message);
+}
+
 export function showComingSoon(feature: string) {
-  globalShow?.(feature);
+  const verb = /s$/i.test(feature) ? "are" : "is";
+  showToast(`${feature} ${verb} coming soon`);
 }
 
 export function ComingSoonToastProvider({
@@ -24,11 +29,11 @@ export function ComingSoonToastProvider({
   const [toast, setToast] = useState<ToastState | null>(null);
   const [visible, setVisible] = useState(false);
 
-  const show = useCallback((feature: string) => {
+  const show = useCallback((message: string) => {
     toastId += 1;
     setToast({
       id: toastId,
-      message: `${feature} are coming soon`,
+      message,
     });
     setVisible(true);
   }, []);

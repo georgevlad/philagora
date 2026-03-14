@@ -9,7 +9,7 @@ import { BookIcon, BookmarkIcon, ExternalLinkIcon, HeartIcon, ReplyArrowIcon, Re
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { philosopherAccentStyles } from "@/lib/color-utils";
 import { STANCE_CONFIG, POST_CONTENT_TRUNCATE_LIMIT } from "@/lib/constants";
-import { showComingSoon } from "@/components/ComingSoonToast";
+import { showComingSoon, showToast } from "@/components/ComingSoonToast";
 
 function TagBadge({
   tag,
@@ -131,17 +131,26 @@ function PostContent({
   color,
   isAphorism,
   isQuip,
+  linkHref,
 }: {
   content: string;
   color: string;
   isAphorism?: boolean;
   isQuip?: boolean;
+  linkHref?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const needsTruncation = !isQuip && content.length > POST_CONTENT_TRUNCATE_LIMIT;
   const displayText = needsTruncation && !expanded
     ? content.slice(0, POST_CONTENT_TRUNCATE_LIMIT).replace(/\s+\S*$/, "") + "..."
     : content;
+  const textContent = linkHref ? (
+    <Link href={linkHref} className="cursor-pointer">
+      {displayText}
+    </Link>
+  ) : (
+    displayText
+  );
 
   const toggleButton = needsTruncation && (
     <button
@@ -158,7 +167,7 @@ function PostContent({
         className="text-[16px] text-ink mb-2 whitespace-pre-line text-center leading-[1.75] italic px-4"
         style={{ fontFamily: "var(--font-lora), var(--font-playfair), Georgia, serif" }}
       >
-        {displayText}
+        {textContent}
         {toggleButton}
       </div>
     );
@@ -177,7 +186,7 @@ function PostContent({
           className="font-serif italic text-lg sm:text-xl leading-relaxed text-ink/90"
           style={{ fontFamily: "var(--font-lora), var(--font-playfair), Georgia, serif" }}
         >
-          {displayText}
+          {textContent}
         </p>
       </div>
     );
@@ -191,7 +200,7 @@ function PostContent({
         paddingLeft: "16px",
       }}
     >
-      {displayText}
+      {textContent}
       {toggleButton}
     </div>
   );
@@ -213,6 +222,7 @@ export function PostCard({
   const isQuip = post.tag === "Quip";
   const isPopular = post.likes >= 50;
   const shouldShowThesis = !isQuip || post.thesis.trim() !== post.content.trim();
+  const postHref = `/post/${post.id}`;
 
   return (
     <article
@@ -266,13 +276,15 @@ export function PostCard({
               {isPopular && <PopularBadge />}
             </div>
 
-            <blockquote className="font-serif text-[22px] sm:text-[24px] leading-[1.38] text-ink mb-4 max-w-lg px-3 relative z-10 font-medium">
-              &ldquo;{post.thesis}&rdquo;
-            </blockquote>
+            <Link href={postHref} className="block cursor-pointer">
+              <blockquote className="font-serif text-[22px] sm:text-[24px] leading-[1.38] text-ink mb-4 max-w-lg px-3 relative z-10 font-medium">
+                &ldquo;{post.thesis}&rdquo;
+              </blockquote>
+            </Link>
 
             <div className="w-14 mx-auto mb-5" style={{ height: "1px", backgroundColor: accent.borderMedium }} />
 
-            <PostContent content={post.content} color={color} isAphorism />
+            <PostContent content={post.content} color={color} isAphorism linkHref={postHref} />
 
             {post.citation && (
               <div className="w-full mt-2">
@@ -319,19 +331,21 @@ export function PostCard({
               )}
 
               {shouldShowThesis && (
-                <blockquote
-                  className="font-serif text-[20px] sm:text-[21px] leading-[1.4] text-ink mb-3 px-4 py-3 rounded-r-xl"
-                  style={{
-                    borderLeft: `3px solid ${color}`,
-                    background: `linear-gradient(90deg, ${color}0f, rgba(248,243,234,0.4))`,
-                    fontWeight: 500,
-                  }}
-                >
-                  {post.thesis}
-                </blockquote>
+                <Link href={postHref} className="block cursor-pointer">
+                  <blockquote
+                    className="font-serif text-[20px] sm:text-[21px] leading-[1.4] text-ink mb-3 px-4 py-3 rounded-r-xl"
+                    style={{
+                      borderLeft: `3px solid ${color}`,
+                      background: `linear-gradient(90deg, ${color}0f, rgba(248,243,234,0.4))`,
+                      fontWeight: 500,
+                    }}
+                  >
+                    {post.thesis}
+                  </blockquote>
+                </Link>
               )}
 
-              <PostContent content={post.content} color={color} isQuip={isQuip} />
+              <PostContent content={post.content} color={color} isQuip={isQuip} linkHref={postHref} />
 
               {post.citation && <CitationBlock citation={post.citation} color={color} accent={accent} />}
 
@@ -423,6 +437,33 @@ function CitationBlock({
 }
 
 function ActionButtons({ post }: { post: FeedPost }) {
+  async function handleShare(postToShare: FeedPost) {
+    const url = `${window.location.origin}/post/${postToShare.id}`;
+    const sourceText = (postToShare.thesis || postToShare.content).trim();
+    const snippet = sourceText.length > 100
+      ? sourceText.slice(0, 99).replace(/\s+\S*$/, "") + "..."
+      : sourceText;
+    const text = `${postToShare.philosopherName}: "${snippet}"`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Philagora", text, url });
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast("Link copied to clipboard");
+    } catch {
+      // Ignore clipboard failures when no native share path is available.
+    }
+  }
+
   return (
     <div className="flex items-center gap-4">
       <ActionButton
@@ -451,6 +492,9 @@ function ActionButtons({ post }: { post: FeedPost }) {
       />
       <ActionButton
         label="Share"
+        onClick={() => {
+          void handleShare(post);
+        }}
         icon={
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M2 8V13C2 13.5523 2.44772 14 3 14H13C13.5523 14 14 13.5523 14 13V8" strokeLinecap="round" strokeLinejoin="round" />
