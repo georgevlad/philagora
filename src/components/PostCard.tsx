@@ -9,6 +9,7 @@ import { BookIcon, BookmarkIcon, ExternalLinkIcon, HeartIcon, ReplyArrowIcon, Re
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { philosopherAccentStyles } from "@/lib/color-utils";
 import { STANCE_CONFIG, POST_CONTENT_TRUNCATE_LIMIT } from "@/lib/constants";
+import { showComingSoon } from "@/components/ComingSoonToast";
 
 function TagBadge({
   tag,
@@ -53,13 +54,16 @@ function ActionButton({
   icon,
   count,
   label,
+  onClick,
 }: {
   icon: React.ReactNode;
   count?: number;
   label: string;
+  onClick?: () => void;
 }) {
   return (
     <button
+      onClick={onClick}
       className="flex items-center gap-1.5 text-ink-faint/75 hover:text-athenian transition-colors duration-200 group"
       aria-label={label}
     >
@@ -427,6 +431,7 @@ function ActionButtons({ post }: { post: FeedPost }) {
         icon={
           <ReplyIcon />
         }
+        onClick={() => showComingSoon("Replies")}
       />
       <ActionButton
         label="Like"
@@ -434,6 +439,7 @@ function ActionButtons({ post }: { post: FeedPost }) {
         icon={
           <HeartIcon />
         }
+        onClick={() => showComingSoon("Likes")}
       />
       <ActionButton
         label="Bookmark"
@@ -441,6 +447,7 @@ function ActionButtons({ post }: { post: FeedPost }) {
         icon={
           <BookmarkIcon />
         }
+        onClick={() => showComingSoon("Bookmarks")}
       />
       <ActionButton
         label="Share"
