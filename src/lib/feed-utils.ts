@@ -30,6 +30,10 @@ export function sharesSameArticle(a: FeedPost, b: FeedPost): boolean {
   return false;
 }
 
+function isStandaloneReaction(post: FeedPost): boolean {
+  return Boolean(post.citation) && !post.replyTo;
+}
+
 export function buildFeedItems(posts: FeedPost[]): FeedItem[] {
   const items: FeedItem[] = [];
   let lastTensionArticle: string | null = null;
@@ -40,12 +44,14 @@ export function buildFeedItems(posts: FeedPost[]): FeedItem[] {
     if (i < posts.length - 1) {
       const current = posts[i];
       const next = posts[i + 1];
+      const standalonePair = isStandaloneReaction(current) && isStandaloneReaction(next);
       const sameArticle = sharesSameArticle(current, next);
       const differentStance = current.stance !== next.stance;
+      const differentPhilosopher = current.philosopherId !== next.philosopherId;
       const articleKey = current.citation?.url || current.citation?.title || null;
       const notDuplicate = articleKey !== lastTensionArticle;
 
-      if (sameArticle && differentStance && notDuplicate) {
+      if (standalonePair && sameArticle && differentStance && differentPhilosopher && notDuplicate) {
         items.push({ type: "tension", postA: current, postB: next });
         lastTensionArticle = articleKey;
       }
