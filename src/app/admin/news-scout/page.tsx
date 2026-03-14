@@ -1891,7 +1891,7 @@ export default function NewsScoutPage() {
                     </p>
                   </div>
                   <Link
-                    href="/admin/daily"
+                    href="/admin/posts"
                     className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-terracotta px-4 py-3 text-sm font-body font-medium text-white shadow-sm transition-colors hover:bg-terracotta-light"
                   >
                     Review & Publish Drafts -&gt;
