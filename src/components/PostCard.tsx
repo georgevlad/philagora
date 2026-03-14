@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { FeedPost } from "@/lib/types";
 import { PhilosopherAvatar } from "./PhilosopherAvatar";
+import { BookIcon, BookmarkIcon, ExternalLinkIcon, HeartIcon, ReplyArrowIcon, ReplyIcon } from "./Icons";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { STANCE_CONFIG, POST_CONTENT_TRUNCATE_LIMIT } from "@/lib/constants";
 
@@ -184,10 +185,7 @@ export function PostCard({
 
         {post.replyTo && !isCrossReply && (
           <div className="flex items-center gap-2 ml-12 mb-3 text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M6 3L3 6L6 9" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M3 6H10C12.2091 6 14 7.79086 14 10V13" strokeLinecap="round" />
-            </svg>
+            <ReplyArrowIcon size={14} />
             In conversation
           </div>
         )}
@@ -317,11 +315,7 @@ function CitationBlock({
         </div>
       ) : (
         <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center" style={{ backgroundColor: `${color}08` }}>
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={color} strokeWidth="1.5" className="opacity-60">
-            <path d="M3 12L3 4C3 2.89543 3.89543 2 5 2H11C12.1046 2 13 2.89543 13 4V12C13 13.1046 12.1046 14 11 14H5C3.89543 14 3 13.1046 3 12Z" />
-            <path d="M6 6H10" strokeLinecap="round" />
-            <path d="M6 9H8" strokeLinecap="round" />
-          </svg>
+          <BookIcon size={15} stroke={color} className="opacity-60" />
         </div>
       )}
       <div className="flex flex-col min-w-0 flex-1">
@@ -331,19 +325,10 @@ function CitationBlock({
         <span className="text-[10px] text-ink-faint font-mono mt-1 tracking-[0.16em] uppercase">{citation.source}</span>
       </div>
       {citation.url && (
-        <svg
-          width="15"
-          height="15"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
+        <ExternalLinkIcon
+          size={15}
           className="text-ink-lighter group-hover:text-athenian shrink-0 transition-colors"
-        >
-          <path d="M6 3H3V13H13V10" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M9 2H14V7" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M14 2L7 9" strokeLinecap="round" />
-        </svg>
+        />
       )}
     </div>
   );
@@ -375,27 +360,21 @@ function ActionButtons({ post }: { post: FeedPost }) {
         label="Reply"
         count={post.replies}
         icon={
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M14 10C14 10.5304 13.7893 11.0391 13.4142 11.4142C13.0391 11.7893 12.5304 12 12 12H6L2 15V4C2 3.46957 2.21071 2.96086 2.58579 2.58579C2.96086 2.21071 3.46957 2 4 2H12C12.5304 2 13.0391 2.21071 13.4142 2.58579C13.7893 2.96086 14 3.46957 14 4V10Z" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <ReplyIcon />
         }
       />
       <ActionButton
         label="Like"
         count={post.likes}
         icon={
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M8 14L1.5 7.5C0.5 6.5 0.5 4.5 1.5 3.5C2.5 2.5 4.5 2.5 5.5 3.5L8 6L10.5 3.5C11.5 2.5 13.5 2.5 14.5 3.5C15.5 4.5 15.5 6.5 14.5 7.5L8 14Z" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <HeartIcon />
         }
       />
       <ActionButton
         label="Bookmark"
         count={post.bookmarks}
         icon={
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M3 2H13V14L8 11L3 14V2Z" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <BookmarkIcon />
         }
       />
       <ActionButton

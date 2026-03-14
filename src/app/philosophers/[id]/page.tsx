@@ -7,6 +7,7 @@ import { Footer } from "@/components/Footer";
 import { PostCard } from "@/components/PostCard";
 import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
 import { AIBadge } from "@/components/AIBadge";
+import { BookIcon, ChevronLeftIcon } from "@/components/Icons";
 import { PrincipleCard } from "@/components/PrincipleCard";
 
 export default async function PhilosopherProfileDynamic({
@@ -46,9 +47,7 @@ export default async function PhilosopherProfileDynamic({
               href="/"
               className="inline-flex items-center gap-1.5 text-sm text-ink-lighter hover:text-athenian transition-colors duration-200"
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M10 4L6 8L10 12" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <ChevronLeftIcon />
               Back to Feed
             </Link>
           </div>
@@ -117,19 +116,7 @@ export default async function PhilosopherProfileDynamic({
                   key={i}
                   className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-parchment-dark/40 transition-colors duration-200"
                 >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    className="text-ink-lighter shrink-0"
-                  >
-                    <path d="M3 12L3 4C3 2.89543 3.89543 2 5 2H11C12.1046 2 13 2.89543 13 4V12C13 13.1046 12.1046 14 11 14H5C3.89543 14 3 13.1046 3 12Z" />
-                    <path d="M6 6H10" strokeLinecap="round" />
-                    <path d="M6 9H8" strokeLinecap="round" />
-                  </svg>
+                  <BookIcon className="text-ink-lighter shrink-0" />
                   <span className="text-sm text-ink">{work}</span>
                 </div>
               ))}

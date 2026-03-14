@@ -6,6 +6,7 @@ import { LeftSidebar } from "@/components/LeftSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
 import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
+import { BookIcon } from "@/components/Icons";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { isValidHttpUrl } from "@/lib/url-utils";
 
@@ -61,19 +62,7 @@ function DebateListCard({
                   }}
                 >
                   <div className="flex items-center gap-2 mb-1.5 text-[10px] font-mono tracking-[0.18em] uppercase text-ink-faint">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      className="shrink-0"
-                    >
-                      <path d="M3 12L3 4C3 2.89543 3.89543 2 5 2H11C12.1046 2 13 2.89543 13 4V12C13 13.1046 12.1046 14 11 14H5C3.89543 14 3 13.1046 3 12Z" />
-                      <path d="M6 6H10" strokeLinecap="round" />
-                      <path d="M6 9H8" strokeLinecap="round" />
-                    </svg>
+                    <BookIcon size={14} className="shrink-0" />
                     Trigger article
                   </div>
                   <p className="text-[15px] leading-snug text-ink-light">

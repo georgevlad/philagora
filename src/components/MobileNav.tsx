@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AgoraIcon, DebatesIcon, HomeIcon } from "./Icons";
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -10,33 +11,17 @@ export function MobileNav() {
     {
       label: "Feed",
       href: "/",
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M3 10L10 3L17 10" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M5 8.5V16H8V12H12V16H15V8.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ),
+      icon: <HomeIcon />,
     },
     {
       label: "Debates",
       href: "/debates",
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M4 4H12V11H7L4 14V4Z" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M8 11H16V18L13 15H8V11Z" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ),
+      icon: <DebatesIcon />,
     },
     {
       label: "Agora",
       href: "/agora",
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <circle cx="10" cy="10" r="7" />
-          <path d="M10 7V10.5" strokeLinecap="round" />
-          <circle cx="10" cy="13" r="0.5" fill="currentColor" />
-        </svg>
-      ),
+      icon: <AgoraIcon />,
     },
     {
       label: "Profile",

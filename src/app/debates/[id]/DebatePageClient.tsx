@@ -7,6 +7,7 @@ import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
 import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
 import { AIBadge } from "@/components/AIBadge";
+import { BookIcon, ChevronLeftIcon, ExternalLinkIcon, ReplyArrowIcon } from "@/components/Icons";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { isValidHttpUrl } from "@/lib/url-utils";
 
@@ -59,17 +60,7 @@ function DebatePostCard({
 
           {post.replyTo && (
             <div className="flex items-center gap-1.5 mb-2 text-xs text-ink-lighter">
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <path d="M6 3L3 6L6 9" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M3 6H10C12.2091 6 14 7.79086 14 10V13" strokeLinecap="round" />
-              </svg>
+              <ReplyArrowIcon />
               Replying
             </div>
           )}
@@ -194,9 +185,7 @@ export function DebatePageClient({
               href="/debates"
               className="inline-flex items-center gap-1.5 text-sm text-ink-lighter hover:text-athenian transition-colors duration-200 mb-4"
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M10 4L6 8L10 12" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <ChevronLeftIcon />
               Back to Debates
             </Link>
 
@@ -228,19 +217,7 @@ export function DebatePageClient({
                 className="flex items-center gap-2 px-3 py-2 rounded border border-border-light hover:border-border transition-colors duration-200 mb-4 group"
                 style={{ backgroundColor: "rgba(240, 235, 227, 0.7)" }}
               >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  className="text-ink-lighter shrink-0"
-                >
-                  <path d="M3 12L3 4C3 2.89543 3.89543 2 5 2H11C12.1046 2 13 2.89543 13 4V12C13 13.1046 12.1046 14 11 14H5C3.89543 14 3 13.1046 3 12Z" />
-                  <path d="M6 6H10" strokeLinecap="round" />
-                  <path d="M6 9H8" strokeLinecap="round" />
-                </svg>
+                <BookIcon size={14} className="text-ink-lighter shrink-0" />
                 <span className="text-xs text-ink-light group-hover:text-athenian transition-colors">
                   Triggered by:{" "}
                   <span className="font-medium">
@@ -250,19 +227,10 @@ export function DebatePageClient({
                 <span className="text-xs text-ink-lighter">
                   &mdash; {debate.triggerArticleSource}
                 </span>
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
+                <ExternalLinkIcon
+                  size={12}
                   className="ml-auto text-ink-lighter group-hover:text-athenian shrink-0 transition-colors"
-                >
-                  <path d="M6 3H3V13H13V10" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M9 2H14V7" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M14 2L7 9" strokeLinecap="round" />
-                </svg>
+                />
               </a>
             ) : null}
 

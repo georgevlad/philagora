@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { Stance } from "@/lib/types";
 import type { Philosopher } from "@/types/admin";
 import { STANCE_CONFIG } from "@/lib/constants";
+import { BookIcon, BookmarkIcon, HeartIcon, ReplyArrowIcon, ReplyIcon } from "@/components/Icons";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -593,11 +594,7 @@ export default function AdminPostsPage() {
                         color: philosopher?.color ?? "#7D7468",
                       }}
                     >
-                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 opacity-60">
-                        <path d="M3 12L3 4C3 2.89543 3.89543 2 5 2H11C12.1046 2 13 2.89543 13 4V12C13 13.1046 12.1046 14 11 14H5C3.89543 14 3 13.1046 3 12Z" />
-                        <path d="M6 6H10" strokeLinecap="round" />
-                        <path d="M6 9H8" strokeLinecap="round" />
-                      </svg>
+                      <BookIcon size={14} className="shrink-0 opacity-60" />
                       <span className="truncate">
                         {post.citation_title}
                         {post.citation_source && (
@@ -639,10 +636,7 @@ export default function AdminPostsPage() {
                       {/* Reply indicator */}
                       {post.reply_to && (
                         <span className="inline-flex items-center gap-1 text-[11px] text-ink-lighter font-mono">
-                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                            <path d="M6 3L3 6L6 9" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M3 6H10C12.2091 6 14 7.79086 14 10V13" strokeLinecap="round" />
-                          </svg>
+                          <ReplyArrowIcon />
                           Reply
                         </span>
                       )}
@@ -651,21 +645,15 @@ export default function AdminPostsPage() {
                     {/* Stats */}
                     <div className="flex items-center gap-4 text-ink-lighter">
                       <span className="inline-flex items-center gap-1 text-xs font-mono">
-                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                          <path d="M8 14L1.5 7.5C0.5 6.5 0.5 4.5 1.5 3.5C2.5 2.5 4.5 2.5 5.5 3.5L8 6L10.5 3.5C11.5 2.5 13.5 2.5 14.5 3.5C15.5 4.5 15.5 6.5 14.5 7.5L8 14Z" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+                        <HeartIcon size={14} />
                         {post.likes}
                       </span>
                       <span className="inline-flex items-center gap-1 text-xs font-mono">
-                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                          <path d="M14 10C14 10.5304 13.7893 11.0391 13.4142 11.4142C13.0391 11.7893 12.5304 12 12 12H6L2 15V4C2 3.46957 2.21071 2.96086 2.58579 2.58579C2.96086 2.21071 3.46957 2 4 2H12C12.5304 2 13.0391 2.21071 13.4142 2.58579C13.7893 2.96086 14 3.46957 14 4V10Z" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+                        <ReplyIcon size={14} />
                         {post.replies}
                       </span>
                       <span className="inline-flex items-center gap-1 text-xs font-mono">
-                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                          <path d="M3 2H13V14L8 11L3 14V2Z" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+                        <BookmarkIcon size={14} />
                         {post.bookmarks}
                       </span>
                     </div>
