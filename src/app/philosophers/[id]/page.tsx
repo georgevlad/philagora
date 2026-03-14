@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getPhilosopherById, getPostsByPhilosopher, getAllPhilosophers } from "@/lib/data";
 import { LeftSidebar } from "@/components/LeftSidebar";
@@ -16,11 +15,6 @@ export default async function PhilosopherProfileDynamic({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-
-  // Redirect Marcus Aurelius to his dedicated page
-  if (id === "marcus-aurelius") {
-    redirect("/philosophers/marcus-aurelius");
-  }
 
   const philosopher = getPhilosopherById(id);
   if (!philosopher) {
