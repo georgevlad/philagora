@@ -352,17 +352,37 @@ function CitationBlock({
   color: string;
   accent: ReturnType<typeof philosopherAccentStyles>;
 }) {
-  const inner = (
-    <div className="flex items-center gap-3">
-      {citation.imageUrl ? (
-        <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-parchment-dark/35 border border-border-light/60">
-          <Image src={citation.imageUrl} alt="" width={72} height={72} className="w-full h-full object-cover" />
-        </div>
-      ) : (
-        <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center" style={{ backgroundColor: accent.bgSubtle }}>
-          <BookIcon size={15} stroke={color} className="opacity-60" />
-        </div>
+  const inner = citation.imageUrl ? (
+    <div className="-mx-4 -mt-3 flex flex-col gap-0 sm:mx-0 sm:mt-0 sm:flex-row sm:items-center sm:gap-3">
+      <div className="h-[140px] w-full overflow-hidden rounded-t-2xl border-b border-border-light/60 bg-parchment-dark/35 sm:h-16 sm:w-16 sm:shrink-0 sm:rounded-xl sm:border sm:border-border-light/60">
+        <Image src={citation.imageUrl} alt="" width={280} height={140} className="w-full h-full object-cover" />
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col px-4 py-3 sm:p-0">
+        <span className="font-serif text-[15px] leading-snug text-ink font-medium line-clamp-3 sm:line-clamp-2 group-hover:text-athenian transition-colors">
+          {citation.title}
+        </span>
+        <span className="mt-1 inline-flex items-center gap-1.5 text-[10px] text-ink-faint font-mono tracking-[0.16em] uppercase">
+          <span className="min-w-0 truncate">{citation.source}</span>
+          {citation.url && (
+            <ExternalLinkIcon
+              size={15}
+              className="text-ink-lighter group-hover:text-athenian shrink-0 transition-colors sm:hidden"
+            />
+          )}
+        </span>
+      </div>
+      {citation.url && (
+        <ExternalLinkIcon
+          size={15}
+          className="hidden text-ink-lighter group-hover:text-athenian shrink-0 transition-colors sm:block"
+        />
       )}
+    </div>
+  ) : (
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center" style={{ backgroundColor: accent.bgSubtle }}>
+        <BookIcon size={15} stroke={color} className="opacity-60" />
+      </div>
       <div className="flex flex-col min-w-0 flex-1">
         <span className="font-serif text-[15px] leading-snug text-ink font-medium line-clamp-2 group-hover:text-athenian transition-colors">
           {citation.title}
