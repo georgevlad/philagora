@@ -643,8 +643,8 @@ function validateGenerateRequest(body: DailyGenerateRequest | null | undefined):
 
   const config = body.config;
   if (!config) return "config is required.";
-  if (!isIntegerInRange(config.reactions_per_article, 1, 3)) {
-    return "reactions_per_article must be between 1 and 3.";
+  if (!Number.isInteger(config.reactions_per_article) || config.reactions_per_article < 1) {
+    return "reactions_per_article must be at least 1.";
   }
   if (!isIntegerInRange(config.cross_replies, 0, 3)) {
     return "cross_replies must be between 0 and 3.";
