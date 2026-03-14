@@ -232,7 +232,9 @@ function migratePostsSchema(db: Database.Database): void {
   const hasExpandedStances =
     tableInfo.sql.includes("diagnoses") &&
     tableInfo.sql.includes("provokes") &&
-    tableInfo.sql.includes("laments");
+    tableInfo.sql.includes("laments") &&
+    tableInfo.sql.includes("quips") &&
+    tableInfo.sql.includes("mocks");
 
   if (hasArchivedStatus && hasExpandedStances) return;
 
@@ -245,7 +247,7 @@ function migratePostsSchema(db: Database.Database): void {
         philosopher_id  TEXT NOT NULL REFERENCES philosophers(id),
         content         TEXT NOT NULL,
         thesis          TEXT NOT NULL DEFAULT '',
-        stance          TEXT NOT NULL CHECK(stance IN ('challenges','defends','reframes','questions','warns','observes','diagnoses','provokes','laments')),
+        stance          TEXT NOT NULL CHECK(stance IN ('challenges','defends','reframes','questions','warns','observes','diagnoses','provokes','laments','quips','mocks')),
         tag             TEXT NOT NULL DEFAULT '',
         citation_title     TEXT,
         citation_source    TEXT,

@@ -44,6 +44,7 @@ interface GenerationPreview {
 
 const CONTENT_TYPE_OPTIONS = [
   { label: "News Reaction", value: "post", description: "React to a current news article" },
+  { label: "Quip", value: "post", description: "A cutting one-liner reaction to a headline" },
   { label: "Timeless Reflection", value: "reflection", description: "A timeless philosophical reflection" },
   { label: "Cross-Philosopher Reply", value: "post", description: "Reply to another philosopher's post" },
   { label: "Debate Opening", value: "debate_opening", description: "Opening statement for a debate" },
@@ -233,9 +234,12 @@ function ContentGenerationPageInner() {
   }, [selectedContentTypeIndex]);
 
   // ── Auto-detect URL in source material ────────────────────────────
-  const isNewsReaction = selectedContentTypeIndex === 0;
+  const selectedContentOption = CONTENT_TYPE_OPTIONS[selectedContentTypeIndex];
+  const supportsCitation =
+    selectedContentOption.label === "News Reaction" ||
+    selectedContentOption.label === "Quip";
   useEffect(() => {
-    if (!isNewsReaction) return;
+    if (!supportsCitation) return;
     const trimmed = userInput.trim();
     if (trimmed.startsWith("http")) {
       const firstLine = trimmed.split("\n")[0].trim();
@@ -243,7 +247,7 @@ function ContentGenerationPageInner() {
         setCitationUrl(firstLine);
       }
     }
-  }, [userInput, isNewsReaction, citationUrl]);
+  }, [userInput, supportsCitation, citationUrl]);
 
   // ── Handle generation ───────────────────────────────────────────────
   async function handleGenerate(e?: React.FormEvent) {
@@ -264,14 +268,13 @@ function ContentGenerationPageInner() {
 
     setSubmitting(true);
     try {
-      const opt = CONTENT_TYPE_OPTIONS[selectedContentTypeIndex];
       const res = await fetch("/api/admin/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           philosopher_id: selectedPhilosopherId,
-          content_type: opt.value,
-          content_label: opt.label,
+          content_type: selectedContentOption.value,
+          content_label: selectedContentOption.label,
           user_input: userInput.trim(),
         }),
       });
@@ -392,8 +395,7 @@ function ContentGenerationPageInner() {
   );
 
   // ── Is this an agora content type? ──────────────────────────────────
-  const isAgoraType =
-    CONTENT_TYPE_OPTIONS[selectedContentTypeIndex].value === "agora_response";
+  const isAgoraType = selectedContentOption.value === "agora_response";
 
   return (
     <div>
@@ -500,8 +502,8 @@ function ContentGenerationPageInner() {
               />
             </div>
 
-            {/* Citation fields (News Reaction only) */}
-            {isNewsReaction && (
+            {/* Citation fields (headline reactions only) */}
+            {supportsCitation && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label

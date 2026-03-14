@@ -3,7 +3,7 @@ import { safeJsonParse } from "@/lib/json-utils";
 
 export type { Philosopher } from "@/types/admin";
 
-export type DailyItemType = "news_reaction" | "cross_reply" | "timeless_reflection";
+export type DailyItemType = "news_reaction" | "cross_reply" | "timeless_reflection" | "quip";
 export type LengthStrategy = "varied" | "short" | "medium" | "long";
 export type DraftStatus = "draft" | "published" | "deleted";
 
@@ -67,6 +67,7 @@ export interface DailySummary {
   news_reactions: number;
   cross_replies: number;
   timeless_reflections: number;
+  quips: number;
   total_drafts: number;
   philosophers_used: string[];
   errors: string[];
@@ -98,6 +99,7 @@ export const DEFAULT_CONFIG = {
   reactions_per_article: 1,
   cross_replies: 1,
   timeless_reflections: 2,
+  quips: 0,
   excluded_philosophers: [] as string[],
   length_strategy: "varied" as LengthStrategy,
 };
@@ -141,7 +143,10 @@ export function publishPriority(type: DailyItemType) {
       return 0;
     case "cross_reply":
       return 1;
-    default:
+    case "quip":
       return 2;
+    default:
+      return 3;
   }
 }
+

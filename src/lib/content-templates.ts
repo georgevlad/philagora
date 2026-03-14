@@ -23,6 +23,11 @@ const REFLECTION_LENGTHS: Record<TargetLength, string> = {
 
 const LENGTH_MAPS: Partial<Record<ContentTypeKey, Record<TargetLength, string>>> = {
   news_reaction: STANDARD_LENGTHS,
+  quip: {
+    short: "STRICT: Maximum 1 sentence, under 20 words.",
+    medium: "STRICT: Maximum 1-2 sentences, under 25 words total.",
+    long: "STRICT: Maximum 2 sentences, under 30 words total.",
+  },
   cross_philosopher_reply: STANDARD_LENGTHS,
   timeless_reflection: REFLECTION_LENGTHS,
 };
@@ -45,6 +50,7 @@ export function getLengthGuidance(
 
 export type ContentTypeKey =
   | "news_reaction"
+  | "quip"
   | "timeless_reflection"
   | "cross_philosopher_reply"
   | "debate_opening"
@@ -62,6 +68,7 @@ export function resolveContentTypeKey(
   // and "reflection" for timeless_reflection. We disambiguate via the label.
   if (dbContentType === "post") {
     if (uiLabel === "Cross-Philosopher Reply") return "cross_philosopher_reply";
+    if (uiLabel === "Quip") return "quip";
     return "news_reaction";
   }
   if (dbContentType === "reflection") return "timeless_reflection";
@@ -102,6 +109,30 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
   "thesis": "One punchy sentence summarizing your position",
   "stance": "challenges | defends | reframes | questions | warns | observes | diagnoses | provokes | laments",
   "tag": "Political Commentary | Ethical Analysis | Metaphysical Reflection | Existential Reflection | Practical Wisdom"
+}
+`.trim(),
+  },
+
+  quip: {
+    key: "quip",
+    instructions: `
+TASK: React to the following headline with a single cutting observation. This is a QUIP - not an analysis.
+
+RULES:
+- MAXIMUM 1-2 sentences. Aim for under 25 words. Brevity is everything.
+- No preamble, no framework exposition, no "this reveals..." constructions.
+- No rhetorical questions unless they ARE the entire quip.
+- Channel your sharpest, most characteristic voice. Be witty, be ironic, be devastating.
+- If you can reference or subvert one of your own famous ideas, do it - readers who get the allusion will love it.
+- You are reacting to the HEADLINE, not writing a mini-essay about the topic.
+- The citation details (article title, source, URL) will be stored separately - do NOT include them in your content.
+
+RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
+{
+  "content": "Your one-liner reaction",
+  "thesis": "Same as content for quips - just repeat the line",
+  "stance": "quips | mocks | provokes | observes",
+  "tag": "Quip"
 }
 `.trim(),
   },

@@ -122,9 +122,19 @@ function CrossReplyHeader({ post }: { post: FeedPost }) {
   );
 }
 
-function PostContent({ content, color, isAphorism }: { content: string; color: string; isAphorism?: boolean }) {
+function PostContent({
+  content,
+  color,
+  isAphorism,
+  isQuip,
+}: {
+  content: string;
+  color: string;
+  isAphorism?: boolean;
+  isQuip?: boolean;
+}) {
   const [expanded, setExpanded] = useState(false);
-  const needsTruncation = content.length > POST_CONTENT_TRUNCATE_LIMIT;
+  const needsTruncation = !isQuip && content.length > POST_CONTENT_TRUNCATE_LIMIT;
   const displayText = needsTruncation && !expanded
     ? content.slice(0, POST_CONTENT_TRUNCATE_LIMIT).replace(/\s+\S*$/, "") + "..."
     : content;
@@ -146,6 +156,25 @@ function PostContent({ content, color, isAphorism }: { content: string; color: s
       >
         {displayText}
         {toggleButton}
+      </div>
+    );
+  }
+
+  if (isQuip) {
+    return (
+      <div
+        className="mb-2 rounded-[20px] px-5 py-4 whitespace-pre-line"
+        style={{
+          borderLeft: `4px solid ${color}`,
+          background: `linear-gradient(135deg, ${color}12, rgba(248,243,234,0.78))`,
+        }}
+      >
+        <p
+          className="font-serif italic text-lg sm:text-xl leading-relaxed text-ink/90"
+          style={{ fontFamily: "var(--font-lora), var(--font-playfair), Georgia, serif" }}
+        >
+          {displayText}
+        </p>
       </div>
     );
   }
@@ -177,7 +206,9 @@ export function PostCard({
   const accent = philosopherAccentStyles(color);
   const isCrossReply = post.tag === "Cross-Philosopher Reply";
   const isAphorism = post.tag === "Practical Wisdom" || post.tag === "Timeless Wisdom";
+  const isQuip = post.tag === "Quip";
   const isPopular = post.likes >= 50;
+  const shouldShowThesis = !isQuip || post.thesis.trim() !== post.content.trim();
 
   return (
     <article
@@ -283,18 +314,20 @@ export function PostCard({
                 </div>
               )}
 
-              <blockquote
-                className="font-serif text-[20px] sm:text-[21px] leading-[1.4] text-ink mb-3 px-4 py-3 rounded-r-xl"
-                style={{
-                  borderLeft: `3px solid ${color}`,
-                  background: `linear-gradient(90deg, ${color}0f, rgba(248,243,234,0.4))`,
-                  fontWeight: 500,
-                }}
-              >
-                {post.thesis}
-              </blockquote>
+              {shouldShowThesis && (
+                <blockquote
+                  className="font-serif text-[20px] sm:text-[21px] leading-[1.4] text-ink mb-3 px-4 py-3 rounded-r-xl"
+                  style={{
+                    borderLeft: `3px solid ${color}`,
+                    background: `linear-gradient(90deg, ${color}0f, rgba(248,243,234,0.4))`,
+                    fontWeight: 500,
+                  }}
+                >
+                  {post.thesis}
+                </blockquote>
+              )}
 
-              <PostContent content={post.content} color={color} />
+              <PostContent content={post.content} color={color} isQuip={isQuip} />
 
               {post.citation && <CitationBlock citation={post.citation} color={color} accent={accent} />}
 

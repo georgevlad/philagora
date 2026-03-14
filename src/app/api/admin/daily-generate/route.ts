@@ -9,7 +9,7 @@ import { generateContent } from "@/lib/generation-service";
 import type { TargetLength } from "@/lib/content-templates";
 import type { Stance } from "@/lib/types";
 
-type DailyItemType = "news_reaction" | "cross_reply" | "timeless_reflection";
+type DailyItemType = "news_reaction" | "cross_reply" | "timeless_reflection" | "quip";
 type LengthStrategy = "varied" | TargetLength;
 
 interface DailyGenerateRequest {
@@ -18,6 +18,7 @@ interface DailyGenerateRequest {
     reactions_per_article: number;
     cross_replies: number;
     timeless_reflections: number;
+    quips: number;
     excluded_philosophers: string[];
     length_strategy: LengthStrategy;
   };
@@ -72,6 +73,8 @@ const VALID_STANCES = new Set<Stance>([
   "diagnoses",
   "provokes",
   "laments",
+  "quips",
+  "mocks",
 ]);
 
 const CROSS_REPLY_CANDIDATES: Record<string, string[]> = {
@@ -92,7 +95,9 @@ const CROSS_REPLY_CANDIDATES: Record<string, string[]> = {
 const PROVOCATION_PRIORITY: Record<Stance, number> = {
   provokes: 7,
   challenges: 6,
+  mocks: 6,
   warns: 5,
+  quips: 5,
   diagnoses: 4,
   questions: 4,
   reframes: 3,
@@ -100,6 +105,8 @@ const PROVOCATION_PRIORITY: Record<Stance, number> = {
   defends: 2,
   observes: 1,
 };
+
+const QUIP_PREFERRED_PHILOSOPHERS = ["russell", "nietzsche", "camus", "kierkegaard"];
 
 const TIMELESS_PROMPTS = [
   "Write a reflection on why people fear silence and what it reveals about the modern condition.",
@@ -270,6 +277,54 @@ export async function POST(request: NextRequest) {
       await sleep(500);
     }
 
+    const quipArticleIdsUsed = new Set<string>();
+    for (let quipIndex = 0; quipIndex < config.quips; quipIndex += 1) {
+      const article = pickQuipArticle(selectedArticles, quipArticleIdsUsed, quipIndex);
+      if (!article) {
+        errors.push("No article available for quip generation.");
+        break;
+      }
+
+      const philosopher = pickQuipPhilosopher({
+        allPhilosophers,
+        excludedIds,
+        usedPhilosopherIds,
+      });
+
+      if (!philosopher) {
+        errors.push("No philosopher available for quip generation.");
+        break;
+      }
+
+      const item = await generateDailyDraft({
+        philosopher,
+        type: "quip",
+        dbContentType: "post",
+        sourceMaterial: buildArticleSourceMaterial(article),
+        targetLength: "medium",
+        citation: {
+          title: article.title,
+          source: article.source_name,
+          url: article.url,
+          imageUrl: article.image_url,
+        },
+        articleCandidateId: article.id,
+        articleTitle: article.title,
+      });
+
+      if (!item.success) {
+        errors.push(`${philosopher.name} quip on "${article.title}": ${item.error}`);
+        await sleep(500);
+        continue;
+      }
+
+      usedPhilosopherIds.add(philosopher.id);
+      quipArticleIdsUsed.add(article.id);
+      generated.push(item.data);
+      db.prepare("UPDATE article_candidates SET status = 'used' WHERE id = ?").run(article.id);
+      await sleep(500);
+    }
+
     const recentPrompts = getRecentTimelessPrompts(db);
     const reflectionCandidates = shuffle(
       allPhilosophers.filter(
@@ -372,7 +427,7 @@ export async function PATCH(request: NextRequest) {
       imageUrl: existingPost.citation_image_url,
     };
 
-    if (body.type === "news_reaction") {
+    if (body.type === "news_reaction" || body.type === "quip") {
       const article = body.article_candidate_id
         ? getArticleCandidate(db, body.article_candidate_id)
         : existingPost.citation_url
@@ -442,7 +497,9 @@ export async function PATCH(request: NextRequest) {
     }
 
     const contentTypeKey =
-      body.type === "news_reaction"
+      body.type === "quip"
+        ? "quip"
+        : body.type === "news_reaction"
         ? "news_reaction"
         : body.type === "cross_reply"
         ? "cross_philosopher_reply"
@@ -543,7 +600,7 @@ export async function PATCH(request: NextRequest) {
       return Number(result.lastInsertRowid);
     })();
 
-    if (body.type === "news_reaction" && articleCandidateId) {
+    if ((body.type === "news_reaction" || body.type === "quip") && articleCandidateId) {
       db.prepare("UPDATE article_candidates SET status = 'used' WHERE id = ?").run(articleCandidateId);
     }
 
@@ -595,6 +652,9 @@ function validateGenerateRequest(body: DailyGenerateRequest | null | undefined):
   if (!isIntegerInRange(config.timeless_reflections, 0, 4)) {
     return "timeless_reflections must be between 0 and 4.";
   }
+  if (!isIntegerInRange(config.quips, 0, 4)) {
+    return "quips must be between 0 and 4.";
+  }
   if (!Array.isArray(config.excluded_philosophers)) {
     return "excluded_philosophers must be an array.";
   }
@@ -608,14 +668,14 @@ function validateGenerateRequest(body: DailyGenerateRequest | null | undefined):
 function validateRegenerateRequest(body: DailyRegenerateRequest | null | undefined): string | null {
   if (!body?.post_id) return "post_id is required.";
   if (!body.generation_log_id) return "generation_log_id is required.";
-  if (!["news_reaction", "cross_reply", "timeless_reflection"].includes(body.type)) {
-    return "type must be news_reaction, cross_reply, or timeless_reflection.";
+  if (!["news_reaction", "cross_reply", "timeless_reflection", "quip"].includes(body.type)) {
+    return "type must be news_reaction, cross_reply, timeless_reflection, or quip.";
   }
   if (!["short", "medium", "long"].includes(body.length)) {
     return "length must be short, medium, or long.";
   }
-  if (body.type === "news_reaction" && !body.article_candidate_id) {
-    return "article_candidate_id is required for news reaction regeneration.";
+  if ((body.type === "news_reaction" || body.type === "quip") && !body.article_candidate_id) {
+    return "article_candidate_id is required for news reaction or quip regeneration.";
   }
   if (body.type === "cross_reply" && !body.reply_to_post_id) {
     return "reply_to_post_id is required for cross-reply regeneration.";
@@ -644,7 +704,9 @@ async function generateDailyDraft(args: {
 }): Promise<{ success: true; data: DailyGeneratedItem } | { success: false; error: string }> {
   const outcome = await generateContent(
     args.philosopher.id,
-    args.type === "news_reaction"
+    args.type === "quip"
+      ? "quip"
+      : args.type === "news_reaction"
       ? "news_reaction"
       : args.type === "cross_reply"
       ? "cross_philosopher_reply"
@@ -758,6 +820,8 @@ function defaultTagForType(type: DailyItemType): string {
       return "Cross-Philosopher Reply";
     case "timeless_reflection":
       return "Timeless Wisdom";
+    case "quip":
+      return "Quip";
     default:
       return "Ethical Analysis";
   }
@@ -897,6 +961,54 @@ function pickContrastingRespondent(args: {
   );
 }
 
+function pickQuipArticle(
+  articles: ArticleCandidateRow[],
+  usedArticleIds: Set<string>,
+  quipIndex: number
+): ArticleCandidateRow | null {
+  if (articles.length === 0) return null;
+
+  const unusedArticles = articles.filter((article) => !usedArticleIds.has(article.id));
+  if (unusedArticles.length > 0) {
+    return unusedArticles[quipIndex % unusedArticles.length] ?? unusedArticles[0] ?? null;
+  }
+
+  return articles[quipIndex % articles.length] ?? null;
+}
+
+function pickQuipPhilosopher(args: {
+  allPhilosophers: PhilosopherRow[];
+  excludedIds: Set<string>;
+  usedPhilosopherIds: Set<string>;
+}): PhilosopherRow | null {
+  const { allPhilosophers, excludedIds, usedPhilosopherIds } = args;
+  const byId = new Map(allPhilosophers.map((philosopher) => [philosopher.id, philosopher]));
+  const preferred = QUIP_PREFERRED_PHILOSOPHERS
+    .map((philosopherId) => byId.get(philosopherId))
+    .filter((philosopher): philosopher is PhilosopherRow => philosopher !== undefined);
+
+  const preferredUnused = preferred.filter(
+    (philosopher) =>
+      !excludedIds.has(philosopher.id) && !usedPhilosopherIds.has(philosopher.id)
+  );
+  const anyUnused = allPhilosophers.filter(
+    (philosopher) =>
+      !excludedIds.has(philosopher.id) && !usedPhilosopherIds.has(philosopher.id)
+  );
+  const preferredAny = preferred.filter((philosopher) => !excludedIds.has(philosopher.id));
+  const anyAvailable = allPhilosophers.filter(
+    (philosopher) => !excludedIds.has(philosopher.id)
+  );
+
+  return (
+    pickRandom(preferredUnused) ??
+    pickRandom(anyUnused) ??
+    pickRandom(preferredAny) ??
+    pickRandom(anyAvailable) ??
+    null
+  );
+}
+
 function resolveTargetLength(strategy: LengthStrategy): TargetLength {
   if (strategy === "varied") return pickWeightedLength();
   return strategy;
@@ -918,6 +1030,7 @@ function buildSummary(generated: DailyGeneratedItem[], errors: string[]) {
     news_reactions: generated.filter((item) => item.type === "news_reaction").length,
     cross_replies: generated.filter((item) => item.type === "cross_reply").length,
     timeless_reflections: generated.filter((item) => item.type === "timeless_reflection").length,
+    quips: generated.filter((item) => item.type === "quip").length,
     total_drafts: generated.length,
     philosophers_used: usedNames,
     errors,

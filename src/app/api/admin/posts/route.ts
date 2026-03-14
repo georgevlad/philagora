@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
-import { POST_STATUSES } from "@/lib/constants";
+import { POST_STATUSES, STANCE_CONFIG } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,6 +70,13 @@ export async function POST(request: NextRequest) {
     if (!philosopher_id || !content) {
       return NextResponse.json(
         { error: "philosopher_id and content are required" },
+        { status: 400 }
+      );
+    }
+
+    if (stance && !(String(stance) in STANCE_CONFIG)) {
+      return NextResponse.json(
+        { error: "Invalid stance provided." },
         { status: 400 }
       );
     }

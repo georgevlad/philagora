@@ -138,6 +138,8 @@ const STANCE_SHORT_LABELS: Record<Stance, string> = {
   diagnoses: "diag",
   provokes: "prov",
   laments: "lam",
+  quips: "quip",
+  mocks: "mock",
 };
 
 export default function NewsScoutPage() {

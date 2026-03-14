@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 type TemplateKey =
   | "news_reaction"
+  | "quip"
   | "timeless_reflection"
   | "cross_philosopher_reply"
   | "debate_opening"
@@ -48,6 +49,7 @@ interface HouseRulesResponse {
 
 const TEMPLATE_ITEMS: Array<{ key: TemplateKey; label: string }> = [
   { key: "news_reaction", label: "News Reaction" },
+  { key: "quip", label: "Quip" },
   { key: "timeless_reflection", label: "Timeless Reflection" },
   { key: "cross_philosopher_reply", label: "Cross-Philosopher Reply" },
   { key: "debate_opening", label: "Debate Opening" },

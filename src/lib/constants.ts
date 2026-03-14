@@ -11,6 +11,8 @@ export const STANCE_CONFIG: Record<Stance, { label: string; color: string; bg: s
   diagnoses:  { label: "Diagnoses",  color: "#4A6670", bg: "#E0E9EC", border: "#B8CDD4" },
   provokes:   { label: "Provokes",   color: "#9B2C2C", bg: "#F5E1E1", border: "#E2B4B4" },
   laments:    { label: "Laments",    color: "#5B4A8A", bg: "#E8E3F1", border: "#CBBFE0" },
+  quips:      { label: "Quips",      color: "#6B5B3E", bg: "#F0EBE0", border: "#D4C9B0" },
+  mocks:      { label: "Mocks",      color: "#8B4049", bg: "#F2E0E3", border: "#D9B3BA" },
 };
 
 // Workshop status badge colors (Tailwind classes)
@@ -39,6 +41,7 @@ export const STATUS_STYLES: Record<string, string> = {
 // Content type display labels
 export const CONTENT_TYPE_LABELS: Record<string, string> = {
   post: "Post",
+  quip: "Quip",
   reflection: "Reflection",
   debate_opening: "Debate Opening",
   debate_rebuttal: "Debate Rebuttal",

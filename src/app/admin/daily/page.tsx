@@ -124,7 +124,10 @@ export default function DailyContentPage() {
     };
   }
 
-  function updateNumberConfig(key: "reactions_per_article" | "cross_replies" | "timeless_reflections", value: string) {
+  function updateNumberConfig(
+    key: "reactions_per_article" | "cross_replies" | "timeless_reflections" | "quips",
+    value: string
+  ) {
     const parsed = Number.parseInt(value, 10);
     if (Number.isNaN(parsed)) return;
     setConfig((current) => ({ ...current, [key]: parsed }));
@@ -160,7 +163,11 @@ export default function DailyContentPage() {
 
   const expectedNewsReactions = selectedArticleIds.length * config.reactions_per_article;
   const expectedCrossReplies = Math.min(config.cross_replies, expectedNewsReactions);
-  const estimatedTotal = expectedNewsReactions + expectedCrossReplies + config.timeless_reflections;
+  const estimatedTotal =
+    expectedNewsReactions +
+    expectedCrossReplies +
+    config.quips +
+    config.timeless_reflections;
   const selectedClusters = useMemo(() => {
     const selected = articles.filter((article) => selectedArticleIds.includes(article.id));
     const clusterCounts: Record<string, number> = {};
@@ -190,6 +197,7 @@ export default function DailyContentPage() {
   const draftItems = reviewItems.filter((item) => item.status === "draft");
   const newsReactionItems = reviewItems.filter((item) => item.type === "news_reaction");
   const crossReplyItems = reviewItems.filter((item) => item.type === "cross_reply");
+  const quipItems = reviewItems.filter((item) => item.type === "quip");
   const timelessItems = reviewItems.filter((item) => item.type === "timeless_reflection");
 
   return (
@@ -445,7 +453,7 @@ export default function DailyContentPage() {
         </div>
 
         <div className="px-6 py-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
             <div>
               <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
                 Reactions per article
@@ -482,6 +490,19 @@ export default function DailyContentPage() {
                 max={4}
                 value={config.timeless_reflections}
                 onChange={(event) => updateNumberConfig("timeless_reflections", event.target.value)}
+                className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                Quips
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={4}
+                value={config.quips}
+                onChange={(event) => updateNumberConfig("quips", event.target.value)}
                 className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
               />
             </div>
@@ -562,7 +583,7 @@ export default function DailyContentPage() {
                 About {estimatedTotal} post{estimatedTotal === 1 ? "" : "s"}
               </p>
               <p className="text-sm text-ink-lighter mt-1">
-                {expectedNewsReactions} news reactions + {expectedCrossReplies} cross-replies + {config.timeless_reflections} reflections using about {estimatedTotal} generation calls.
+                {expectedNewsReactions} news reactions + {expectedCrossReplies} cross-replies + {config.quips} quips + {config.timeless_reflections} reflections using about {estimatedTotal} generation calls.
               </p>
               {Object.keys(selectedClusters).length > 0 && (
                 <p className="text-sm text-ink-lighter mt-1">
@@ -624,9 +645,10 @@ export default function DailyContentPage() {
           </div>
 
           {summary && (
-            <div className="px-6 py-5 border-b border-border grid grid-cols-1 md:grid-cols-4 gap-4 bg-parchment/50">
+            <div className="px-6 py-5 border-b border-border grid grid-cols-1 md:grid-cols-5 gap-4 bg-parchment/50">
               <SummaryTile label="News reactions" value={summary.news_reactions} />
               <SummaryTile label="Cross replies" value={summary.cross_replies} />
+              <SummaryTile label="Quips" value={summary.quips} />
               <SummaryTile label="Timeless reflections" value={summary.timeless_reflections} />
               <SummaryTile label="Philosophers used" value={summary.philosophers_used.length} />
             </div>
@@ -648,6 +670,17 @@ export default function DailyContentPage() {
               title="Cross-Philosopher Replies"
               description="Second-order friction pulled from the sharpest reactions."
               items={crossReplyItems}
+              busyItemId={busyItemId}
+              selectedDraftIds={selectedDraftIds}
+              onToggleSelection={toggleDraftSelection}
+              onPublish={handlePublishItem}
+              onRegenerate={handleRegenerateItem}
+              onDelete={handleDeleteItem}
+            />
+            <ReviewGroup
+              title="Quips"
+              description="Short, cutting quote-tweet reactions pulled from the same article set."
+              items={quipItems}
               busyItemId={busyItemId}
               selectedDraftIds={selectedDraftIds}
               onToggleSelection={toggleDraftSelection}

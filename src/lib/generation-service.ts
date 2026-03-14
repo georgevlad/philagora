@@ -181,9 +181,14 @@ ${instructions}`;
     };
   }
 
-  const maxTokens = targetLength
+  let maxTokens = targetLength
     ? (LENGTH_MAX_TOKENS[targetLength] ?? DEFAULT_MAX_TOKENS)
     : DEFAULT_MAX_TOKENS;
+
+  // Hard cap for quips - they should never need more than a few tokens
+  if (contentTypeKey === "quip") {
+    maxTokens = 192;
+  }
 
   let rawOutput = "";
 

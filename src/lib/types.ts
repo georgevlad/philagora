@@ -7,7 +7,9 @@ export type Stance =
   | "observes"
   | "diagnoses"
   | "provokes"
-  | "laments";
+  | "laments"
+  | "quips"
+  | "mocks";
 
 export interface PostCitation {
   title: string;
