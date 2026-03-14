@@ -18,6 +18,7 @@ import {
   type ReviewItem,
 } from "./types";
 import { ReviewGroup, SummaryTile } from "./ReviewGroup";
+import { useDailyGeneration } from "./useDailyGeneration";
 import { useReviewActions } from "./useReviewActions";
 
 export default function DailyContentPage() {
@@ -29,10 +30,7 @@ export default function DailyContentPage() {
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
   const [loadingSetup, setLoadingSetup] = useState(true);
-  const [loadingArticles, setLoadingArticles] = useState(false);
-  const [pipelineRunning, setPipelineRunning] = useState(false);
   const [pipelineResult, setPipelineResult] = useState<PipelineResult | null>(null);
-  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [selectedDraftIds, setSelectedDraftIds] = useState<string[]>([]);
@@ -49,6 +47,27 @@ export default function DailyContentPage() {
     setReviewItems,
     selectedDraftIds,
     setSelectedDraftIds,
+    setError,
+    setNotice,
+  });
+
+  const {
+    generating,
+    pipelineRunning,
+    loadingArticles,
+    handleFetchAndScore,
+    handleGenerateDailyFeed,
+    loadCandidates,
+  } = useDailyGeneration({
+    selectedArticleIds,
+    config,
+    setArticles,
+    setPhilosopherUsage,
+    setSummary,
+    setReviewItems,
+    setSelectedDraftIds,
+    setSelectedArticleIds,
+    setPipelineResult,
     setError,
     setNotice,
   });
@@ -95,31 +114,6 @@ export default function DailyContentPage() {
     };
   }, []);
 
-  async function loadCandidates(autoSelectTop = false) {
-    setLoadingArticles(true);
-    try {
-      const response = await fetch("/api/admin/news-scout/candidates?status=scored&min_score=60&limit=10");
-      if (!response.ok) throw new Error("Failed to load scored articles.");
-
-      const data = (await response.json()) as RawCandidateArticle[];
-      const normalized = data.map(normalizeCandidate);
-      setArticles(normalized);
-      setSelectedArticleIds((current) => {
-        if (autoSelectTop || current.length === 0) {
-          return normalized.slice(0, 3).map((article) => article.id);
-        }
-
-        const validSelection = current.filter((id) => normalized.some((article) => article.id === id));
-        return validSelection.length > 0
-          ? validSelection
-          : normalized.slice(0, 3).map((article) => article.id);
-      });
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Failed to load articles.");
-    } finally {
-      setLoadingArticles(false);
-    }
-  }
 
   function normalizeCandidate(article: RawCandidateArticle): CandidateArticle {
     return {
@@ -162,74 +156,7 @@ export default function DailyContentPage() {
   }
 
 
-  async function handleFetchAndScore() {
-    setPipelineRunning(true);
-    setError(null);
-    setNotice(null);
 
-    try {
-      const response = await fetch("/api/admin/news-scout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "fetch_and_score" }),
-      });
-      const data = (await response.json()) as PipelineResult | { error: string };
-      if (!response.ok) {
-        throw new Error("error" in data ? data.error : "Failed to run the news pipeline.");
-      }
-
-      setPipelineResult(data as PipelineResult);
-      await loadCandidates(true);
-      setNotice("News pipeline complete. Top scored articles are ready for selection.");
-    } catch (pipelineError) {
-      setError(pipelineError instanceof Error ? pipelineError.message : "Failed to run the news pipeline.");
-    } finally {
-      setPipelineRunning(false);
-    }
-  }
-
-  async function handleGenerateDailyFeed() {
-    if (selectedArticleIds.length === 0) {
-      setError("Select at least one article before generating.");
-      return;
-    }
-
-    setGenerating(true);
-    setError(null);
-    setNotice(null);
-
-    try {
-      const response = await fetch("/api/admin/daily-generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          article_ids: selectedArticleIds,
-          config,
-        }),
-      });
-      const data = (await response.json()) as
-        | { error: string }
-        | { success: boolean; summary: DailySummary; generated: DailyGeneratedItem[] };
-
-      if (!response.ok) {
-        throw new Error("error" in data ? data.error : "Daily generation failed.");
-      }
-
-      const payload = data as { success: boolean; summary: DailySummary; generated: DailyGeneratedItem[] };
-      setSummary(payload.summary);
-      setReviewItems(payload.generated.map((item) => ({ ...item, status: "draft" as DraftStatus })));
-      setSelectedDraftIds(payload.generated.map((item) => item.post_id));
-      setNotice(
-        payload.generated.length > 0
-          ? `Generated ${payload.generated.length} draft${payload.generated.length === 1 ? "" : "s"}.`
-          : "No drafts were generated. Review the errors below and adjust the mix."
-      );
-    } catch (generationError) {
-      setError(generationError instanceof Error ? generationError.message : "Daily generation failed.");
-    } finally {
-      setGenerating(false);
-    }
-  }
 
   const expectedNewsReactions = selectedArticleIds.length * config.reactions_per_article;
   const expectedCrossReplies = Math.min(config.cross_replies, expectedNewsReactions);
