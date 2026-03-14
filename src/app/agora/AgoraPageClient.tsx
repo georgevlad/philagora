@@ -8,6 +8,7 @@ import { LeftSidebar } from "@/components/LeftSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
 import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
+import { formatDate } from "@/lib/date-utils";
 
 interface SelectablePhilosopher {
   id: string;
@@ -75,10 +76,7 @@ function FeaturedThreadCard({ thread }: { thread: FeaturedThread }) {
           </p>
           <div className="mt-2 text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">
             {thread.asked_by} <span className="mx-2 text-border">/</span>
-            {new Date(thread.created_at).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            })}
+            {formatDate(thread.created_at).replace(/, \d{4}$/, "")}
           </div>
         </div>
       </article>

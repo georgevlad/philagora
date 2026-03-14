@@ -1,46 +1,48 @@
+function parseDateString(value: string): Date | null {
+  const normalized = value.includes("T") ? value : value.replace(" ", "T");
+  const withTimezone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(normalized) ? normalized : `${normalized}Z`;
+  const date = new Date(withTimezone);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 /** Format an ISO date string into a short display format (e.g. "Jan 5, 2025"). */
 export function formatDate(iso: string): string {
-  try {
-    const d = new Date(iso.includes("Z") ? iso : iso + "Z");
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  } catch {
-    return iso;
-  }
+  const date = parseDateString(iso);
+  if (!date) return iso;
+
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 /** Format an ISO date string into a short display format with time (e.g. "Jan 5, 2025, 3:45 PM"). */
 export function formatDateTime(iso: string): string {
-  try {
-    const d = new Date(iso.includes("Z") ? iso : iso + "Z");
-    return d.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
+  const date = parseDateString(iso);
+  if (!date) return iso;
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 /** Convert an ISO date string to a relative timestamp (e.g. "2h ago"). */
 export function timeAgo(iso: string): string {
-  try {
-    const date = new Date(iso.includes("Z") ? iso : iso + "Z");
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffSeconds = Math.floor(diffMs / 1000);
-    const diffMinutes = Math.floor(diffSeconds / 60);
-    const diffHours = Math.floor(diffMinutes / 60);
-    const diffDays = Math.floor(diffHours / 24);
+  const date = parseDateString(iso);
+  if (!date) return iso;
 
-    if (diffSeconds < 60) return "just now";
-    if (diffMinutes < 60) return `${diffMinutes}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return formatDate(iso);
-  } catch {
-    return iso;
-  }
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSeconds < 60) return "just now";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return formatDate(iso);
 }

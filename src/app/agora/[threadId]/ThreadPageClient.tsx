@@ -10,6 +10,7 @@ import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
 import { AIBadge } from "@/components/AIBadge";
 import { SynthesisCard } from "@/components/SynthesisCard";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { formatDate } from "@/lib/date-utils";
 
 // Types for API response
 
@@ -326,11 +327,7 @@ export function ThreadPageClient({
           </span>
           <span className="text-ink-faint mx-2">&middot;</span>
           <span className="text-[11px] font-mono text-ink-lighter">
-            {new Date(data.thread.created_at).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
+            {formatDate(data.thread.created_at)}
           </span>
         </p>
 
