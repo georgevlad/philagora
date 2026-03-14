@@ -1,6 +1,66 @@
 import type Database from "better-sqlite3";
 import { DEFAULT_SCORING_CONFIG_VALUES } from "../src/lib/scoring-config";
 
+const DEFAULT_NEWS_SOURCES: [string, string, string, string][] = [
+  ["bbc-world", "BBC World News", "https://feeds.bbci.co.uk/news/world/rss.xml", "world"],
+  ["npr-top", "NPR Top Stories", "https://feeds.npr.org/1001/rss.xml", "world"],
+  ["guardian-world", "The Guardian World", "https://www.theguardian.com/world/rss", "world"],
+  ["aljazeera", "Al Jazeera", "https://www.aljazeera.com/xml/rss/all.xml", "world"],
+  ["cnn-world", "CNN World", "http://rss.cnn.com/rss/edition_world.rss", "world"],
+  ["economist", "The Economist", "https://www.economist.com/latest/rss.xml", "world"],
+  ["reuters-google", "Reuters (via Google News)", "https://news.google.com/rss/search?q=when:24h+allinurl:reuters.com&ceid=US:en&hl=en-US&gl=US", "world"],
+  ["france24", "France 24", "https://www.france24.com/en/rss", "world"],
+  ["dw-europe", "Deutsche Welle Europe", "https://rss.dw.com/rdf/rss-en-eu", "world"],
+  ["spiegel-intl", "Der Spiegel International", "https://www.spiegel.de/international/index.rss", "world"],
+  ["politico-eu", "Politico Europe", "https://www.politico.eu/feed/", "politics"],
+  ["euronews", "Euronews", "https://feeds.feedburner.com/euronews/en/home/", "world"],
+  ["eurotopics", "Euro Topics", "https://www.eurotopics.net/export/en/rss.xml", "ideas"],
+  ["foreign-affairs", "Foreign Affairs", "https://foreignaffairs.com/rss.xml", "politics"],
+  ["foreign-policy", "Foreign Policy", "https://foreignpolicy.com/feed/", "politics"],
+  ["war-on-the-rocks", "War on the Rocks", "https://warontherocks.com/feed/", "politics"],
+  ["nature-news", "Nature", "https://www.nature.com/nature.rss", "science"],
+  ["ars-technica", "Ars Technica", "http://feeds.arstechnica.com/arstechnica/index/", "tech"],
+  ["wired", "Wired", "https://www.wired.com/feed/rss", "tech"],
+  ["the-conversation", "The Conversation", "https://theconversation.com/us/articles.atom", "ideas"],
+  ["oxford-practical-ethics", "Oxford Practical Ethics", "https://blog.practicalethics.ox.ac.uk/feed/", "ideas"],
+  ["atlantic", "The Atlantic", "https://www.theatlantic.com/feed/all/", "opinion"],
+  ["aeon", "Aeon", "https://aeon.co/feed.rss", "culture"],
+  ["avclub", "The A.V. Club", "https://www.avclub.com/rss", "entertainment"],
+  ["popmatters", "PopMatters", "https://popmatters.com/feed", "culture"],
+  ["bbc-sport", "BBC Sport", "https://feeds.bbci.co.uk/sport/rss.xml", "sports"],
+  ["espn-top", "ESPN Top News", "http://www.espn.com/espn/rss/news", "sports"],
+];
+
+const DEFAULT_NEWS_SOURCE_LOGOS: Record<string, string> = {
+  "bbc-world": "https://www.google.com/s2/favicons?domain=bbc.co.uk&sz=64",
+  "npr-top": "https://www.google.com/s2/favicons?domain=npr.org&sz=64",
+  "guardian-world": "https://www.google.com/s2/favicons?domain=theguardian.com&sz=64",
+  "aljazeera": "https://www.google.com/s2/favicons?domain=aljazeera.com&sz=64",
+  "cnn-world": "https://www.google.com/s2/favicons?domain=cnn.com&sz=64",
+  "economist": "https://www.google.com/s2/favicons?domain=economist.com&sz=64",
+  "reuters-google": "https://www.google.com/s2/favicons?domain=reuters.com&sz=64",
+  "france24": "https://www.google.com/s2/favicons?domain=france24.com&sz=64",
+  "dw-europe": "https://www.google.com/s2/favicons?domain=dw.com&sz=64",
+  "spiegel-intl": "https://www.google.com/s2/favicons?domain=spiegel.de&sz=64",
+  "politico-eu": "https://www.google.com/s2/favicons?domain=politico.eu&sz=64",
+  "euronews": "https://www.google.com/s2/favicons?domain=euronews.com&sz=64",
+  "eurotopics": "https://www.google.com/s2/favicons?domain=eurotopics.net&sz=64",
+  "foreign-affairs": "https://www.google.com/s2/favicons?domain=foreignaffairs.com&sz=64",
+  "foreign-policy": "https://www.google.com/s2/favicons?domain=foreignpolicy.com&sz=64",
+  "war-on-the-rocks": "https://www.google.com/s2/favicons?domain=warontherocks.com&sz=64",
+  "nature-news": "https://www.google.com/s2/favicons?domain=nature.com&sz=64",
+  wired: "https://www.google.com/s2/favicons?domain=wired.com&sz=64",
+  "the-conversation": "https://www.google.com/s2/favicons?domain=theconversation.com&sz=64",
+  "oxford-practical-ethics": "https://www.google.com/s2/favicons?domain=practicalethics.ox.ac.uk&sz=64",
+  atlantic: "https://www.google.com/s2/favicons?domain=theatlantic.com&sz=64",
+  aeon: "https://www.google.com/s2/favicons?domain=aeon.co&sz=64",
+  avclub: "https://www.google.com/s2/favicons?domain=avclub.com&sz=64",
+  popmatters: "https://www.google.com/s2/favicons?domain=popmatters.com&sz=64",
+  "bbc-sport": "https://www.google.com/s2/favicons?domain=bbc.co.uk&sz=64",
+  "espn-top": "https://www.google.com/s2/favicons?domain=espn.com&sz=64",
+  "ars-technica": "https://www.google.com/s2/favicons?domain=arstechnica.com&sz=64",
+};
+
 const UPDATED_STANCE_GUIDANCE_VALUE = JSON.stringify({
   preferred_friction_pairs: [
     ["challenges", "defends"],
@@ -12,8 +72,11 @@ const UPDATED_STANCE_GUIDANCE_VALUE = JSON.stringify({
     "CRITICAL: Each suggested philosopher MUST have a DIFFERENT stance. Never assign the same stance to 2+ philosophers on the same article.\n\nStance hierarchy (prefer top, avoid bottom):\n1. 'challenges' + 'defends' \u2014 genuine opposition, highest value\n2. 'reframes' \u2014 shifts the question itself, high value when authentic\n3. 'questions' \u2014 Socratic interrogation, moderate value\n4. 'warns' \u2014 use ONLY when a philosopher's framework genuinely predicts danger, not as a safe default\n5. 'observes' \u2014 LAST RESORT. A philosopher who merely 'observes' adds little friction. If you find yourself assigning 'observes', ask: could this philosopher 'reframe' or 'question' instead? Almost always yes.\n\nMaximum ONE 'observes' per article. Maximum ONE 'warns' per article. If an article can't generate at least one 'challenges' or 'defends', it probably deserves a lower score.",
 });
 
-export function runMigrations(db: Database.Database): void {
-  migrateNewsScout(db);
+export function runMigrations(
+  db: Database.Database,
+  options: { bootstrapNewsSources?: boolean } = {}
+): void {
+  migrateNewsScout(db, options);
   migrateNewsSourceLogos(db);
   migrateArticleCandidatesTopicCluster(db);
   migrateAgoraThreadsIpAddress(db);
@@ -74,7 +137,14 @@ export function runMigrations(db: Database.Database): void {
   }
 }
 
-function migrateNewsScout(db: Database.Database): void {
+function migrateNewsScout(
+  db: Database.Database,
+  options: { bootstrapNewsSources?: boolean }
+): void {
+  const newsSourcesTableExists = db
+    .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='news_sources'")
+    .get();
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS news_sources (
       id              TEXT PRIMARY KEY,
@@ -112,50 +182,10 @@ function migrateNewsScout(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_article_candidates_url ON article_candidates(url);
   `);
 
-  const upsert = db.prepare(
-    `INSERT INTO news_sources (id, name, feed_url, category)
-     VALUES (?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       name = excluded.name,
-       feed_url = excluded.feed_url,
-       category = excluded.category`
-  );
+  const shouldBootstrapSources = options.bootstrapNewsSources || !newsSourcesTableExists;
+  if (!shouldBootstrapSources) return;
 
-  const seeds: [string, string, string, string][] = [
-    ["bbc-world", "BBC World News", "https://feeds.bbci.co.uk/news/world/rss.xml", "world"],
-    ["npr-top", "NPR Top Stories", "https://feeds.npr.org/1001/rss.xml", "world"],
-    ["guardian-world", "The Guardian World", "https://www.theguardian.com/world/rss", "world"],
-    ["aljazeera", "Al Jazeera", "https://www.aljazeera.com/xml/rss/all.xml", "world"],
-    ["cnn-world", "CNN World", "http://rss.cnn.com/rss/edition_world.rss", "world"],
-    ["economist", "The Economist", "https://www.economist.com/latest/rss.xml", "world"],
-    ["reuters-google", "Reuters (via Google News)", "https://news.google.com/rss/search?q=when:24h+allinurl:reuters.com&ceid=US:en&hl=en-US&gl=US", "world"],
-    ["france24", "France 24", "https://www.france24.com/en/rss", "world"],
-    ["dw-europe", "Deutsche Welle Europe", "https://rss.dw.com/rdf/rss-en-eu", "world"],
-    ["spiegel-intl", "Der Spiegel International", "https://www.spiegel.de/international/index.rss", "world"],
-    ["politico-eu", "Politico Europe", "https://www.politico.eu/feed/", "politics"],
-    ["euronews", "Euronews", "https://feeds.feedburner.com/euronews/en/home/", "world"],
-    ["eurotopics", "Euro Topics", "https://www.eurotopics.net/export/en/rss.xml", "ideas"],
-    ["foreign-affairs", "Foreign Affairs", "https://foreignaffairs.com/rss.xml", "politics"],
-    ["foreign-policy", "Foreign Policy", "https://foreignpolicy.com/feed/", "politics"],
-    ["war-on-the-rocks", "War on the Rocks", "https://warontherocks.com/feed/", "politics"],
-    ["nature-news", "Nature", "https://www.nature.com/nature.rss", "science"],
-    ["ars-technica", "Ars Technica", "http://feeds.arstechnica.com/arstechnica/index/", "tech"],
-    ["wired", "Wired", "https://www.wired.com/feed/rss", "tech"],
-    ["the-conversation", "The Conversation", "https://theconversation.com/us/articles.atom", "ideas"],
-    ["oxford-practical-ethics", "Oxford Practical Ethics", "https://blog.practicalethics.ox.ac.uk/feed/", "ideas"],
-    ["atlantic", "The Atlantic", "https://www.theatlantic.com/feed/all/", "opinion"],
-    ["aeon", "Aeon", "https://aeon.co/feed.rss", "culture"],
-    ["avclub", "The A.V. Club", "https://www.avclub.com/rss", "entertainment"],
-    ["popmatters", "PopMatters", "https://popmatters.com/feed", "culture"],
-    ["bbc-sport", "BBC Sport", "https://feeds.bbci.co.uk/sport/rss.xml", "sports"],
-    ["espn-top", "ESPN Top News", "http://www.espn.com/espn/rss/news", "sports"],
-  ];
-
-  for (const row of seeds) {
-    upsert.run(...row);
-  }
-
-  db.prepare("UPDATE news_sources SET is_active = 0 WHERE id = ?").run("bbc-top");
+  seedDefaultNewsSources(db);
 }
 
 function migrateArticleCandidatesTopicCluster(db: Database.Database): void {
@@ -167,58 +197,44 @@ function migrateArticleCandidatesTopicCluster(db: Database.Database): void {
 }
 
 function migrateNewsSourceLogos(db: Database.Database): void {
+  ensureNewsSourceLogoColumn(db);
+}
+
+function seedDefaultNewsSources(db: Database.Database): void {
+  const insert = db.prepare(
+    "INSERT OR IGNORE INTO news_sources (id, name, feed_url, category) VALUES (?, ?, ?, ?)"
+  );
+
+  for (const row of DEFAULT_NEWS_SOURCES) {
+    insert.run(...row);
+  }
+
+  ensureNewsSourceLogoColumn(db);
+
+  const updateLogo = db.prepare(
+    "UPDATE news_sources SET logo_url = COALESCE(logo_url, ?) WHERE id = ?"
+  );
+
+  for (const [id, logoUrl] of Object.entries(DEFAULT_NEWS_SOURCE_LOGOS)) {
+    updateLogo.run(logoUrl, id);
+  }
+}
+
+function ensureNewsSourceLogoColumn(db: Database.Database): void {
   const columns = db
     .prepare("PRAGMA table_info(news_sources)")
     .all() as { name: string }[];
 
   const hasLogoUrl = columns.some((c) => c.name === "logo_url");
-  if (!hasLogoUrl) {
-    try {
-      db.exec("ALTER TABLE news_sources ADD COLUMN logo_url TEXT;");
-    } catch (err) {
-      if (!(err instanceof Error && err.message.includes("duplicate column"))) {
-        throw err;
-      }
+  if (hasLogoUrl) return;
+
+  try {
+    db.exec("ALTER TABLE news_sources ADD COLUMN logo_url TEXT;");
+  } catch (err) {
+    if (!(err instanceof Error && err.message.includes("duplicate column"))) {
+      throw err;
     }
   }
-
-  const sourceLogos: Record<string, string> = {
-    "bbc-world": "https://www.google.com/s2/favicons?domain=bbc.co.uk&sz=64",
-    "npr-top": "https://www.google.com/s2/favicons?domain=npr.org&sz=64",
-    "guardian-world": "https://www.google.com/s2/favicons?domain=theguardian.com&sz=64",
-    "aljazeera": "https://www.google.com/s2/favicons?domain=aljazeera.com&sz=64",
-    "cnn-world": "https://www.google.com/s2/favicons?domain=cnn.com&sz=64",
-    "economist": "https://www.google.com/s2/favicons?domain=economist.com&sz=64",
-    "reuters-google": "https://www.google.com/s2/favicons?domain=reuters.com&sz=64",
-    "france24": "https://www.google.com/s2/favicons?domain=france24.com&sz=64",
-    "dw-europe": "https://www.google.com/s2/favicons?domain=dw.com&sz=64",
-    "spiegel-intl": "https://www.google.com/s2/favicons?domain=spiegel.de&sz=64",
-    "politico-eu": "https://www.google.com/s2/favicons?domain=politico.eu&sz=64",
-    "euronews": "https://www.google.com/s2/favicons?domain=euronews.com&sz=64",
-    "eurotopics": "https://www.google.com/s2/favicons?domain=eurotopics.net&sz=64",
-    "foreign-affairs": "https://www.google.com/s2/favicons?domain=foreignaffairs.com&sz=64",
-    "foreign-policy": "https://www.google.com/s2/favicons?domain=foreignpolicy.com&sz=64",
-    "war-on-the-rocks": "https://www.google.com/s2/favicons?domain=warontherocks.com&sz=64",
-    "nature-news": "https://www.google.com/s2/favicons?domain=nature.com&sz=64",
-    "wired": "https://www.google.com/s2/favicons?domain=wired.com&sz=64",
-    "the-conversation": "https://www.google.com/s2/favicons?domain=theconversation.com&sz=64",
-    "oxford-practical-ethics": "https://www.google.com/s2/favicons?domain=practicalethics.ox.ac.uk&sz=64",
-    "atlantic": "https://www.google.com/s2/favicons?domain=theatlantic.com&sz=64",
-    "aeon": "https://www.google.com/s2/favicons?domain=aeon.co&sz=64",
-    "avclub": "https://www.google.com/s2/favicons?domain=avclub.com&sz=64",
-    "popmatters": "https://www.google.com/s2/favicons?domain=popmatters.com&sz=64",
-    "bbc-sport": "https://www.google.com/s2/favicons?domain=bbc.co.uk&sz=64",
-    "espn-top": "https://www.google.com/s2/favicons?domain=espn.com&sz=64",
-    "ars-technica": "https://www.google.com/s2/favicons?domain=arstechnica.com&sz=64",
-  };
-
-  const update = db.prepare("UPDATE news_sources SET logo_url = ? WHERE id = ?");
-
-  for (const [id, logoUrl] of Object.entries(sourceLogos)) {
-    update.run(logoUrl, id);
-  }
-
-  db.prepare("UPDATE news_sources SET logo_url = NULL, is_active = 0 WHERE id = ?").run("bbc-top");
 }
 
 function migratePostsSchema(db: Database.Database): void {

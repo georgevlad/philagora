@@ -28,13 +28,14 @@ export function getDb(): Database.Database {
     _db = new Database(DB_PATH);
     _db.pragma("journal_mode = WAL");
     _db.pragma("foreign_keys = ON");
-    ensureSchema(_db);
-    runMigrations(_db);
+    const schemaWasCreated = ensureSchema(_db);
+    runMigrations(_db, { bootstrapNewsSources: schemaWasCreated });
     if (process.env.RUN_SEED === "true") {
       const count = _db.prepare("SELECT COUNT(*) as c FROM philosophers").get() as { c: number };
 
       if (count.c === 0) {
         console.log("[Philagora] RUN_SEED=true and DB is empty, seeding...");
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { seedDatabase } = require("./seed-runner") as typeof import("./seed-runner");
         seedDatabase(_db);
         console.log("[Philagora] Seed complete.");
@@ -75,12 +76,12 @@ export function initDb(): Database.Database {
  * Ensure the database schema exists.
  * Runs schema.sql (all CREATE TABLE IF NOT EXISTS) so a fresh DB gets its tables.
  */
-function ensureSchema(db: Database.Database): void {
+function ensureSchema(db: Database.Database): boolean {
   const hasSchema = db
     .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='posts'")
     .get();
 
-  if (hasSchema) return; // tables already exist
+  if (hasSchema) return false; // tables already exist
 
   const schemaPath = path.join(process.cwd(), "db", "schema.sql");
   const schema = fs.readFileSync(schemaPath, "utf-8");
@@ -93,6 +94,8 @@ function ensureSchema(db: Database.Database): void {
   for (const stmt of statements) {
     db.exec(stmt + ";");
   }
+
+  return true;
 }
 
 export default getDb;
