@@ -142,6 +142,37 @@ const STANCE_SHORT_LABELS: Record<Stance, string> = {
   mocks: "mock",
 };
 
+type NewsScoutGenConfig = {
+  length_strategy: "varied" | "short" | "medium" | "long";
+  cross_replies: 0 | 1;
+  quips: 0 | 1;
+};
+
+interface NewsScoutGenSummary {
+  news_reactions: number;
+  cross_replies: number;
+  quips: number;
+  total_drafts: number;
+  philosophers_used: string[];
+  errors: string[];
+}
+
+const NEWS_SCOUT_GEN_CONFIG_DEFAULTS: NewsScoutGenConfig = {
+  length_strategy: "varied",
+  cross_replies: 0,
+  quips: 0,
+};
+
+const LENGTH_STRATEGY_OPTIONS: Array<{
+  value: NewsScoutGenConfig["length_strategy"];
+  label: string;
+}> = [
+  { value: "varied", label: "Varied" },
+  { value: "short", label: "Short" },
+  { value: "medium", label: "Medium" },
+  { value: "long", label: "Long" },
+];
+
 export default function NewsScoutPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [candidates, setCandidates] = useState<CandidateWithUsage[]>([]);
@@ -185,9 +216,15 @@ export default function NewsScoutPage() {
   const [selectedGenPhilosophers, setSelectedGenPhilosophers] = useState<
     string[]
   >([]);
+  const [genConfig, setGenConfig] = useState<NewsScoutGenConfig>({
+    ...NEWS_SCOUT_GEN_CONFIG_DEFAULTS,
+  });
   const [genResults, setGenResults] = useState<
     Array<{ philosopherId: string; success: boolean; error?: string }>
   >([]);
+  const [genSummary, setGenSummary] = useState<NewsScoutGenSummary | null>(
+    null
+  );
   const [genInProgress, setGenInProgress] = useState(false);
 
   const hasInitialized = useRef(false);
@@ -463,86 +500,98 @@ export default function NewsScoutPage() {
     setSelectedGenPhilosophers(
       suggested.filter((philosopherId) => philosopherId in philosopherMeta)
     );
+    setGenConfig({ ...NEWS_SCOUT_GEN_CONFIG_DEFAULTS });
     setGenResults([]);
+    setGenSummary(null);
   }
 
   function closeGeneratePanel() {
     if (genInProgress) return;
     setGeneratePanelCandidate(null);
     setGenResults([]);
+    setGenSummary(null);
   }
 
   async function handleBulkGenerate(candidate: CandidateWithUsage) {
     setGenInProgress(true);
     setGenResults([]);
+    setGenSummary(null);
 
-    const sourceMaterial = `${candidate.title} - ${candidate.source_name}
-
-${candidate.description}`;
-    const validPhilosophers = selectedGenPhilosophers.filter(
-      (philosopherId) => philosopherId in philosopherMeta
+    const allPhilosopherIds = Object.keys(philosopherMeta);
+    const excludedPhilosophers = allPhilosopherIds.filter(
+      (id) => !selectedGenPhilosophers.includes(id)
     );
 
-    for (const philosopherId of validPhilosophers) {
-      try {
-        const genRes = await fetch("/api/admin/content", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            philosopher_id: philosopherId,
-            content_type: "post",
-            content_label: "News Reaction",
-            user_input: sourceMaterial,
-          }),
+    try {
+      const response = await fetch("/api/admin/daily-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          article_ids: [candidate.id],
+          config: {
+            reactions_per_article: selectedGenPhilosophers.length,
+            cross_replies: genConfig.cross_replies,
+            timeless_reflections: 0,
+            quips: genConfig.quips,
+            excluded_philosophers: excludedPhilosophers,
+            length_strategy: genConfig.length_strategy,
+          },
+        }),
+      });
+
+      const data = (await response.json()) as {
+        error?: string;
+        generated?: Array<{ philosopher_id: string }>;
+        summary?: NewsScoutGenSummary;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Generation failed");
+      }
+
+      const generated = Array.isArray(data.generated) ? data.generated : [];
+      const generatedPhilosopherIds = new Set(
+        generated.map((item) => item.philosopher_id)
+      );
+
+      const results: typeof genResults = [];
+      for (const philosopherId of selectedGenPhilosophers) {
+        results.push({
+          philosopherId,
+          success: generatedPhilosopherIds.has(philosopherId),
+          error: generatedPhilosopherIds.has(philosopherId)
+            ? undefined
+            : "Not selected by pipeline",
         });
+      }
 
-        const genData = await genRes.json();
-        if (!genRes.ok) throw new Error(genData.error || "Generation failed");
-
-        const postRes = await fetch("/api/admin/posts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            philosopher_id: philosopherId,
-            content: genData.generated?.content ?? "",
-            thesis: genData.generated?.thesis ?? "",
-            stance: genData.generated?.stance ?? "observes",
-            tag: genData.generated?.tag ?? "",
-            citation_title: candidate.title,
-            citation_source: candidate.source_name || "",
-            citation_url: candidate.url,
-            citation_image_url: candidate.image_url || "",
-          }),
-        });
-
-        if (!postRes.ok) throw new Error("Failed to save post");
-
-        if (genData.log_entry?.id) {
-          await fetch("/api/admin/content", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: genData.log_entry.id, status: "approved" }),
+      for (const item of generated) {
+        if (!selectedGenPhilosophers.includes(item.philosopher_id)) {
+          results.push({
+            philosopherId: item.philosopher_id,
+            success: true,
           });
         }
-
-        setGenResults((prev) => [...prev, { philosopherId, success: true }]);
-      } catch (generationError) {
-        setGenResults((prev) => [
-          ...prev,
-          {
-            philosopherId,
-            success: false,
-            error:
-              generationError instanceof Error
-                ? generationError.message
-                : "Failed",
-          },
-        ]);
       }
-    }
 
-    setGenInProgress(false);
-    await refreshLists();
+      setGenResults(results);
+      setGenSummary(data.summary || null);
+      await refreshLists();
+    } catch (generationError) {
+      setGenResults(
+        selectedGenPhilosophers.map((philosopherId) => ({
+          philosopherId,
+          success: false,
+          error:
+            generationError instanceof Error
+              ? generationError.message
+              : "Generation failed",
+        }))
+      );
+      setGenSummary(null);
+    } finally {
+      setGenInProgress(false);
+    }
   }
 
   function toggleDetailRow(candidateId: string) {
@@ -1703,6 +1752,105 @@ ${candidate.description}`;
                 </div>
               </div>
 
+              <div>
+                <p className="mb-2 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-lighter">
+                  Generation Settings
+                </p>
+                <div className="space-y-4 rounded-xl border border-border bg-white/70 px-4 py-4">
+                  <div>
+                    <p className="mb-2 text-sm font-body text-ink">
+                      Length Strategy
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      {LENGTH_STRATEGY_OPTIONS.map((option) => (
+                        <label
+                          key={option.value}
+                          className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 text-sm transition-colors ${
+                            genConfig.length_strategy === option.value
+                              ? "border-terracotta bg-terracotta/5 text-terracotta"
+                              : "border-border text-ink-lighter hover:bg-parchment-dark/20"
+                          } ${genInProgress ? "cursor-not-allowed opacity-70" : ""}`}
+                        >
+                          <input
+                            type="radio"
+                            name="news-scout-length-strategy"
+                            value={option.value}
+                            checked={genConfig.length_strategy === option.value}
+                            onChange={() =>
+                              setGenConfig((current) => ({
+                                ...current,
+                                length_strategy: option.value,
+                              }))
+                            }
+                            disabled={genInProgress}
+                            className="sr-only"
+                          />
+                          {option.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-parchment/40 px-4 py-3">
+                      <div>
+                        <p className="text-sm font-body text-ink">
+                          Cross-philosopher reply
+                        </p>
+                        <p className="text-xs font-body text-ink-lighter">
+                          Let the pipeline add one contrasting response.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setGenConfig((current) => ({
+                            ...current,
+                            cross_replies: current.cross_replies === 1 ? 0 : 1,
+                          }))
+                        }
+                        disabled={genInProgress}
+                        className={`inline-flex min-w-20 items-center justify-center rounded-full border px-4 py-2 text-sm transition-colors ${
+                          genConfig.cross_replies === 1
+                            ? "border-terracotta bg-terracotta/5 text-terracotta"
+                            : "border-border text-ink-lighter hover:bg-parchment-dark/20"
+                        } ${genInProgress ? "cursor-not-allowed opacity-70" : ""}`}
+                      >
+                        {genConfig.cross_replies === 1 ? "On" : "Off"}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-parchment/40 px-4 py-3">
+                      <div>
+                        <p className="text-sm font-body text-ink">
+                          Include quip
+                        </p>
+                        <p className="text-xs font-body text-ink-lighter">
+                          Add one cutting one-liner for this article.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setGenConfig((current) => ({
+                            ...current,
+                            quips: current.quips === 1 ? 0 : 1,
+                          }))
+                        }
+                        disabled={genInProgress}
+                        className={`inline-flex min-w-20 items-center justify-center rounded-full border px-4 py-2 text-sm transition-colors ${
+                          genConfig.quips === 1
+                            ? "border-terracotta bg-terracotta/5 text-terracotta"
+                            : "border-border text-ink-lighter hover:bg-parchment-dark/20"
+                        } ${genInProgress ? "cursor-not-allowed opacity-70" : ""}`}
+                      >
+                        {genConfig.quips === 1 ? "On" : "Off"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {genResults.filter((entry) => !entry.success).length > 0 && (
                 <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
                   {genResults
@@ -1717,22 +1865,56 @@ ${candidate.description}`;
                     ))}
                 </div>
               )}
+
+              {genSummary?.errors.length ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                  {genSummary.errors.map((entry, index) => (
+                    <p
+                      key={`${index}-${entry}`}
+                      className="text-xs text-red-700"
+                    >
+                      {entry}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             <div className="border-t border-border bg-white/80 px-6 py-4">
-              <button
-                onClick={() => handleBulkGenerate(generatePanelCandidate)}
-                disabled={
-                  genInProgress || selectedGenPhilosophers.length === 0
-                }
-                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-terracotta px-4 py-3 text-sm font-body font-medium text-white shadow-sm transition-colors hover:bg-terracotta-light disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {genInProgress
-                  ? `Generating... (${genResults.length}/${selectedGenPhilosophers.length})`
-                  : `Generate for ${selectedGenPhilosophers.length} philosopher${
+              {genSummary && genResults.length > 0 && genResults.some((result) => result.success) ? (
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+                    <p className="text-sm font-body text-green-800">
+                      Generated {genSummary.total_drafts} draft{genSummary.total_drafts !== 1 ? "s" : ""}
+                      {genSummary.cross_replies > 0 && ` (including ${genSummary.cross_replies} cross-reply)`}
+                      {genSummary.quips > 0 && ` and ${genSummary.quips} quip`}
+                    </p>
+                  </div>
+                  <Link
+                    href="/admin/daily"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-terracotta px-4 py-3 text-sm font-body font-medium text-white shadow-sm transition-colors hover:bg-terracotta-light"
+                  >
+                    Review & Publish Drafts -&gt;
+                  </Link>
+                </div>
+              ) : (
+                <button
+                  onClick={() => handleBulkGenerate(generatePanelCandidate)}
+                  disabled={genInProgress || selectedGenPhilosophers.length === 0}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-terracotta px-4 py-3 text-sm font-body font-medium text-white shadow-sm transition-colors hover:bg-terracotta-light disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {genInProgress ? (
+                    <>
+                      <Spinner className="h-4 w-4 text-white" />
+                      Generating drafts...
+                    </>
+                  ) : (
+                    `Generate for ${selectedGenPhilosophers.length} philosopher${
                       selectedGenPhilosophers.length !== 1 ? "s" : ""
-                    }`}
-              </button>
+                    }`
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>

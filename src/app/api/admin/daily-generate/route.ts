@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
 
     if (selectedArticles.length === 0) {
       return NextResponse.json(
-        { error: "No valid scored articles were found for generation." },
+        { error: "No valid approved or scored articles were found for generation." },
         { status: 400 }
       );
     }
@@ -1043,7 +1043,7 @@ function getArticleCandidate(db: ReturnType<typeof getDb>, articleId: string) {
       `SELECT ac.*, ns.name as source_name
        FROM article_candidates ac
        JOIN news_sources ns ON ns.id = ac.source_id
-       WHERE ac.id = ? AND ac.status IN ('scored', 'used')`
+       WHERE ac.id = ? AND ac.status IN ('approved', 'scored', 'used')`
     )
     .get(articleId) as ArticleCandidateRow | undefined;
 }
