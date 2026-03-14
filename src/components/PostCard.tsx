@@ -7,18 +7,25 @@ import type { FeedPost } from "@/lib/types";
 import { PhilosopherAvatar } from "./PhilosopherAvatar";
 import { BookIcon, BookmarkIcon, ExternalLinkIcon, HeartIcon, ReplyArrowIcon, ReplyIcon } from "./Icons";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { philosopherAccentStyles } from "@/lib/color-utils";
 import { STANCE_CONFIG, POST_CONTENT_TRUNCATE_LIMIT } from "@/lib/constants";
 
-function TagBadge({ tag, color }: { tag: string; color: string }) {
+function TagBadge({
+  tag,
+  accent,
+}: {
+  tag: string;
+  accent: ReturnType<typeof philosopherAccentStyles>;
+}) {
   const isCrossReply = tag === "Cross-Philosopher Reply";
 
   return (
     <span
       className="inline-flex items-center px-2.5 py-1 text-[9px] font-mono tracking-[0.18em] uppercase rounded-full"
       style={{
-        backgroundColor: isCrossReply ? `${color}10` : `${color}08`,
-        color: `${color}cc`,
-        border: `1px solid ${isCrossReply ? `${color}24` : `${color}18`}`,
+        backgroundColor: isCrossReply ? accent.bgLight : accent.bgSubtle,
+        color: accent.textMuted,
+        border: `1px solid ${isCrossReply ? accent.borderLight : accent.borderSubtle}`,
       }}
     >
       {tag}
@@ -78,13 +85,15 @@ function CrossReplyHeader({ post }: { post: FeedPost }) {
     return null;
   }
 
+  const accent = philosopherAccentStyles(post.philosopherColor);
+
   return (
     <div className="mb-4">
       <div
         className="flex items-center gap-3 px-4 py-3 rounded-2xl"
         style={{
           background: `linear-gradient(135deg, ${post.philosopherColor}0d, rgba(248,243,234,0.92))`,
-          border: `1px solid ${post.philosopherColor}18`,
+          border: `1px solid ${accent.borderSubtle}`,
         }}
       >
         <div className="flex items-center gap-2">
@@ -165,6 +174,7 @@ export function PostCard({
   const ref = useScrollReveal<HTMLElement>(delay);
 
   const color = post.philosopherColor;
+  const accent = philosopherAccentStyles(color);
   const isCrossReply = post.tag === "Cross-Philosopher Reply";
   const isAphorism = post.tag === "Practical Wisdom" || post.tag === "Timeless Wisdom";
   const isPopular = post.likes >= 50;
@@ -194,7 +204,7 @@ export function PostCard({
           <div className="flex flex-col items-center text-center relative">
             <div
               className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 font-serif select-none pointer-events-none"
-              style={{ fontSize: "120px", color: `${color}08`, lineHeight: 1 }}
+              style={{ fontSize: "120px", color: accent.bgSubtle, lineHeight: 1 }}
               aria-hidden="true"
             >
               &ldquo;
@@ -225,18 +235,18 @@ export function PostCard({
               &ldquo;{post.thesis}&rdquo;
             </blockquote>
 
-            <div className="w-14 mx-auto mb-5" style={{ height: "1px", backgroundColor: `${color}35` }} />
+            <div className="w-14 mx-auto mb-5" style={{ height: "1px", backgroundColor: accent.borderMedium }} />
 
             <PostContent content={post.content} color={color} isAphorism />
 
             {post.citation && (
               <div className="w-full mt-2">
-                <CitationBlock citation={post.citation} color={color} />
+                <CitationBlock citation={post.citation} color={color} accent={accent} />
               </div>
             )}
 
             <div className="flex items-center justify-between gap-2 flex-wrap w-full mt-3 pt-3 border-t border-border-light/70">
-              <TagBadge tag={post.tag} color={color} />
+              <TagBadge tag={post.tag} accent={accent} />
               <ActionButtons post={post} />
             </div>
           </div>
@@ -286,10 +296,10 @@ export function PostCard({
 
               <PostContent content={post.content} color={color} />
 
-              {post.citation && <CitationBlock citation={post.citation} color={color} />}
+              {post.citation && <CitationBlock citation={post.citation} color={color} accent={accent} />}
 
               <div className="flex items-center justify-between gap-2 flex-wrap mt-3 pt-3 border-t border-border-light/70">
-                <TagBadge tag={post.tag} color={color} />
+                <TagBadge tag={post.tag} accent={accent} />
                 <ActionButtons post={post} />
               </div>
             </div>
@@ -303,9 +313,11 @@ export function PostCard({
 function CitationBlock({
   citation,
   color,
+  accent,
 }: {
   citation: NonNullable<FeedPost["citation"]>;
   color: string;
+  accent: ReturnType<typeof philosopherAccentStyles>;
 }) {
   const inner = (
     <div className="flex items-center gap-3">
@@ -314,7 +326,7 @@ function CitationBlock({
           <Image src={citation.imageUrl} alt="" width={72} height={72} className="w-full h-full object-cover" />
         </div>
       ) : (
-        <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center" style={{ backgroundColor: `${color}08` }}>
+        <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center" style={{ backgroundColor: accent.bgSubtle }}>
           <BookIcon size={15} stroke={color} className="opacity-60" />
         </div>
       )}
