@@ -113,38 +113,75 @@ export function getPublishedPosts(): FeedPost[] {
   return rows.map(mapFeedPost);
 }
 
-export function getFilteredPublishedPosts(
-  contentType?: string,
-  philosopherId?: string
-): FeedPost[] {
-  const db = getDb();
+function buildPublishedPostFilters(options: {
+  contentType?: string;
+  philosopherId?: string;
+  cursor?: string;
+}) {
   const conditions: string[] = ["p.status = 'published'"];
   const params: (string | number)[] = [];
-  const normalizedContentType = normalizeFeedContentType(contentType);
+  const normalizedContentType = normalizeFeedContentType(options.contentType);
 
   if (normalizedContentType === "reactions") {
-    conditions.push(
-      "((p.source_type = 'news' AND p.citation_url IS NOT NULL AND p.citation_url != '') OR p.source_type = 'historical_event' OR p.source_type = 'everyday')"
-    );
+    conditions.push("COALESCE(p.source_type, 'news') = 'news'");
+    conditions.push("p.citation_url IS NOT NULL AND p.citation_url != ''");
     conditions.push("(p.reply_to IS NULL OR p.reply_to = '')");
-  } else if (normalizedContentType === "reflections") {
-    conditions.push("COALESCE(p.source_type, 'news') = 'reflection'");
+  } else if (normalizedContentType === "history") {
+    conditions.push("p.source_type = 'historical_event'");
     conditions.push("(p.reply_to IS NULL OR p.reply_to = '')");
   } else if (normalizedContentType === "replies") {
     conditions.push("p.reply_to IS NOT NULL AND p.reply_to != ''");
   }
 
-  if (philosopherId) {
+  if (options.philosopherId) {
     conditions.push("p.philosopher_id = ?");
-    params.push(philosopherId);
+    params.push(options.philosopherId);
   }
 
-  const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+  if (options.cursor) {
+    conditions.push("p.created_at < ?");
+    params.push(options.cursor);
+  }
+
+  return {
+    where: ` WHERE ${conditions.join(" AND ")}`,
+    params,
+  };
+}
+
+export function getFilteredPublishedPosts(
+  contentType?: string,
+  philosopherId?: string
+): FeedPost[] {
+  const db = getDb();
+  const { where, params } = buildPublishedPostFilters({ contentType, philosopherId });
   const rows = db
     .prepare(FEED_POST_QUERY + where + " ORDER BY p.created_at DESC")
     .all(...params) as PostRow[];
 
   return rows.map(mapFeedPost);
+}
+
+export function getPaginatedPublishedPosts(options: {
+  contentType?: string;
+  philosopherId?: string;
+  cursor?: string;
+  limit?: number;
+}): { posts: FeedPost[]; nextCursor: string | null } {
+  const db = getDb();
+  const limit = Math.max(1, options.limit ?? 15);
+  const { where, params } = buildPublishedPostFilters(options);
+  const rows = db
+    .prepare(FEED_POST_QUERY + where + " ORDER BY p.created_at DESC LIMIT ?")
+    .all(...params, limit + 1) as PostRow[];
+
+  const hasMore = rows.length > limit;
+  const sliced = hasMore ? rows.slice(0, limit) : rows;
+
+  return {
+    posts: sliced.map(mapFeedPost),
+    nextCursor: hasMore && sliced.length > 0 ? sliced[sliced.length - 1].created_at : null,
+  };
 }
 
 export function getPostsByPhilosopher(philosopherId: string): FeedPost[] {

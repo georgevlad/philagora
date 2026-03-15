@@ -3,7 +3,7 @@ import type { FeedPost } from "@/lib/types";
 export const FEED_CONTENT_TABS = [
   { key: "all", label: "All" },
   { key: "reactions", label: "Reactions" },
-  { key: "reflections", label: "Reflections" },
+  { key: "history", label: "On This Day" },
   { key: "replies", label: "Replies" },
 ] as const;
 
@@ -14,7 +14,7 @@ export type FeedItem =
   | { type: "tension"; postA: FeedPost; postB: FeedPost };
 
 export function normalizeFeedContentType(value?: string | null): FeedContentType {
-  if (value === "reactions" || value === "reflections" || value === "replies") {
+  if (value === "reactions" || value === "history" || value === "replies") {
     return value;
   }
 

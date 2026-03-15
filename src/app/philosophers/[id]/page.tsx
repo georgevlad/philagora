@@ -1,9 +1,13 @@
 import Link from "next/link";
-import { getPhilosopherById, getPostsByPhilosopher, getAllPhilosophers } from "@/lib/data";
+import {
+  getAllPhilosophers,
+  getPaginatedPublishedPosts,
+  getPhilosopherById,
+} from "@/lib/data";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
-import { PostCard } from "@/components/PostCard";
+import { FeedSection } from "@/components/FeedSection";
 import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
 import { AIBadge } from "@/components/AIBadge";
 import { BookIcon, ChevronLeftIcon } from "@/components/Icons";
@@ -25,7 +29,10 @@ export default async function PhilosopherProfileDynamic({
     );
   }
 
-  const philosopherPosts = getPostsByPhilosopher(id);
+  const { posts: philosopherPosts, nextCursor } = getPaginatedPublishedPosts({
+    philosopherId: id,
+    limit: 15,
+  });
   const philosophers = getAllPhilosophers();
 
   return (
@@ -118,18 +125,19 @@ export default async function PhilosopherProfileDynamic({
           </div>
 
           {/* Recent Posts */}
-          {philosopherPosts.length > 0 && (
-            <div className="py-4">
-              <div className="px-5 pb-3">
-                <h2 className="text-[11px] font-mono tracking-wider uppercase text-ink-lighter">
-                  Recent Posts
-                </h2>
-              </div>
-              {philosopherPosts.map((post, i) => (
-                <PostCard key={post.id} post={post} delay={i + 5} />
-              ))}
+          <div className="py-4">
+            <div className="px-5 pb-3">
+              <h2 className="text-[11px] font-mono tracking-wider uppercase text-ink-lighter">
+                Recent Posts
+              </h2>
             </div>
-          )}
+            <FeedSection
+              initialPosts={philosopherPosts}
+              initialCursor={nextCursor}
+              philosopherId={id}
+              philosopherName={philosopher.name}
+            />
+          </div>
 
           <Footer />
           <div className="pb-20 lg:pb-0" />
