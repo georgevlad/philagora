@@ -41,7 +41,7 @@ export function PhilosopherAvatar({
   };
 
   const { classes, px, ring } = sizeConfig[size];
-  const avatarSrc = `/avatars/${philosopherId}.svg`;
+  const avatarSrc = `/avatars/${philosopherId}.png`;
 
   return (
     <div
