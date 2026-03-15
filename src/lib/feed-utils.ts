@@ -34,6 +34,19 @@ function isStandaloneReaction(post: FeedPost): boolean {
   return Boolean(post.citation) && !post.replyTo;
 }
 
+export function classifyPostFormat(post: {
+  replyTo?: string;
+  sourceType?: string;
+  stance: string;
+}): string {
+  if (post.replyTo) return "Cross-Reply";
+  if (post.sourceType === "reflection") return "Reflection";
+  if (post.sourceType === "historical_event") return "Historical";
+  if (post.sourceType === "everyday") return "Everyday";
+  if (post.stance === "quips" || post.stance === "mocks") return "Quip";
+  return "News Reaction";
+}
+
 export function buildFeedItems(posts: FeedPost[]): FeedItem[] {
   const items: FeedItem[] = [];
   let lastTensionArticle: string | null = null;

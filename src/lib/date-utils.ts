@@ -46,3 +46,20 @@ export function timeAgo(iso: string): string {
   if (diffDays < 7) return `${diffDays}d ago`;
   return formatDate(iso);
 }
+
+export function formatRelativeTime(isoDate: string): string {
+  const date = parseDateString(isoDate);
+  if (!date) return isoDate;
+
+  const now = Date.now();
+  const diffMs = now - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "now";
+  if (diffMins < 60) return `${diffMins}m`;
+  if (diffHours < 24) return `${diffHours}h`;
+  if (diffDays < 30) return `${diffDays}d`;
+  return `${Math.floor(diffDays / 30)}mo`;
+}

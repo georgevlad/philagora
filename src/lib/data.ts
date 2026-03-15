@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db";
 import { timeAgo } from "@/lib/date-utils";
+import { interleaveFeed } from "@/lib/feed-interleave";
 import { normalizeFeedContentType } from "@/lib/feed-utils";
 import { isPostSourceType } from "@/lib/historical-events";
 import { safeJsonParse } from "@/lib/json-utils";
@@ -106,17 +107,12 @@ const FEED_POST_QUERY = `
 // ── Query Functions ────────────────────────────────────────
 
 export function getPublishedPosts(): FeedPost[] {
-  const db = getDb();
-  const rows = db
-    .prepare(FEED_POST_QUERY + " WHERE p.status = 'published' ORDER BY p.created_at DESC")
-    .all() as PostRow[];
-  return rows.map(mapFeedPost);
+  return interleaveFeed(queryPublishedPosts());
 }
 
 function buildPublishedPostFilters(options: {
   contentType?: string;
   philosopherId?: string;
-  cursor?: string;
 }) {
   const conditions: string[] = ["p.status = 'published'"];
   const params: (string | number)[] = [];
@@ -138,23 +134,18 @@ function buildPublishedPostFilters(options: {
     params.push(options.philosopherId);
   }
 
-  if (options.cursor) {
-    conditions.push("p.created_at < ?");
-    params.push(options.cursor);
-  }
-
   return {
     where: ` WHERE ${conditions.join(" AND ")}`,
     params,
   };
 }
 
-export function getFilteredPublishedPosts(
-  contentType?: string,
-  philosopherId?: string
-): FeedPost[] {
+function queryPublishedPosts(options: {
+  contentType?: string;
+  philosopherId?: string;
+} = {}): FeedPost[] {
   const db = getDb();
-  const { where, params } = buildPublishedPostFilters({ contentType, philosopherId });
+  const { where, params } = buildPublishedPostFilters(options);
   const rows = db
     .prepare(FEED_POST_QUERY + where + " ORDER BY p.created_at DESC")
     .all(...params) as PostRow[];
@@ -162,37 +153,39 @@ export function getFilteredPublishedPosts(
   return rows.map(mapFeedPost);
 }
 
-export function getPaginatedPublishedPosts(options: {
+export function getFilteredPublishedPosts(
+  contentType?: string,
+  philosopherId?: string
+): FeedPost[] {
+  return interleaveFeed(queryPublishedPosts({ contentType, philosopherId }));
+}
+
+export function getInterleavedFeed(options: {
   contentType?: string;
   philosopherId?: string;
-  cursor?: string;
+  offset?: number;
   limit?: number;
-}): { posts: FeedPost[]; nextCursor: string | null } {
-  const db = getDb();
+}): { posts: FeedPost[]; hasMore: boolean; nextOffset: number | null } {
   const limit = Math.max(1, options.limit ?? 15);
-  const { where, params } = buildPublishedPostFilters(options);
-  const rows = db
-    .prepare(FEED_POST_QUERY + where + " ORDER BY p.created_at DESC LIMIT ?")
-    .all(...params, limit + 1) as PostRow[];
-
-  const hasMore = rows.length > limit;
-  const sliced = hasMore ? rows.slice(0, limit) : rows;
+  const offset = Math.max(0, options.offset ?? 0);
+  const interleavedPosts = interleaveFeed(
+    queryPublishedPosts({
+      contentType: options.contentType,
+      philosopherId: options.philosopherId,
+    })
+  );
+  const posts = interleavedPosts.slice(offset, offset + limit);
+  const hasMore = offset + limit < interleavedPosts.length;
 
   return {
-    posts: sliced.map(mapFeedPost),
-    nextCursor: hasMore && sliced.length > 0 ? sliced[sliced.length - 1].created_at : null,
+    posts,
+    hasMore,
+    nextOffset: hasMore ? offset + posts.length : null,
   };
 }
 
 export function getPostsByPhilosopher(philosopherId: string): FeedPost[] {
-  const db = getDb();
-  const rows = db
-    .prepare(
-      FEED_POST_QUERY +
-        " WHERE p.philosopher_id = ? AND p.status = 'published' ORDER BY p.created_at DESC"
-    )
-    .all(philosopherId) as PostRow[];
-  return rows.map(mapFeedPost);
+  return interleaveFeed(queryPublishedPosts({ philosopherId }));
 }
 
 export function getPostById(id: string): FeedPost | null {

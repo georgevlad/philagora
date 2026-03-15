@@ -14,19 +14,20 @@ import type { FeedPost } from "@/lib/types";
 
 interface FeedSectionProps {
   initialPosts: FeedPost[];
-  initialCursor: string | null;
+  initialHasMore: boolean;
   philosopherId?: string;
   philosopherName?: string;
 }
 
 interface PaginatedFeedResponse {
   posts: FeedPost[];
-  nextCursor: string | null;
+  hasMore: boolean;
+  nextOffset: number | null;
 }
 
 function buildFeedApiUrl(
   type: FeedContentType,
-  cursor?: string | null,
+  offset?: number,
   philosopherId?: string
 ): string {
   const params = new URLSearchParams();
@@ -39,8 +40,8 @@ function buildFeedApiUrl(
     params.set("philosopher", philosopherId);
   }
 
-  if (cursor) {
-    params.set("cursor", cursor);
+  if (offset && offset > 0) {
+    params.set("offset", String(offset));
   }
 
   const query = params.toString();
@@ -90,7 +91,7 @@ function buildEmptyStateMessage(type: FeedContentType, philosopherName?: string)
 
 export function FeedSection({
   initialPosts,
-  initialCursor,
+  initialHasMore,
   philosopherId,
   philosopherName,
 }: FeedSectionProps) {
@@ -98,8 +99,8 @@ export function FeedSection({
   const selectedType = normalizeFeedContentType(searchParams.get("type"));
   const showDefaultFeed = selectedType === "all";
   const [posts, setPosts] = useState<FeedPost[]>(showDefaultFeed ? initialPosts : []);
-  const [cursor, setCursor] = useState<string | null>(showDefaultFeed ? initialCursor : null);
-  const [hasMore, setHasMore] = useState<boolean>(showDefaultFeed ? initialCursor !== null : true);
+  const [offset, setOffset] = useState<number>(showDefaultFeed ? initialPosts.length : 0);
+  const [hasMore, setHasMore] = useState<boolean>(showDefaultFeed ? initialHasMore : true);
   const [loading, setLoading] = useState(!showDefaultFeed);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,8 +131,8 @@ export function FeedSection({
 
     if (showDefaultFeed) {
       setPosts(initialPosts);
-      setCursor(initialCursor);
-      setHasMore(initialCursor !== null);
+      setOffset(initialPosts.length);
+      setHasMore(initialHasMore);
       setLoading(false);
       setError(null);
       return;
@@ -140,14 +141,14 @@ export function FeedSection({
     const controller = new AbortController();
     filterRequestRef.current = controller;
     setPosts([]);
-    setCursor(null);
+    setOffset(0);
     setHasMore(true);
     setLoading(true);
     setError(null);
 
     const loadPosts = async () => {
       try {
-        const response = await fetch(buildFeedApiUrl(selectedType, null, philosopherId), {
+        const response = await fetch(buildFeedApiUrl(selectedType, 0, philosopherId), {
           cache: "no-store",
           signal: controller.signal,
         });
@@ -163,15 +164,15 @@ export function FeedSection({
         }
 
         setPosts(data.posts);
-        setCursor(data.nextCursor);
-        setHasMore(data.nextCursor !== null);
+        setOffset(data.nextOffset ?? data.posts.length);
+        setHasMore(data.hasMore);
       } catch (fetchError) {
         if (controller.signal.aborted) return;
 
         console.error("Failed to load filtered feed:", fetchError);
         setError("Unable to load the feed right now.");
         setPosts([]);
-        setCursor(null);
+        setOffset(0);
         setHasMore(false);
       } finally {
         if (!controller.signal.aborted && requestVersion === requestVersionRef.current) {
@@ -188,10 +189,10 @@ export function FeedSection({
         filterRequestRef.current = null;
       }
     };
-  }, [initialCursor, initialPosts, philosopherId, selectedType, showDefaultFeed]);
+  }, [initialHasMore, initialPosts, philosopherId, selectedType, showDefaultFeed]);
 
   const loadMore = useCallback(async () => {
-    if (loading || loadingMore || loadMoreError || !hasMore || !cursor) {
+    if (loading || loadingMore || loadMoreError || !hasMore) {
       return;
     }
 
@@ -203,7 +204,7 @@ export function FeedSection({
     setLoadMoreError(null);
 
     try {
-      const response = await fetch(buildFeedApiUrl(selectedType, cursor, philosopherId), {
+      const response = await fetch(buildFeedApiUrl(selectedType, offset, philosopherId), {
         cache: "no-store",
         signal: controller.signal,
       });
@@ -223,8 +224,8 @@ export function FeedSection({
         const nextPosts = data.posts.filter((post) => !seenPostIds.has(post.id));
         return nextPosts.length > 0 ? [...previousPosts, ...nextPosts] : previousPosts;
       });
-      setCursor(data.nextCursor);
-      setHasMore(data.nextCursor !== null);
+      setOffset((previousOffset) => data.nextOffset ?? previousOffset + data.posts.length);
+      setHasMore(data.hasMore);
     } catch (fetchError) {
       if (controller.signal.aborted) return;
 
@@ -239,7 +240,7 @@ export function FeedSection({
         loadMoreRequestRef.current = null;
       }
     }
-  }, [cursor, hasMore, loadMoreError, loading, loadingMore, philosopherId, selectedType]);
+  }, [hasMore, loadMoreError, loading, loadingMore, offset, philosopherId, selectedType]);
 
   useEffect(() => {
     if (!sentinelRef.current || loading || loadingMore || loadMoreError || !hasMore) {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   getAllPhilosophers,
-  getPaginatedPublishedPosts,
+  getInterleavedFeed,
   getPhilosopherById,
 } from "@/lib/data";
 import { LeftSidebar } from "@/components/LeftSidebar";
@@ -29,7 +29,7 @@ export default async function PhilosopherProfileDynamic({
     );
   }
 
-  const { posts: philosopherPosts, nextCursor } = getPaginatedPublishedPosts({
+  const { posts: philosopherPosts, hasMore } = getInterleavedFeed({
     philosopherId: id,
     limit: 15,
   });
@@ -133,7 +133,7 @@ export default async function PhilosopherProfileDynamic({
             </div>
             <FeedSection
               initialPosts={philosopherPosts}
-              initialCursor={nextCursor}
+              initialHasMore={hasMore}
               philosopherId={id}
               philosopherName={philosopher.name}
             />
