@@ -20,6 +20,7 @@ const navItems: NavItem[] = [
   { href: "/admin/agora", label: "Agora", icon: "❓" },
   { href: "/admin/content", label: "Generate", icon: "⚡" },
   { href: "/admin/daily", label: "Daily Feed", icon: "🗓️" },
+  { href: "/admin/everyday", label: "Everyday", icon: "💭" },
   { href: "/admin/news-scout", label: "News Scout", icon: "📰" },
   { href: "/admin/historical-events", label: "History", icon: "🏛️" },
   { href: "/admin/scoring", label: "Scoring", icon: "⚙️", indent: true },

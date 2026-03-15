@@ -37,7 +37,7 @@ export const MONTH_NAMES = [
 export type HistoricalEventEra = (typeof HISTORICAL_EVENT_ERAS)[number];
 export type HistoricalEventCategory = (typeof HISTORICAL_EVENT_CATEGORIES)[number];
 export type HistoricalEventStatus = (typeof HISTORICAL_EVENT_STATUSES)[number];
-export type PostSourceType = "news" | "historical_event" | "reflection";
+export type PostSourceType = "news" | "historical_event" | "reflection" | "everyday";
 
 export function isHistoricalEventEra(value: string): value is HistoricalEventEra {
   return HISTORICAL_EVENT_ERAS.includes(value as HistoricalEventEra);
@@ -56,7 +56,7 @@ export function isHistoricalEventStatus(
 }
 
 export function isPostSourceType(value: string): value is PostSourceType {
-  return ["news", "historical_event", "reflection"].includes(value);
+  return ["news", "historical_event", "reflection", "everyday"].includes(value);
 }
 
 export function normalizeHistoricalThemes(value: unknown): string[] {

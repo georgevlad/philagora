@@ -215,6 +215,15 @@ function OnThisDayHeader({ source }: { source: string }) {
   );
 }
 
+function ExaminedLifeHeader({ source }: { source: string }) {
+  return (
+    <div className="mb-3 flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-ink-lighter">
+      <span aria-hidden="true">💭</span>
+      <span>{source.toUpperCase()}</span>
+    </div>
+  );
+}
+
 function HistoricalEventTitle({ title, color }: { title: string; color: string }) {
   return (
     <blockquote
@@ -246,6 +255,7 @@ export function PostCard({
   const isQuip = post.tag === "Quip";
   const isPopular = post.likes >= 50;
   const isHistoricalEvent = post.sourceType === "historical_event";
+  const isEveryday = post.sourceType === "everyday";
   const shouldShowThesis = !isQuip || post.thesis.trim() !== post.content.trim();
   const postHref = `/post/${post.id}`;
 
@@ -307,7 +317,13 @@ export function PostCard({
               </div>
             )}
 
-            {isHistoricalEvent && post.citation?.title && (
+            {isEveryday && post.citation?.source && (
+              <div className="relative z-10">
+                <ExaminedLifeHeader source={post.citation.source} />
+              </div>
+            )}
+
+            {(isHistoricalEvent || isEveryday) && post.citation?.title && (
               <div className="relative z-10 w-full max-w-lg">
                 <HistoricalEventTitle title={post.citation.title} color={color} />
               </div>
@@ -323,7 +339,7 @@ export function PostCard({
 
             <PostContent content={post.content} color={color} isAphorism linkHref={postHref} />
 
-            {post.citation && !isHistoricalEvent && (
+            {post.citation && !isHistoricalEvent && !isEveryday && (
               <div className="w-full mt-2">
                 <CitationBlock citation={post.citation} color={color} accent={accent} />
               </div>
@@ -371,7 +387,11 @@ export function PostCard({
                 <OnThisDayHeader source={post.citation.source} />
               )}
 
-              {isHistoricalEvent && post.citation?.title && (
+              {isEveryday && post.citation?.source && (
+                <ExaminedLifeHeader source={post.citation.source} />
+              )}
+
+              {(isHistoricalEvent || isEveryday) && post.citation?.title && (
                 <HistoricalEventTitle title={post.citation.title} color={color} />
               )}
 
@@ -392,7 +412,7 @@ export function PostCard({
 
               <PostContent content={post.content} color={color} isQuip={isQuip} linkHref={postHref} />
 
-              {post.citation && !isHistoricalEvent && (
+              {post.citation && !isHistoricalEvent && !isEveryday && (
                 <CitationBlock citation={post.citation} color={color} accent={accent} />
               )}
 

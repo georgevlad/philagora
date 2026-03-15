@@ -8,6 +8,7 @@ type TemplateKey =
   | "timeless_reflection"
   | "cross_philosopher_reply"
   | "historical_reaction"
+  | "everyday_reaction"
   | "debate_opening"
   | "debate_rebuttal"
   | "agora_response"
@@ -54,6 +55,7 @@ const TEMPLATE_ITEMS: Array<{ key: TemplateKey; label: string }> = [
   { key: "timeless_reflection", label: "Timeless Reflection" },
   { key: "cross_philosopher_reply", label: "Cross-Philosopher Reply" },
   { key: "historical_reaction", label: "Historical Reaction" },
+  { key: "everyday_reaction", label: "Everyday Reaction" },
   { key: "debate_opening", label: "Debate Opening" },
   { key: "debate_rebuttal", label: "Debate Rebuttal" },
   { key: "agora_response", label: "Agora Response" },

@@ -132,11 +132,10 @@ export async function generateContent(
 
   // 5. Compose the system message: persona prompt + metadata + template
   //    Substitute {LENGTH_GUIDANCE} if the template uses variable lengths
-  const lengthGuidance = getLengthGuidance(contentTypeKey, targetLength ?? "medium");
-  const instructions = templateInstructions.replace(
-    "{LENGTH_GUIDANCE}",
-    lengthGuidance
-  );
+  const lengthGuidance = getLengthGuidance(contentTypeKey, targetLength);
+  const instructions = templateInstructions
+    .replace("{LENGTH_GUIDANCE}", lengthGuidance)
+    .replace("{SOURCE_MATERIAL}", sourceMaterial);
   const houseRules = getActiveHouseRules();
   const houseRulesBlock = houseRules ? `\n---\n\n${houseRules}\n` : "";
 

@@ -124,7 +124,7 @@ export function getFilteredPublishedPosts(
 
   if (normalizedContentType === "reactions") {
     conditions.push(
-      "((p.source_type = 'news' AND p.citation_url IS NOT NULL AND p.citation_url != '') OR p.source_type = 'historical_event')"
+      "((p.source_type = 'news' AND p.citation_url IS NOT NULL AND p.citation_url != '') OR p.source_type = 'historical_event' OR p.source_type = 'everyday')"
     );
     conditions.push("(p.reply_to IS NULL OR p.reply_to = '')");
   } else if (normalizedContentType === "reflections") {

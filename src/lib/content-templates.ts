@@ -21,6 +21,13 @@ const REFLECTION_LENGTHS: Record<TargetLength, string> = {
   long: "Length: 120–200 words. An extended meditation. Multiple paragraphs allowed.",
 };
 
+const EVERYDAY_LENGTHS: Record<TargetLength, string> = {
+  short:
+    "STRICT LENGTH: 40–70 words. Maximum 3 sentences. Be sharp and concise — one philosophical observation, developed just enough to land. Think barbed cocktail-party remark, not essay.",
+  medium: "Length: 70–120 words. A developed reaction with room for one turn of thought.",
+  long: "Length: 120–180 words. A fuller take — but still conversational, not essayistic.",
+};
+
 const LENGTH_MAPS: Partial<Record<ContentTypeKey, Record<TargetLength, string>>> = {
   news_reaction: STANDARD_LENGTHS,
   quip: {
@@ -30,6 +37,7 @@ const LENGTH_MAPS: Partial<Record<ContentTypeKey, Record<TargetLength, string>>>
   },
   cross_philosopher_reply: STANDARD_LENGTHS,
   historical_reaction: STANDARD_LENGTHS,
+  everyday_reaction: EVERYDAY_LENGTHS,
   timeless_reflection: REFLECTION_LENGTHS,
 };
 
@@ -40,11 +48,13 @@ const LENGTH_MAPS: Partial<Record<ContentTypeKey, Record<TargetLength, string>>>
  */
 export function getLengthGuidance(
   templateKey: ContentTypeKey,
-  targetLength: TargetLength = "medium"
+  targetLength?: TargetLength
 ): string {
   const map = LENGTH_MAPS[templateKey];
   if (!map) return STANDARD_LENGTHS.medium;
-  return map[targetLength];
+  const resolvedLength =
+    targetLength ?? (templateKey === "everyday_reaction" ? "short" : "medium");
+  return map[resolvedLength];
 }
 
 // ── Content type key ────────────────────────────────────────────────
@@ -55,6 +65,7 @@ export type ContentTypeKey =
   | "timeless_reflection"
   | "cross_philosopher_reply"
   | "historical_reaction"
+  | "everyday_reaction"
   | "debate_opening"
   | "debate_rebuttal"
   | "agora_response"
@@ -72,6 +83,9 @@ export function resolveContentTypeKey(
     if (uiLabel === "Cross-Philosopher Reply") return "cross_philosopher_reply";
     if (uiLabel === "Historical Reaction" || uiLabel === "historical_reaction") {
       return "historical_reaction";
+    }
+    if (uiLabel === "Everyday Reaction" || uiLabel === "everyday_reaction") {
+      return "everyday_reaction";
     }
     if (uiLabel === "Quip") return "quip";
     return "news_reaction";
@@ -215,6 +229,36 @@ RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
   "thesis": "A single compelling sentence - your philosophical verdict on this event.",
   "stance": "One of: challenges, defends, reframes, questions, warns, observes, diagnoses, provokes, laments, quips, mocks",
   "tag": "A 1-3 word topic tag (e.g., 'empire & decay', 'human nature', 'justice')"
+}
+`.trim(),
+  },
+
+  everyday_reaction: {
+    key: "everyday_reaction",
+    instructions: `You are reacting to an EVERYDAY SITUATION — a universal human experience that everyone recognizes.
+
+SCENARIO:
+{SOURCE_MATERIAL}
+
+YOUR TASK:
+Apply your philosophical framework genuinely to this mundane scenario. The goal is to make the reader see this everyday experience through your specific philosophical lens — not to deliver generic wisdom or a fortune cookie.
+
+TONE GUIDANCE:
+- You may be witty, dry, cutting, or amused — but NEVER sacrifice intellectual substance for humor
+- This is not a motivational poster. Ground your response in your actual philosophical concepts
+- Be concise and punchy. This format rewards precision, not elaboration
+- Your voice should be immediately recognizable — lean into what makes your perspective distinctive
+- Speak directly, as if remarking on the situation in passing conversation
+- Do NOT open with "Ah," or any similar interjection. Vary your openings.
+
+{LENGTH_GUIDANCE}
+
+RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
+{
+  "content": "Your philosophical reaction as a single string.",
+  "thesis": "A single sharp sentence — your philosophical take on this situation.",
+  "stance": "One of: challenges, defends, reframes, questions, warns, observes, diagnoses, provokes, laments, quips, mocks",
+  "tag": "A 1-3 word topic tag (e.g., 'patience', 'modern absurdity', 'freedom')"
 }
 `.trim(),
   },

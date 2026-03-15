@@ -11,9 +11,11 @@ export async function GET(request: NextRequest) {
     const philosopher = searchParams.get("philosopher");
     const status = searchParams.get("status");
     const tag = searchParams.get("tag");
+    const sourceType = searchParams.get("source_type");
+    const limitParam = searchParams.get("limit");
 
     let query = `
-      SELECT p.*, ph.name as philosopher_name, ph.color as philosopher_color
+      SELECT p.*, ph.name as philosopher_name, ph.color as philosopher_color, ph.initials as philosopher_initials
       FROM posts p
       JOIN philosophers ph ON p.philosopher_id = ph.id
     `;
@@ -32,12 +34,25 @@ export async function GET(request: NextRequest) {
       conditions.push("p.tag = ?");
       params.push(tag);
     }
+    if (sourceType) {
+      conditions.push("p.source_type = ?");
+      params.push(sourceType);
+    }
 
     if (conditions.length > 0) {
       query += " WHERE " + conditions.join(" AND ");
     }
 
     query += " ORDER BY p.created_at DESC";
+
+    const parsedLimit = limitParam ? Number.parseInt(limitParam, 10) : Number.NaN;
+    const limit = Number.isFinite(parsedLimit)
+      ? Math.max(1, Math.min(parsedLimit, 200))
+      : null;
+    if (limit !== null) {
+      query += " LIMIT ?";
+      params.push(String(limit));
+    }
 
     const posts = db.prepare(query).all(...params);
     return NextResponse.json(posts);
