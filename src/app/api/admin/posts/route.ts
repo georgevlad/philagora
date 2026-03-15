@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
+import { isPostSourceType } from "@/lib/historical-events";
 import { POST_STATUSES, STANCE_CONFIG } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
@@ -60,6 +61,8 @@ export async function POST(request: NextRequest) {
       thesis,
       stance,
       tag,
+      source_type,
+      historical_event_id,
       citation_title,
       citation_source,
       citation_url,
@@ -81,27 +84,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (source_type && !isPostSourceType(String(source_type))) {
+      return NextResponse.json(
+        { error: "Invalid source_type provided." },
+        { status: 400 }
+      );
+    }
+
     // Generate a unique post ID
     const postId = `post-gen-${crypto.randomUUID()}`;
 
-    const result = db
-      .prepare(
-        `INSERT INTO posts (id, philosopher_id, content, thesis, stance, tag, citation_title, citation_source, citation_url, citation_image_url, reply_to, likes, replies, bookmarks, status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 'draft', datetime('now'), datetime('now'))`
+    db.prepare(
+      `INSERT INTO posts (
+        id, philosopher_id, content, thesis, stance, tag, source_type, historical_event_id,
+        citation_title, citation_source, citation_url, citation_image_url, reply_to,
+        likes, replies, bookmarks, status, created_at, updated_at
       )
-      .run(
-        postId,
-        philosopher_id,
-        content,
-        thesis ?? "",
-        stance ?? "observes",
-        tag ?? "",
-        citation_title ?? null,
-        citation_source ?? null,
-        citation_url ?? null,
-        citation_image_url ?? null,
-        reply_to ?? null
-      );
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 'draft', datetime('now'), datetime('now'))`
+    ).run(
+      postId,
+      philosopher_id,
+      content,
+      thesis ?? "",
+      stance ?? "observes",
+      tag ?? "",
+      source_type ?? "news",
+      historical_event_id ?? null,
+      citation_title ?? null,
+      citation_source ?? null,
+      citation_url ?? null,
+      citation_image_url ?? null,
+      reply_to ?? null
+    );
 
     const created = db
       .prepare(

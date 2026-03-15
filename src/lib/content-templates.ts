@@ -29,6 +29,7 @@ const LENGTH_MAPS: Partial<Record<ContentTypeKey, Record<TargetLength, string>>>
     long: "STRICT: Maximum 2 sentences, under 30 words total.",
   },
   cross_philosopher_reply: STANDARD_LENGTHS,
+  historical_reaction: STANDARD_LENGTHS,
   timeless_reflection: REFLECTION_LENGTHS,
 };
 
@@ -53,6 +54,7 @@ export type ContentTypeKey =
   | "quip"
   | "timeless_reflection"
   | "cross_philosopher_reply"
+  | "historical_reaction"
   | "debate_opening"
   | "debate_rebuttal"
   | "agora_response"
@@ -68,6 +70,9 @@ export function resolveContentTypeKey(
   // and "reflection" for timeless_reflection. We disambiguate via the label.
   if (dbContentType === "post") {
     if (uiLabel === "Cross-Philosopher Reply") return "cross_philosopher_reply";
+    if (uiLabel === "Historical Reaction" || uiLabel === "historical_reaction") {
+      return "historical_reaction";
+    }
     if (uiLabel === "Quip") return "quip";
     return "news_reaction";
   }
@@ -181,6 +186,35 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
   "thesis": "One sentence summarizing your response",
   "stance": "challenges | defends | reframes | questions | warns | observes | diagnoses | provokes | laments",
   "tag": "Cross-Philosopher Reply"
+}
+`.trim(),
+  },
+
+  historical_reaction: {
+    key: "historical_reaction",
+    instructions: `You are reacting to a HISTORICAL EVENT - not breaking news. You have the benefit of historical distance.
+
+HISTORICAL EVENT CONTEXT:
+{SOURCE_MATERIAL}
+
+YOUR TASK:
+Write a reflective, philosophically grounded reaction to this historical event. Unlike a news reaction (which is urgent and topical), you are looking back on something that happened long ago. Draw out the timeless significance. Connect it to enduring human patterns.
+
+TONE GUIDANCE:
+- More contemplative and essayistic than a news reaction
+- You may reference the long-term consequences and legacy of this event
+- You may draw parallels to recurring patterns in history, but avoid forced contemporary comparisons
+- Speak with the authority of someone who has had centuries to reflect
+- Your philosophical voice and framework should shape the interpretation
+
+{LENGTH_GUIDANCE}
+
+RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
+{
+  "content": "Your philosophical reaction as a single string. If multiple paragraphs, separate with \\n\\n.",
+  "thesis": "A single compelling sentence - your philosophical verdict on this event.",
+  "stance": "One of: challenges, defends, reframes, questions, warns, observes, diagnoses, provokes, laments, quips, mocks",
+  "tag": "A 1-3 word topic tag (e.g., 'empire & decay', 'human nature', 'justice')"
 }
 `.trim(),
   },

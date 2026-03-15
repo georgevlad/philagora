@@ -83,12 +83,15 @@ export function runMigrations(
   migratePhilosophersIsActive(db);
   migrateScoringConfig(db);
   migrateContentTemplates(db);
+  migrateAddHistoricalEvents(db);
 
   try {
     migratePostsSchema(db);
   } catch (err) {
     if (!(err instanceof Error && err.message.includes("SQLITE_ERROR"))) throw err;
   }
+
+  migrateAddPostSourceType(db);
 
   const tableInfo = db
     .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='generation_log'")
@@ -265,6 +268,8 @@ function migratePostsSchema(db: Database.Database): void {
         thesis          TEXT NOT NULL DEFAULT '',
         stance          TEXT NOT NULL CHECK(stance IN ('challenges','defends','reframes','questions','warns','observes','diagnoses','provokes','laments','quips','mocks')),
         tag             TEXT NOT NULL DEFAULT '',
+        source_type        TEXT NOT NULL DEFAULT 'news',
+        historical_event_id TEXT REFERENCES historical_events(id),
         citation_title     TEXT,
         citation_source    TEXT,
         citation_url       TEXT,
@@ -279,16 +284,83 @@ function migratePostsSchema(db: Database.Database): void {
       );
     `);
 
-    db.exec("INSERT INTO posts_new SELECT * FROM posts;");
+    db.exec(`
+      INSERT INTO posts_new (
+        id, philosopher_id, content, thesis, stance, tag,
+        source_type, historical_event_id,
+        citation_title, citation_source, citation_url, citation_image_url,
+        reply_to, likes, replies, bookmarks, status, created_at, updated_at
+      )
+      SELECT
+        id, philosopher_id, content, thesis, stance, tag,
+        'news', NULL,
+        citation_title, citation_source, citation_url, citation_image_url,
+        reply_to, likes, replies, bookmarks, status, created_at, updated_at
+      FROM posts;
+    `);
     db.exec("DROP TABLE posts;");
     db.exec("ALTER TABLE posts_new RENAME TO posts;");
     db.exec("CREATE INDEX IF NOT EXISTS idx_posts_philosopher ON posts(philosopher_id);");
     db.exec("CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);");
     db.exec("CREATE INDEX IF NOT EXISTS idx_posts_tag ON posts(tag);");
     db.exec("CREATE INDEX IF NOT EXISTS idx_posts_reply_to ON posts(reply_to);");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_posts_source_type ON posts(source_type);");
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_posts_historical_event_id ON posts(historical_event_id);"
+    );
   })();
 
   db.exec("PRAGMA foreign_keys = ON;");
+}
+
+function migrateAddHistoricalEvents(db: Database.Database): void {
+  const exists = db
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='historical_events'")
+    .get();
+
+  if (exists) return;
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS historical_events (
+      id              TEXT PRIMARY KEY,
+      title           TEXT NOT NULL,
+      event_month     INTEGER NOT NULL CHECK(event_month BETWEEN 1 AND 12),
+      event_day       INTEGER NOT NULL CHECK(event_day BETWEEN 1 AND 31),
+      event_year      INTEGER,
+      display_date    TEXT NOT NULL,
+      era             TEXT NOT NULL DEFAULT 'modern' CHECK(era IN ('ancient','medieval','early_modern','modern','contemporary')),
+      category        TEXT NOT NULL DEFAULT 'political' CHECK(category IN ('war_conflict','revolution','science_discovery','cultural_shift','political','economic','philosophical','other')),
+      context         TEXT NOT NULL,
+      key_themes      TEXT NOT NULL DEFAULT '[]',
+      status          TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','ready','used')),
+      created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_historical_events_date ON historical_events(event_month, event_day);
+    CREATE INDEX IF NOT EXISTS idx_historical_events_status ON historical_events(status);
+    CREATE INDEX IF NOT EXISTS idx_historical_events_era ON historical_events(era);
+  `);
+}
+
+function migrateAddPostSourceType(db: Database.Database): void {
+  const columns = db.prepare("PRAGMA table_info(posts)").all() as Array<{ name: string }>;
+  const hasSourceType = columns.some((col) => col.name === "source_type");
+  const hasHistoricalEventId = columns.some((col) => col.name === "historical_event_id");
+
+  if (!hasSourceType) {
+    db.exec("ALTER TABLE posts ADD COLUMN source_type TEXT NOT NULL DEFAULT 'news'");
+  }
+
+  if (!hasHistoricalEventId) {
+    db.exec(
+      "ALTER TABLE posts ADD COLUMN historical_event_id TEXT REFERENCES historical_events(id)"
+    );
+  }
+
+  db.exec("CREATE INDEX IF NOT EXISTS idx_posts_source_type ON posts(source_type);");
+  db.exec(
+    "CREATE INDEX IF NOT EXISTS idx_posts_historical_event_id ON posts(historical_event_id);"
+  );
 }
 
 function migrateAgoraThreadsIpAddress(db: Database.Database): void {

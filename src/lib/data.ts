@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/db";
 import { timeAgo } from "@/lib/date-utils";
 import { normalizeFeedContentType } from "@/lib/feed-utils";
+import { isPostSourceType } from "@/lib/historical-events";
 import { safeJsonParse } from "@/lib/json-utils";
 import type {
   AgoraPhilosopherRow,
@@ -64,6 +65,8 @@ function mapFeedPost(row: PostRow): FeedPost {
     thesis: row.thesis || "",
     stance: row.stance as FeedPost["stance"],
     tag: row.tag || "",
+    sourceType: isPostSourceType(row.source_type ?? "") ? row.source_type : "news",
+    historicalEventId: row.historical_event_id ?? undefined,
     citation: buildCitation(row),
     likes: row.likes,
     replies: row.replies,
@@ -120,10 +123,12 @@ export function getFilteredPublishedPosts(
   const normalizedContentType = normalizeFeedContentType(contentType);
 
   if (normalizedContentType === "reactions") {
-    conditions.push("p.citation_url IS NOT NULL AND p.citation_url != ''");
+    conditions.push(
+      "((p.source_type = 'news' AND p.citation_url IS NOT NULL AND p.citation_url != '') OR p.source_type = 'historical_event')"
+    );
     conditions.push("(p.reply_to IS NULL OR p.reply_to = '')");
   } else if (normalizedContentType === "reflections") {
-    conditions.push("(p.citation_url IS NULL OR p.citation_url = '')");
+    conditions.push("COALESCE(p.source_type, 'news') = 'reflection'");
     conditions.push("(p.reply_to IS NULL OR p.reply_to = '')");
   } else if (normalizedContentType === "replies") {
     conditions.push("p.reply_to IS NOT NULL AND p.reply_to != ''");

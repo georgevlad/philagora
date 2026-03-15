@@ -26,6 +26,8 @@ export interface Post {
   stance: Stance;
   citation?: PostCitation;
   tag: string;
+  sourceType?: string;
+  historicalEventId?: string;
   likes: number;
   replies: number;
   bookmarks: number;
@@ -43,6 +45,35 @@ export interface FeedPost extends Post {
   replyTargetPhilosopherName?: string;
   replyTargetPhilosopherColor?: string;
   replyTargetPhilosopherInitials?: string;
+}
+
+export interface HistoricalEventPostUsage {
+  postId: string;
+  philosopherId: string;
+  philosopherName: string;
+  philosopherInitials: string;
+  philosopherColor: string;
+  status: string;
+  stance: Stance;
+  createdAt: string;
+}
+
+export interface HistoricalEvent {
+  id: string;
+  title: string;
+  eventMonth: number;
+  eventDay: number;
+  eventYear?: number | null;
+  displayDate: string;
+  era: string;
+  category: string;
+  context: string;
+  keyThemes: string[];
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  postsCount?: number;
+  posts?: HistoricalEventPostUsage[];
 }
 
 export interface Philosopher {

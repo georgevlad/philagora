@@ -206,6 +206,30 @@ function PostContent({
   );
 }
 
+function OnThisDayHeader({ source }: { source: string }) {
+  return (
+    <div className="mb-3 flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-ink-lighter">
+      <span aria-hidden="true">🕰️</span>
+      <span>{source}</span>
+    </div>
+  );
+}
+
+function HistoricalEventTitle({ title, color }: { title: string; color: string }) {
+  return (
+    <blockquote
+      className="mb-4 rounded-r-xl px-4 py-3 font-serif text-[18px] leading-[1.4] text-ink sm:text-[19px]"
+      style={{
+        borderLeft: `3px solid ${color}`,
+        background: `linear-gradient(90deg, ${color}12, rgba(248,243,234,0.45))`,
+        fontWeight: 500,
+      }}
+    >
+      {title}
+    </blockquote>
+  );
+}
+
 export function PostCard({
   post,
   delay = 0,
@@ -221,6 +245,7 @@ export function PostCard({
   const isAphorism = post.tag === "Practical Wisdom" || post.tag === "Timeless Wisdom";
   const isQuip = post.tag === "Quip";
   const isPopular = post.likes >= 50;
+  const isHistoricalEvent = post.sourceType === "historical_event";
   const shouldShowThesis = !isQuip || post.thesis.trim() !== post.content.trim();
   const postHref = `/post/${post.id}`;
 
@@ -276,6 +301,18 @@ export function PostCard({
               {isPopular && <PopularBadge />}
             </div>
 
+            {isHistoricalEvent && post.citation?.source && (
+              <div className="relative z-10">
+                <OnThisDayHeader source={post.citation.source} />
+              </div>
+            )}
+
+            {isHistoricalEvent && post.citation?.title && (
+              <div className="relative z-10 w-full max-w-lg">
+                <HistoricalEventTitle title={post.citation.title} color={color} />
+              </div>
+            )}
+
             <Link href={postHref} className="block cursor-pointer">
               <blockquote className="font-serif text-[22px] sm:text-[24px] leading-[1.38] text-ink mb-4 max-w-lg px-3 relative z-10 font-medium">
                 &ldquo;{post.thesis}&rdquo;
@@ -286,7 +323,7 @@ export function PostCard({
 
             <PostContent content={post.content} color={color} isAphorism linkHref={postHref} />
 
-            {post.citation && (
+            {post.citation && !isHistoricalEvent && (
               <div className="w-full mt-2">
                 <CitationBlock citation={post.citation} color={color} accent={accent} />
               </div>
@@ -330,6 +367,14 @@ export function PostCard({
                 </div>
               )}
 
+              {isHistoricalEvent && post.citation?.source && (
+                <OnThisDayHeader source={post.citation.source} />
+              )}
+
+              {isHistoricalEvent && post.citation?.title && (
+                <HistoricalEventTitle title={post.citation.title} color={color} />
+              )}
+
               {shouldShowThesis && (
                 <Link href={postHref} className="block cursor-pointer">
                   <blockquote
@@ -347,7 +392,9 @@ export function PostCard({
 
               <PostContent content={post.content} color={color} isQuip={isQuip} linkHref={postHref} />
 
-              {post.citation && <CitationBlock citation={post.citation} color={color} accent={accent} />}
+              {post.citation && !isHistoricalEvent && (
+                <CitationBlock citation={post.citation} color={color} accent={accent} />
+              )}
 
               <div className="flex items-center justify-between gap-2 flex-wrap mt-3 pt-3 border-t border-border-light/70">
                 <TagBadge tag={post.tag} accent={accent} />

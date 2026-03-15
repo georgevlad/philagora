@@ -23,6 +23,8 @@ export interface PostRow {
   thesis: string;
   stance: string;
   tag: string;
+  source_type?: string;
+  historical_event_id?: string | null;
   citation_title: string | null;
   citation_source: string | null;
   citation_url: string | null;
@@ -154,4 +156,21 @@ export interface ContentTemplateRow {
   is_active: number;
   created_at: string;
   notes: string;
+}
+
+export interface HistoricalEventRow {
+  id: string;
+  title: string;
+  event_month: number;
+  event_day: number;
+  event_year: number | null;
+  display_date: string;
+  era: string;
+  category: string;
+  context: string;
+  key_themes: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  posts_count?: number;
 }
