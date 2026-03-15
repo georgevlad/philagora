@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAnthropicClient } from "@/lib/anthropic-utils";
+import { getAnthropicClient, parseJsonValueResponse } from "@/lib/anthropic-utils";
 import { getDb } from "@/lib/db";
 import type { HistoricalEventRow } from "@/lib/db-types";
 import {
@@ -20,6 +20,9 @@ const DEFAULT_LIMIT = 50;
 const DEFAULT_BATCH_COUNT = 15;
 const MAX_LIMIT = 200;
 const MAX_BATCH_COUNT = 30;
+const EVENTS_PER_AI_BATCH = 6;
+const BATCH_GENERATION_MAX_TOKENS = 8192;
+const MAX_BATCH_GENERATION_ATTEMPTS = 10;
 
 type CreateActionBody = {
   action: "create";
@@ -63,13 +66,20 @@ function isValidDay(day: number): boolean {
 }
 
 function parseAnthropicJson(raw: string): unknown {
-  const cleaned = raw
-    .trim()
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/```\s*$/i, "")
-    .replace(/,\s*([}\]])/g, "$1");
+  const trimmed = raw.trim();
 
-  return JSON.parse(cleaned);
+  try {
+    return parseJsonValueResponse(trimmed);
+  } catch (initialError) {
+    const arrayStart = trimmed.indexOf("[");
+    const arrayEnd = trimmed.lastIndexOf("]");
+
+    if (arrayStart !== -1 && arrayEnd > arrayStart) {
+      return parseJsonValueResponse(trimmed.slice(arrayStart, arrayEnd + 1));
+    }
+
+    throw initialError;
+  }
 }
 
 function extractTextContent(response: { content: Array<{ type: string; text?: string }> }) {
@@ -86,6 +96,53 @@ function getGenerationModel() {
     .get() as { value: string } | undefined;
 
   return parseGenerationModel(row?.value ?? JSON.stringify(DEFAULT_GENERATION_MODEL));
+}
+
+function buildHistoricalEventPrompt(args: {
+  month: number;
+  count: number;
+  excludedEventLabels: string[];
+}): string {
+  const exclusionBlock =
+    args.excludedEventLabels.length > 0
+      ? `\nAvoid duplicating events already covered for this month. Do not include:\n${args.excludedEventLabels
+          .slice(0, 40)
+          .map((label) => `- ${label}`)
+          .join("\n")}\n`
+      : "";
+
+  return `You are a historian creating a curated list of historically significant events for the month of ${
+    MONTH_NAMES[args.month - 1]
+  }.
+
+Generate exactly ${args.count} events spanning:
+- All major eras (ancient through contemporary)
+- Diverse civilizations and geographies (not just Western history)
+- Varied categories: wars, revolutions, scientific discoveries, cultural shifts, political milestones, economic turning points, philosophical breakthroughs
+${exclusionBlock}
+For each event, provide:
+- title: A clear, specific event name (e.g., "The Fall of Constantinople", not "Something happened in Turkey")
+- event_day: The specific day of the month (1-31)
+- event_year: The year (use negative numbers for BCE, e.g., -399 for 399 BCE)
+- display_date: Human-readable date string (e.g., "29 May 1453" or "15 March 44 BCE")
+- era: One of: ancient, medieval, early_modern, modern, contemporary
+- category: One of: war_conflict, revolution, science_discovery, cultural_shift, political, economic, philosophical, other
+- context: 2 concise paragraphs giving enough detail for a philosopher to react thoughtfully. Include: what happened, why it mattered, what the consequences were.
+- key_themes: Array of 3-5 philosophical themes (e.g., ["power", "empire decline", "cultural preservation", "religious conflict"])
+
+RESPOND WITH VALID JSON ONLY - a JSON array of event objects.`;
+}
+
+function buildEventSignature(input: {
+  title: string;
+  eventDay: number;
+  eventYear: number | null;
+}): string {
+  return [
+    input.title.trim().toLowerCase(),
+    String(input.eventDay),
+    input.eventYear === null ? "unknown" : String(input.eventYear),
+  ].join("::");
 }
 
 function normalizeCreatedEvent(input: {
@@ -335,42 +392,137 @@ export async function POST(request: NextRequest) {
           { status: 503 }
         );
       }
+      const existingMonthEvents = db
+        .prepare(
+          `SELECT title, event_day, event_year, display_date
+           FROM historical_events
+           WHERE event_month = ?`
+        )
+        .all(month) as Array<{
+          title: string;
+          event_day: number;
+          event_year: number | null;
+          display_date: string;
+        }>;
 
-      const prompt = `You are a historian creating a curated list of historically significant events for the month of ${
-        MONTH_NAMES[month - 1]
-      }.
+      const seenSignatures = new Set(
+        existingMonthEvents.map((event) =>
+          buildEventSignature({
+            title: event.title,
+            eventDay: event.event_day,
+            eventYear: event.event_year,
+          })
+        )
+      );
+      const excludedEventLabels = existingMonthEvents.map(
+        (event) => `${event.title} (${event.display_date})`
+      );
+      const generatedItems: unknown[] = [];
+      let attempts = 0;
+      let lastRawOutput = "";
 
-Generate exactly ${count} events spanning:
-- All major eras (ancient through contemporary)
-- Diverse civilizations and geographies (not just Western history)
-- Varied categories: wars, revolutions, scientific discoveries, cultural shifts, political milestones, economic turning points, philosophical breakthroughs
+      while (generatedItems.length < count && attempts < MAX_BATCH_GENERATION_ATTEMPTS) {
+        attempts += 1;
+        const remaining = count - generatedItems.length;
+        const chunkSize = Math.min(remaining, EVENTS_PER_AI_BATCH);
+        const prompt = buildHistoricalEventPrompt({
+          month,
+          count: chunkSize,
+          excludedEventLabels,
+        });
 
-For each event, provide:
-- title: A clear, specific event name (e.g., "The Fall of Constantinople", not "Something happened in Turkey")
-- event_day: The specific day of the month (1-31)
-- event_year: The year (use negative numbers for BCE, e.g., -399 for 399 BCE)
-- display_date: Human-readable date string (e.g., "29 May 1453" or "15 March 44 BCE")
-- era: One of: ancient, medieval, early_modern, modern, contemporary
-- category: One of: war_conflict, revolution, science_discovery, cultural_shift, political, economic, philosophical, other
-- context: 2-3 paragraphs giving enough detail for a philosopher to react thoughtfully. Include: what happened, why it mattered, what the consequences were.
-- key_themes: Array of 3-5 philosophical themes (e.g., ["power", "empire decline", "cultural preservation", "religious conflict"])
+        const response = await client.messages.create({
+          model: getGenerationModel(),
+          max_tokens: BATCH_GENERATION_MAX_TOKENS,
+          temperature: 0.4,
+          system: "You are a careful historian. Return valid JSON only.",
+          messages: [{ role: "user", content: prompt }],
+        });
 
-RESPOND WITH VALID JSON ONLY - a JSON array of event objects.`;
+        const rawOutput = extractTextContent(response);
+        lastRawOutput = rawOutput;
 
-      const response = await client.messages.create({
-        model: getGenerationModel(),
-        max_tokens: 4096,
-        temperature: 0.6,
-        system: "You are a careful historian. Return valid JSON only.",
-        messages: [{ role: "user", content: prompt }],
-      });
+        let parsed: unknown;
+        try {
+          parsed = parseAnthropicJson(rawOutput);
+        } catch (parseError) {
+          const isTruncated = response.stop_reason === "max_tokens";
+          const parseMessage =
+            parseError instanceof Error ? parseError.message : "Invalid JSON";
 
-      const rawOutput = extractTextContent(response);
-      const parsed = parseAnthropicJson(rawOutput);
+          return NextResponse.json(
+            {
+              error: isTruncated
+                ? "AI batch generation was truncated before it finished valid JSON. Please try again; this route now generates in smaller chunks, but this attempt still ran out of room."
+                : `Failed to parse AI batch response: ${parseMessage}`,
+              raw_output: rawOutput,
+            },
+            { status: 422 }
+          );
+        }
 
-      if (!Array.isArray(parsed)) {
+        if (!Array.isArray(parsed)) {
+          return NextResponse.json(
+            { error: "Model response was not a JSON array.", raw_output: rawOutput },
+            { status: 422 }
+          );
+        }
+
+        let addedThisRound = 0;
+
+        for (const item of parsed) {
+          if (!item || typeof item !== "object") continue;
+
+          const record = item as Record<string, unknown>;
+          const title = typeof record.title === "string" ? record.title : "";
+          const eventDay = coerceInteger(
+            record.event_day as string | number | null | undefined
+          );
+          const eventYear =
+            record.event_year === null
+              ? null
+              : coerceInteger(record.event_year as string | number | null | undefined);
+
+          if (!title || eventDay === null) continue;
+
+          const signature = buildEventSignature({
+            title,
+            eventDay,
+            eventYear,
+          });
+
+          if (seenSignatures.has(signature)) {
+            continue;
+          }
+
+          seenSignatures.add(signature);
+          excludedEventLabels.push(
+            `${title} (${
+              typeof record.display_date === "string" && record.display_date.trim()
+                ? record.display_date.trim()
+                : `${eventDay} ${MONTH_NAMES[month - 1]}`
+            })`
+          );
+          generatedItems.push(item);
+          addedThisRound += 1;
+
+          if (generatedItems.length >= count) {
+            break;
+          }
+        }
+
+        if (addedThisRound === 0) {
+          break;
+        }
+      }
+
+      if (generatedItems.length === 0) {
         return NextResponse.json(
-          { error: "Model response was not a JSON array.", raw_output: rawOutput },
+          {
+            error:
+              "No valid events could be created from the AI response. Try a smaller count or run the batch again.",
+            raw_output: lastRawOutput,
+          },
           { status: 422 }
         );
       }
@@ -436,19 +588,17 @@ RESPOND WITH VALID JSON ONLY - a JSON array of event objects.`;
         }
 
         return rows;
-      })(parsed);
-
-      if (created.length === 0) {
-        return NextResponse.json(
-          { error: "No valid events could be created from the model response.", raw_output: rawOutput },
-          { status: 422 }
-        );
-      }
+      })(generatedItems);
 
       return NextResponse.json(
         {
           events: created.map(mapHistoricalEventRow),
           generated: created.length,
+          requested: count,
+          warning:
+            created.length < count
+              ? `Generated ${created.length} unique events out of the requested ${count}.`
+              : undefined,
         },
         { status: 201 }
       );

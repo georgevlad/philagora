@@ -24,7 +24,7 @@ function repairJson(raw: string): string {
   return fixed;
 }
 
-export function parseJsonResponse(rawOutput: string): Record<string, unknown> {
+export function parseJsonValueResponse(rawOutput: string): unknown {
   let cleaned = rawOutput.trim();
   if (cleaned.startsWith("```")) {
     cleaned = cleaned.replace(/^```(?:json)?\s*/, "").replace(/```\s*$/, "");
@@ -36,4 +36,8 @@ export function parseJsonResponse(rawOutput: string): Record<string, unknown> {
     const repaired = repairJson(cleaned);
     return JSON.parse(repaired); // throws if repair also fails
   }
+}
+
+export function parseJsonResponse(rawOutput: string): Record<string, unknown> {
+  return parseJsonValueResponse(rawOutput) as Record<string, unknown>;
 }

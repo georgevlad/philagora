@@ -233,6 +233,7 @@ export default function HistoricalEventsPage() {
       const data = (await response.json()) as {
         error?: string;
         generated?: number;
+        warning?: string;
       };
 
       if (!response.ok) {
@@ -240,7 +241,11 @@ export default function HistoricalEventsPage() {
       }
 
       const monthLabel = MONTH_NAMES[Number.parseInt(batchMonth, 10) - 1];
-      setSuccess(`Generated ${data.generated ?? 0} events for ${monthLabel}. Review them below.`);
+      setSuccess(
+        data.warning
+          ? `${data.warning} Review them below.`
+          : `Generated ${data.generated ?? 0} events for ${monthLabel}. Review them below.`
+      );
       setShowBatchPanel(false);
       setStatusFilter("draft");
       setMonthFilter(batchMonth);
