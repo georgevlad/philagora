@@ -43,19 +43,19 @@ export function FeedTabs() {
         isPending ? "opacity-85" : ""
       }`}
     >
-      <div className="flex px-3 sm:px-4">
+      <div className="flex items-stretch justify-between gap-1 px-3 sm:gap-0 sm:px-4">
         {FEED_CONTENT_TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => pushFilters(tab.key)}
             aria-pressed={activeType === tab.key}
-            className={`relative flex-1 px-1.5 py-3.5 sm:px-4 sm:py-4 transition-colors duration-200 ${
+            className={`relative px-1 py-3.5 transition-colors duration-200 sm:flex-1 sm:px-4 sm:py-4 ${
               activeType === tab.key
-                ? "font-serif text-[15px] font-medium text-ink sm:text-[16px]"
-                : "font-body text-[13px] text-ink-lighter hover:text-ink-light sm:text-sm"
+                ? "font-serif text-[14px] font-medium text-ink sm:text-[16px]"
+                : "font-body text-[12px] text-ink-lighter hover:text-ink-light sm:text-sm"
             }`}
           >
-            <span className="relative inline-block leading-[1.15]">
+            <span className="relative inline-block whitespace-nowrap leading-none sm:leading-[1.15]">
               {tab.label}
               {activeType === tab.key && (
                 <span className="absolute -bottom-3.5 left-1/2 h-[3px] w-9 -translate-x-1/2 rounded-full bg-athenian shadow-[0_0_0_1px_rgba(176,138,73,0.14)]" />
