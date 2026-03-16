@@ -6,6 +6,7 @@ import { PostCard } from "@/components/PostCard";
 import { TensionCard } from "@/components/TensionCard";
 import { EditorialDivider } from "@/components/EditorialDivider";
 import { Spinner } from "@/components/Spinner";
+import { useNewPostIndicator } from "@/hooks/useNewPostIndicator";
 import {
   buildFeedItems,
   normalizeFeedContentType,
@@ -111,6 +112,7 @@ export function FeedSection({
   philosopherId,
   philosopherName,
 }: FeedSectionProps) {
+  const isNewPost = useNewPostIndicator();
   const searchParams = useSearchParams();
   const selectedType = normalizeFeedContentType(searchParams.get("type"));
   const showDefaultFeed = selectedType === "all";
@@ -305,7 +307,12 @@ export function FeedSection({
             {feedItems.map((item, index) => {
               const revealDelay = getRevealDelay(index);
               const element = item.type === "post" ? (
-                <PostCard key={item.post.id} post={item.post} delay={revealDelay} />
+                <PostCard
+                  key={item.post.id}
+                  post={item.post}
+                  delay={revealDelay}
+                  isNew={isNewPost(item.post.timestamp)}
+                />
               ) : (
                 <TensionCard
                   key={`tension-${item.postA.id}-${item.postB.id}`}

@@ -274,10 +274,12 @@ export function PostCard({
   post,
   delay = 0,
   expanded = false,
+  isNew = false,
 }: {
   post: FeedPost;
   delay?: number;
   expanded?: boolean;
+  isNew?: boolean;
 }) {
   const ref = useScrollReveal<HTMLElement>(delay);
 
@@ -298,9 +300,9 @@ export function PostCard({
       className="animate-fade-in-up rounded-[22px] bg-[linear-gradient(180deg,rgba(248,243,234,0.96),rgba(244,239,230,0.92))] border border-border-light/90 mx-2.5 my-3 sm:mx-4 overflow-hidden shadow-[0_14px_34px_rgba(42,36,31,0.045)] hover:shadow-[0_18px_40px_rgba(42,36,31,0.06)] transition-shadow duration-200"
       style={{
         borderTop: `2px solid ${color}`,
-        borderLeftWidth: isPopular ? "3px" : undefined,
-        borderLeftColor: isPopular ? "var(--color-burgundy)" : undefined,
-        borderLeftStyle: isPopular ? "solid" : undefined,
+        borderLeftWidth: isNew ? "3px" : isPopular ? "3px" : undefined,
+        borderLeftColor: isNew ? "var(--color-gold, #B08A49)" : isPopular ? "var(--color-burgundy)" : undefined,
+        borderLeftStyle: isNew || isPopular ? "solid" : undefined,
       }}
     >
       <div className="px-5 py-5 sm:px-6 sm:py-5">
