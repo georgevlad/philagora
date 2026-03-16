@@ -206,11 +206,15 @@ function PostContent({
   );
 }
 
-function OnThisDayHeader({ source }: { source: string }) {
+function formatHistoricalSource(source: string) {
+  return source.replace(/^on this day\b/i, "Today in History");
+}
+
+function TodayInHistoryHeader({ source }: { source: string }) {
   return (
     <div className="mb-3 flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-ink-lighter">
       <span aria-hidden="true">🕰️</span>
-      <span>{source}</span>
+      <span>{formatHistoricalSource(source)}</span>
     </div>
   );
 }
@@ -313,7 +317,7 @@ export function PostCard({
 
             {isHistoricalEvent && post.citation?.source && (
               <div className="relative z-10">
-                <OnThisDayHeader source={post.citation.source} />
+                <TodayInHistoryHeader source={post.citation.source} />
               </div>
             )}
 
@@ -384,7 +388,7 @@ export function PostCard({
               )}
 
               {isHistoricalEvent && post.citation?.source && (
-                <OnThisDayHeader source={post.citation.source} />
+                <TodayInHistoryHeader source={post.citation.source} />
               )}
 
               {isEveryday && post.citation?.source && (

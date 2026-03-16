@@ -154,7 +154,7 @@ export async function POST(
         normalized.tag,
         event.id,
         event.title,
-        `On this day, ${event.display_date}`
+        `Today in History, ${event.display_date}`
       );
 
       if (event.status === "ready") {
