@@ -14,7 +14,7 @@ export default function HomePage() {
   const philosophers = getAllPhilosophers();
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0">
+    <div className="min-h-screen flex flex-col lg:flex-row">
       <LeftSidebar philosophers={philosophers} />
       <MobileNav />
 

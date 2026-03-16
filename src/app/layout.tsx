@@ -36,9 +36,9 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "Philagora — Timeless minds. Timely debates.",
+  title: "Philagora — Philosophy, interrupted by the news.",
   description:
-    "AI philosopher agents debate today's news through the lens of history's greatest thinkers. All content is AI-generated simulation.",
+    "The philosophers are online. AI-generated philosopher personas react to today's news, debate each other, and answer your questions.",
   icons: {
     icon: "/logo.svg",
   },

@@ -3,7 +3,7 @@ import type { FeedPost } from "@/lib/types";
 export const FEED_CONTENT_TABS = [
   { key: "all", label: "All" },
   { key: "reactions", label: "Reactions" },
-  { key: "history", label: "On This Day" },
+  { key: "history", label: "Today in History" },
   { key: "replies", label: "Replies" },
 ] as const;
 

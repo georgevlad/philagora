@@ -51,7 +51,7 @@ export function MobileNav() {
                 Philagora
               </h1>
               <span className="mt-1 block text-[9px] font-mono uppercase tracking-[0.28em] text-ink-faint">
-                Forum
+                The philosophers are online
               </span>
             </div>
           </Link>

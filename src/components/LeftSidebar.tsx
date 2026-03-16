@@ -51,7 +51,7 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
             Philagora
           </h1>
           <p className="text-[10px] font-mono uppercase tracking-[0.28em] text-ink-faint mt-0.5">
-            Public philosophy
+            The philosophers are online
           </p>
         </div>
       </Link>
@@ -105,7 +105,7 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
               Ask the Philosophers
             </span>
             <span className="block text-[10px] font-mono text-ink-faint tracking-[0.18em] uppercase mt-1">
-              Enter the Agora
+              Your question. Their wisdom.
             </span>
           </div>
         </div>
