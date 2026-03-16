@@ -132,15 +132,17 @@ function PostContent({
   isAphorism,
   isQuip,
   linkHref,
+  forceExpanded,
 }: {
   content: string;
   color: string;
   isAphorism?: boolean;
   isQuip?: boolean;
   linkHref?: string;
+  forceExpanded?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const needsTruncation = !isQuip && content.length > POST_CONTENT_TRUNCATE_LIMIT;
+  const needsTruncation = !forceExpanded && !isQuip && content.length > POST_CONTENT_TRUNCATE_LIMIT;
   const displayText = needsTruncation && !expanded
     ? content.slice(0, POST_CONTENT_TRUNCATE_LIMIT).replace(/\s+\S*$/, "") + "..."
     : content;
@@ -246,9 +248,11 @@ function HistoricalEventTitle({ title, color }: { title: string; color: string }
 export function PostCard({
   post,
   delay = 0,
+  expanded = false,
 }: {
   post: FeedPost;
   delay?: number;
+  expanded?: boolean;
 }) {
   const ref = useScrollReveal<HTMLElement>(delay);
 
@@ -341,7 +345,7 @@ export function PostCard({
 
             <div className="w-14 mx-auto mb-5" style={{ height: "1px", backgroundColor: accent.borderMedium }} />
 
-            <PostContent content={post.content} color={color} isAphorism linkHref={postHref} />
+            <PostContent content={post.content} color={color} isAphorism linkHref={postHref} forceExpanded={expanded} />
 
             {post.citation && !isHistoricalEvent && !isEveryday && (
               <div className="w-full mt-2">
@@ -414,7 +418,7 @@ export function PostCard({
                 </Link>
               )}
 
-              <PostContent content={post.content} color={color} isQuip={isQuip} linkHref={postHref} />
+              <PostContent content={post.content} color={color} isQuip={isQuip} linkHref={postHref} forceExpanded={expanded} />
 
               {post.citation && !isHistoricalEvent && !isEveryday && (
                 <CitationBlock citation={post.citation} color={color} accent={accent} />
@@ -539,7 +543,6 @@ function ActionButtons({ post }: { post: FeedPost }) {
     <div className="flex items-center gap-4">
       <ActionButton
         label="Reply"
-        count={post.replies}
         icon={
           <ReplyIcon />
         }
@@ -547,7 +550,6 @@ function ActionButtons({ post }: { post: FeedPost }) {
       />
       <ActionButton
         label="Like"
-        count={post.likes}
         icon={
           <HeartIcon />
         }
@@ -555,7 +557,6 @@ function ActionButtons({ post }: { post: FeedPost }) {
       />
       <ActionButton
         label="Bookmark"
-        count={post.bookmarks}
         icon={
           <BookmarkIcon />
         }

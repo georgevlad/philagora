@@ -56,7 +56,7 @@ export default async function PostPage({ params }: PageProps) {
           Back to feed
         </Link>
 
-        <PostCard post={post} />
+        <PostCard post={post} expanded />
       </div>
     </main>
   );
