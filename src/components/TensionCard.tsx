@@ -14,14 +14,16 @@ interface TensionCardProps {
   philosopherA: TensionPhilosopher;
   philosopherB: TensionPhilosopher;
   articleTitle: string;
+  delay?: number;
 }
 
 export function TensionCard({
   philosopherA,
   philosopherB,
   articleTitle,
+  delay = 0,
 }: TensionCardProps) {
-  const ref = useScrollReveal();
+  const ref = useScrollReveal(delay);
 
   return (
     <div ref={ref} className="animate-fade-in-up px-4 sm:px-5 py-3 my-1.5">

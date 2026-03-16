@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { PostCard } from "@/components/PostCard";
 import { TensionCard } from "@/components/TensionCard";
 import { EditorialDivider } from "@/components/EditorialDivider";
+import { Spinner } from "@/components/Spinner";
 import {
   buildFeedItems,
   normalizeFeedContentType,
@@ -71,6 +72,21 @@ function FeedSkeleton() {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function FeedLoadMoreIndicator() {
+  return (
+    <div
+      className="mx-auto flex max-w-[280px] items-center justify-center gap-3 rounded-full border border-border-light/80 bg-[linear-gradient(180deg,rgba(248,243,234,0.94),rgba(244,239,230,0.88))] px-4 py-3 text-ink-lighter shadow-[0_10px_24px_rgba(42,36,31,0.03)]"
+      aria-live="polite"
+      aria-label="Loading more posts"
+    >
+      <Spinner className="h-4 w-4 text-athenian/75" />
+      <span className="font-mono text-[11px] uppercase tracking-[0.18em]">
+        Loading more dispatches
+      </span>
     </div>
   );
 }
@@ -263,6 +279,7 @@ export function FeedSection({
   const feedItems = useMemo(() => buildFeedItems(posts), [posts]);
   const showSentinel = hasMore && !loadMoreError;
   const showEndOfFeed = !hasMore && posts.length > 0;
+  const getRevealDelay = useCallback((index: number) => Math.min(index, 4), []);
 
   if (loading && posts.length === 0) {
     return (
@@ -286,8 +303,9 @@ export function FeedSection({
         <>
           <div className={loading ? "opacity-80 transition-opacity duration-200" : "transition-opacity duration-200"}>
             {feedItems.map((item, index) => {
+              const revealDelay = getRevealDelay(index);
               const element = item.type === "post" ? (
-                <PostCard key={item.post.id} post={item.post} delay={item.index} />
+                <PostCard key={item.post.id} post={item.post} delay={revealDelay} />
               ) : (
                 <TensionCard
                   key={`tension-${item.postA.id}-${item.postB.id}`}
@@ -306,6 +324,7 @@ export function FeedSection({
                     stance: item.postB.stance,
                   }}
                   articleTitle={item.postA.citation?.title || ""}
+                  delay={revealDelay}
                 />
               );
 
@@ -337,7 +356,7 @@ export function FeedSection({
 
           {showSentinel && (
             <div ref={sentinelRef} className="px-3 sm:px-4 py-4">
-              {loadingMore && <FeedSkeleton />}
+              {loadingMore ? <FeedLoadMoreIndicator /> : <div className="h-6" aria-hidden="true" />}
             </div>
           )}
 
