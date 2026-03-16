@@ -50,7 +50,7 @@ export const CONTENT_TYPE_LABELS: Record<string, string> = {
 };
 
 // Post content truncation
-export const POST_CONTENT_TRUNCATE_LIMIT = 140;
+export const POST_CONTENT_TRUNCATE_LIMIT = 300;
 
 // Valid values
 export const DEBATE_PHASES = ["opening", "rebuttal"] as const;

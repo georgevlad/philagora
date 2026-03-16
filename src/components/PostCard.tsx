@@ -142,7 +142,10 @@ function PostContent({
   forceExpanded?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const needsTruncation = !forceExpanded && !isQuip && content.length > POST_CONTENT_TRUNCATE_LIMIT;
+  const needsTruncation = !forceExpanded
+    && !isQuip
+    && content.length > POST_CONTENT_TRUNCATE_LIMIT
+    && (content.length - POST_CONTENT_TRUNCATE_LIMIT) > 50;
   const displayText = needsTruncation && !expanded
     ? content.slice(0, POST_CONTENT_TRUNCATE_LIMIT).replace(/\s+\S*$/, "") + "..."
     : content;
