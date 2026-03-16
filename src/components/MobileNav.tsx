@@ -43,7 +43,12 @@ export function MobileNav() {
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-parchment/92 supports-[backdrop-filter]:backdrop-blur-md border-b border-border-light/90 px-4 py-2.5 shadow-[0_6px_18px_rgba(42,36,31,0.05)]">
         <div className="flex items-center justify-between gap-3">
           <Link href="/" className="min-w-0 text-ink">
-            <LogoNav className="h-8 w-auto max-w-[172px]" />
+            <div>
+              <LogoNav className="h-8 w-auto max-w-[172px]" />
+              <p className="ml-[36px] -mt-0.5 whitespace-nowrap text-[7px] leading-none tracking-[0.2em] text-ink/35 uppercase">
+                The philosophers are online
+              </p>
+            </div>
           </Link>
           <Link
             href="/agora"
