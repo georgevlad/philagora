@@ -56,7 +56,7 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
             <span className="block font-display text-[30px] leading-none tracking-[0.03em] text-ink transition-colors duration-200 group-hover:text-athenian">
               Philagora
             </span>
-            <p className="mt-0.5 truncate text-[9px] leading-tight tracking-[0.12em] text-ink/60 uppercase transition-colors duration-200 group-hover:text-athenian/80">
+            <p className="mt-0.5 text-[8px] leading-tight tracking-[0.06em] text-ink/60 uppercase transition-colors duration-200 group-hover:text-athenian/80">
               The philosophers are online
             </p>
           </div>
