@@ -28,6 +28,7 @@ export interface Post {
   tag: string;
   sourceType?: string;
   historicalEventId?: string;
+  thumbnailUrl?: string;
   likes: number;
   replies: number;
   bookmarks: number;

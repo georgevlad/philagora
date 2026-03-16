@@ -248,6 +248,28 @@ function HistoricalEventTitle({ title, color }: { title: string; color: string }
   );
 }
 
+function HistoricalEventThumbnail({
+  thumbnailUrl,
+  title,
+}: {
+  thumbnailUrl: string;
+  title: string;
+}) {
+  return (
+    <div className="-mx-5 -mt-5 mb-4 overflow-hidden rounded-t-2xl sm:-mx-6 sm:-mt-5">
+      <div className="relative aspect-[16/9] w-full bg-parchment-dark/30">
+        <Image
+          src={thumbnailUrl}
+          alt={title}
+          fill
+          className="object-cover"
+          sizes="(max-width: 640px) 100vw, 640px"
+        />
+      </div>
+    </div>
+  );
+}
+
 export function PostCard({
   post,
   delay = 0,
@@ -300,6 +322,13 @@ export function PostCard({
             >
               &ldquo;
             </div>
+
+            {isHistoricalEvent && post.thumbnailUrl && (
+              <HistoricalEventThumbnail
+                thumbnailUrl={post.thumbnailUrl}
+                title={post.citation?.title || "Historical event"}
+              />
+            )}
 
             <div className="flex items-center gap-2 mb-4 relative z-10">
               <Link href={`/philosophers/${post.philosopherId}`}>
@@ -370,6 +399,20 @@ export function PostCard({
             )}
 
             <div className="flex-1 min-w-0">
+              {isHistoricalEvent && post.thumbnailUrl && (
+                <div className="mb-3 -mr-1 overflow-hidden rounded-xl">
+                  <div className="relative aspect-[16/9] w-full bg-parchment-dark/30">
+                    <Image
+                      src={post.thumbnailUrl}
+                      alt={post.citation?.title || "Historical event"}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, 540px"
+                    />
+                  </div>
+                </div>
+              )}
+
               {!isCrossReply && (
                 <div className="flex items-center gap-2 flex-wrap mb-2">
                   <Link

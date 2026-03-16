@@ -16,6 +16,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const title = `${post.philosopherName} on Philagora`;
   const description = post.thesis || post.content.slice(0, 160);
+  const ogImage = post.thumbnailUrl
+    ? `https://philagora.social${post.thumbnailUrl}`
+    : undefined;
 
   return {
     title,
@@ -26,11 +29,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       type: "article",
       siteName: "Philagora",
       url: `https://philagora.social/post/${id}`,
+      images: ogImage ? [{ url: ogImage, width: 1024, height: 576 }] : undefined,
     },
     twitter: {
-      card: "summary",
+      card: ogImage ? "summary_large_image" : "summary",
       title,
       description,
+      images: ogImage ? [ogImage] : undefined,
     },
   };
 }

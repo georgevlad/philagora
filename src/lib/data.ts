@@ -69,6 +69,9 @@ function mapFeedPost(row: PostRow): FeedPost {
     sourceType: isPostSourceType(row.source_type ?? "") ? row.source_type : "news",
     historicalEventId: row.historical_event_id ?? undefined,
     citation: buildCitation(row),
+    thumbnailUrl: row.historical_event_thumbnail
+      ? `/api/thumbnails/${row.historical_event_thumbnail}`
+      : undefined,
     likes: row.likes,
     replies: row.replies,
     bookmarks: row.bookmarks,
@@ -97,11 +100,13 @@ const FEED_POST_QUERY = `
     rph.id        AS reply_target_philosopher_id,
     rph.name      AS reply_target_philosopher_name,
     rph.color     AS reply_target_philosopher_color,
-    rph.initials  AS reply_target_philosopher_initials
+    rph.initials  AS reply_target_philosopher_initials,
+    he.thumbnail_filename AS historical_event_thumbnail
   FROM posts p
   JOIN philosophers ph ON p.philosopher_id = ph.id
   LEFT JOIN posts rp ON p.reply_to = rp.id
   LEFT JOIN philosophers rph ON rp.philosopher_id = rph.id
+  LEFT JOIN historical_events he ON p.historical_event_id = he.id
 `;
 
 // ── Query Functions ────────────────────────────────────────

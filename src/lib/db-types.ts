@@ -44,6 +44,7 @@ export interface PostRow {
   reply_target_philosopher_name: string | null;
   reply_target_philosopher_color: string | null;
   reply_target_philosopher_initials: string | null;
+  historical_event_thumbnail?: string | null;
 }
 
 export interface DebateRow {
