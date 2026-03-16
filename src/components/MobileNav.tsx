@@ -1,12 +1,13 @@
 "use client";
 
+import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AgoraIcon, DebatesIcon, HomeIcon } from "./Icons";
 import { showComingSoon } from "@/components/ComingSoonToast";
-import { LogoNav } from "@/components/LogoNav";
 
-export function MobileNav() {
+export function MobileNav({ topContent }: { topContent?: ReactNode }) {
   const pathname = usePathname();
 
   const items = [
@@ -40,27 +41,42 @@ export function MobileNav() {
   return (
     <>
       {/* Top bar on mobile */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-parchment/92 supports-[backdrop-filter]:backdrop-blur-md border-b border-border-light/90 px-4 py-2.5 shadow-[0_6px_18px_rgba(42,36,31,0.05)]">
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/" className="min-w-0 text-ink">
-            <div>
-              <LogoNav className="h-8 w-auto max-w-[172px]" />
-              <p className="ml-[36px] -mt-0.5 whitespace-nowrap text-[7px] leading-none tracking-[0.2em] text-ink/35 uppercase">
-                The philosophers are online
-              </p>
-            </div>
-          </Link>
-          <Link
-            href="/agora"
-            className="flex shrink-0 items-center gap-1.5 rounded-full border border-gold/25 bg-athenian px-3.5 py-2 text-[12px] font-medium text-white shadow-sm"
-          >
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M8 3V13" strokeLinecap="round" />
-              <path d="M3 8H13" strokeLinecap="round" />
-            </svg>
-            Ask
-          </Link>
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-parchment/92 supports-[backdrop-filter]:backdrop-blur-md shadow-[0_6px_18px_rgba(42,36,31,0.05)]">
+        <div className={`px-4 ${topContent ? "py-2" : "py-2.5 border-b border-border-light/90"}`}>
+          <div className="flex items-center justify-between gap-3">
+            <Link href="/" className="min-w-0 text-ink">
+              <div className="flex items-center gap-2">
+                <Image
+                  src="/logo-icon.svg"
+                  alt=""
+                  aria-hidden="true"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 flex-shrink-0"
+                />
+                <div className="border-l border-ink/15 pl-2">
+                  <span className="block font-display text-[25px] leading-none tracking-[0.03em] text-ink">
+                    Philagora
+                  </span>
+                  <p className="mt-px whitespace-nowrap text-[7.5px] leading-tight tracking-[0.18em] text-ink/50 uppercase">
+                    The philosophers are online
+                  </p>
+                </div>
+              </div>
+            </Link>
+            <Link
+              href="/agora"
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-gold/25 bg-athenian px-3.5 py-2 text-[12px] font-medium text-white shadow-sm"
+            >
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M8 3V13" strokeLinecap="round" />
+                <path d="M3 8H13" strokeLinecap="round" />
+              </svg>
+              Ask
+            </Link>
+          </div>
         </div>
+        {topContent}
       </div>
 
       {/* Bottom nav on mobile */}

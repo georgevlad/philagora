@@ -14,13 +14,15 @@ export default function HomePage() {
   const philosophers = getAllPhilosophers();
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
+    <div className="min-h-screen flex flex-col pt-24 lg:flex-row lg:pt-0">
       <LeftSidebar philosophers={philosophers} />
-      <MobileNav />
+      <MobileNav topContent={<FeedTabs mobileIntegrated />} />
 
       <main className="flex-1 min-w-0 lg:border-r border-border-light lg:border-l bg-[linear-gradient(180deg,rgba(248,243,234,0.5),rgba(244,239,230,0.12))]">
         <div className="max-w-[700px] mx-auto">
-          <FeedTabs />
+          <div className="hidden lg:block">
+            <FeedTabs />
+          </div>
           <FeedSection initialPosts={posts} initialHasMore={hasMore} />
           <Footer />
         </div>

@@ -23,7 +23,7 @@ function buildFeedUrl(pathname: string, currentSearchParams: string, nextType: F
   return query ? `${pathname}?${query}` : pathname;
 }
 
-export function FeedTabs() {
+export function FeedTabs({ mobileIntegrated = false }: { mobileIntegrated?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -39,7 +39,10 @@ export function FeedTabs() {
 
   return (
     <div
-      className={`sticky top-[61px] lg:top-0 z-10 bg-parchment/92 supports-[backdrop-filter]:backdrop-blur-md border-b border-border-light/90 shadow-[0_6px_16px_rgba(42,36,31,0.035)] transition-opacity duration-200 ${
+      className={`${mobileIntegrated
+        ? "border-b border-border-light/90"
+        : "sticky top-[61px] lg:top-0 z-10 bg-parchment/92 supports-[backdrop-filter]:backdrop-blur-md border-b border-border-light/90 shadow-[0_6px_16px_rgba(42,36,31,0.035)]"
+      } transition-opacity duration-200 ${
         isPending ? "opacity-85" : ""
       }`}
     >

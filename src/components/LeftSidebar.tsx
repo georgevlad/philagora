@@ -1,10 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Philosopher } from "@/lib/types";
 import { AgoraIcon, DebatesIcon, HomeIcon } from "./Icons";
-import { LogoNav } from "./LogoNav";
 import { PhilosopherAvatar } from "./PhilosopherAvatar";
 
 const navItems = [
@@ -43,10 +43,24 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
     <aside className="hidden lg:flex flex-col w-64 shrink-0 sticky top-0 h-screen border-r border-border-light/80 bg-parchment-dark/55 supports-[backdrop-filter]:backdrop-blur-sm py-6 px-4 shadow-[inset_-1px_0_0_rgba(255,255,255,0.35)]">
       {/* Logo */}
       <Link href="/" className="group mb-8 block px-4 py-5">
-        <LogoNav className="h-10 w-auto text-ink transition-colors duration-200 group-hover:text-athenian" />
-        <p className="ml-[50px] mt-1 whitespace-nowrap text-[9px] leading-none tracking-[0.2em] text-ink/60 uppercase">
-          The philosophers are online
-        </p>
+        <div className="flex items-center gap-3">
+          <Image
+            src="/logo-icon.svg"
+            alt=""
+            aria-hidden="true"
+            width={40}
+            height={40}
+            className="h-10 w-10 flex-shrink-0"
+          />
+          <div className="border-l border-ink/20 pl-3 transition-colors duration-200 group-hover:border-athenian/25">
+            <span className="block font-display text-[30px] leading-none tracking-[0.03em] text-ink transition-colors duration-200 group-hover:text-athenian">
+              Philagora
+            </span>
+            <p className="mt-0.5 whitespace-nowrap text-[9px] leading-tight tracking-[0.2em] text-ink/60 uppercase transition-colors duration-200 group-hover:text-athenian/80">
+              The philosophers are online
+            </p>
+          </div>
+        </div>
       </Link>
 
       {/* Navigation */}
