@@ -84,6 +84,7 @@ export function runMigrations(
   migrateScoringConfig(db);
   migrateContentTemplates(db);
   migrateAddHistoricalEvents(db);
+  migrateApiCallLog(db);
 
   try {
     migratePostsSchema(db);
@@ -339,6 +340,29 @@ function migrateAddHistoricalEvents(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_historical_events_date ON historical_events(event_month, event_day);
     CREATE INDEX IF NOT EXISTS idx_historical_events_status ON historical_events(status);
     CREATE INDEX IF NOT EXISTS idx_historical_events_era ON historical_events(era);
+  `);
+}
+
+function migrateApiCallLog(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS api_call_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+      caller TEXT NOT NULL,
+      model TEXT NOT NULL,
+      input_tokens INTEGER,
+      output_tokens INTEGER,
+      max_tokens_requested INTEGER,
+      temperature REAL,
+      stop_reason TEXT,
+      latency_ms INTEGER,
+      success INTEGER NOT NULL DEFAULT 1,
+      error_message TEXT,
+      error_type TEXT,
+      system_prompt_length INTEGER,
+      user_message_length INTEGER,
+      response_length INTEGER
+    );
   `);
 }
 

@@ -4,7 +4,11 @@
  */
 
 import { getDb } from "@/lib/db";
-import { getAnthropicClient, parseJsonResponse } from "@/lib/anthropic-utils";
+import {
+  createMessage,
+  getAnthropicClient,
+  parseJsonResponse,
+} from "@/lib/anthropic-utils";
 import {
   getActiveHouseRules,
   getActiveTemplate,
@@ -192,13 +196,17 @@ ${instructions}`;
   let rawOutput = "";
 
   try {
-    const response = await client.messages.create({
-      model: generationModel,
-      max_tokens: maxTokens,
-      temperature: TEMPERATURE,
-      system: systemMessage,
-      messages: [{ role: "user", content: userMessage }],
-    });
+    const response = await createMessage(
+      client,
+      {
+        model: generationModel,
+        max_tokens: maxTokens,
+        temperature: TEMPERATURE,
+        system: systemMessage,
+        messages: [{ role: "user", content: userMessage }],
+      },
+      "generation"
+    );
 
     // Extract text from the response
     rawOutput = response.content
@@ -264,13 +272,17 @@ export async function generateSynthesis(
   let rawOutput = "";
 
   try {
-    const response = await client.messages.create({
-      model: synthesisModel,
-      max_tokens: SYNTHESIS_MAX_TOKENS,
-      temperature: SYNTHESIS_TEMPERATURE,
-      system: systemMessage,
-      messages: [{ role: "user", content: sourceMaterial }],
-    });
+    const response = await createMessage(
+      client,
+      {
+        model: synthesisModel,
+        max_tokens: SYNTHESIS_MAX_TOKENS,
+        temperature: SYNTHESIS_TEMPERATURE,
+        system: systemMessage,
+        messages: [{ role: "user", content: sourceMaterial }],
+      },
+      "synthesis"
+    );
 
     rawOutput = response.content
       .filter((block) => block.type === "text")

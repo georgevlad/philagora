@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAnthropicClient } from "@/lib/anthropic-utils";
+import {
+  createMessage,
+  getAnthropicClient,
+} from "@/lib/anthropic-utils";
 import { getDb } from "@/lib/db";
 import type { HistoricalEventRow, PhilosopherRow } from "@/lib/db-types";
 import {
@@ -203,13 +206,18 @@ ${philosopherList}
 Return a JSON array of objects: [{"id": "philosopher_id", "score": 1-100, "angle": "Brief description of their likely angle"}]
 Order by score descending.`;
 
-      const response = await client.messages.create({
-        model: getGenerationModel(),
-        max_tokens: 2048,
-        temperature: 0.4,
-        system: "You are a literary editor ranking philosophers for distinctive historical commentary. Return valid JSON only.",
-        messages: [{ role: "user", content: prompt }],
-      });
+      const response = await createMessage(
+        client,
+        {
+          model: getGenerationModel(),
+          max_tokens: 2048,
+          temperature: 0.4,
+          system:
+            "You are a literary editor ranking philosophers for distinctive historical commentary. Return valid JSON only.",
+          messages: [{ role: "user", content: prompt }],
+        },
+        "historical-events"
+      );
 
       const rawOutput = extractTextContent(response);
       const parsed = parseAnthropicJson(rawOutput);

@@ -8,7 +8,11 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import Parser from "rss-parser";
 import { getDb } from "@/lib/db";
-import { getAnthropicClient, parseJsonResponse } from "@/lib/anthropic-utils";
+import {
+  createMessage,
+  getAnthropicClient,
+  parseJsonResponse,
+} from "@/lib/anthropic-utils";
 import {
   DEFAULT_SCORING_MODEL,
   DEFAULT_SCORING_CONFIG_VALUES,
@@ -515,13 +519,17 @@ Published: ${article.pub_date || "Unknown"}
 Description:
 ${article.description}`;
 
-      const response = await client.messages.create({
-        model: scoringModel,
-        max_tokens: SCORING_MAX_TOKENS,
-        temperature: SCORING_TEMPERATURE,
-        system: scoringPrompt,
-        messages: [{ role: "user", content: userMessage }],
-      });
+      const response = await createMessage(
+        client,
+        {
+          model: scoringModel,
+          max_tokens: SCORING_MAX_TOKENS,
+          temperature: SCORING_TEMPERATURE,
+          system: scoringPrompt,
+          messages: [{ role: "user", content: userMessage }],
+        },
+        "scoring"
+      );
 
       const rawOutput = response.content
         .filter((block): block is Anthropic.TextBlock => block.type === "text")

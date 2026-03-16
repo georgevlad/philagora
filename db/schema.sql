@@ -188,6 +188,25 @@ CREATE TABLE IF NOT EXISTS generation_log (
 CREATE INDEX IF NOT EXISTS idx_generation_log_philosopher ON generation_log(philosopher_id);
 CREATE INDEX IF NOT EXISTS idx_generation_log_status ON generation_log(status);
 
+CREATE TABLE IF NOT EXISTS api_call_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+  caller TEXT NOT NULL,
+  model TEXT NOT NULL,
+  input_tokens INTEGER,
+  output_tokens INTEGER,
+  max_tokens_requested INTEGER,
+  temperature REAL,
+  stop_reason TEXT,
+  latency_ms INTEGER,
+  success INTEGER NOT NULL DEFAULT 1,
+  error_message TEXT,
+  error_type TEXT,
+  system_prompt_length INTEGER,
+  user_message_length INTEGER,
+  response_length INTEGER
+);
+
 CREATE TABLE IF NOT EXISTS historical_events (
   id              TEXT PRIMARY KEY,
   title           TEXT NOT NULL,

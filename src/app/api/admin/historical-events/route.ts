@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAnthropicClient, parseJsonValueResponse } from "@/lib/anthropic-utils";
+import {
+  createMessage,
+  getAnthropicClient,
+  parseJsonValueResponse,
+} from "@/lib/anthropic-utils";
 import { getDb } from "@/lib/db";
 import type { HistoricalEventRow } from "@/lib/db-types";
 import {
@@ -431,13 +435,17 @@ export async function POST(request: NextRequest) {
           excludedEventLabels,
         });
 
-        const response = await client.messages.create({
-          model: getGenerationModel(),
-          max_tokens: BATCH_GENERATION_MAX_TOKENS,
-          temperature: 0.4,
-          system: "You are a careful historian. Return valid JSON only.",
-          messages: [{ role: "user", content: prompt }],
-        });
+        const response = await createMessage(
+          client,
+          {
+            model: getGenerationModel(),
+            max_tokens: BATCH_GENERATION_MAX_TOKENS,
+            temperature: 0.4,
+            system: "You are a careful historian. Return valid JSON only.",
+            messages: [{ role: "user", content: prompt }],
+          },
+          "historical-events"
+        );
 
         const rawOutput = extractTextContent(response);
         lastRawOutput = rawOutput;

@@ -3,11 +3,85 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import { classifyError, logApiCall } from "@/lib/api-logger";
 
 export function getAnthropicClient(): Anthropic | null {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || apiKey === "placeholder_key_here") return null;
   return new Anthropic({ apiKey });
+}
+
+/**
+ * Logged wrapper around client.messages.create().
+ * Use this instead of calling client.messages.create() directly.
+ */
+export async function createMessage(
+  client: Anthropic,
+  params: Anthropic.MessageCreateParamsNonStreaming,
+  caller: string
+): Promise<Anthropic.Message> {
+  const start = Date.now();
+  const systemLength =
+    typeof params.system === "string"
+      ? params.system.length
+      : Array.isArray(params.system)
+        ? JSON.stringify(params.system).length
+        : 0;
+  const userMessageLength = params.messages
+    .map((message) =>
+      typeof message.content === "string"
+        ? message.content.length
+        : JSON.stringify(message.content).length
+    )
+    .reduce((total, length) => total + length, 0);
+
+  try {
+    const response = await client.messages.create(params);
+    const latencyMs = Date.now() - start;
+    const rawText = response.content
+      .filter((block): block is Anthropic.TextBlock => block.type === "text")
+      .map((block) => block.text)
+      .join("");
+
+    logApiCall({
+      caller,
+      model: params.model,
+      inputTokens: response.usage?.input_tokens,
+      outputTokens: response.usage?.output_tokens,
+      maxTokensRequested: params.max_tokens,
+      temperature: params.temperature ?? null,
+      stopReason: response.stop_reason,
+      latencyMs,
+      success: true,
+      systemPromptLength: systemLength,
+      userMessageLength,
+      responseLength: rawText.length,
+    });
+
+    return response;
+  } catch (err) {
+    const latencyMs = Date.now() - start;
+    const { message, type } = classifyError(err);
+
+    logApiCall({
+      caller,
+      model: params.model,
+      inputTokens: null,
+      outputTokens: null,
+      maxTokensRequested: params.max_tokens,
+      temperature: params.temperature ?? null,
+      stopReason: null,
+      latencyMs,
+      success: false,
+      errorMessage: message,
+      errorType: type,
+      systemPromptLength: systemLength,
+      userMessageLength,
+      responseLength: null,
+    });
+
+    throw err;
+  }
 }
 
 /**

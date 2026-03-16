@@ -48,6 +48,7 @@ const navSections: NavSection[] = [
       { href: "/admin/templates", label: "Templates", icon: "📋" },
       { href: "/admin/scoring", label: "Scoring", icon: "⚙️" },
       { href: "/admin/generation-settings", label: "AI Models", icon: "🤖" },
+      { href: "/admin/api-logs", label: "API Logs", icon: "📋" },
       { href: "/admin/news-scout/sources", label: "Sources", icon: "📡" },
     ],
   },
