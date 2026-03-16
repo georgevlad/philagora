@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AgoraIcon, DebatesIcon, HomeIcon } from "./Icons";
 import { showComingSoon } from "@/components/ComingSoonToast";
+import { LogoNav } from "@/components/LogoNav";
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -41,19 +42,8 @@ export function MobileNav() {
       {/* Top bar on mobile */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-parchment/92 supports-[backdrop-filter]:backdrop-blur-md border-b border-border-light/90 px-4 py-2.5 shadow-[0_6px_18px_rgba(42,36,31,0.05)]">
         <div className="flex items-center justify-between gap-3">
-          <Link href="/" className="flex min-w-0 items-center gap-2.5">
-            <img src="/logo.svg" alt="" width={26} height={26} className="shrink-0" />
-            <div className="min-w-0 pt-0.5">
-              <h1
-                className="text-[18px] font-bold text-athenian italic leading-none sm:text-xl"
-                style={{ fontFamily: "var(--font-cormorant), var(--font-playfair), serif" }}
-              >
-                Philagora
-              </h1>
-              <span className="mt-1 block text-[9px] font-mono uppercase tracking-[0.28em] text-ink-faint">
-                The philosophers are online
-              </span>
-            </div>
+          <Link href="/" className="min-w-0 text-ink">
+            <LogoNav className="h-8 w-auto max-w-[172px]" />
           </Link>
           <Link
             href="/agora"

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 360" fill="none">
+  <!-- Philagora Hero Mark — Laurel Wreath + Phi -->
+  <g transform="translate(200, 150)">
+    <!-- LEFT BRANCH -->
+    <g opacity="0.8">
+      <path d="M-30 62 Q-52 30 -50 -5 Q-48 -30 -36 -55 Q-30 -66 -22 -72" fill="none" stroke="#3C4A3A" stroke-width="1.3" stroke-linecap="round"/>
+      <path d="M-34 56 Q-48 48 -54 34 Q-46 40 -38 50 Z" fill="#3C4A3A" opacity="0.6"/>
+      <path d="M-38 46 Q-28 38 -26 26 Q-32 34 -40 42 Z" fill="#3C4A3A" opacity="0.55"/>
+      <path d="M-44 32 Q-60 22 -62 8 Q-54 16 -46 28 Z" fill="#3C4A3A" opacity="0.65"/>
+      <path d="M-48 22 Q-36 12 -32 -2 Q-38 8 -48 18 Z" fill="#3C4A3A" opacity="0.55"/>
+      <path d="M-50 8 Q-66 -4 -66 -20 Q-58 -10 -50 2 Z" fill="#3C4A3A" opacity="0.7"/>
+      <path d="M-50 -4 Q-38 -16 -34 -30 Q-40 -18 -50 -8 Z" fill="#3C4A3A" opacity="0.55"/>
+      <path d="M-48 -18 Q-62 -32 -58 -46 Q-54 -36 -46 -22 Z" fill="#3C4A3A" opacity="0.65"/>
+      <path d="M-44 -30 Q-34 -42 -28 -54 Q-34 -44 -44 -34 Z" fill="#3C4A3A" opacity="0.55"/>
+      <path d="M-38 -48 Q-50 -60 -44 -72 Q-42 -62 -36 -52 Z" fill="#3C4A3A" opacity="0.6"/>
+      <path d="M-32 -58 Q-22 -68 -16 -78 Q-22 -70 -32 -62 Z" fill="#3C4A3A" opacity="0.5"/>
+    </g>
+    <!-- RIGHT BRANCH -->
+    <g opacity="0.8">
+      <path d="M30 62 Q52 30 50 -5 Q48 -30 36 -55 Q30 -66 22 -72" fill="none" stroke="#3C4A3A" stroke-width="1.3" stroke-linecap="round"/>
+      <path d="M34 56 Q48 48 54 34 Q46 40 38 50 Z" fill="#3C4A3A" opacity="0.6"/>
+      <path d="M38 46 Q28 38 26 26 Q32 34 40 42 Z" fill="#3C4A3A" opacity="0.55"/>
+      <path d="M44 32 Q60 22 62 8 Q54 16 46 28 Z" fill="#3C4A3A" opacity="0.65"/>
+      <path d="M48 22 Q36 12 32 -2 Q38 8 48 18 Z" fill="#3C4A3A" opacity="0.55"/>
+      <path d="M50 8 Q66 -4 66 -20 Q58 -10 50 2 Z" fill="#3C4A3A" opacity="0.7"/>
+      <path d="M50 -4 Q38 -16 34 -30 Q40 -18 50 -8 Z" fill="#3C4A3A" opacity="0.55"/>
+      <path d="M48 -18 Q62 -32 58 -46 Q54 -36 46 -22 Z" fill="#3C4A3A" opacity="0.65"/>
+      <path d="M44 -30 Q34 -42 28 -54 Q34 -44 44 -34 Z" fill="#3C4A3A" opacity="0.55"/>
+      <path d="M38 -48 Q50 -60 44 -72 Q42 -62 36 -52 Z" fill="#3C4A3A" opacity="0.6"/>
+      <path d="M32 -58 Q22 -68 16 -78 Q22 -70 32 -62 Z" fill="#3C4A3A" opacity="0.5"/>
+    </g>
+    <!-- PHI -->
+    <line x1="0" y1="-66" x2="0" y2="66" stroke="#3C4A3A" stroke-width="4.5" stroke-linecap="round"/>
+    <circle cx="0" cy="0" r="36" fill="none" stroke="#3C4A3A" stroke-width="3.2"/>
+    <line x1="-6" y1="-66" x2="6" y2="-66" stroke="#3C4A3A" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="-6" y1="66" x2="6" y2="66" stroke="#3C4A3A" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <!-- Wordmark -->
+  <text font-family="'Playfair Display', Georgia, serif" font-size="34" font-weight="400" letter-spacing="4" fill="#3C4A3A" x="200" y="296" text-anchor="middle">Philagora</text>
+  <!-- Rule -->
+  <line x1="116" y1="310" x2="284" y2="310" stroke="#3C4A3A" stroke-width="0.5" opacity="0.3"/>
+  <!-- Tagline -->
+  <text font-family="'DM Sans', -apple-system, sans-serif" font-size="11" font-weight="400" letter-spacing="4.5" fill="#3C4A3A" opacity="0.5" x="200" y="330" text-anchor="middle">THE PHILOSOPHERS ARE ONLINE</text>
+</svg>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Philosopher } from "@/lib/types";
 import { AgoraIcon, DebatesIcon, HomeIcon } from "./Icons";
+import { LogoNav } from "./LogoNav";
 import { PhilosopherAvatar } from "./PhilosopherAvatar";
 
 const navItems = [
@@ -41,19 +42,8 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
   return (
     <aside className="hidden lg:flex flex-col w-64 shrink-0 sticky top-0 h-screen border-r border-border-light/80 bg-parchment-dark/55 supports-[backdrop-filter]:backdrop-blur-sm py-6 px-4 shadow-[inset_-1px_0_0_rgba(255,255,255,0.35)]">
       {/* Logo */}
-      <Link href="/" className="group mb-8 px-2 flex items-center gap-3">
-        <img src="/logo.svg" alt="" width={32} height={32} className="shrink-0" />
-        <div>
-          <h1
-            className="text-2xl font-bold text-athenian tracking-tight italic"
-            style={{ fontFamily: "var(--font-cormorant), var(--font-playfair), serif" }}
-          >
-            Philagora
-          </h1>
-          <p className="text-[10px] font-mono uppercase tracking-[0.28em] text-ink-faint mt-0.5">
-            The philosophers are online
-          </p>
-        </div>
+      <Link href="/" className="group mb-8 block px-4 py-5">
+        <LogoNav className="h-10 w-auto text-ink transition-colors duration-200 group-hover:text-athenian" />
       </Link>
 
       {/* Navigation */}

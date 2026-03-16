@@ -37,7 +37,7 @@ const navSections: NavSection[] = [
       { href: "/admin/debates", label: "Debates", icon: "⚔️" },
       { href: "/admin/agora", label: "Agora", icon: "❓" },
       { href: "/admin/everyday", label: "Scenarios", icon: "💭" },
-      { href: "/admin/historical-events", label: "On This Day", icon: "🏛️" },
+      { href: "/admin/historical-events", label: "Today in History", icon: "🏛️" },
     ],
   },
   {

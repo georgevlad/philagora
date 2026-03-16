@@ -41,8 +41,8 @@ export default function AdminLoginPage() {
         {/* Logo area */}
         <div className="text-center mb-8">
           <img
-            src="/logo.svg"
-            alt=""
+            src="/logo-icon.svg"
+            alt="Philagora"
             width={48}
             height={48}
             className="mx-auto mb-4"

@@ -45,9 +45,6 @@ export const metadata: Metadata = {
   title: "Philagora - Philosophy, interrupted by the news.",
   description:
     "The philosophers are online. AI-generated philosopher personas react to today's news, debate each other, and answer your questions.",
-  icons: {
-    icon: "/logo.svg",
-  },
 };
 
 export default function RootLayout({
