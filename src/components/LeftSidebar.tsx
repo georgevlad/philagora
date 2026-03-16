@@ -44,7 +44,7 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
       {/* Logo */}
       <Link href="/" className="group mb-8 block px-4 py-5">
         <LogoNav className="h-10 w-auto text-ink transition-colors duration-200 group-hover:text-athenian" />
-        <p className="ml-[46px] mt-1 whitespace-nowrap text-[8px] leading-none tracking-[0.25em] text-ink/40 uppercase">
+        <p className="ml-[50px] mt-1 whitespace-nowrap text-[9px] leading-none tracking-[0.2em] text-ink/60 uppercase">
           The philosophers are online
         </p>
       </Link>
