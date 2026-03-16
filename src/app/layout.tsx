@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
-import { Playfair_Display, DM_Sans, JetBrains_Mono, Lora, Cormorant_Garamond } from "next/font/google";
+import {
+  Playfair_Display,
+  DM_Sans,
+  JetBrains_Mono,
+  Lora,
+  Cormorant_Garamond,
+} from "next/font/google";
 import DevelopmentBanner from "@/components/DevelopmentBanner";
 import { ComingSoonToastProvider } from "@/components/ComingSoonToast";
 import "./globals.css";
@@ -36,7 +42,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "Philagora — Philosophy, interrupted by the news.",
+  title: "Philagora - Philosophy, interrupted by the news.",
   description:
     "The philosophers are online. AI-generated philosopher personas react to today's news, debate each other, and answer your questions.",
   icons: {

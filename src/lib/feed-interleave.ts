@@ -16,11 +16,25 @@ interface FeedUnit {
 
 function getArticleKey(post: FeedPost): string | null {
   if (!post.citation) return null;
-  if (post.citation.url) return post.citation.url;
-  if (post.citation.title && post.citation.source) {
-    return `${post.citation.title}::${post.citation.source}`;
+  return post.citation.url || post.citation.title || null;
+}
+
+function violatesSameArticleCap(units: FeedUnit[], index: number): boolean {
+  const current = units[index];
+  if (!current?.articleKey) {
+    return false;
   }
-  return post.citation.title || null;
+
+  const windowStart = Math.max(0, index - 4);
+  let sameArticleCount = 0;
+
+  for (let i = windowStart; i <= index; i += 1) {
+    if (units[i]?.articleKey === current.articleKey) {
+      sameArticleCount += 1;
+    }
+  }
+
+  return sameArticleCount > 2;
 }
 
 export function interleaveFeed(posts: FeedPost[]): FeedPost[] {
@@ -114,7 +128,7 @@ export function interleaveFeed(posts: FeedPost[]): FeedPost[] {
     });
   }
 
-  const WINDOW_SIZE = Math.min(units.length, 10);
+  const WINDOW_SIZE = Math.min(units.length, 16);
   const result: FeedUnit[] = [];
   const remaining = [...units];
   const placedPostPositions = new Map<string, number>();
@@ -131,13 +145,14 @@ export function interleaveFeed(posts: FeedPost[]): FeedPost[] {
       const lastThreeUnits = result.slice(-3);
       let score = 0;
 
-      score -= i * 3;
+      score -= i * 1.5;
       score -= Math.max(0, candidate.originalIndex - result.length) * 0.15;
 
+      // Heavy penalty for repeating the same cited article or everyday scenario.
       if (candidate.articleKey) {
-        for (const recent of result.slice(-4)) {
+        for (const recent of result.slice(-6)) {
           if (recent.articleKey === candidate.articleKey) {
-            score -= 120;
+            score -= 200;
           }
         }
       }
@@ -150,9 +165,9 @@ export function interleaveFeed(posts: FeedPost[]): FeedPost[] {
         }
       }
 
-      for (const recent of lastThreeUnits) {
+      for (const recent of result.slice(-5)) {
         if (candidate.sourceType === recent.sourceType) {
-          score -= 20;
+          score -= 35;
         }
       }
 
@@ -240,6 +255,40 @@ export function interleaveFeed(posts: FeedPost[]): FeedPost[] {
     const placedIndex = result.length - 1;
     for (const post of selectedUnit.posts) {
       placedPostPositions.set(post.id, placedIndex);
+    }
+  }
+
+  // Belt-and-suspenders cleanup: keep any 5-unit window below 3 of the same article.
+  for (let i = 2; i < result.length; i += 1) {
+    const current = result[i];
+    if (!current.articleKey) {
+      continue;
+    }
+
+    const windowStart = Math.max(0, i - 4);
+    let sameArticleCount = 0;
+    for (let j = windowStart; j < i; j += 1) {
+      if (result[j].articleKey === current.articleKey) {
+        sameArticleCount += 1;
+      }
+    }
+
+    if (sameArticleCount < 2) {
+      continue;
+    }
+
+    for (let k = i + 1; k < Math.min(i + 10, result.length); k += 1) {
+      if (result[k].articleKey === current.articleKey) {
+        continue;
+      }
+
+      [result[i], result[k]] = [result[k], result[i]];
+
+      if (!violatesSameArticleCap(result, i) && !violatesSameArticleCap(result, k)) {
+        break;
+      }
+
+      [result[i], result[k]] = [result[k], result[i]];
     }
   }
 
