@@ -84,6 +84,7 @@ export function runMigrations(
   migrateScoringConfig(db);
   migrateContentTemplates(db);
   migrateAddHistoricalEvents(db);
+  migrateHistoricalEventThumbnails(db);
   migrateApiCallLog(db);
 
   try {
@@ -334,6 +335,7 @@ function migrateAddHistoricalEvents(db: Database.Database): void {
       context         TEXT NOT NULL,
       key_themes      TEXT NOT NULL DEFAULT '[]',
       status          TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','ready','used')),
+      thumbnail_filename TEXT DEFAULT NULL,
       created_at      TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -430,6 +432,22 @@ function migrateScoringConfig(db: Database.Database): void {
   }
 
   migrateScoringStanceGuidanceV2(db);
+}
+
+function migrateHistoricalEventThumbnails(db: Database.Database): void {
+  const columns = db
+    .prepare("PRAGMA table_info(historical_events)")
+    .all() as Array<{ name: string }>;
+  const hasThumbnailFilename = columns.some((column) => column.name === "thumbnail_filename");
+
+  if (!hasThumbnailFilename) {
+    db.exec("ALTER TABLE historical_events ADD COLUMN thumbnail_filename TEXT DEFAULT NULL");
+  }
+
+  db.prepare(
+    `INSERT OR IGNORE INTO scoring_config (key, value)
+     VALUES ('image_generation_model', '"gemini-3.1-flash-image-preview"')`
+  ).run();
 }
 
 function migrateContentTemplates(db: Database.Database): void {

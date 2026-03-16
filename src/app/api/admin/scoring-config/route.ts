@@ -3,9 +3,11 @@ import { getDb } from "@/lib/db";
 import { ADMIN_COOKIE_NAME, verifyAdminToken } from "@/lib/admin-auth";
 import {
   DEFAULT_GENERATION_MODEL,
+  DEFAULT_IMAGE_GENERATION_MODEL,
   DEFAULT_SCORING_MODEL,
   DEFAULT_SCORING_CONFIG_VALUES,
   parseGenerationModel,
+  parseImageGenerationModel,
   parseScoringModel,
   parseScoreTiers,
   parseStanceGuidance,
@@ -13,7 +15,6 @@ import {
   SCORING_CONFIG_KEYS,
   slugifyTensionLabel,
   type ScoringConfigKey,
-  type ScoringModelName,
   type StanceGuidanceConfig,
   type TensionVocabularyItem,
 } from "@/lib/scoring-config";
@@ -42,6 +43,10 @@ function readConfig() {
       byKey.get("synthesis_model") ??
         DEFAULT_SCORING_CONFIG_VALUES.synthesis_model
     ),
+    image_generation_model: parseImageGenerationModel(
+      byKey.get("image_generation_model") ??
+        DEFAULT_SCORING_CONFIG_VALUES.image_generation_model
+    ),
     score_tiers: parseScoreTiers(
       byKey.get("score_tiers") ?? DEFAULT_SCORING_CONFIG_VALUES.score_tiers
     ),
@@ -62,6 +67,12 @@ function normalizeValue(key: ScoringConfigKey, value: unknown) {
   if (key === "generation_model" || key === "synthesis_model") {
     return parseGenerationModel(
       JSON.stringify(value ?? DEFAULT_GENERATION_MODEL)
+    );
+  }
+
+  if (key === "image_generation_model") {
+    return parseImageGenerationModel(
+      JSON.stringify(value ?? DEFAULT_IMAGE_GENERATION_MODEL)
     );
   }
 

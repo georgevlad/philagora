@@ -10,10 +10,14 @@ export type GenerationModelName =
   | ScoringModelName
   | "claude-opus-4-20250514";
 
+export type ImageGenerationModelName =
+  | "gemini-3.1-flash-image-preview";
+
 export type ScoringConfigKey =
   | "scoring_model"
   | "generation_model"
   | "synthesis_model"
+  | "image_generation_model"
   | "score_tiers"
   | "tension_vocabulary"
   | "stance_guidance";
@@ -43,6 +47,8 @@ export interface StanceGuidanceConfig {
 export const DEFAULT_SCORING_MODEL: ScoringModelName = "claude-haiku-4-5-20251001";
 export const DEFAULT_GENERATION_MODEL: GenerationModelName =
   "claude-sonnet-4-20250514";
+export const DEFAULT_IMAGE_GENERATION_MODEL: ImageGenerationModelName =
+  "gemini-3.1-flash-image-preview";
 
 export const SCORING_MODEL_OPTIONS: Array<{
   value: ScoringModelName;
@@ -84,10 +90,21 @@ export const GENERATION_MODEL_OPTIONS: Array<{
   },
 ];
 
+export const IMAGE_GENERATION_MODEL_OPTIONS: Array<{
+  value: ImageGenerationModelName;
+  label: string;
+}> = [
+  {
+    value: "gemini-3.1-flash-image-preview",
+    label: "Gemini 3.1 Flash Image Preview (Nano Banana)",
+  },
+];
+
 export const SCORING_CONFIG_KEYS: ScoringConfigKey[] = [
   "scoring_model",
   "generation_model",
   "synthesis_model",
+  "image_generation_model",
   "score_tiers",
   "tension_vocabulary",
   "stance_guidance",
@@ -193,6 +210,7 @@ export const DEFAULT_SCORING_CONFIG_VALUES: Record<ScoringConfigKey, string> = {
   scoring_model: JSON.stringify(DEFAULT_SCORING_MODEL),
   generation_model: JSON.stringify(DEFAULT_GENERATION_MODEL),
   synthesis_model: JSON.stringify(DEFAULT_GENERATION_MODEL),
+  image_generation_model: JSON.stringify(DEFAULT_IMAGE_GENERATION_MODEL),
   score_tiers: JSON.stringify(DEFAULT_SCORE_TIERS),
   tension_vocabulary: JSON.stringify(DEFAULT_TENSION_VOCABULARY),
   stance_guidance: JSON.stringify(DEFAULT_STANCE_GUIDANCE),
@@ -214,6 +232,16 @@ export function parseGenerationModel(
   return GENERATION_MODEL_OPTIONS.some((option) => option.value === parsed)
     ? (parsed as GenerationModelName)
     : DEFAULT_GENERATION_MODEL;
+}
+
+export function parseImageGenerationModel(
+  raw: string | undefined
+): ImageGenerationModelName {
+  const parsed = safeJsonParse<string>(raw, DEFAULT_IMAGE_GENERATION_MODEL);
+
+  return IMAGE_GENERATION_MODEL_OPTIONS.some((option) => option.value === parsed)
+    ? (parsed as ImageGenerationModelName)
+    : DEFAULT_IMAGE_GENERATION_MODEL;
 }
 
 export function parseScoreTiers(raw: string | undefined): ScoreTierMap {

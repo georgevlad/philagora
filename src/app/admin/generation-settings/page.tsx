@@ -5,14 +5,18 @@ import { useEffect, useState } from "react";
 import { Spinner } from "@/components/Spinner";
 import {
   DEFAULT_GENERATION_MODEL,
+  DEFAULT_IMAGE_GENERATION_MODEL,
   GENERATION_MODEL_OPTIONS,
+  IMAGE_GENERATION_MODEL_OPTIONS,
   type GenerationModelName,
+  type ImageGenerationModelName,
   type ScoringConfigKey,
 } from "@/lib/scoring-config";
 
 interface GenerationConfigResponse {
   generation_model: GenerationModelName;
   synthesis_model: GenerationModelName;
+  image_generation_model: ImageGenerationModelName;
 }
 
 export default function GenerationSettingsPage() {
@@ -24,6 +28,8 @@ export default function GenerationSettingsPage() {
     useState<GenerationModelName>(DEFAULT_GENERATION_MODEL);
   const [synthesisModel, setSynthesisModel] =
     useState<GenerationModelName>(DEFAULT_GENERATION_MODEL);
+  const [imageGenerationModel, setImageGenerationModel] =
+    useState<ImageGenerationModelName>(DEFAULT_IMAGE_GENERATION_MODEL);
 
   useEffect(() => {
     async function loadConfig() {
@@ -45,6 +51,7 @@ export default function GenerationSettingsPage() {
         if ("generation_model" in data) {
           setGenerationModel(data.generation_model);
           setSynthesisModel(data.synthesis_model);
+          setImageGenerationModel(data.image_generation_model);
         }
       } catch (err) {
         setError(
@@ -71,8 +78,8 @@ export default function GenerationSettingsPage() {
   }, [successMessage]);
 
   async function saveSection(
-    key: "generation_model" | "synthesis_model",
-    value: GenerationModelName,
+    key: "generation_model" | "synthesis_model" | "image_generation_model",
+    value: GenerationModelName | ImageGenerationModelName,
     successText: string
   ) {
     setSavingKey(key);
@@ -100,6 +107,7 @@ export default function GenerationSettingsPage() {
       if ("generation_model" in data) {
         setGenerationModel(data.generation_model);
         setSynthesisModel(data.synthesis_model);
+        setImageGenerationModel(data.image_generation_model);
       }
 
       setSuccessMessage(successText);
@@ -262,10 +270,62 @@ export default function GenerationSettingsPage() {
         </div>
       </section>
 
+      <section className="border border-border rounded-xl bg-white/40 overflow-hidden">
+        <div className="px-5 py-4 border-b border-border bg-parchment-dark/30">
+          <h2 className="font-serif text-lg font-semibold text-ink">
+            Historical Event Image Model
+          </h2>
+          <p className="text-sm text-ink-lighter mt-1">
+            Used for AI-generated historical event thumbnails in the admin event detail page.
+          </p>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-end">
+            <div>
+              <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                Model
+              </label>
+              <select
+                value={imageGenerationModel}
+                onChange={(event) =>
+                  setImageGenerationModel(
+                    event.target.value as ImageGenerationModelName
+                  )
+                }
+                className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
+              >
+                {IMAGE_GENERATION_MODEL_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                saveSection(
+                  "image_generation_model",
+                  imageGenerationModel,
+                  "Historical event image model saved."
+                )
+              }
+              disabled={savingKey !== null}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-terracotta hover:bg-terracotta-light disabled:opacity-50 text-white text-sm font-serif font-semibold rounded-lg transition-colors duration-150 shadow-sm"
+            >
+              {savingKey === "image_generation_model" ? (
+                <Spinner className="h-4 w-4" />
+              ) : null}
+              Save Model
+            </button>
+          </div>
+        </div>
+      </section>
+
       <div className="rounded-xl border border-border bg-parchment-dark/20 px-5 py-4">
         <p className="text-xs font-mono uppercase tracking-[0.18em] text-ink-lighter">
-          Affects all future generation runs. Haiku is the cheapest. Opus is
-          the most expensive and slowest.
+          Affects all future generation runs. Claude models power writing and synthesis; Gemini powers thumbnail image generation.
         </p>
       </div>
     </div>

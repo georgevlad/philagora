@@ -170,6 +170,7 @@ export interface HistoricalEventRow {
   context: string;
   key_themes: string;
   status: string;
+  thumbnail_filename: string | null;
   created_at: string;
   updated_at: string;
   posts_count?: number;

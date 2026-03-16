@@ -70,6 +70,7 @@ export interface HistoricalEvent {
   context: string;
   keyThemes: string[];
   status: string;
+  thumbnailFilename: string | null;
   createdAt: string;
   updatedAt: string;
   postsCount?: number;

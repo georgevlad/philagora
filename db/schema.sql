@@ -219,6 +219,7 @@ CREATE TABLE IF NOT EXISTS historical_events (
   context         TEXT NOT NULL,
   key_themes      TEXT NOT NULL DEFAULT '[]',
   status          TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','ready','used')),
+  thumbnail_filename TEXT DEFAULT NULL,
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );

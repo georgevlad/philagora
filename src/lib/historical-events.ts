@@ -168,6 +168,7 @@ export function mapHistoricalEventRow(row: HistoricalEventRow): HistoricalEvent 
     context: row.context,
     keyThemes: parseHistoricalThemes(row.key_themes),
     status: row.status,
+    thumbnailFilename: row.thumbnail_filename ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     postsCount: row.posts_count ?? 0,

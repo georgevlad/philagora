@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -116,6 +117,9 @@ export default function HistoricalEventDetailPage() {
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const [thumbnailGenerating, setThumbnailGenerating] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -133,6 +137,12 @@ export default function HistoricalEventDetailPage() {
         : current
     );
   }, [displayDateTouched, form]);
+
+  useEffect(() => {
+    setThumbnailUrl(
+      event?.thumbnailFilename ? `/api/thumbnails/${event.thumbnailFilename}` : null
+    );
+  }, [event?.thumbnailFilename]);
 
   const loadPage = useCallback(async () => {
     setLoading(true);
@@ -158,6 +168,7 @@ export default function HistoricalEventDetailPage() {
       setForm(buildFormFromEvent(eventData.event));
       setPhilosophers(philosopherData);
       setDisplayDateTouched(false);
+      setThumbnailError(null);
     } catch (loadError) {
       setError(
         loadError instanceof Error ? loadError.message : "Failed to load historical event"
@@ -381,6 +392,84 @@ export default function HistoricalEventDetailPage() {
       );
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function handleGenerateThumbnail() {
+    setThumbnailGenerating(true);
+    setThumbnailError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch(
+        `/api/admin/historical-events/${eventId}/thumbnail`,
+        { method: "POST" }
+      );
+      const data = (await response.json()) as {
+        error?: string;
+        filename?: string;
+        thumbnailUrl?: string;
+      };
+
+      if (!response.ok || !data.filename || !data.thumbnailUrl) {
+        throw new Error(data.error || "Failed to generate thumbnail");
+      }
+
+      setEvent((current) =>
+        current
+          ? {
+              ...current,
+              thumbnailFilename: data.filename ?? null,
+            }
+          : current
+      );
+      setThumbnailUrl(data.thumbnailUrl);
+      setSuccess("Thumbnail generated.");
+    } catch (thumbnailGenerationError) {
+      setThumbnailError(
+        thumbnailGenerationError instanceof Error
+          ? thumbnailGenerationError.message
+          : "Failed to generate thumbnail"
+      );
+    } finally {
+      setThumbnailGenerating(false);
+    }
+  }
+
+  async function handleRemoveThumbnail() {
+    setThumbnailGenerating(true);
+    setThumbnailError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch(
+        `/api/admin/historical-events/${eventId}/thumbnail`,
+        { method: "DELETE" }
+      );
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to remove thumbnail");
+      }
+
+      setEvent((current) =>
+        current
+          ? {
+              ...current,
+              thumbnailFilename: null,
+            }
+          : current
+      );
+      setThumbnailUrl(null);
+      setSuccess("Thumbnail removed.");
+    } catch (thumbnailRemovalError) {
+      setThumbnailError(
+        thumbnailRemovalError instanceof Error
+          ? thumbnailRemovalError.message
+          : "Failed to remove thumbnail"
+      );
+    } finally {
+      setThumbnailGenerating(false);
     }
   }
 
@@ -766,6 +855,86 @@ export default function HistoricalEventDetailPage() {
               Status: {event?.status}
             </span>
           </div>
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+        <div className="border-b border-border bg-parchment-dark/20 px-6 py-4">
+          <p className="text-xs font-mono uppercase tracking-[0.3em] text-ink-lighter">
+            Thumbnail
+          </p>
+        </div>
+        <div className="space-y-4 p-6">
+          {thumbnailError ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+              {thumbnailError}
+            </div>
+          ) : null}
+
+          {thumbnailUrl ? (
+            <div className="space-y-4">
+              <div className="max-w-[600px] overflow-hidden rounded-xl border border-border bg-parchment">
+                <Image
+                  src={thumbnailUrl}
+                  alt={`Thumbnail for ${event?.title}`}
+                  width={1600}
+                  height={900}
+                  unoptimized
+                  className="aspect-video h-auto w-full object-cover"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleGenerateThumbnail}
+                  disabled={thumbnailGenerating}
+                  className="inline-flex items-center gap-2 rounded-full bg-terracotta px-4 py-2 text-sm font-body text-white hover:bg-terracotta-light disabled:opacity-50"
+                >
+                  {thumbnailGenerating ? (
+                    <>
+                      <Spinner className="h-4 w-4 text-white" />
+                      Generating thumbnail...
+                    </>
+                  ) : (
+                    "Regenerate"
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRemoveThumbnail}
+                  disabled={thumbnailGenerating}
+                  className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-body text-ink hover:bg-parchment-dark/30 disabled:opacity-50"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ) : thumbnailGenerating ? (
+            <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center">
+              <Spinner className="mx-auto h-6 w-6 text-terracotta" />
+              <p className="mt-3 text-sm text-ink-lighter">Generating thumbnail...</p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center">
+              <p className="text-sm text-ink-lighter">No thumbnail generated</p>
+              <button
+                type="button"
+                onClick={handleGenerateThumbnail}
+                disabled={thumbnailGenerating}
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-terracotta px-4 py-2 text-sm font-body text-white hover:bg-terracotta-light disabled:opacity-50"
+              >
+                {thumbnailGenerating ? (
+                  <>
+                    <Spinner className="h-4 w-4 text-white" />
+                    Generating thumbnail...
+                  </>
+                ) : (
+                  "Generate Thumbnail"
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
