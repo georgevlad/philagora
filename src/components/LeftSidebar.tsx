@@ -53,10 +53,10 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
             className="h-10 w-10 flex-shrink-0"
           />
           <div className="min-w-0 border-l border-ink/20 pl-3 transition-colors duration-200 group-hover:border-athenian/25">
-            <span className="block font-display text-[30px] leading-none tracking-[0.03em] text-ink transition-colors duration-200 group-hover:text-athenian">
+            <span className="mb-1 block font-display text-[30px] leading-none tracking-[0.03em] text-ink transition-colors duration-200 group-hover:text-athenian">
               Philagora
             </span>
-            <p className="mt-0.5 text-[8px] leading-tight tracking-[0.06em] text-ink/60 uppercase transition-colors duration-200 group-hover:text-athenian/80">
+            <p className="mt-0.5 text-[8px] leading-tight tracking-[0.06em] text-ink/75 uppercase transition-colors duration-200 group-hover:text-athenian/85">
               The philosophers are online
             </p>
           </div>
