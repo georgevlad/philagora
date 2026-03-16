@@ -39,25 +39,25 @@ export function MobileNav() {
   return (
     <>
       {/* Top bar on mobile */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-parchment/92 supports-[backdrop-filter]:backdrop-blur-md border-b border-border-light/90 px-4 py-3 shadow-[0_6px_18px_rgba(42,36,31,0.05)]">
-        <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <img src="/logo.svg" alt="" width={28} height={28} />
-            <div>
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-parchment/92 supports-[backdrop-filter]:backdrop-blur-md border-b border-border-light/90 px-4 py-2.5 shadow-[0_6px_18px_rgba(42,36,31,0.05)]">
+        <div className="flex items-center justify-between gap-3">
+          <Link href="/" className="flex min-w-0 items-center gap-2.5">
+            <img src="/logo.svg" alt="" width={26} height={26} className="shrink-0" />
+            <div className="min-w-0 pt-0.5">
               <h1
-                className="text-xl font-bold text-athenian italic leading-none"
+                className="text-[18px] font-bold text-athenian italic leading-none sm:text-xl"
                 style={{ fontFamily: "var(--font-cormorant), var(--font-playfair), serif" }}
               >
                 Philagora
               </h1>
-              <span className="text-[9px] font-mono uppercase tracking-[0.24em] text-ink-faint">
+              <span className="mt-1 block text-[9px] font-mono uppercase tracking-[0.28em] text-ink-faint">
                 Forum
               </span>
             </div>
           </Link>
           <Link
             href="/agora"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-athenian text-white text-xs font-medium rounded-full border border-gold/25 shadow-sm"
+            className="flex shrink-0 items-center gap-1.5 rounded-full border border-gold/25 bg-athenian px-3.5 py-2 text-[12px] font-medium text-white shadow-sm"
           >
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M8 3V13" strokeLinecap="round" />

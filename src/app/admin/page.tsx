@@ -302,6 +302,24 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex flex-col items-start">
                 <a
+                  href="/api/admin/export-feed"
+                  title="Download .txt of the full published feed in homepage order"
+                  className="inline-flex items-center gap-2 bg-white hover:bg-parchment-dark/45 text-ink text-sm font-body px-5 py-2.5 rounded-full transition-colors shadow-sm border border-border"
+                >
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                    <path d="M2 10V13H14V10" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M8 2V10" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M5 7L8 10L11 7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span>Export Full Feed</span>
+                </a>
+                <p className="text-[11px] text-ink-lighter mt-1.5 px-2">
+                  Download .txt of all published posts in feed order
+                </p>
+              </div>
+
+              <div className="flex flex-col items-start">
+                <a
                   href="/api/admin/export-samples"
                   title="Download .txt with sample posts for editorial review"
                   className="inline-flex items-center gap-2 bg-white hover:bg-parchment-dark/45 text-ink text-sm font-body px-5 py-2.5 rounded-full transition-colors shadow-sm border border-border"

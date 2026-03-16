@@ -39,26 +39,26 @@ export function FeedTabs() {
 
   return (
     <div
-      className={`sticky top-14 lg:top-0 z-10 bg-parchment/92 supports-[backdrop-filter]:backdrop-blur-md border-b border-border-light/90 shadow-[0_6px_16px_rgba(42,36,31,0.035)] transition-opacity duration-200 ${
+      className={`sticky top-[61px] lg:top-0 z-10 bg-parchment/92 supports-[backdrop-filter]:backdrop-blur-md border-b border-border-light/90 shadow-[0_6px_16px_rgba(42,36,31,0.035)] transition-opacity duration-200 ${
         isPending ? "opacity-85" : ""
       }`}
     >
-      <div className="flex px-2 sm:px-4">
+      <div className="flex px-3 sm:px-4">
         {FEED_CONTENT_TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => pushFilters(tab.key)}
             aria-pressed={activeType === tab.key}
-            className={`flex-1 px-2 sm:px-4 py-4 transition-colors duration-200 relative ${
+            className={`relative flex-1 px-1.5 py-3.5 sm:px-4 sm:py-4 transition-colors duration-200 ${
               activeType === tab.key
-                ? "text-ink font-serif font-medium text-[15px]"
-                : "text-ink-lighter font-body text-sm hover:text-ink-light"
+                ? "font-serif text-[15px] font-medium text-ink sm:text-[16px]"
+                : "font-body text-[13px] text-ink-lighter hover:text-ink-light sm:text-sm"
             }`}
           >
-            <span className="relative inline-block">
+            <span className="relative inline-block leading-[1.15]">
               {tab.label}
               {activeType === tab.key && (
-                <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-9 h-[3px] bg-athenian rounded-full shadow-[0_0_0_1px_rgba(176,138,73,0.14)]" />
+                <span className="absolute -bottom-3.5 left-1/2 h-[3px] w-9 -translate-x-1/2 rounded-full bg-athenian shadow-[0_0_0_1px_rgba(176,138,73,0.14)]" />
               )}
             </span>
           </button>
