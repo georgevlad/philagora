@@ -58,7 +58,7 @@ export function MobileNav({ topContent }: { topContent?: ReactNode }) {
                   <span className="block font-display text-[25px] leading-none tracking-[0.03em] text-ink">
                     Philagora
                   </span>
-                  <p className="mt-px whitespace-nowrap text-[7.5px] leading-tight tracking-[0.18em] text-ink/50 uppercase">
+                  <p className="mt-[2px] whitespace-nowrap text-[7.5px] leading-tight tracking-[0.18em] text-ink/50 uppercase">
                     The philosophers are online
                   </p>
                 </div>

@@ -39,33 +39,38 @@ export function FeedTabs({ mobileIntegrated = false }: { mobileIntegrated?: bool
 
   return (
     <div
-      className={`${mobileIntegrated
-        ? "border-b border-border-light/90"
-        : "sticky top-[61px] lg:top-0 z-10 bg-parchment/92 supports-[backdrop-filter]:backdrop-blur-md border-b border-border-light/90 shadow-[0_6px_16px_rgba(42,36,31,0.035)]"
-      } transition-opacity duration-200 ${
-        isPending ? "opacity-85" : ""
-      }`}
+      className={`${
+        mobileIntegrated
+          ? "border-b border-border-light/90"
+          : "sticky top-[61px] lg:top-0 z-10 bg-parchment/92 supports-[backdrop-filter]:backdrop-blur-md border-b border-border-light/90 shadow-[0_6px_16px_rgba(42,36,31,0.035)]"
+      } transition-opacity duration-200 ${isPending ? "opacity-85" : ""}`}
     >
-      <div className="flex items-stretch justify-start gap-1 px-3 overflow-x-auto scrollbar-hide sm:justify-center sm:gap-0 sm:px-4 sm:overflow-visible">
-        {FEED_CONTENT_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => pushFilters(tab.key)}
-            aria-pressed={activeType === tab.key}
-            className={`relative flex-shrink-0 px-1 py-3.5 transition-colors duration-200 sm:px-4 sm:py-4 ${
-              activeType === tab.key
-                ? "font-serif text-[14px] font-medium text-ink sm:text-[16px]"
-                : "font-body text-[12px] text-ink-lighter hover:text-ink-light sm:text-sm"
-            }`}
-          >
-            <span className="relative inline-block whitespace-nowrap leading-none sm:leading-[1.15]">
+      <div className="flex items-center px-2 py-2 sm:gap-1 sm:px-4 sm:py-2.5">
+        {FEED_CONTENT_TABS.map((tab) => {
+          const isActive = activeType === tab.key;
+
+          return (
+            <button
+              key={tab.key}
+              onClick={() => pushFilters(tab.key)}
+              aria-pressed={isActive}
+              className={`
+                flex-1 sm:flex-initial
+                rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2
+                text-center font-body text-[12px] sm:text-[13px]
+                tracking-wide
+                transition-all duration-200 ease-out
+                ${
+                  isActive
+                    ? "bg-parchment-dark/70 text-ink font-medium shadow-[inset_0_0_0_1px_rgba(42,36,31,0.08),0_1px_2px_rgba(42,36,31,0.06)]"
+                    : "text-ink-lighter hover:bg-parchment-dark/30 hover:text-ink-light"
+                }
+              `}
+            >
               {tab.label}
-              {activeType === tab.key && (
-                <span className="absolute -bottom-3.5 left-1/2 h-[3px] w-9 -translate-x-1/2 rounded-full bg-athenian shadow-[0_0_0_1px_rgba(176,138,73,0.14)]" />
-              )}
-            </span>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
