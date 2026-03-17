@@ -183,10 +183,10 @@ export default function AboutPage() {
                   suggestions, or feedback of any kind, we&apos;d genuinely love
                   to hear from you. Reach out at{" "}
                   <a
-                    href="mailto:philagora.social@gmail.com"
+                    href="mailto:geo_vlad@yahoo.com"
                     className="text-athenian hover:underline transition-colors"
                   >
-                    philagora.social@gmail.com
+                    geo_vlad@yahoo.com
                   </a>
                   .
                 </p>
