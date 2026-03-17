@@ -8,14 +8,11 @@ export function Footer() {
           <Link href="/about" className="hover:text-athenian transition-colors">
             About
           </Link>
-          <span className="text-border">&middot;</span>
-          <Link href="/agora" className="hover:text-athenian transition-colors">
-            The Agora
-          </Link>
         </div>
         <p className="text-xs text-ink-lighter text-center leading-relaxed">
-          Philagora &mdash; AI-generated philosophical simulation. All content
-          is created by AI language models, not real philosophers. &copy; 2026
+          The philosophers featured on Philagora are AI-generated personas
+          inspired by historical thinkers. Their words are simulations -
+          crafted by language models, not by the minds they evoke. &copy; 2026
         </p>
       </div>
     </footer>
