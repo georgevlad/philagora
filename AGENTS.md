@@ -68,6 +68,7 @@ scripts/
 - Admin panel for content, posts, prompts, templates, house rules, debates, Agora, News Scout, scoring, philosophers, and daily generation
 - News Scout pipeline for ingesting and scoring RSS stories
 - Draft-first daily generation workflow for reactions, cross-replies, and timeless reflections
+- Draft-first daily generation workflow for reactions, cross-replies, timeless reflections, and cultural recommendations
 
 ## Key architectural patterns
 
@@ -94,6 +95,7 @@ Current content types include:
 - `news_reaction`
 - `timeless_reflection`
 - `cross_philosopher_reply`
+- `cultural_recommendation`
 - `debate_opening`
 - `debate_rebuttal`
 - `agora_response`
@@ -105,7 +107,7 @@ If adding a new content type, update both template typing and any database const
 Note:
 
 - internal generation template keys differ from stored `generation_log.content_type` values
-- DB values currently use `post`, `reflection`, `debate_opening`, `debate_rebuttal`, `agora_response`, and `synthesis`
+- DB values currently use `post`, `reflection`, `recommendation`, `debate_opening`, `debate_rebuttal`, `agora_response`, and `synthesis`
 - `resolveContentTypeKey()` in `src/lib/content-templates.ts` maps between them
 
 ### Admin authentication
@@ -240,7 +242,7 @@ Create `src/app/api/<path>/route.ts`.
 ### Working with daily generation
 
 - Daily generation creates `draft` posts first
-- Reactions, cross-replies, and timeless reflections are all generated through `/api/admin/daily-generate`
+- Reactions, cross-replies, timeless reflections, and cultural recommendations are all generated through `/api/admin/daily-generate`
 - Regeneration replaces draft content and can invalidate dependent draft replies
 - Publishing is a separate editorial action
 

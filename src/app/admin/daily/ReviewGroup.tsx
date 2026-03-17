@@ -11,6 +11,23 @@ export function SummaryTile({ label, value }: { label: string; value: number }) 
   );
 }
 
+function recommendationMediumLabel(medium?: string) {
+  switch ((medium ?? "").toLowerCase()) {
+    case "film":
+      return "Film";
+    case "music":
+      return "Music";
+    case "book":
+      return "Book";
+    case "tv":
+      return "TV";
+    case "podcast":
+      return "Podcast";
+    default:
+      return "Recommendation";
+  }
+}
+
 export function ReviewGroup({
   title,
   description,
@@ -94,6 +111,16 @@ export function ReviewGroup({
                       <p className="text-xs font-mono uppercase tracking-[0.25em] text-ink-lighter mb-2">
                         {truncate(item.prompt_seed, 80)}
                       </p>
+                    )}
+                    {item.type === "cultural_recommendation" && item.recommendation_title && (
+                      <div className="mb-3 flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-mono uppercase tracking-[0.2em] text-emerald-800">
+                          {recommendationMediumLabel(item.recommendation_medium)}
+                        </span>
+                        <p className="text-sm font-serif font-semibold text-ink">
+                          Recommends {item.recommendation_title}
+                        </p>
+                      </div>
                     )}
 
                     <p className="font-serif text-xl font-bold text-ink leading-snug mb-3">

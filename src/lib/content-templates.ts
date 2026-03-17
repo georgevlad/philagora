@@ -1,32 +1,55 @@
 /**
- * Content type templates — structural instructions layered on top of
+ * Content type templates - structural instructions layered on top of
  * each philosopher's system prompt at generation time.
  */
 
 import { getDb } from "@/lib/db";
 
-// ── Variable length support ─────────────────────────────────────────
-
 export type TargetLength = "short" | "medium" | "long";
 
 const STANDARD_LENGTHS: Record<TargetLength, string> = {
-  short: "STRICT LENGTH: 30–50 words. Maximum 2 sentences. Be brutally concise — one piercing observation, no elaboration, no preamble, no conclusion. Think tweet, not essay.",
-  medium: "Length: 80–150 words. A developed reaction with nuance.",
-  long: "Length: 150–250 words. A deeper analysis with more nuance. Multiple paragraphs allowed.",
+  short:
+    "STRICT LENGTH: 30-50 words. Maximum 2 sentences. Be brutally concise - one piercing observation, no elaboration, no preamble, no conclusion. Think tweet, not essay.",
+  medium: "Length: 80-150 words. A developed reaction with nuance.",
+  long: "Length: 150-250 words. A deeper analysis with more nuance. Multiple paragraphs allowed.",
 };
 
 const REFLECTION_LENGTHS: Record<TargetLength, string> = {
-  short: "STRICT LENGTH: 30–50 words. Maximum 2 sentences. Be brutally concise — one piercing insight, no elaboration, no preamble, no conclusion. Think tweet, not essay.",
-  medium: "Length: 60–120 words. A developed reflection.",
-  long: "Length: 120–200 words. An extended meditation. Multiple paragraphs allowed.",
+  short:
+    "STRICT LENGTH: 30-50 words. Maximum 2 sentences. Be brutally concise - one piercing insight, no elaboration, no preamble, no conclusion. Think tweet, not essay.",
+  medium: "Length: 60-120 words. A developed reflection.",
+  long: "Length: 120-200 words. An extended meditation. Multiple paragraphs allowed.",
+};
+
+const RECOMMENDATION_LENGTHS: Record<TargetLength, string> = {
+  short:
+    "STRICT LENGTH: 50-80 words. Maximum 3 sentences. Name the work, say why through your philosophy, and stop.",
+  medium:
+    "Length: 80-150 words. Name the work, ground it in your philosophy, make the reader want to experience it.",
+  long:
+    "Length: 150-250 words. A developed recommendation with philosophical depth. Multiple paragraphs allowed.",
 };
 
 const EVERYDAY_LENGTHS: Record<TargetLength, string> = {
   short:
-    "STRICT LENGTH: 40–70 words. Maximum 3 sentences. Be sharp and concise — one philosophical observation, developed just enough to land. Think barbed cocktail-party remark, not essay.",
-  medium: "Length: 70–120 words. A developed reaction with room for one turn of thought.",
-  long: "Length: 120–180 words. A fuller take — but still conversational, not essayistic.",
+    "STRICT LENGTH: 40-70 words. Maximum 3 sentences. Be sharp and concise - one philosophical observation, developed just enough to land. Think barbed cocktail-party remark, not essay.",
+  medium: "Length: 70-120 words. A developed reaction with room for one turn of thought.",
+  long: "Length: 120-180 words. A fuller take - but still conversational, not essayistic.",
 };
+
+export type ContentTypeKey =
+  | "news_reaction"
+  | "quip"
+  | "timeless_reflection"
+  | "cross_philosopher_reply"
+  | "historical_reaction"
+  | "everyday_reaction"
+  | "cultural_recommendation"
+  | "debate_opening"
+  | "debate_rebuttal"
+  | "agora_response"
+  | "debate_synthesis"
+  | "agora_synthesis";
 
 const LENGTH_MAPS: Partial<Record<ContentTypeKey, Record<TargetLength, string>>> = {
   news_reaction: STANDARD_LENGTHS,
@@ -39,12 +62,13 @@ const LENGTH_MAPS: Partial<Record<ContentTypeKey, Record<TargetLength, string>>>
   historical_reaction: STANDARD_LENGTHS,
   everyday_reaction: EVERYDAY_LENGTHS,
   timeless_reflection: REFLECTION_LENGTHS,
+  cultural_recommendation: RECOMMENDATION_LENGTHS,
 };
 
 /**
  * Returns the appropriate length guidance string for a given template and
  * target length. Templates without a `{LENGTH_GUIDANCE}` placeholder are
- * unaffected — the caller simply won't substitute anything.
+ * unaffected - the caller simply will not substitute anything.
  */
 export function getLengthGuidance(
   templateKey: ContentTypeKey,
@@ -57,28 +81,11 @@ export function getLengthGuidance(
   return map[resolvedLength];
 }
 
-// ── Content type key ────────────────────────────────────────────────
-
-export type ContentTypeKey =
-  | "news_reaction"
-  | "quip"
-  | "timeless_reflection"
-  | "cross_philosopher_reply"
-  | "historical_reaction"
-  | "everyday_reaction"
-  | "debate_opening"
-  | "debate_rebuttal"
-  | "agora_response"
-  | "debate_synthesis"
-  | "agora_synthesis";
-
-/** Maps the DB content_type + UI label to our internal key */
+/** Maps the DB content_type + UI label to our internal key. */
 export function resolveContentTypeKey(
   dbContentType: string,
   uiLabel?: string
 ): ContentTypeKey {
-  // The UI sends "post" for both news_reaction and cross_philosopher_reply,
-  // and "reflection" for timeless_reflection. We disambiguate via the label.
   if (dbContentType === "post") {
     if (uiLabel === "Cross-Philosopher Reply") return "cross_philosopher_reply";
     if (uiLabel === "Historical Reaction" || uiLabel === "historical_reaction") {
@@ -87,10 +94,14 @@ export function resolveContentTypeKey(
     if (uiLabel === "Everyday Reaction" || uiLabel === "everyday_reaction") {
       return "everyday_reaction";
     }
+    if (uiLabel === "Cultural Recommendation" || uiLabel === "cultural_recommendation") {
+      return "cultural_recommendation";
+    }
     if (uiLabel === "Quip") return "quip";
     return "news_reaction";
   }
   if (dbContentType === "reflection") return "timeless_reflection";
+  if (dbContentType === "recommendation") return "cultural_recommendation";
   if (dbContentType === "debate_opening") return "debate_opening";
   if (dbContentType === "debate_rebuttal") return "debate_rebuttal";
   if (dbContentType === "agora_response") return "agora_response";
@@ -110,19 +121,19 @@ export const CONTENT_TEMPLATES: Record<ContentTypeKey, ContentTemplate> = {
     instructions: `
 TASK: React to the following news article through your philosophical framework.
 
-STRUCTURE — follow these steps in order:
-1. HOOK: Open with a blunt claim or reframing question. Maximum 12 words. This is your headline — make it land.
-2. REFRAME: Connect the article to your philosophical framework. Show the reader what they're missing: "You think this is about X; it is about Y."
-3. ANCHOR: Reference one specific concrete detail from the source article — a quote, a number, a name, a fact. Ground your argument in the material.
+STRUCTURE - follow these steps in order:
+1. HOOK: Open with a blunt claim or reframing question. Maximum 12 words. This is your headline - make it land.
+2. REFRAME: Connect the article to your philosophical framework. Show the reader what they are missing: "You think this is about X; it is about Y."
+3. ANCHOR: Reference one specific concrete detail from the source article - a quote, a number, a name, a fact. Ground your argument in the material.
 4. VERDICT: State your position and give one reason. Be direct.
 5. EXIT: End with either a provocative question to the reader OR a direct challenge to a named philosopher from the Philagora roster.
 
 REQUIREMENTS:
 - {LENGTH_GUIDANCE}
-- The citation details (article title, source, URL) will be stored separately — do NOT include them in your content
-- EPISTEMIC SAFETY: If the source material contains unverified claims or breaking news, argue conditionally — say what your position WOULD be if the facts hold. Never state contested facts as settled.
+- The citation details (article title, source, URL) will be stored separately - do NOT include them in your content
+- EPISTEMIC SAFETY: If the source material contains unverified claims or breaking news, argue conditionally - say what your position WOULD be if the facts hold. Never state contested facts as settled.
 
-RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
+RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
 {
   "content": "Your reaction to the article",
   "thesis": "One punchy sentence summarizing your position",
@@ -159,24 +170,58 @@ RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
   timeless_reflection: {
     key: "timeless_reflection",
     instructions: `
-TASK: Write a timeless observation about human nature or modern life. This is NOT tied to any specific news event — it is a standalone philosophical reflection.
+TASK: Write a timeless observation about human nature or modern life. This is NOT tied to any specific news event - it is a standalone philosophical reflection.
 
-STRUCTURE — follow these steps in order:
+STRUCTURE - follow these steps in order:
 1. HOOK: Open with a provocative observation or paradox. Maximum 12 words. Arrest the reader's attention immediately.
-2. DEVELOPMENT: Explore one core insight through your characteristic voice. Use your rhetorical patterns, your key concepts, your way of seeing. Direct address to the reader — use "you."
-3. PAYOFF: Land on a concrete reframe or implication the reader can carry with them. Not a vague platitude — something that changes how they see the next hour of their day.
+2. DEVELOPMENT: Explore one core insight through your characteristic voice. Use your rhetorical patterns, your key concepts, your way of seeing. Direct address to the reader - use "you."
+3. PAYOFF: Land on a concrete reframe or implication the reader can carry with them. Not a vague platitude - something that changes how they see the next hour of their day.
 
 REQUIREMENTS:
 - {LENGTH_GUIDANCE}
 - Should feel like something that could be read in any era
 - No throat-clearing, no preamble. The hook IS the opening line.
 
-RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
+RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
 {
   "content": "Your timeless reflection",
   "thesis": "One punchy sentence capturing the core insight",
   "stance": "challenges | defends | reframes | questions | warns | observes | diagnoses | provokes | laments",
   "tag": "Timeless Wisdom | Practical Wisdom"
+}
+`.trim(),
+  },
+
+  cultural_recommendation: {
+    key: "cultural_recommendation",
+    instructions: `
+TASK: Recommend a specific work - a film, album, book, or other cultural artifact - in response to the prompt below. This is NOT a review. It is a philosophical argument for WHY this work matters, filtered entirely through your worldview.
+
+PROMPT:
+{SOURCE_MATERIAL}
+
+STRUCTURE - follow these steps in order:
+1. HOOK: Open with a direct claim about the reader or the human condition. Maximum 15 words. Do NOT open with "I recommend..." or "You should watch..." - that is the boring version.
+2. THE WORK: Name the specific work (title, creator/director/author/artist). One sentence.
+3. THE CASE: Explain WHY this work matters through your philosophical framework. What does it reveal, confront, or transform? Use your characteristic voice, your key concepts, your way of seeing. This is the heart of the piece - make the reader feel they would be philosophically poorer for missing it.
+4. THE CHALLENGE: End with a provocation - what should the reader pay attention to, or what question should they carry into the experience?
+
+CRITICAL CONSTRAINTS:
+- {LENGTH_GUIDANCE}
+- Recommend ONE specific work only. Not "watch anything by Bergman" - name the exact film/album/book.
+- Do NOT pick the most obvious canonical choice for your tradition. Surprise the reader. A Stoic recommending "Gladiator" is boring. A Stoic recommending "The Florida Project" is interesting.
+- Your recommendation must be REAL - an actual existing work. Do not invent fictional titles.
+- Do NOT list multiple recommendations. One work, argued for with conviction.
+- The medium (film, music, book, etc.) is specified in the prompt. Stay within it.
+
+RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
+{
+  "content": "Your recommendation piece as a single string. If multiple paragraphs, separate with \\n\\n.",
+  "thesis": "One sentence: what this work teaches or reveals.",
+  "stance": "recommends | provokes | challenges | diagnoses | reframes",
+  "tag": "Recommends",
+  "recommendation_title": "Exact title of the recommended work",
+  "recommendation_medium": "film | music | book | tv | podcast | other"
 }
 `.trim(),
   },
@@ -189,12 +234,12 @@ TASK: Respond to another philosopher's post. This is a dialogue, not parallel mo
 REQUIREMENTS:
 - {LENGTH_GUIDANCE}
 - Start with @PhilosopherName (the name of the philosopher you are replying to)
-- HOOK: Open with the most interesting point of disagreement or complication — not a polite summary of what they said
+- HOOK: Open with the most interesting point of disagreement or complication - not a polite summary of what they said
 - ENGAGE: Quote or paraphrase one specific claim from their post, then respond directly to it. Show you actually read them.
-- ADVANCE: Introduce exactly one new point, distinction, or argument that wasn't in your previous posts or theirs. Move the conversation forward.
+- ADVANCE: Introduce exactly one new point, distinction, or argument that was not in your previous posts or theirs. Move the conversation forward.
 - Do NOT just restate your own general position. React to THEIR specifics.
 
-RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
+RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
 {
   "content": "Your reply starting with @PhilosopherName",
   "thesis": "One sentence summarizing your response",
@@ -235,28 +280,28 @@ RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
 
   everyday_reaction: {
     key: "everyday_reaction",
-    instructions: `You are reacting to an EVERYDAY SITUATION — a universal human experience that everyone recognizes.
+    instructions: `You are reacting to an EVERYDAY SITUATION - a universal human experience that everyone recognizes.
 
 SCENARIO:
 {SOURCE_MATERIAL}
 
 YOUR TASK:
-Apply your philosophical framework genuinely to this mundane scenario. The goal is to make the reader see this everyday experience through your specific philosophical lens — not to deliver generic wisdom or a fortune cookie.
+Apply your philosophical framework genuinely to this mundane scenario. The goal is to make the reader see this everyday experience through your specific philosophical lens - not to deliver generic wisdom or a fortune cookie.
 
 TONE GUIDANCE:
-- You may be witty, dry, cutting, or amused — but NEVER sacrifice intellectual substance for humor
+- You may be witty, dry, cutting, or amused - but NEVER sacrifice intellectual substance for humor
 - This is not a motivational poster. Ground your response in your actual philosophical concepts
 - Be concise and punchy. This format rewards precision, not elaboration
-- Your voice should be immediately recognizable — lean into what makes your perspective distinctive
+- Your voice should be immediately recognizable - lean into what makes your perspective distinctive
 - Speak directly, as if remarking on the situation in passing conversation
 - Do NOT open with "Ah," or any similar interjection. Vary your openings.
 
 {LENGTH_GUIDANCE}
 
-RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
+RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
 {
   "content": "Your philosophical reaction as a single string.",
-  "thesis": "A single sharp sentence — your philosophical take on this situation.",
+  "thesis": "A single sharp sentence - your philosophical take on this situation.",
   "stance": "One of: challenges, defends, reframes, questions, warns, observes, diagnoses, provokes, laments, quips, mocks",
   "tag": "A 1-3 word topic tag (e.g., 'patience', 'modern absurdity', 'freedom')"
 }
@@ -268,17 +313,17 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
     instructions: `
 TASK: You are participating in a structured philosophical debate on Philagora. The debate topic and trigger article are provided below. Present your opening position.
 
-STRUCTURE — follow these steps in order:
+STRUCTURE - follow these steps in order:
 1. OPENING HOOK: A bold claim or framing question that establishes the stakes. 1-2 sentences. Make the reader understand immediately why this matters.
-2. FRAMEWORK: Apply your philosophical lens to the topic. This is your core argument — what does your tradition reveal that others miss? Be specific and substantive.
-3. ANCHOR: Reference at least one specific aspect of the trigger article — a fact, a quote, a detail. Ground the abstraction.
+2. FRAMEWORK: Apply your philosophical lens to the topic. This is your core argument - what does your tradition reveal that others miss? Be specific and substantive.
+3. ANCHOR: Reference at least one specific aspect of the trigger article - a fact, a quote, a detail. Ground the abstraction.
 4. CHALLENGE: End by naming the tension another philosopher in this debate will have to address. Set up the clash.
 
 REQUIREMENTS:
-- Length: 150–250 words. Be substantive — this is your opening statement.
+- Length: 150-250 words. Be substantive - this is your opening statement.
 - You may use paragraph breaks for structure.
 
-RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
+RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
 {
   "content": "Your opening statement (150-250 words)"
 }
@@ -292,16 +337,16 @@ TASK: You are responding to another philosopher's position in a structured debat
 
 REQUIREMENTS:
 - Start with @PhilosopherName
-- Length: 100–200 words
+- Length: 100-200 words
 - HOOK: Open with the most damaging challenge to their argument, not a polite summary. Lead with your strongest punch.
 - MANDATORY CONCESSION: You MUST do exactly one of:
-  (a) Concede one specific point they got right and explain why it's strong BEFORE pivoting to your counterargument, OR
-  (b) State the strongest version of their argument — stronger than they stated it themselves — before dismantling it.
-  This is not optional. Skipping it makes you look like you didn't engage.
+  (a) Concede one specific point they got right and explain why it is strong BEFORE pivoting to your counterargument, OR
+  (b) State the strongest version of their argument - stronger than they stated it themselves - before dismantling it.
+  This is not optional. Skipping it makes you look like you did not engage.
 - ADVANCE: Introduce at least one NEW point, argument, or distinction. Do not just restate your opening position with different words.
 - Identify the weakest link in their reasoning and press on it.
 
-RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
+RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
 {
   "content": "Your rebuttal starting with @PhilosopherName (100-200 words)"
 }
@@ -314,15 +359,15 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
 TASK: A user has asked a personal question on Philagora's Agora. Respond through your philosophical framework, but stay grounded in their specific situation. Be genuinely helpful, not just theoretical.
 
 REQUIREMENTS:
-- You may write 1–2 response posts (use multiple if the question deserves a nuanced multi-part answer, otherwise just one)
-- Length: 100–200 words per post
+- You may write 1-2 response posts (use multiple if the question deserves a nuanced multi-part answer, otherwise just one)
+- Length: 100-200 words per post
 - OPEN by directly acknowledging the person's situation in one sentence or less. Show you heard them before you advise. Do NOT open with a lecture or a quote.
-- Apply your philosophical framework but translate it into actionable language. Don't just name concepts — show what they mean for THIS person's decision.
+- Apply your philosophical framework but translate it into actionable language. Do not just name concepts - show what they mean for THIS person's decision.
 - End the first post with one concrete thing the person can do or consider today.
-- If writing a second post: add a counterpoint, edge case, or deepened perspective. Do NOT just continue the same argument — complicate it, qualify it, or flip the lens.
+- If writing a second post: add a counterpoint, edge case, or deepened perspective. Do NOT just continue the same argument - complicate it, qualify it, or flip the lens.
 - Speak directly to the person asking.
 
-RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
+RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
 {
   "posts": ["First response (100-200 words)", "Optional second response (100-200 words)"]
 }
@@ -333,20 +378,20 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
     key: "debate_synthesis",
     instructions: `
 TASK: This is NOT a philosopher voice. This is the editorial voice of Philagora. You have read all the philosopher responses below. Your job is to identify:
-1. tensions — where do these thinkers fundamentally disagree, and why?
-2. agreements — what do they converge on, despite different frameworks?
-3. questionsForReflection — the questions the debate leaves open
+1. tensions - where do these thinkers fundamentally disagree, and why?
+2. agreements - what do they converge on, despite different frameworks?
+3. questionsForReflection - the questions the debate leaves open
 
 REQUIREMENTS:
 - Open with one sentence that captures the most surprising or consequential disagreement. Do NOT open with a generic summary like "The philosophers discussed X." Lead with the clash.
-- Be precise. Name the philosophers. Don't just say "some disagree" — say "Russell defends X while Plato insists Y."
+- Be precise. Name the philosophers. Do not just say "some disagree" - say "Russell defends X while Plato insists Y."
 - Also provide a synthesisSummary with three fields:
   - agree: one sentence on what they share
   - diverge: one sentence on the key fault line
   - unresolvedQuestion: the question the debate leaves open
 - Length: Each tension/agreement/question should be 1-2 sentences.
 
-RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
+RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
 {
   "tensions": ["Tension 1...", "Tension 2..."],
   "agreements": ["Agreement 1..."],
@@ -364,17 +409,17 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
     key: "agora_synthesis",
     instructions: `
 TASK: This is NOT a philosopher voice. This is the editorial voice of Philagora. You have read all the philosopher responses to a user's question below. Your job is to identify:
-1. tensions — where do these thinkers offer conflicting advice or framings?
-2. agreements — what do they converge on, despite different frameworks?
-3. practicalTakeaways — concrete advice the questioner can actually act on
+1. tensions - where do these thinkers offer conflicting advice or framings?
+2. agreements - what do they converge on, despite different frameworks?
+3. practicalTakeaways - concrete advice the questioner can actually act on
 
 REQUIREMENTS:
 - Open with one sentence that captures the most surprising or consequential disagreement. Do NOT open with a generic summary like "The philosophers discussed X." Lead with the clash.
-- Be precise. Name the philosophers. Don't just say "some disagree" — say "Russell advises X while Plato recommends Y."
+- Be precise. Name the philosophers. Do not just say "some disagree" - say "Russell advises X while Plato recommends Y."
 - Distill 2-4 practical takeaways the questioner can actually use
 - Length: Each tension/agreement/takeaway should be 1-2 sentences.
 
-RESPOND WITH VALID JSON ONLY — no markdown, no code fences, no extra text:
+RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
 {
   "tensions": ["Tension 1...", "Tension 2..."],
   "agreements": ["Agreement 1..."],
@@ -399,7 +444,7 @@ export function getActiveTemplate(key: ContentTypeKey): string {
 
     if (row?.instructions) return row.instructions;
   } catch {
-    // DB not available (e.g. during build) — fall through to default
+    // DB not available (for example during build) - fall through to default.
   }
 
   return CONTENT_TEMPLATES[key].instructions;
@@ -407,7 +452,7 @@ export function getActiveTemplate(key: ContentTypeKey): string {
 
 /**
  * Get the active house rules text.
- * Returns empty string if none set (no house rules applied).
+ * Returns an empty string if none are active.
  */
 export function getActiveHouseRules(): string {
   try {
@@ -418,7 +463,7 @@ export function getActiveHouseRules(): string {
 
     if (row?.rules_text) return row.rules_text;
   } catch {
-    // DB not available — no house rules
+    // DB not available - no house rules.
   }
 
   return "";

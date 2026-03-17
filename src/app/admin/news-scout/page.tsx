@@ -140,6 +140,7 @@ const STANCE_SHORT_LABELS: Record<Stance, string> = {
   laments: "lam",
   quips: "quip",
   mocks: "mock",
+  recommends: "reco",
 };
 
 type NewsScoutGenConfig = {

@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
       "debate_rebuttal",
       "agora_response",
       "reflection",
+      "recommendation",
     ];
     if (!validContentTypes.includes(content_type)) {
       return NextResponse.json(

@@ -68,6 +68,8 @@ function mapFeedPost(row: PostRow): FeedPost {
     tag: row.tag || "",
     sourceType: isPostSourceType(row.source_type ?? "") ? row.source_type : "news",
     historicalEventId: row.historical_event_id ?? undefined,
+    recommendationTitle: row.recommendation_title ?? undefined,
+    recommendationMedium: row.recommendation_medium ?? undefined,
     citation: buildCitation(row),
     thumbnailUrl: row.historical_event_thumbnail
       ? `/api/thumbnails/${row.historical_event_thumbnail}`

@@ -13,6 +13,7 @@ export const STANCE_CONFIG: Record<Stance, { label: string; color: string; bg: s
   laments:    { label: "Laments",    color: "#5B4A8A", bg: "#E8E3F1", border: "#CBBFE0" },
   quips:      { label: "Quips",      color: "#6B5B3E", bg: "#F0EBE0", border: "#D4C9B0" },
   mocks:      { label: "Mocks",      color: "#8B4049", bg: "#F2E0E3", border: "#D9B3BA" },
+  recommends: { label: "Recommends", color: "#1F6A4B", bg: "#E7F3EC", border: "#B9D7C8" },
 };
 
 // Workshop status badge colors (Tailwind classes)
@@ -43,6 +44,7 @@ export const CONTENT_TYPE_LABELS: Record<string, string> = {
   post: "Post",
   quip: "Quip",
   reflection: "Reflection",
+  recommendation: "Cultural Recommendation",
   debate_opening: "Debate Opening",
   debate_rebuttal: "Debate Rebuttal",
   agora_response: "Agora Response",

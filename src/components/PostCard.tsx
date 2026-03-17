@@ -270,6 +270,24 @@ function HistoricalEventThumbnail({
   );
 }
 
+function recommendationBadge(post: FeedPost) {
+  if (!post.recommendationTitle) return null;
+
+  const medium = (post.recommendationMedium ?? "other").toLowerCase();
+  const icon =
+    medium === "film" || medium === "tv"
+      ? "🎬"
+      : medium === "music"
+      ? "🎵"
+      : medium === "book"
+      ? "📚"
+      : medium === "podcast"
+      ? "🎧"
+      : "✨";
+
+  return `${icon} Recommends: ${post.recommendationTitle}${post.recommendationMedium ? ` (${post.recommendationMedium})` : ""}`;
+}
+
 export function PostCard({
   post,
   delay = 0,
@@ -293,6 +311,7 @@ export function PostCard({
   const isEveryday = post.sourceType === "everyday";
   const shouldShowThesis = !isQuip || post.thesis.trim() !== post.content.trim();
   const postHref = `/post/${post.id}`;
+  const recommendationLabel = recommendationBadge(post);
 
   return (
     <article
@@ -467,6 +486,12 @@ export function PostCard({
               )}
 
               <PostContent content={post.content} color={color} isQuip={isQuip} linkHref={postHref} forceExpanded={expanded} />
+
+              {recommendationLabel && (
+                <div className="mt-3 inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-mono tracking-wide text-emerald-800">
+                  {recommendationLabel}
+                </div>
+              )}
 
               {post.citation && !isHistoricalEvent && !isEveryday && (
                 <CitationBlock citation={post.citation} color={color} accent={accent} />

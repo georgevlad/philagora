@@ -32,6 +32,8 @@ interface GeneratedData {
   stance?: string;
   tag?: string;
   posts?: string[];
+  recommendation_title?: string;
+  recommendation_medium?: string;
 }
 
 interface GenerationPreview {
@@ -46,11 +48,28 @@ const CONTENT_TYPE_OPTIONS = [
   { label: "News Reaction", value: "post", description: "React to a current news article" },
   { label: "Quip", value: "post", description: "A cutting one-liner reaction to a headline" },
   { label: "Timeless Reflection", value: "reflection", description: "A timeless philosophical reflection" },
+  { label: "Cultural Recommendation", value: "recommendation", description: "Recommend a film, book, album, or other cultural work" },
   { label: "Cross-Philosopher Reply", value: "post", description: "Reply to another philosopher's post" },
   { label: "Debate Opening", value: "debate_opening", description: "Opening statement for a debate" },
   { label: "Debate Rebuttal", value: "debate_rebuttal", description: "Rebuttal in an ongoing debate" },
   { label: "Agora Response", value: "agora_response", description: "Respond to a user's question" },
 ] as const;
+
+function recommendationIcon(medium?: string) {
+  switch (medium) {
+    case "film":
+    case "tv":
+      return "🎬";
+    case "music":
+      return "🎵";
+    case "book":
+      return "📚";
+    case "podcast":
+      return "🎧";
+    default:
+      return "✨";
+  }
+}
 
 // ── Component ───────────────────────────────────────────────────────────
 
@@ -333,6 +352,8 @@ function ContentGenerationPageInner() {
           thesis: data.thesis ?? "",
           stance: data.stance ?? "observes",
           tag: data.tag ?? "",
+          recommendation_title: data.recommendation_title || undefined,
+          recommendation_medium: data.recommendation_medium || undefined,
           citation_title: citationTitle || undefined,
           citation_source: citationSource || undefined,
           citation_url: citationUrl || undefined,
@@ -762,6 +783,15 @@ function ContentGenerationPageInner() {
                   }}
                 >
                   {preview.data.content}
+                </div>
+              )}
+
+              {preview.data.recommendation_title && (
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-mono uppercase tracking-wide text-emerald-800">
+                  <span>{recommendationIcon(preview.data.recommendation_medium)}</span>
+                  <span>
+                    {preview.data.recommendation_medium ?? "Recommendation"}: {preview.data.recommendation_title}
+                  </span>
                 </div>
               )}
 

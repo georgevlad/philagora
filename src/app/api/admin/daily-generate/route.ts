@@ -9,7 +9,12 @@ import { generateContent } from "@/lib/generation-service";
 import type { TargetLength } from "@/lib/content-templates";
 import type { Stance } from "@/lib/types";
 
-type DailyItemType = "news_reaction" | "cross_reply" | "timeless_reflection" | "quip";
+type DailyItemType =
+  | "news_reaction"
+  | "cross_reply"
+  | "timeless_reflection"
+  | "quip"
+  | "cultural_recommendation";
 type LengthStrategy = "varied" | TargetLength;
 
 interface DailyGenerateRequest {
@@ -19,6 +24,7 @@ interface DailyGenerateRequest {
     cross_replies: number;
     timeless_reflections: number;
     quips: number;
+    cultural_recommendations: number;
     excluded_philosophers: string[];
     length_strategy: LengthStrategy;
   };
@@ -43,6 +49,8 @@ interface GeneratedPostPayload {
   thesis: string;
   stance: Stance;
   tag: string;
+  recommendation_title?: string;
+  recommendation_medium?: string;
 }
 
 interface DailyGeneratedItem {
@@ -61,6 +69,8 @@ interface DailyGeneratedItem {
   reply_to_post_id?: string;
   reply_to_philosopher?: string;
   prompt_seed?: string;
+  recommendation_title?: string;
+  recommendation_medium?: string;
 }
 
 const VALID_STANCES = new Set<Stance>([
@@ -75,6 +85,7 @@ const VALID_STANCES = new Set<Stance>([
   "laments",
   "quips",
   "mocks",
+  "recommends",
 ]);
 
 const CROSS_REPLY_CANDIDATES: Record<string, string[]> = {
@@ -103,6 +114,7 @@ const PROVOCATION_PRIORITY: Record<Stance, number> = {
   reframes: 3,
   laments: 3,
   defends: 2,
+  recommends: 2,
   observes: 1,
 };
 
@@ -134,6 +146,24 @@ const TIMELESS_PROMPTS = [
   "Write a reflection on why we tell stories and what happens when we stop.",
   "Write a reflection on the difference between wisdom and intelligence.",
   "Write a reflection on what death teaches the living about how to spend their time.",
+];
+
+const RECOMMENDATION_PROMPTS = [
+  "Recommend a film for someone who feels stuck in life and needs to be shaken awake.",
+  "Recommend a film for a Friday night when you want to feel something real, not just be entertained.",
+  "Recommend a film that changed how you see power and those who wield it.",
+  "Recommend a film about solitude - not loneliness, but genuine solitude.",
+  "Recommend a book that every person should read before turning 30.",
+  "Recommend a book that will make the reader uncomfortable with their own certainties.",
+  "Recommend an album for someone experiencing grief.",
+  "Recommend an album that captures what it feels like to be alive at 2 AM.",
+  "Recommend a film that shows the absurdity of modern work.",
+  "Recommend a book about love that does not sentimentalize it.",
+  "Recommend a film where the villain is more interesting than the hero.",
+  "Recommend a film from outside the English-speaking world that deserves a wider audience.",
+  "Recommend music for someone who has stopped paying attention to beauty.",
+  "Recommend a book that fundamentally changed how you understand human nature.",
+  "Recommend a film that makes bureaucracy terrifying.",
 ];
 
 export async function POST(request: NextRequest) {
@@ -367,6 +397,48 @@ export async function POST(request: NextRequest) {
       await sleep(500);
     }
 
+    const recentRecommendationPrompts = getRecentRecommendationPrompts(db);
+    const recommendationCandidates = shuffle(
+      allPhilosophers.filter(
+        (philosopher) =>
+          !excludedIds.has(philosopher.id) && !usedPhilosopherIds.has(philosopher.id)
+      )
+    ).slice(0, config.cultural_recommendations);
+    const recPromptsUsedThisRun = new Set<string>();
+
+    for (const philosopher of recommendationCandidates) {
+      const promptSeed = pickRecommendationPrompt({
+        recentPrompts: recentRecommendationPrompts,
+        promptsUsedThisRun: recPromptsUsedThisRun,
+      });
+
+      if (!promptSeed) {
+        errors.push(`No recommendation prompt available for ${philosopher.name}.`);
+        continue;
+      }
+
+      const length = resolveTargetLength(config.length_strategy);
+      const item = await generateDailyDraft({
+        philosopher,
+        type: "cultural_recommendation",
+        dbContentType: "recommendation",
+        sourceMaterial: promptSeed,
+        targetLength: length,
+        promptSeed,
+      });
+
+      if (!item.success) {
+        errors.push(`${philosopher.name} recommendation: ${item.error}`);
+        await sleep(500);
+        continue;
+      }
+
+      recPromptsUsedThisRun.add(promptSeed);
+      usedPhilosopherIds.add(philosopher.id);
+      generated.push(item.data);
+      await sleep(500);
+    }
+
     return NextResponse.json({
       success: generated.length > 0,
       summary: buildSummary(generated, errors),
@@ -476,7 +548,7 @@ export async function PATCH(request: NextRequest) {
         url: sourcePost.citation_url,
         imageUrl: sourcePost.citation_image_url,
       };
-    } else {
+    } else if (body.type === "timeless_reflection") {
       const recentPrompts = getRecentTimelessPrompts(db);
       const nextPromptSeed = pickTimelessPrompt({
         recentPrompts,
@@ -494,6 +566,24 @@ export async function PATCH(request: NextRequest) {
       promptSeed = nextPromptSeed;
       sourceMaterial = nextPromptSeed;
       citation = { title: null, source: null, url: null, imageUrl: null };
+    } else {
+      const recentPrompts = getRecentRecommendationPrompts(db);
+      const nextPromptSeed = pickRecommendationPrompt({
+        recentPrompts,
+        promptsUsedThisRun: new Set<string>(),
+        currentPrompt: body.prompt_seed,
+      });
+
+      if (!nextPromptSeed) {
+        return NextResponse.json(
+          { error: "No alternate recommendation prompt is available right now." },
+          { status: 422 }
+        );
+      }
+
+      promptSeed = nextPromptSeed;
+      sourceMaterial = nextPromptSeed;
+      citation = { title: null, source: null, url: null, imageUrl: null };
     }
 
     const contentTypeKey =
@@ -503,6 +593,8 @@ export async function PATCH(request: NextRequest) {
         ? "news_reaction"
         : body.type === "cross_reply"
         ? "cross_philosopher_reply"
+        : body.type === "cultural_recommendation"
+        ? "cultural_recommendation"
         : "timeless_reflection";
 
     const outcome = await generateContent(
@@ -535,7 +627,8 @@ export async function PATCH(request: NextRequest) {
     );
     const updatePost = db.prepare(
       `UPDATE posts
-       SET content = ?, thesis = ?, stance = ?, tag = ?, citation_title = ?, citation_source = ?,
+       SET content = ?, thesis = ?, stance = ?, tag = ?, recommendation_title = ?,
+           recommendation_medium = ?, citation_title = ?, citation_source = ?,
            citation_url = ?, citation_image_url = ?, reply_to = ?, updated_at = datetime('now')
        WHERE id = ?`
     );
@@ -578,7 +671,11 @@ export async function PATCH(request: NextRequest) {
 
       const result = insertLog.run(
         philosopher.id,
-        body.type === "timeless_reflection" ? "reflection" : "post",
+        body.type === "timeless_reflection"
+          ? "reflection"
+          : body.type === "cultural_recommendation"
+          ? "recommendation"
+          : "post",
         outcome.systemPromptId,
         sourceMaterial,
         JSON.stringify(outcome.data, null, 2)
@@ -589,6 +686,8 @@ export async function PATCH(request: NextRequest) {
         normalized.thesis,
         normalized.stance,
         normalized.tag,
+        normalized.recommendation_title ?? null,
+        normalized.recommendation_medium ?? null,
         citation.title,
         citation.source,
         citation.url,
@@ -622,6 +721,8 @@ export async function PATCH(request: NextRequest) {
         reply_to_post_id: replyToPostId ?? existingPost.reply_to ?? undefined,
         reply_to_philosopher: replyToPhilosopher,
         prompt_seed: promptSeed,
+        recommendation_title: normalized.recommendation_title,
+        recommendation_medium: normalized.recommendation_medium,
       },
       deleted_reply_post_ids: deletedReplyPostIds,
       deleted_reply_log_ids: deletedReplyLogIds,
@@ -655,6 +756,9 @@ function validateGenerateRequest(body: DailyGenerateRequest | null | undefined):
   if (!isIntegerInRange(config.quips, 0, 4)) {
     return "quips must be between 0 and 4.";
   }
+  if (!isIntegerInRange(config.cultural_recommendations, 0, 4)) {
+    return "cultural_recommendations must be between 0 and 4.";
+  }
   if (!Array.isArray(config.excluded_philosophers)) {
     return "excluded_philosophers must be an array.";
   }
@@ -668,8 +772,8 @@ function validateGenerateRequest(body: DailyGenerateRequest | null | undefined):
 function validateRegenerateRequest(body: DailyRegenerateRequest | null | undefined): string | null {
   if (!body?.post_id) return "post_id is required.";
   if (!body.generation_log_id) return "generation_log_id is required.";
-  if (!["news_reaction", "cross_reply", "timeless_reflection", "quip"].includes(body.type)) {
-    return "type must be news_reaction, cross_reply, timeless_reflection, or quip.";
+  if (!["news_reaction", "cross_reply", "timeless_reflection", "quip", "cultural_recommendation"].includes(body.type)) {
+    return "type must be news_reaction, cross_reply, timeless_reflection, quip, or cultural_recommendation.";
   }
   if (!["short", "medium", "long"].includes(body.length)) {
     return "length must be short, medium, or long.";
@@ -687,7 +791,7 @@ function validateRegenerateRequest(body: DailyRegenerateRequest | null | undefin
 async function generateDailyDraft(args: {
   philosopher: PhilosopherRow;
   type: DailyItemType;
-  dbContentType: "post" | "reflection";
+  dbContentType: "post" | "reflection" | "recommendation";
   sourceMaterial: string;
   targetLength: TargetLength;
   citation?: {
@@ -710,6 +814,8 @@ async function generateDailyDraft(args: {
       ? "news_reaction"
       : args.type === "cross_reply"
       ? "cross_philosopher_reply"
+      : args.type === "cultural_recommendation"
+      ? "cultural_recommendation"
       : "timeless_reflection",
     args.sourceMaterial,
     args.targetLength
@@ -733,11 +839,11 @@ async function generateDailyDraft(args: {
   const insertPost = db.prepare(
     `INSERT INTO posts (
       id, philosopher_id, content, thesis, stance, tag,
+      recommendation_title, recommendation_medium,
       citation_title, citation_source, citation_url, citation_image_url,
       reply_to, likes, replies, bookmarks, status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 'draft', datetime('now'), datetime('now'))`
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 'draft', datetime('now'), datetime('now'))`
   );
-
   const logId = db.transaction(() => {
     const logResult = insertLog.run(
       args.philosopher.id,
@@ -754,6 +860,8 @@ async function generateDailyDraft(args: {
       normalized.thesis,
       normalized.stance,
       normalized.tag,
+      normalized.recommendation_title ?? null,
+      normalized.recommendation_medium ?? null,
       args.citation?.title ?? null,
       args.citation?.source ?? null,
       args.citation?.url ?? null,
@@ -782,6 +890,8 @@ async function generateDailyDraft(args: {
       reply_to_post_id: args.replyTo,
       reply_to_philosopher: args.replyToPhilosopher,
       prompt_seed: args.promptSeed,
+      recommendation_title: normalized.recommendation_title,
+      recommendation_medium: normalized.recommendation_medium,
     },
   };
 }
@@ -797,20 +907,27 @@ function normalizeGeneratedPost(
     typeof data.thesis === "string" && data.thesis.trim()
       ? data.thesis.trim()
       : content.split("\n")[0].trim().slice(0, 140);
-  const stanceCandidate = typeof data.stance === "string" ? data.stance : "observes";
-  const stance = VALID_STANCES.has(stanceCandidate as Stance)
-    ? (stanceCandidate as Stance)
-    : "observes";
-  const tag =
-    typeof data.tag === "string" && data.tag.trim()
-      ? data.tag.trim()
-      : defaultTagForType(type);
+  const tagCandidate = typeof data.tag === "string" ? data.tag.trim() : "";
+
+  if (type === "cultural_recommendation") {
+    return {
+      content,
+      thesis,
+      stance: normalizeStance(
+        typeof data.stance === "string" ? data.stance : "recommends",
+        "recommends"
+      ),
+      tag: tagCandidate || "Recommends",
+      recommendation_title: normalizeOptionalString(data.recommendation_title),
+      recommendation_medium: normalizeOptionalString(data.recommendation_medium)?.toLowerCase(),
+    };
+  }
 
   return {
     content,
     thesis,
-    stance,
-    tag,
+    stance: normalizeStance(typeof data.stance === "string" ? data.stance : "observes"),
+    tag: tagCandidate || defaultTagForType(type),
   };
 }
 
@@ -822,9 +939,19 @@ function defaultTagForType(type: DailyItemType): string {
       return "Timeless Wisdom";
     case "quip":
       return "Quip";
+    case "cultural_recommendation":
+      return "Recommends";
     default:
       return "Ethical Analysis";
   }
+}
+
+function normalizeStance(value: string, fallback: Stance = "observes"): Stance {
+  return VALID_STANCES.has(value as Stance) ? (value as Stance) : fallback;
+}
+
+function normalizeOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 function buildArticleSourceMaterial(article: ArticleCandidateRow): string {
@@ -1031,6 +1158,7 @@ function buildSummary(generated: DailyGeneratedItem[], errors: string[]) {
     cross_replies: generated.filter((item) => item.type === "cross_reply").length,
     timeless_reflections: generated.filter((item) => item.type === "timeless_reflection").length,
     quips: generated.filter((item) => item.type === "quip").length,
+    cultural_recommendations: generated.filter((item) => item.type === "cultural_recommendation").length,
     total_drafts: generated.length,
     philosophers_used: usedNames,
     errors,
@@ -1071,6 +1199,8 @@ function getStoredPost(db: ReturnType<typeof getDb>, postId: string) {
          p.thesis,
          p.stance,
          p.tag,
+         p.recommendation_title,
+         p.recommendation_medium,
          p.citation_title,
          p.citation_source,
          p.citation_url,
@@ -1120,6 +1250,37 @@ function pickTimelessPrompt(args: {
   return pickRandom(anyPool);
 }
 
+function getRecentRecommendationPrompts(db: ReturnType<typeof getDb>) {
+  const rows = db
+    .prepare(
+      `SELECT user_input
+       FROM generation_log
+       WHERE content_type = 'recommendation'
+         AND created_at >= datetime('now', '-7 days')`
+    )
+    .all() as Array<{ user_input: string }>;
+
+  return new Set(rows.map((row) => row.user_input));
+}
+
+function pickRecommendationPrompt(args: {
+  recentPrompts: Set<string>;
+  promptsUsedThisRun: Set<string>;
+  currentPrompt?: string;
+}): string | null {
+  const { recentPrompts, promptsUsedThisRun, currentPrompt } = args;
+  const candidates = RECOMMENDATION_PROMPTS.filter(
+    (prompt) =>
+      !recentPrompts.has(prompt) && !promptsUsedThisRun.has(prompt) && prompt !== currentPrompt
+  );
+  if (candidates.length > 0) return pickRandom(candidates);
+
+  const fallback = RECOMMENDATION_PROMPTS.filter(
+    (prompt) => !promptsUsedThisRun.has(prompt) && prompt !== currentPrompt
+  );
+  return pickRandom(fallback);
+}
+
 function parseJson<T>(raw: string | null | undefined, fallback: T): T {
   if (!raw) return fallback;
   try {
@@ -1150,6 +1311,12 @@ function isIntegerInRange(value: number, min: number, max: number) {
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+
+
+
+
+
 
 
 

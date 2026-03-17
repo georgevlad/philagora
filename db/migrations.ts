@@ -94,52 +94,7 @@ export function runMigrations(
   }
 
   migrateAddPostSourceType(db);
-
-  const tableInfo = db
-    .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='generation_log'")
-    .get() as { sql: string } | undefined;
-
-  if (!tableInfo) return;
-
-  const needsMigration =
-    tableInfo.sql.includes("NOT NULL REFERENCES philosophers") ||
-    !tableInfo.sql.includes("synthesis");
-
-  if (!needsMigration) return;
-
-  try {
-    db.exec("PRAGMA foreign_keys = OFF;");
-
-    db.transaction(() => {
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS generation_log_new (
-          id               INTEGER PRIMARY KEY AUTOINCREMENT,
-          philosopher_id   TEXT REFERENCES philosophers(id),
-          content_type     TEXT NOT NULL CHECK(content_type IN ('post','debate_opening','debate_rebuttal','agora_response','reflection','synthesis')),
-          system_prompt_id INTEGER REFERENCES system_prompts(id),
-          user_input       TEXT NOT NULL DEFAULT '',
-          raw_output       TEXT NOT NULL DEFAULT '',
-          status           TEXT NOT NULL DEFAULT 'generated' CHECK(status IN ('generated','approved','rejected','published','pending')),
-          created_at       TEXT NOT NULL DEFAULT (datetime('now'))
-        );
-      `);
-
-      db.exec("INSERT INTO generation_log_new SELECT * FROM generation_log;");
-      db.exec("DROP TABLE generation_log;");
-      db.exec("ALTER TABLE generation_log_new RENAME TO generation_log;");
-      db.exec("CREATE INDEX IF NOT EXISTS idx_generation_log_philosopher ON generation_log(philosopher_id);");
-      db.exec("CREATE INDEX IF NOT EXISTS idx_generation_log_status ON generation_log(status);");
-    })();
-
-    db.exec("PRAGMA foreign_keys = ON;");
-  } catch (err) {
-    if (!(err instanceof Error && err.message.includes("SQLITE_ERROR"))) throw err;
-    try {
-      db.exec("PRAGMA foreign_keys = ON;");
-    } catch {
-      // best effort
-    }
-  }
+  migrateGenerationLogSchema(db);
 }
 
 function migrateNewsScout(
@@ -249,15 +204,23 @@ function migratePostsSchema(db: Database.Database): void {
 
   if (!tableInfo) return;
 
+  const columns = db.prepare("PRAGMA table_info(posts)").all() as Array<{ name: string }>;
+  const hasSourceType = columns.some((column) => column.name === "source_type");
+  const hasHistoricalEventId = columns.some((column) => column.name === "historical_event_id");
   const hasArchivedStatus = tableInfo.sql.includes("archived");
   const hasExpandedStances =
     tableInfo.sql.includes("diagnoses") &&
     tableInfo.sql.includes("provokes") &&
     tableInfo.sql.includes("laments") &&
     tableInfo.sql.includes("quips") &&
-    tableInfo.sql.includes("mocks");
+    tableInfo.sql.includes("mocks") &&
+    tableInfo.sql.includes("recommends");
+  const hasRecommendationTitle = columns.some((column) => column.name === "recommendation_title");
+  const hasRecommendationMedium = columns.some((column) => column.name === "recommendation_medium");
 
-  if (hasArchivedStatus && hasExpandedStances) return;
+  if (hasArchivedStatus && hasExpandedStances && hasRecommendationTitle && hasRecommendationMedium) {
+    return;
+  }
 
   db.exec("PRAGMA foreign_keys = OFF;");
 
@@ -268,10 +231,12 @@ function migratePostsSchema(db: Database.Database): void {
         philosopher_id  TEXT NOT NULL REFERENCES philosophers(id),
         content         TEXT NOT NULL,
         thesis          TEXT NOT NULL DEFAULT '',
-        stance          TEXT NOT NULL CHECK(stance IN ('challenges','defends','reframes','questions','warns','observes','diagnoses','provokes','laments','quips','mocks')),
+        stance          TEXT NOT NULL CHECK(stance IN ('challenges','defends','reframes','questions','warns','observes','diagnoses','provokes','laments','quips','mocks','recommends')),
         tag             TEXT NOT NULL DEFAULT '',
         source_type        TEXT NOT NULL DEFAULT 'news',
         historical_event_id TEXT REFERENCES historical_events(id),
+        recommendation_title TEXT DEFAULT NULL,
+        recommendation_medium TEXT DEFAULT NULL,
         citation_title     TEXT,
         citation_source    TEXT,
         citation_url       TEXT,
@@ -289,13 +254,16 @@ function migratePostsSchema(db: Database.Database): void {
     db.exec(`
       INSERT INTO posts_new (
         id, philosopher_id, content, thesis, stance, tag,
-        source_type, historical_event_id,
+        source_type, historical_event_id, recommendation_title, recommendation_medium,
         citation_title, citation_source, citation_url, citation_image_url,
         reply_to, likes, replies, bookmarks, status, created_at, updated_at
       )
       SELECT
         id, philosopher_id, content, thesis, stance, tag,
-        'news', NULL,
+        ${hasSourceType ? "COALESCE(source_type, 'news')" : "'news'"},
+        ${hasHistoricalEventId ? "historical_event_id" : "NULL"},
+        ${hasRecommendationTitle ? "recommendation_title" : "NULL"},
+        ${hasRecommendationMedium ? "recommendation_medium" : "NULL"},
         citation_title, citation_source, citation_url, citation_image_url,
         reply_to, likes, replies, bookmarks, status, created_at, updated_at
       FROM posts;
@@ -313,6 +281,55 @@ function migratePostsSchema(db: Database.Database): void {
   })();
 
   db.exec("PRAGMA foreign_keys = ON;");
+}
+
+function migrateGenerationLogSchema(db: Database.Database): void {
+  const tableInfo = db
+    .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='generation_log'")
+    .get() as { sql: string } | undefined;
+
+  if (!tableInfo) return;
+
+  const needsMigration =
+    tableInfo.sql.includes("NOT NULL REFERENCES philosophers") ||
+    !tableInfo.sql.includes("synthesis") ||
+    !tableInfo.sql.includes("recommendation");
+
+  if (!needsMigration) return;
+
+  try {
+    db.exec("PRAGMA foreign_keys = OFF;");
+
+    db.transaction(() => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS generation_log_new (
+          id               INTEGER PRIMARY KEY AUTOINCREMENT,
+          philosopher_id   TEXT REFERENCES philosophers(id),
+          content_type     TEXT NOT NULL CHECK(content_type IN ('post','debate_opening','debate_rebuttal','agora_response','reflection','recommendation','synthesis')),
+          system_prompt_id INTEGER REFERENCES system_prompts(id),
+          user_input       TEXT NOT NULL DEFAULT '',
+          raw_output       TEXT NOT NULL DEFAULT '',
+          status           TEXT NOT NULL DEFAULT 'generated' CHECK(status IN ('generated','approved','rejected','published','pending')),
+          created_at       TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+      `);
+
+      db.exec("INSERT INTO generation_log_new SELECT * FROM generation_log;");
+      db.exec("DROP TABLE generation_log;");
+      db.exec("ALTER TABLE generation_log_new RENAME TO generation_log;");
+      db.exec("CREATE INDEX IF NOT EXISTS idx_generation_log_philosopher ON generation_log(philosopher_id);");
+      db.exec("CREATE INDEX IF NOT EXISTS idx_generation_log_status ON generation_log(status);");
+    })();
+
+    db.exec("PRAGMA foreign_keys = ON;");
+  } catch (err) {
+    if (!(err instanceof Error && err.message.includes("SQLITE_ERROR"))) throw err;
+    try {
+      db.exec("PRAGMA foreign_keys = ON;");
+    } catch {
+      // best effort
+    }
+  }
 }
 
 function migrateAddHistoricalEvents(db: Database.Database): void {

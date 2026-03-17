@@ -9,7 +9,8 @@ export type Stance =
   | "provokes"
   | "laments"
   | "quips"
-  | "mocks";
+  | "mocks"
+  | "recommends";
 
 export interface PostCitation {
   title: string;
@@ -29,6 +30,8 @@ export interface Post {
   sourceType?: string;
   historicalEventId?: string;
   thumbnailUrl?: string;
+  recommendationTitle?: string;
+  recommendationMedium?: string;
   likes: number;
   replies: number;
   bookmarks: number;

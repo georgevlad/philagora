@@ -14,6 +14,7 @@ const TEMPLATE_LABELS: Record<ContentTypeKey, string> = {
   cross_philosopher_reply: "Cross-Philosopher Reply",
   historical_reaction: "Historical Reaction",
   everyday_reaction: "Everyday Reaction",
+  cultural_recommendation: "Cultural Recommendation",
   debate_opening: "Debate Opening",
   debate_rebuttal: "Debate Rebuttal",
   agora_response: "Agora Response",
