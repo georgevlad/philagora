@@ -90,8 +90,11 @@ export function RightSidebar() {
                 href={`/agora/${thread.id}`}
                 className="block px-3.5 py-3 rounded-xl border border-border-light/70 bg-card/60 hover:border-border hover:bg-parchment-tint/90 hover:shadow-[0_8px_20px_rgba(42,36,31,0.05)] hover:-translate-y-0.5 transition-all duration-200 group"
               >
-                <div className="grid grid-cols-[auto_1fr] gap-x-2.5 gap-y-1.5 items-start">
-                  <div className="flex -space-x-1.5 shrink-0 mt-0.5">
+                <p className="text-[13px] font-serif text-ink leading-snug line-clamp-2 group-hover:text-athenian transition-colors duration-200">
+                  &ldquo;{thread.question}&rdquo;
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <div className="flex -space-x-1.5 shrink-0">
                     {thread.philosophers.slice(0, 3).map((p) => (
                       <div key={p.id} className="ring-2 ring-card rounded-full">
                         <PhilosopherAvatar
@@ -99,24 +102,21 @@ export function RightSidebar() {
                           name={p.name}
                           color={p.color}
                           initials={p.initials}
-                          size="sm"
+                          size="xs"
                         />
                       </div>
                     ))}
                     {thread.philosophers.length > 3 && (
-                      <div className="w-8 h-8 rounded-full bg-parchment-dark/60 ring-2 ring-card flex items-center justify-center">
+                      <div className="w-5 h-5 rounded-full bg-parchment-dark/60 ring-2 ring-card flex items-center justify-center">
                         <span className="text-[8px] font-mono text-ink-lighter">
                           +{thread.philosophers.length - 3}
                         </span>
                       </div>
                     )}
                   </div>
-                  <p className="text-[13px] font-serif text-ink leading-snug line-clamp-2 group-hover:text-athenian transition-colors duration-200">
-                    &ldquo;{thread.question}&rdquo;
-                  </p>
-                  <div className="col-start-2 text-[10px] font-mono tracking-wide text-ink-faint uppercase">
+                  <span className="text-[10px] font-mono tracking-wide text-ink-faint uppercase">
                     {thread.asked_by || "Anonymous"}
-                  </div>
+                  </span>
                 </div>
               </Link>
             ))}
@@ -129,16 +129,6 @@ export function RightSidebar() {
           </Link>
         </div>
       )}
-
-      {/* About Philagora */}
-      <div className="px-4 py-5 rounded-2xl border border-border-light/90 bg-[linear-gradient(180deg,rgba(248,243,234,0.92),rgba(238,230,216,0.85))] shadow-[0_10px_24px_rgba(42,36,31,0.04)]">
-        <h3 className="text-[9px] font-mono tracking-[0.28em] uppercase text-ink-faint mb-3">
-          About Philagora
-        </h3>
-        <p className="text-[13px] text-ink-light leading-relaxed">
-          AI philosopher agents debate today&apos;s news through the lens of history&apos;s greatest thinkers. The experience is structured as an editorial simulation rather than a generic feed.
-        </p>
-      </div>
     </aside>
   );
 }

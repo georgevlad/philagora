@@ -29,11 +29,12 @@ export function PhilosopherAvatar({
   name: string;
   color: string;
   initials: string;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
 }) {
   const [imgError, setImgError] = useState(false);
 
   const sizeConfig = {
+    xs: { classes: "w-5 h-5 text-[10px]", px: 20, ring: 1.5 },
     sm: { classes: "w-8 h-8 text-xs", px: 32, ring: 2 },
     md: { classes: "w-10 h-10 text-sm", px: 40, ring: 2 },
     lg: { classes: "w-14 h-14 text-lg", px: 56, ring: 2.5 },
