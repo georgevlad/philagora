@@ -367,6 +367,42 @@ export function getAllAgoraThreads(): AgoraThreadDetail[] {
   return threads.map((t) => buildAgoraThreadDetail(db, t));
 }
 
+export function getRecentAgoraThreads(limit = 5) {
+  const db = getDb();
+
+  const threads = db
+    .prepare(
+      `SELECT id, question, asked_by, created_at
+       FROM agora_threads
+       WHERE status = 'complete'
+       ORDER BY created_at DESC
+       LIMIT ?`
+    )
+    .all(limit) as Array<{
+      id: string;
+      question: string;
+      asked_by: string;
+      created_at: string;
+    }>;
+
+  const getPhilosophers = db.prepare(
+    `SELECT p.id, p.name, p.initials, p.color
+     FROM philosophers p
+     JOIN agora_thread_philosophers atp ON p.id = atp.philosopher_id
+     WHERE atp.thread_id = ?`
+  );
+
+  return threads.map((thread) => ({
+    ...thread,
+    philosophers: getPhilosophers.all(thread.id) as Array<{
+      id: string;
+      name: string;
+      initials: string;
+      color: string;
+    }>,
+  }));
+}
+
 function buildAgoraThreadDetail(
   db: ReturnType<typeof getDb>,
   t: AgoraThreadRow

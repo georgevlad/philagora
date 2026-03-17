@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { getPhilosophersMap, getAllDebates } from "@/lib/data";
+import { getPhilosophersMap, getAllDebates, getRecentAgoraThreads } from "@/lib/data";
 import { PhilosopherAvatar } from "./PhilosopherAvatar";
 
 export function RightSidebar() {
   const philosophersMap = getPhilosophersMap();
   const debates = getAllDebates();
+  const agoraThreads = getRecentAgoraThreads(5);
 
   return (
     <aside className="hidden xl:block w-72 shrink-0 sticky top-0 h-screen overflow-y-auto py-6 px-4 border-l border-border-light/80 bg-parchment-dark/28 shadow-[inset_1px_0_0_rgba(255,255,255,0.35)]">
@@ -72,6 +73,62 @@ export function RightSidebar() {
           })}
         </div>
       </div>
+
+      {/* From The Agora */}
+      {agoraThreads.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-3 px-1">
+            <h3 className="text-[9px] font-mono tracking-[0.28em] uppercase text-ink-faint shrink-0">
+              From The Agora
+            </h3>
+            <div className="flex-1 h-px bg-gradient-to-r from-border-light/20 via-border-light to-border-light/20" />
+          </div>
+          <div className="space-y-2.5">
+            {agoraThreads.map((thread) => (
+              <Link
+                key={thread.id}
+                href={`/agora/${thread.id}`}
+                className="block px-3.5 py-3 rounded-xl border border-border-light/70 bg-card/60 hover:border-border hover:bg-parchment-tint/90 hover:shadow-[0_8px_20px_rgba(42,36,31,0.05)] hover:-translate-y-0.5 transition-all duration-200 group"
+              >
+                <div className="grid grid-cols-[auto_1fr] gap-x-2.5 gap-y-1.5 items-start">
+                  <div className="flex -space-x-1.5 shrink-0 mt-0.5">
+                    {thread.philosophers.slice(0, 3).map((p) => (
+                      <div key={p.id} className="ring-2 ring-card rounded-full">
+                        <PhilosopherAvatar
+                          philosopherId={p.id}
+                          name={p.name}
+                          color={p.color}
+                          initials={p.initials}
+                          size="sm"
+                        />
+                      </div>
+                    ))}
+                    {thread.philosophers.length > 3 && (
+                      <div className="w-8 h-8 rounded-full bg-parchment-dark/60 ring-2 ring-card flex items-center justify-center">
+                        <span className="text-[8px] font-mono text-ink-lighter">
+                          +{thread.philosophers.length - 3}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[13px] font-serif text-ink leading-snug line-clamp-2 group-hover:text-athenian transition-colors duration-200">
+                    &ldquo;{thread.question}&rdquo;
+                  </p>
+                  <div className="col-start-2 text-[10px] font-mono tracking-wide text-ink-faint uppercase">
+                    {thread.asked_by || "Anonymous"}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+          <Link
+            href="/agora"
+            className="mt-3 flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-mono tracking-wide text-ink-lighter hover:text-athenian transition-colors duration-200"
+          >
+            Ask the philosophers &rarr;
+          </Link>
+        </div>
+      )}
 
       {/* About Philagora */}
       <div className="px-4 py-5 rounded-2xl border border-border-light/90 bg-[linear-gradient(180deg,rgba(248,243,234,0.92),rgba(238,230,216,0.85))] shadow-[0_10px_24px_rgba(42,36,31,0.04)]">
