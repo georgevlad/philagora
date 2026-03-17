@@ -135,7 +135,10 @@ function buildPublishedPostFilters(options: {
   } else if (normalizedContentType === "replies") {
     conditions.push("p.reply_to IS NOT NULL AND p.reply_to != ''");
   } else if (normalizedContentType === "recommends") {
-    conditions.push("p.stance = 'recommends'");
+    conditions.push(
+      "((p.recommendation_title IS NOT NULL AND p.recommendation_title != '') OR p.stance = 'recommends')"
+    );
+    conditions.push("(p.reply_to IS NULL OR p.reply_to = '')");
   }
 
   if (options.philosopherId) {

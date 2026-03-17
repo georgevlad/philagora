@@ -46,7 +46,7 @@ export function FeedTabs({ mobileIntegrated = false }: { mobileIntegrated?: bool
         isPending ? "opacity-85" : ""
       }`}
     >
-      <div className="flex items-stretch gap-1 px-3 overflow-x-auto scrollbar-hide sm:gap-0 sm:px-4">
+      <div className="flex items-stretch justify-start gap-1 px-3 overflow-x-auto scrollbar-hide sm:justify-center sm:gap-0 sm:px-4 sm:overflow-visible">
         {FEED_CONTENT_TABS.map((tab) => (
           <button
             key={tab.key}
