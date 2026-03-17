@@ -5,6 +5,7 @@ export const FEED_CONTENT_TABS = [
   { key: "reactions", label: "Reactions" },
   { key: "history", label: "Today in History" },
   { key: "replies", label: "Replies" },
+  { key: "recommends", label: "Recommends" },
 ] as const;
 
 export type FeedContentType = (typeof FEED_CONTENT_TABS)[number]["key"];
@@ -14,7 +15,12 @@ export type FeedItem =
   | { type: "tension"; postA: FeedPost; postB: FeedPost };
 
 export function normalizeFeedContentType(value?: string | null): FeedContentType {
-  if (value === "reactions" || value === "history" || value === "replies") {
+  if (
+    value === "reactions" ||
+    value === "history" ||
+    value === "replies" ||
+    value === "recommends"
+  ) {
     return value;
   }
 

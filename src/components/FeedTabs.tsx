@@ -46,13 +46,13 @@ export function FeedTabs({ mobileIntegrated = false }: { mobileIntegrated?: bool
         isPending ? "opacity-85" : ""
       }`}
     >
-      <div className="flex items-stretch justify-between gap-1 px-3 sm:gap-0 sm:px-4">
+      <div className="flex items-stretch gap-1 px-3 overflow-x-auto scrollbar-hide sm:gap-0 sm:px-4">
         {FEED_CONTENT_TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => pushFilters(tab.key)}
             aria-pressed={activeType === tab.key}
-            className={`relative px-1 py-3.5 transition-colors duration-200 sm:flex-1 sm:px-4 sm:py-4 ${
+            className={`relative flex-shrink-0 px-1 py-3.5 transition-colors duration-200 sm:px-4 sm:py-4 ${
               activeType === tab.key
                 ? "font-serif text-[14px] font-medium text-ink sm:text-[16px]"
                 : "font-body text-[12px] text-ink-lighter hover:text-ink-light sm:text-sm"

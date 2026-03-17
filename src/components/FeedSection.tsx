@@ -97,12 +97,14 @@ function buildEmptyStateMessage(type: FeedContentType, philosopherName?: string)
     if (type === "reactions") return `No reactions from ${philosopherName} yet.`;
     if (type === "history") return `No historical posts from ${philosopherName} yet.`;
     if (type === "replies") return `No replies from ${philosopherName} yet.`;
+    if (type === "recommends") return `No recommendations from ${philosopherName} yet.`;
     return `No posts from ${philosopherName} yet.`;
   }
 
   if (type === "reactions") return "No reactions yet.";
   if (type === "history") return "No historical posts yet.";
   if (type === "replies") return "No replies yet.";
+  if (type === "recommends") return "No recommendations yet.";
   return "No posts yet.";
 }
 
