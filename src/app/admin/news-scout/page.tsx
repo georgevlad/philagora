@@ -534,6 +534,7 @@ export default function NewsScoutPage() {
             cross_replies: genConfig.cross_replies,
             timeless_reflections: 0,
             quips: genConfig.quips,
+            cultural_recommendations: 0,
             excluded_philosophers: excludedPhilosophers,
             length_strategy: genConfig.length_strategy,
           },
