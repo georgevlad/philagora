@@ -34,6 +34,17 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    label: "About",
+    href: "/about",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <circle cx="10" cy="10" r="7" />
+        <path d="M10 9V14" strokeLinecap="round" />
+        <circle cx="10" cy="7" r="0.5" fill="currentColor" stroke="none" />
+      </svg>
+    ),
+  },
 ];
 
 export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
