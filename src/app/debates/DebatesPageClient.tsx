@@ -20,7 +20,6 @@ function DebateListCard({
   philosophersMap: Record<string, Philosopher>;
 }) {
   const ref = useScrollReveal(index);
-  const preview = debate.firstPostPreview || "Debate not yet started.";
   const isInProgress = debate.status === "In Progress";
   const accent = isInProgress ? "var(--color-burgundy)" : "var(--color-athenian)";
   const softBg = isInProgress ? "rgba(122, 62, 58, 0.05)" : "rgba(49, 78, 61, 0.05)";
@@ -71,9 +70,39 @@ function DebateListCard({
                 </div>
               )}
 
-              <p className="prose-reading text-[17px] text-ink-light leading-[1.75] max-w-3xl">
-                {preview}
-              </p>
+              {debate.openingPreviews.length > 0 ? (
+                <div className="space-y-3">
+                  {debate.openingPreviews.map((op) => {
+                    const p = philosophersMap[op.philosopherId];
+                    if (!p) return null;
+                    return (
+                      <div key={op.philosopherId} className="flex items-start gap-3">
+                        <div className="shrink-0 mt-1 ring-2 ring-card/80 rounded-full">
+                          <PhilosopherAvatar
+                            philosopherId={op.philosopherId}
+                            name={p.name}
+                            color={p.color}
+                            initials={p.initials}
+                            size="sm"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-[11px] font-mono tracking-[0.12em] uppercase text-ink-faint">
+                            {p.name}
+                          </span>
+                          <p className="text-[15px] font-serif text-ink-light leading-[1.55] mt-0.5 italic">
+                            &ldquo;{op.snippet}&rdquo;
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-[15px] text-ink-lighter italic">
+                  Debate not yet started.
+                </p>
+              )}
             </div>
 
             <div className="rounded-2xl border border-border-light/80 bg-[linear-gradient(180deg,rgba(238,230,216,0.58),rgba(248,243,234,0.92))] px-4 py-4">

@@ -253,18 +253,31 @@ export function getAllDebates(): DebateListItem[] {
       .prepare("SELECT philosopher_id FROM debate_philosophers WHERE debate_id = ?")
       .all(d.id) as DebatePhilosopherRow[];
 
-    // Get first opening post preview
-    const firstPost = db
+    // Get first two opening post snippets for tension preview
+    const openingRows = db
       .prepare(
-        `SELECT dp.content FROM debate_posts dp
+        `SELECT dp.philosopher_id, dp.content FROM debate_posts dp
          WHERE dp.debate_id = ? AND dp.phase = 'opening'
-         ORDER BY dp.sort_order ASC LIMIT 1`
+         ORDER BY dp.sort_order ASC LIMIT 2`
       )
-      .get(d.id) as { content: string } | undefined;
+      .all(d.id) as { philosopher_id: string; content: string }[];
 
-    const preview = firstPost
-      ? firstPost.content.slice(0, 120) + (firstPost.content.length > 120 ? "..." : "")
-      : "";
+    const openingPreviews = openingRows.map((row) => {
+      // Extract the first sentence as the strongest opening hook.
+      const firstSentenceMatch = row.content.match(/^(.+?[.!?])\s/);
+      let snippet = firstSentenceMatch
+        ? firstSentenceMatch[1]
+        : row.content.slice(0, 100);
+
+      if (snippet.length > 120) {
+        snippet = `${snippet.slice(0, 117)}...`;
+      }
+
+      return {
+        philosopherId: row.philosopher_id,
+        snippet,
+      };
+    });
 
     return {
       id: d.id,
@@ -275,7 +288,7 @@ export function getAllDebates(): DebateListItem[] {
       triggerArticleSource: d.trigger_article_source,
       triggerArticleUrl: d.trigger_article_url,
       philosophers: philRows.map((r) => r.philosopher_id),
-      firstPostPreview: preview,
+      openingPreviews,
     };
   });
 }

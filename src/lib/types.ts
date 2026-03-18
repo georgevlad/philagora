@@ -107,7 +107,10 @@ export interface DebateListItem {
   triggerArticleSource: string;
   triggerArticleUrl: string | null;
   philosophers: string[];
-  firstPostPreview: string;
+  openingPreviews: {
+    philosopherId: string;
+    snippet: string;
+  }[];
 }
 
 export interface DebatePost {
