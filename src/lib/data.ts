@@ -1,7 +1,7 @@
 import { getDb } from "@/lib/db";
 import { timeAgo } from "@/lib/date-utils";
 import { interleaveFeed } from "@/lib/feed-interleave";
-import { normalizeFeedContentType } from "@/lib/feed-utils";
+import { buildFeedContentTypeConditions } from "@/lib/feed-utils";
 import { isPostSourceType } from "@/lib/historical-events";
 import { safeJsonParse } from "@/lib/json-utils";
 import type {
@@ -123,23 +123,7 @@ function buildPublishedPostFilters(options: {
 }) {
   const conditions: string[] = ["p.status = 'published'"];
   const params: (string | number)[] = [];
-  const normalizedContentType = normalizeFeedContentType(options.contentType);
-
-  if (normalizedContentType === "reactions") {
-    conditions.push("COALESCE(p.source_type, 'news') = 'news'");
-    conditions.push("p.citation_url IS NOT NULL AND p.citation_url != ''");
-    conditions.push("(p.reply_to IS NULL OR p.reply_to = '')");
-  } else if (normalizedContentType === "history") {
-    conditions.push("p.source_type = 'historical_event'");
-    conditions.push("(p.reply_to IS NULL OR p.reply_to = '')");
-  } else if (normalizedContentType === "replies") {
-    conditions.push("p.reply_to IS NOT NULL AND p.reply_to != ''");
-  } else if (normalizedContentType === "recommends") {
-    conditions.push(
-      "((p.recommendation_title IS NOT NULL AND p.recommendation_title != '') OR p.stance = 'recommends')"
-    );
-    conditions.push("(p.reply_to IS NULL OR p.reply_to = '')");
-  }
+  conditions.push(...buildFeedContentTypeConditions(options.contentType));
 
   if (options.philosopherId) {
     conditions.push("p.philosopher_id = ?");

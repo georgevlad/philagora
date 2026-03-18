@@ -27,6 +27,42 @@ export function normalizeFeedContentType(value?: string | null): FeedContentType
   return "all";
 }
 
+export function buildFeedContentTypeConditions(
+  value?: string | null,
+  tableAlias = "p"
+): string[] {
+  const normalized = normalizeFeedContentType(value);
+  const replyTo = `${tableAlias}.reply_to`;
+
+  if (normalized === "reactions") {
+    return [
+      `COALESCE(${tableAlias}.source_type, 'news') = 'news'`,
+      `${tableAlias}.citation_url IS NOT NULL AND ${tableAlias}.citation_url != ''`,
+      `(${replyTo} IS NULL OR ${replyTo} = '')`,
+    ];
+  }
+
+  if (normalized === "history") {
+    return [
+      `${tableAlias}.source_type = 'historical_event'`,
+      `(${replyTo} IS NULL OR ${replyTo} = '')`,
+    ];
+  }
+
+  if (normalized === "replies") {
+    return [`${replyTo} IS NOT NULL AND ${replyTo} != ''`];
+  }
+
+  if (normalized === "recommends") {
+    return [
+      `((${tableAlias}.recommendation_title IS NOT NULL AND ${tableAlias}.recommendation_title != '') OR ${tableAlias}.stance = 'recommends')`,
+      `(${replyTo} IS NULL OR ${replyTo} = '')`,
+    ];
+  }
+
+  return [];
+}
+
 export function sharesSameArticle(a: FeedPost, b: FeedPost): boolean {
   if (!a.citation || !b.citation) return false;
   if (a.citation.url && b.citation.url && a.citation.url === b.citation.url) return true;

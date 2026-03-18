@@ -3,6 +3,50 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
 import { isPostSourceType } from "@/lib/historical-events";
 import { POST_STATUSES, STANCE_CONFIG } from "@/lib/constants";
+import { buildFeedContentTypeConditions } from "@/lib/feed-utils";
+
+type AdminPostFilters = {
+  philosopher?: string | null;
+  status?: string | null;
+  tag?: string | null;
+  sourceType?: string | null;
+  category?: string | null;
+};
+
+function buildPostFilterParts(
+  filters: AdminPostFilters,
+  options: {
+    includeStatus?: boolean;
+    includeTag?: boolean;
+  } = {}
+) {
+  const conditions: string[] = [];
+  const params: Array<string | number> = [];
+
+  if (filters.philosopher) {
+    conditions.push("p.philosopher_id = ?");
+    params.push(filters.philosopher);
+  }
+
+  if (options.includeStatus !== false && filters.status) {
+    conditions.push("p.status = ?");
+    params.push(filters.status);
+  }
+
+  if (options.includeTag !== false && filters.tag) {
+    conditions.push("p.tag = ?");
+    params.push(filters.tag);
+  }
+
+  if (filters.sourceType) {
+    conditions.push("p.source_type = ?");
+    params.push(filters.sourceType);
+  }
+
+  conditions.push(...buildFeedContentTypeConditions(filters.category, "p"));
+
+  return { conditions, params };
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,38 +56,75 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const tag = searchParams.get("tag");
     const sourceType = searchParams.get("source_type");
+    const category = searchParams.get("category");
     const limitParam = searchParams.get("limit");
+    const pageParam = searchParams.get("page");
+    const pageSizeParam = searchParams.get("page_size");
 
-    let query = `
+    const filters: AdminPostFilters = {
+      philosopher,
+      status,
+      tag,
+      sourceType,
+      category,
+    };
+
+    const baseQuery = `
       SELECT p.*, ph.name as philosopher_name, ph.color as philosopher_color, ph.initials as philosopher_initials
       FROM posts p
       JOIN philosophers ph ON p.philosopher_id = ph.id
     `;
-    const conditions: string[] = [];
-    const params: string[] = [];
+    const { conditions, params } = buildPostFilterParts(filters);
+    const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
 
-    if (philosopher) {
-      conditions.push("p.philosopher_id = ?");
-      params.push(philosopher);
-    }
-    if (status) {
-      conditions.push("p.status = ?");
-      params.push(status);
-    }
-    if (tag) {
-      conditions.push("p.tag = ?");
-      params.push(tag);
-    }
-    if (sourceType) {
-      conditions.push("p.source_type = ?");
-      params.push(sourceType);
+    const parsedPageSize = pageSizeParam ? Number.parseInt(pageSizeParam, 10) : Number.NaN;
+    const pageSize = Number.isFinite(parsedPageSize)
+      ? Math.max(1, Math.min(parsedPageSize, 100))
+      : null;
+
+    if (pageSize !== null) {
+      const parsedPage = pageParam ? Number.parseInt(pageParam, 10) : 1;
+      const requestedPage = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
+      const totalRow = db
+        .prepare(`SELECT COUNT(*) as count FROM posts p${whereClause}`)
+        .get(...params) as { count: number };
+      const total = totalRow.count;
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      const page = Math.min(requestedPage, totalPages);
+      const offset = (page - 1) * pageSize;
+
+      const items = db
+        .prepare(`${baseQuery}${whereClause} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`)
+        .all(...params, pageSize, offset);
+
+      const tagFilters = buildPostFilterParts(filters, { includeTag: false });
+      const tagConditions = [...tagFilters.conditions, "p.tag IS NOT NULL", "p.tag != ''"];
+      const tagWhereClause =
+        tagConditions.length > 0 ? ` WHERE ${tagConditions.join(" AND ")}` : "";
+      const availableTags = (
+        db
+          .prepare(`SELECT DISTINCT p.tag FROM posts p${tagWhereClause} ORDER BY p.tag ASC`)
+          .all(...tagFilters.params) as Array<{ tag: string | null }>
+      )
+        .map((row) => row.tag)
+        .filter((value): value is string => Boolean(value));
+
+      const approvedRow = db
+        .prepare("SELECT COUNT(*) as count FROM posts WHERE status = 'approved'")
+        .get() as { count: number };
+
+      return NextResponse.json({
+        items,
+        total,
+        page,
+        pageSize,
+        totalPages,
+        availableTags,
+        approvedCount: approvedRow.count,
+      });
     }
 
-    if (conditions.length > 0) {
-      query += " WHERE " + conditions.join(" AND ");
-    }
-
-    query += " ORDER BY p.created_at DESC";
+    let query = `${baseQuery}${whereClause} ORDER BY p.created_at DESC`;
 
     const parsedLimit = limitParam ? Number.parseInt(limitParam, 10) : Number.NaN;
     const limit = Number.isFinite(parsedLimit)
@@ -51,7 +132,7 @@ export async function GET(request: NextRequest) {
       : null;
     if (limit !== null) {
       query += " LIMIT ?";
-      params.push(String(limit));
+      params.push(limit);
     }
 
     const posts = db.prepare(query).all(...params);

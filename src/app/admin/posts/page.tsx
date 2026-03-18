@@ -1,12 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { BookIcon, BookmarkIcon, HeartIcon, ReplyArrowIcon, ReplyIcon } from "@/components/Icons";
+import { STANCE_CONFIG } from "@/lib/constants";
+import {
+  FEED_CONTENT_TABS,
+  normalizeFeedContentType,
+  type FeedContentType,
+} from "@/lib/feed-utils";
 import type { Stance } from "@/lib/types";
 import type { Philosopher } from "@/types/admin";
-import { STANCE_CONFIG } from "@/lib/constants";
-import { BookIcon, BookmarkIcon, HeartIcon, ReplyArrowIcon, ReplyIcon } from "@/components/Icons";
-
-// ── Types ────────────────────────────────────────────────────────────
 
 type PostStatus = "draft" | "approved" | "published" | "archived";
 
@@ -26,35 +30,39 @@ interface AdminPost {
   bookmarks: number;
   status: PostStatus;
   created_at: string;
-  updated_at: string;
 }
 
-// ── Status config ────────────────────────────────────────────────────
+interface AdminPostsListResponse {
+  items: AdminPost[];
+  total: number;
+  page: number;
+  totalPages: number;
+  availableTags: string[];
+  approvedCount: number;
+}
 
-const statusConfig: Record<PostStatus, { label: string; bg: string; text: string; border: string }> = {
-  draft:     { label: "Draft",     bg: "#E2E8F0", text: "#4A5568", border: "#CBD5E0" },
-  approved:  { label: "Approved",  bg: "#BEE3F8", text: "#2A4365", border: "#90CDF4" },
+const POSTS_PER_PAGE = 50;
+
+const STATUS_CONFIG: Record<PostStatus, { label: string; bg: string; text: string; border: string }> = {
+  draft: { label: "Draft", bg: "#E2E8F0", text: "#4A5568", border: "#CBD5E0" },
+  approved: { label: "Approved", bg: "#BEE3F8", text: "#2A4365", border: "#90CDF4" },
   published: { label: "Published", bg: "#C6F6D5", text: "#276749", border: "#9AE6B4" },
-  archived:  { label: "Archived",  bg: "#FED7D7", text: "#9B2C2C", border: "#FEB2B2" },
+  archived: { label: "Archived", bg: "#FED7D7", text: "#9B2C2C", border: "#FEB2B2" },
 };
 
-// ── Status transitions ──────────────────────────────────────────────
-
-const statusTransitions: Record<PostStatus, PostStatus | null> = {
+const STATUS_TRANSITIONS: Record<PostStatus, PostStatus | null> = {
   draft: "approved",
   approved: "published",
   published: null,
   archived: null,
 };
 
-const transitionLabels: Record<PostStatus, string> = {
+const TRANSITION_LABELS: Record<PostStatus, string> = {
   draft: "Approve",
   approved: "Publish",
   published: "",
   archived: "",
 };
-
-// ── Known tags ──────────────────────────────────────────────────────
 
 const KNOWN_TAGS = [
   "Ethical Analysis",
@@ -67,11 +75,56 @@ const KNOWN_TAGS = [
   "Psychological Insight",
 ];
 
-// ── Component ────────────────────────────────────────────────────────
+function parseStatus(value: string | null): PostStatus | "" {
+  if (value === "draft" || value === "approved" || value === "published" || value === "archived") {
+    return value;
+  }
 
-export default function AdminPostsPage() {
+  return "";
+}
+
+function parsePage(value: string | null): number {
+  const parsed = value ? Number.parseInt(value, 10) : 1;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
+
+function buildPageList(currentPage: number, totalPages: number): number[] {
+  const start = Math.max(1, currentPage - 2);
+  const end = Math.min(totalPages, currentPage + 2);
+  const pages: number[] = [];
+
+  for (let page = start; page <= end; page += 1) {
+    pages.push(page);
+  }
+
+  return pages;
+}
+
+function formatCreatedAt(value: string): string {
+  try {
+    return new Date(value).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return value;
+  }
+}
+
+function AdminPostsPageInner() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [philosophers, setPhilosophers] = useState<Philosopher[]>([]);
+  const [totalPosts, setTotalPosts] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [approvedCount, setApprovedCount] = useState(0);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -79,71 +132,129 @@ export default function AdminPostsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [bulkUpdating, setBulkUpdating] = useState(false);
 
-  // Filters
-  const [filterPhilosopher, setFilterPhilosopher] = useState("");
-  const [filterStatus, setFilterStatus] = useState<PostStatus | "">("");
-  const [filterTag, setFilterTag] = useState("");
+  const [filterPhilosopher, setFilterPhilosopher] = useState(() => searchParams.get("philosopher") ?? "");
+  const [filterStatus, setFilterStatus] = useState<PostStatus | "">(() => parseStatus(searchParams.get("status")));
+  const [filterTag, setFilterTag] = useState(() => searchParams.get("tag") ?? "");
+  const [filterCategory, setFilterCategory] = useState<FeedContentType>(() =>
+    normalizeFeedContentType(searchParams.get("category"))
+  );
+  const [currentPage, setCurrentPage] = useState(() => parsePage(searchParams.get("page")));
 
-  // Fetch philosophers on mount
   useEffect(() => {
     async function loadPhilosophers() {
       try {
-        const res = await fetch("/api/admin/philosophers");
-        if (res.ok) {
-          const data = await res.json();
-          setPhilosophers(data);
+        const response = await fetch("/api/admin/philosophers");
+        if (!response.ok) {
+          return;
         }
+
+        setPhilosophers((await response.json()) as Philosopher[]);
       } catch {
-        // Silently fall back to empty list
+        // Ignore secondary metadata failures.
       }
     }
-    loadPhilosophers();
+
+    void loadPhilosophers();
   }, []);
 
-  // Fetch posts whenever filters change
+  useEffect(() => {
+    setFilterPhilosopher(searchParams.get("philosopher") ?? "");
+    setFilterStatus(parseStatus(searchParams.get("status")));
+    setFilterTag(searchParams.get("tag") ?? "");
+    setFilterCategory(normalizeFeedContentType(searchParams.get("category")));
+    setCurrentPage(parsePage(searchParams.get("page")));
+  }, [searchParams]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (filterPhilosopher) params.set("philosopher", filterPhilosopher);
+    else params.delete("philosopher");
+
+    if (filterStatus) params.set("status", filterStatus);
+    else params.delete("status");
+
+    if (filterTag) params.set("tag", filterTag);
+    else params.delete("tag");
+
+    if (filterCategory !== "all") params.set("category", filterCategory);
+    else params.delete("category");
+
+    if (currentPage > 1) params.set("page", String(currentPage));
+    else params.delete("page");
+
+    const nextQuery = params.toString();
+    const currentQuery = searchParams.toString();
+
+    if (nextQuery !== currentQuery) {
+      router.replace(`${pathname}${nextQuery ? `?${nextQuery}` : ""}`, { scroll: false });
+    }
+  }, [
+    currentPage,
+    filterCategory,
+    filterPhilosopher,
+    filterStatus,
+    filterTag,
+    pathname,
+    router,
+    searchParams,
+  ]);
+
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     setError(null);
+
     try {
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        page_size: String(POSTS_PER_PAGE),
+      });
+
       if (filterPhilosopher) params.set("philosopher", filterPhilosopher);
       if (filterStatus) params.set("status", filterStatus);
       if (filterTag) params.set("tag", filterTag);
+      if (filterCategory !== "all") params.set("category", filterCategory);
 
-      const url = `/api/admin/posts${params.toString() ? `?${params}` : ""}`;
-      const res = await fetch(url);
+      const response = await fetch(`/api/admin/posts?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch posts (${response.status})`);
+      }
 
-      if (!res.ok) throw new Error(`Failed to fetch posts (${res.status})`);
+      const data = (await response.json()) as AdminPostsListResponse;
+      setPosts(data.items);
+      setTotalPosts(data.total);
+      setTotalPages(data.totalPages);
+      setApprovedCount(data.approvedCount);
+      setAvailableTags(data.availableTags);
 
-      const data = await res.json();
-      setPosts(data);
+      if (data.page !== currentPage) {
+        setCurrentPage(data.page);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load posts");
     } finally {
       setLoading(false);
     }
-  }, [filterPhilosopher, filterStatus, filterTag]);
+  }, [currentPage, filterCategory, filterPhilosopher, filterStatus, filterTag]);
 
   useEffect(() => {
-    fetchPosts();
+    void fetchPosts();
   }, [fetchPosts]);
 
-  // Status change handler
   async function handleStatusChange(postId: string, newStatus: PostStatus) {
     setUpdatingId(postId);
     try {
-      const res = await fetch("/api/admin/posts", {
+      const response = await fetch("/api/admin/posts", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: postId, status: newStatus }),
       });
 
-      if (!res.ok) throw new Error("Failed to update status");
+      if (!response.ok) {
+        throw new Error("Failed to update status");
+      }
 
-      // Optimistically update the post in local state
-      setPosts((prev) =>
-        prev.map((p) => (p.id === postId ? { ...p, status: newStatus } : p))
-      );
+      await fetchPosts();
     } catch {
       setError("Failed to update post status. Please try again.");
     } finally {
@@ -151,21 +262,21 @@ export default function AdminPostsPage() {
     }
   }
 
-  // Delete handler
   async function handleDelete(postId: string) {
     setDeletingId(postId);
     try {
-      const res = await fetch("/api/admin/posts", {
+      const response = await fetch("/api/admin/posts", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: postId }),
       });
 
-      if (!res.ok) throw new Error("Failed to delete post");
+      if (!response.ok) {
+        throw new Error("Failed to delete post");
+      }
 
-      // Remove the post from local state
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
       setConfirmDeleteId(null);
+      await fetchPosts();
     } catch {
       setError("Failed to delete post. Please try again.");
     } finally {
@@ -173,19 +284,24 @@ export default function AdminPostsPage() {
     }
   }
 
-  // Bulk publish handler
   async function handleBulkPublish() {
-    if (!confirm("Publish all approved posts? This will make them visible on the public feed.")) return;
+    if (!confirm("Publish all approved posts? This will make them visible on the public feed.")) {
+      return;
+    }
+
     setBulkUpdating(true);
     try {
-      const res = await fetch("/api/admin/posts/bulk", {
+      const response = await fetch("/api/admin/posts/bulk", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ from_status: "approved", to_status: "published" }),
       });
-      if (!res.ok) throw new Error("Failed to bulk publish");
-      setError(null);
-      fetchPosts();
+
+      if (!response.ok) {
+        throw new Error("Failed to bulk publish");
+      }
+
+      await fetchPosts();
     } catch {
       setError("Failed to bulk publish posts.");
     } finally {
@@ -193,198 +309,187 @@ export default function AdminPostsPage() {
     }
   }
 
-  // Philosopher lookup helper
-  function getPhilosopher(id: string): Philosopher | undefined {
-    return philosophers.find((p) => p.id === id);
-  }
+  const tagOptions = useMemo(
+    () => Array.from(new Set([...KNOWN_TAGS, ...availableTags])).sort(),
+    [availableTags]
+  );
 
-  // Collect tags from posts for the tag filter dropdown
-  const availableTags = Array.from(new Set(posts.map((p) => p.tag).filter(Boolean)));
-  const tagOptions = Array.from(new Set([...KNOWN_TAGS, ...availableTags])).sort();
+  const philosopherMap = useMemo(
+    () => new Map(philosophers.map((philosopher) => [philosopher.id, philosopher])),
+    [philosophers]
+  );
+
+  const visiblePages = useMemo(() => buildPageList(currentPage, totalPages), [currentPage, totalPages]);
+  const rangeStart = totalPosts === 0 ? 0 : (currentPage - 1) * POSTS_PER_PAGE + 1;
+  const rangeEnd = totalPosts === 0 ? 0 : Math.min(currentPage * POSTS_PER_PAGE, totalPosts);
+
+  function resetFilters() {
+    setFilterPhilosopher("");
+    setFilterStatus("");
+    setFilterTag("");
+    setFilterCategory("all");
+    setCurrentPage(1);
+  }
 
   return (
     <div>
-      {/* Page header */}
       <div className="mb-8">
         <h1 className="font-serif text-2xl font-bold text-ink">Posts</h1>
-        <p className="text-sm text-ink-lighter mt-1 font-body">
+        <p className="mt-1 text-sm font-body text-ink-lighter">
           Manage philosopher posts. Filter, review, and transition statuses.
         </p>
       </div>
 
-      {/* ── Filter bar ──────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 mb-6 p-5 rounded-lg bg-parchment-dark/50 border border-border-light sticky top-0 z-10">
-        {/* Philosopher filter */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-mono text-ink-lighter tracking-widest uppercase">
-            Philosopher
-          </label>
-          <select
-            value={filterPhilosopher}
-            onChange={(e) => setFilterPhilosopher(e.target.value)}
-            className="text-sm font-body text-ink bg-parchment border border-border rounded-md px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta"
-          >
-            <option value="">All Philosophers</option>
-            {philosophers.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div className="sticky top-0 z-10 mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-border-light bg-parchment-dark/50 p-5">
+        <FilterSelect
+          label="Philosopher"
+          value={filterPhilosopher}
+          onChange={(value) => {
+            setFilterPhilosopher(value);
+            setCurrentPage(1);
+          }}
+        >
+          <option value="">All Philosophers</option>
+          {philosophers.map((philosopher) => (
+            <option key={philosopher.id} value={philosopher.id}>
+              {philosopher.name}
+            </option>
+          ))}
+        </FilterSelect>
 
-        {/* Status filter */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-mono text-ink-lighter tracking-widest uppercase">
-            Status
-          </label>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as PostStatus | "")}
-            className="text-sm font-body text-ink bg-parchment border border-border rounded-md px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta"
-          >
-            <option value="">All Statuses</option>
-            <option value="draft">Draft</option>
-            <option value="approved">Approved</option>
-            <option value="published">Published</option>
-            <option value="archived">Archived</option>
-          </select>
-        </div>
+        <FilterSelect
+          label="Status"
+          value={filterStatus}
+          onChange={(value) => {
+            setFilterStatus(value as PostStatus | "");
+            setCurrentPage(1);
+          }}
+        >
+          <option value="">All Statuses</option>
+          <option value="draft">Draft</option>
+          <option value="approved">Approved</option>
+          <option value="published">Published</option>
+          <option value="archived">Archived</option>
+        </FilterSelect>
 
-        {/* Tag filter */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-mono text-ink-lighter tracking-widest uppercase">
-            Tag
-          </label>
-          <select
-            value={filterTag}
-            onChange={(e) => setFilterTag(e.target.value)}
-            className="text-sm font-body text-ink bg-parchment border border-border rounded-md px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta"
-          >
-            <option value="">All Tags</option>
-            {tagOptions.map((tag) => (
-              <option key={tag} value={tag}>
-                {tag}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FilterSelect
+          label="Tag"
+          value={filterTag}
+          onChange={(value) => {
+            setFilterTag(value);
+            setCurrentPage(1);
+          }}
+        >
+          <option value="">All Tags</option>
+          {tagOptions.map((tag) => (
+            <option key={tag} value={tag}>
+              {tag}
+            </option>
+          ))}
+        </FilterSelect>
 
-        {/* Reset filters */}
-        {(filterPhilosopher || filterStatus || filterTag) && (
+        <FilterSelect
+          label="Category"
+          value={filterCategory}
+          onChange={(value) => {
+            setFilterCategory(normalizeFeedContentType(value));
+            setCurrentPage(1);
+          }}
+        >
+          {FEED_CONTENT_TABS.map((tab) => (
+            <option key={tab.key} value={tab.key}>
+              {tab.label}
+            </option>
+          ))}
+        </FilterSelect>
+
+        {(filterPhilosopher || filterStatus || filterTag || filterCategory !== "all") && (
           <button
-            onClick={() => {
-              setFilterPhilosopher("");
-              setFilterStatus("");
-              setFilterTag("");
-            }}
-            className="self-end text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors py-2 px-3 rounded-lg border border-border hover:bg-parchment-dark/40"
+            onClick={resetFilters}
+            className="self-end rounded-lg border border-border px-3 py-2 text-xs font-mono text-terracotta transition-colors hover:bg-parchment-dark/40 hover:text-terracotta-light"
           >
             Clear filters
           </button>
         )}
 
-        {/* Post count + bulk actions */}
         <div className="ml-auto self-end flex items-center gap-3 border-l border-border pl-4">
-          {(filterStatus === "approved" || filterStatus === "") && (() => {
-            const approvedCount = posts.filter(p => p.status === "approved").length;
-            return approvedCount > 0 ? (
-              <button
-                onClick={handleBulkPublish}
-                disabled={bulkUpdating}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-mono tracking-wide rounded-full text-white bg-green-700 hover:bg-green-800 disabled:opacity-50 transition-colors"
-              >
-                {bulkUpdating ? "Publishing..." : `Publish ${approvedCount} approved`}
-              </button>
-            ) : null;
-          })()}
+          {(filterStatus === "" || filterStatus === "approved") && approvedCount > 0 && (
+            <button
+              onClick={handleBulkPublish}
+              disabled={bulkUpdating}
+              className="inline-flex items-center gap-1.5 rounded-full bg-green-700 px-4 py-2 text-xs font-mono tracking-wide text-white transition-colors hover:bg-green-800 disabled:opacity-50"
+            >
+              {bulkUpdating ? "Publishing..." : `Publish all approved (${approvedCount})`}
+            </button>
+          )}
 
           <span className="text-xs font-mono text-ink-lighter">
-            {loading ? "Loading..." : `${posts.length} post${posts.length !== 1 ? "s" : ""}`}
+            {loading ? "Loading..." : totalPosts === 0 ? "0 posts" : `${rangeStart}-${rangeEnd} of ${totalPosts} posts`}
           </span>
         </div>
       </div>
 
-      {/* ── Error state ─────────────────────────────────────────────── */}
       {error && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-800 font-body">
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
-          <button
-            onClick={() => setError(null)}
-            className="ml-3 text-red-600 hover:text-red-800 font-mono text-xs"
-          >
+          <button onClick={() => setError(null)} className="ml-3 text-xs font-mono text-red-600 hover:text-red-800">
             Dismiss
           </button>
         </div>
       )}
 
-      {/* ── Loading state ───────────────────────────────────────────── */}
       {loading && (
         <div className="flex items-center justify-center py-16">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-terracotta/30 border-t-terracotta rounded-full animate-spin" />
-            <span className="text-sm text-ink-lighter font-body">Loading posts...</span>
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-terracotta/30 border-t-terracotta" />
+            <span className="text-sm text-ink-lighter">Loading posts...</span>
           </div>
         </div>
       )}
 
-      {/* ── Empty state ─────────────────────────────────────────────── */}
       {!loading && posts.length === 0 && (
-        <div className="text-center py-16">
-          <div className="text-4xl mb-3 opacity-40">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto text-ink-lighter">
-              <path d="M9 12h6m-3-3v6m-7 4h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <p className="text-ink-lighter font-body text-sm">
-            No posts found matching your filters.
-          </p>
+        <div className="py-16 text-center text-sm text-ink-lighter">
+          No posts found matching your filters.
         </div>
       )}
 
-      {/* ── Post list ───────────────────────────────────────────────── */}
       {!loading && posts.length > 0 && (
         <div className="space-y-4">
           {posts.map((post) => {
-            const philosopher = getPhilosopher(post.philosopher_id);
+            const philosopher = philosopherMap.get(post.philosopher_id);
             const stanceCfg = STANCE_CONFIG[post.stance];
-            const statusCfg = statusConfig[post.status];
-            const nextStatus = statusTransitions[post.status];
+            const statusCfg = STATUS_CONFIG[post.status];
+            const nextStatus = STATUS_TRANSITIONS[post.status];
             const isUpdating = updatingId === post.id;
-            const contentPreview =
+            const isDeleting = deletingId === post.id;
+            const preview =
               post.content.length > 200
-                ? post.content.slice(0, 200).replace(/\s+\S*$/, "") + "\u2026"
+                ? `${post.content.slice(0, 200).replace(/\s+\S*$/, "")}\u2026`
                 : post.content;
 
             return (
               <article
                 key={post.id}
-                className="rounded-lg border border-border-light bg-parchment hover:border-border transition-colors duration-200"
-                style={{
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                }}
+                className="rounded-lg border border-border-light bg-parchment"
+                style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
               >
                 <div className="px-6 py-5">
-                  {/* ── Top row: philosopher + status ─────────────────── */}
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-3 min-w-0">
-                      {/* Color swatch + name */}
+                  <div className="mb-4 flex items-start justify-between gap-4">
+                    <div className="flex min-w-0 items-center gap-3">
                       <div
-                        className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-mono font-bold"
-                        style={{
-                          backgroundColor: philosopher?.color ?? "#7D7468",
-                        }}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-mono font-bold text-white"
+                        style={{ backgroundColor: philosopher?.color ?? "#7D7468" }}
                       >
                         {philosopher?.initials ?? "??"}
                       </div>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-serif font-bold text-ink text-sm">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-serif font-bold text-ink">
                             {philosopher?.name ?? post.philosopher_id}
                           </span>
                           {philosopher?.tradition && (
                             <span
-                              className="text-[11px] font-mono px-2 py-0.5 rounded"
+                              className="rounded px-2 py-0.5 text-[11px] font-mono"
                               style={{
                                 backgroundColor: `${philosopher.color}15`,
                                 color: philosopher.color,
@@ -394,24 +499,15 @@ export default function AdminPostsPage() {
                             </span>
                           )}
                         </div>
-                        <span className="text-[11px] text-ink-lighter font-mono">
-                          {post.created_at
-                            ? new Date(post.created_at).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })
-                            : "Unknown date"}
+                        <span className="text-[11px] font-mono text-ink-lighter">
+                          {formatCreatedAt(post.created_at)}
                         </span>
                       </div>
                     </div>
 
-                    {/* Status badge + action buttons */}
-                    <div className="flex items-center gap-2.5 shrink-0">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
                       <span
-                        className="inline-flex items-center px-2.5 py-1 text-[11px] font-mono tracking-wider uppercase rounded-full"
+                        className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider"
                         style={{
                           backgroundColor: statusCfg.bg,
                           color: statusCfg.text,
@@ -421,150 +517,79 @@ export default function AdminPostsPage() {
                         {statusCfg.label}
                       </span>
 
-                      {/* Forward transition (Approve / Publish) */}
                       {nextStatus && (
                         <button
                           onClick={() => handleStatusChange(post.id, nextStatus)}
                           disabled={isUpdating}
-                          className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-mono tracking-wide rounded-full text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-md"
-                          style={{
-                            backgroundColor: nextStatus === "approved" ? "#2A4365" : "#276749",
-                          }}
+                          className="rounded-full px-4 py-1.5 text-xs font-mono text-white disabled:opacity-50"
+                          style={{ backgroundColor: nextStatus === "approved" ? "#2A4365" : "#276749" }}
                         >
-                          {isUpdating ? (
-                            <span className="flex items-center gap-1">
-                              <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
-                              Updating
-                            </span>
-                          ) : (
-                            <>
-                              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 8L7 12L13 4" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                              {transitionLabels[post.status]}
-                            </>
-                          )}
+                          {isUpdating ? "Updating..." : TRANSITION_LABELS[post.status]}
                         </button>
                       )}
 
-                      {/* Restore button (archived → draft) */}
                       {post.status === "archived" && (
                         <button
                           onClick={() => handleStatusChange(post.id, "draft")}
                           disabled={isUpdating}
-                          className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-mono tracking-wide rounded-full text-white bg-[#2A4365] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-md"
+                          className="rounded-full bg-[#2A4365] px-4 py-1.5 text-xs font-mono text-white disabled:opacity-50"
                         >
-                          {isUpdating ? (
-                            <span className="flex items-center gap-1">
-                              <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
-                              Restoring
-                            </span>
-                          ) : (
-                            <>
-                              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M4 7L2 5L4 3" strokeLinecap="round" strokeLinejoin="round" />
-                                <path d="M2 5H10C12.2091 5 14 6.79086 14 9C14 11.2091 12.2091 13 10 13H8" strokeLinecap="round" />
-                              </svg>
-                              Restore
-                            </>
-                          )}
+                          {isUpdating ? "Restoring..." : "Restore"}
                         </button>
                       )}
 
-                      {/* Archive button (published/approved/draft → archived) */}
                       {post.status !== "archived" && (
                         <button
                           onClick={() => handleStatusChange(post.id, "archived")}
                           disabled={isUpdating}
-                          className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-mono tracking-wide rounded-full text-[#9B2C2C] bg-[#FED7D7] border border-[#FEB2B2] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#FEB2B2]"
+                          className="rounded-full border border-[#FEB2B2] bg-[#FED7D7] px-4 py-1.5 text-xs font-mono text-[#9B2C2C] disabled:opacity-50"
                         >
-                          {isUpdating ? (
-                            <span className="flex items-center gap-1">
-                              <span className="w-3 h-3 border border-[#9B2C2C]/40 border-t-[#9B2C2C] rounded-full animate-spin" />
-                            </span>
-                          ) : (
-                            <>
-                              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                <path d="M2 4H14V13C14 13.5523 13.5523 14 13 14H3C2.44772 14 2 13.5523 2 13V4Z" />
-                                <path d="M1 2H15V4H1V2Z" />
-                                <path d="M6 7H10" strokeLinecap="round" />
-                              </svg>
-                              Archive
-                            </>
-                          )}
+                          Archive
                         </button>
                       )}
 
-                      {/* Delete button */}
                       {confirmDeleteId === post.id ? (
-                        <div className="flex items-center gap-2">
+                        <>
                           <button
                             onClick={() => handleDelete(post.id)}
-                            disabled={deletingId === post.id}
-                            className="inline-flex items-center gap-1 px-3.5 py-1.5 text-xs font-mono tracking-wide rounded-full text-white bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
+                            disabled={isDeleting}
+                            className="rounded-full bg-red-600 px-3.5 py-1.5 text-xs font-mono text-white disabled:opacity-50"
                           >
-                            {deletingId === post.id ? (
-                              <span className="flex items-center gap-1">
-                                <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
-                                Deleting
-                              </span>
-                            ) : (
-                              "Confirm"
-                            )}
+                            {isDeleting ? "Deleting..." : "Confirm"}
                           </button>
                           <button
                             onClick={() => setConfirmDeleteId(null)}
-                            className="inline-flex items-center px-3.5 py-1.5 text-xs font-mono tracking-wide rounded-full text-ink-lighter border border-border-light transition-all duration-200 hover:bg-parchment-dark/50"
+                            className="rounded-full border border-border-light px-3.5 py-1.5 text-xs font-mono text-ink-lighter"
                           >
                             Cancel
                           </button>
-                        </div>
+                        </>
                       ) : (
                         <button
                           onClick={() => setConfirmDeleteId(post.id)}
-                          className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-ink-lighter border border-border-light transition-all duration-200 hover:text-red-600 hover:border-red-300 hover:bg-red-50"
-                          title="Permanently delete this post"
+                          className="rounded-lg border border-border-light px-3 py-1.5 text-xs font-mono text-ink-lighter"
                         >
-                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                            <path d="M3 4H13L12 14H4L3 4Z" />
-                            <path d="M1 4H15" strokeLinecap="round" />
-                            <path d="M6 2H10" strokeLinecap="round" />
-                            <path d="M7 7V11" strokeLinecap="round" />
-                            <path d="M9 7V11" strokeLinecap="round" />
-                          </svg>
+                          Delete
                         </button>
                       )}
                     </div>
                   </div>
 
-                  {/* ── Source article indicator ───────────────────────── */}
                   {post.citation_title && (
-                    <div className="flex items-center gap-1.5 mb-2 ml-12">
-                      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-ink-lighter shrink-0">
-                        <path d="M2 4h12M2 8h8M2 12h10" strokeLinecap="round" />
-                      </svg>
+                    <div className="mb-2 ml-12 text-[11px] font-mono text-ink-lighter">
                       {post.citation_url ? (
-                        <a
-                          href={post.citation_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[11px] font-mono text-ink-lighter hover:text-terracotta transition-colors truncate max-w-[300px]"
-                          title={post.citation_title}
-                        >
+                        <a href={post.citation_url} target="_blank" rel="noopener noreferrer" className="hover:text-terracotta">
                           via {post.citation_source || "article"}: {post.citation_title}
                         </a>
                       ) : (
-                        <span className="text-[11px] font-mono text-ink-lighter truncate max-w-[300px]">
-                          via {post.citation_source || "article"}: {post.citation_title}
-                        </span>
+                        <span>via {post.citation_source || "article"}: {post.citation_title}</span>
                       )}
                     </div>
                   )}
 
-                  {/* ── Thesis ────────────────────────────────────────── */}
                   {post.thesis && (
                     <blockquote
-                      className="font-serif text-[15px] leading-snug text-ink mb-2 pl-3"
+                      className="mb-2 pl-3 font-serif text-[15px] leading-snug text-ink"
                       style={{
                         borderLeft: `3px solid ${philosopher?.color ?? "#7D7468"}`,
                         fontWeight: 600,
@@ -574,20 +599,13 @@ export default function AdminPostsPage() {
                     </blockquote>
                   )}
 
-                  {/* ── Content preview ──────────────────────────────── */}
-                  <p
-                    className="text-sm text-ink-light leading-relaxed mb-3"
-                    style={{
-                      paddingLeft: post.thesis ? "15px" : undefined,
-                    }}
-                  >
-                    {contentPreview}
+                  <p className="mb-3 text-sm leading-relaxed text-ink-light" style={{ paddingLeft: post.thesis ? "15px" : undefined }}>
+                    {preview}
                   </p>
 
-                  {/* ── Citation ──────────────────────────────────────── */}
                   {post.citation_title && (
                     <div
-                      className="flex items-center gap-2 mb-3 mt-3 px-4 py-3 rounded-md text-xs font-mono"
+                      className="mb-3 mt-3 flex items-center gap-2 rounded-md px-4 py-3 text-xs font-mono"
                       style={{
                         backgroundColor: `${philosopher?.color ?? "#7D7468"}08`,
                         border: `1px solid ${philosopher?.color ?? "#7D7468"}20`,
@@ -597,20 +615,16 @@ export default function AdminPostsPage() {
                       <BookIcon size={14} className="shrink-0 opacity-60" />
                       <span className="truncate">
                         {post.citation_title}
-                        {post.citation_source && (
-                          <span className="opacity-60"> &mdash; {post.citation_source}</span>
-                        )}
+                        {post.citation_source && <span className="opacity-60"> - {post.citation_source}</span>}
                       </span>
                     </div>
                   )}
 
-                  {/* ── Bottom row: tag, stance, stats ───────────────── */}
-                  <div className="flex items-center justify-between gap-3 flex-wrap mt-4 pt-4 border-t border-border-light">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {/* Tag badge */}
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border-light pt-4">
+                    <div className="flex flex-wrap items-center gap-2">
                       {post.tag && (
                         <span
-                          className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-mono tracking-wide rounded"
+                          className="inline-flex items-center rounded px-2.5 py-0.5 text-[11px] font-mono tracking-wide"
                           style={{
                             backgroundColor: `${philosopher?.color ?? "#7D7468"}10`,
                             color: philosopher?.color ?? "#7D7468",
@@ -621,9 +635,8 @@ export default function AdminPostsPage() {
                         </span>
                       )}
 
-                      {/* Stance badge */}
                       <span
-                        className="inline-flex items-center px-2.5 py-0.5 text-[11px] font-mono tracking-wider uppercase rounded-full"
+                        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider"
                         style={{
                           backgroundColor: stanceCfg.bg,
                           color: stanceCfg.color,
@@ -633,16 +646,14 @@ export default function AdminPostsPage() {
                         {stanceCfg.label}
                       </span>
 
-                      {/* Reply indicator */}
                       {post.reply_to && (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-ink-lighter font-mono">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-mono text-ink-lighter">
                           <ReplyArrowIcon />
                           Reply
                         </span>
                       )}
                     </div>
 
-                    {/* Stats */}
                     <div className="flex items-center gap-4 text-ink-lighter">
                       <span className="inline-flex items-center gap-1 text-xs font-mono">
                         <HeartIcon size={14} />
@@ -662,8 +673,103 @@ export default function AdminPostsPage() {
               </article>
             );
           })}
+
+          {totalPages > 1 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <button
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={currentPage === 1}
+                className="rounded-full border border-border px-4 py-2 text-xs font-mono text-ink-lighter disabled:opacity-50"
+              >
+                Previous
+              </button>
+
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {visiblePages[0] > 1 && (
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    className="rounded-full border border-border px-3 py-2 text-xs font-mono text-ink-lighter"
+                  >
+                    1
+                  </button>
+                )}
+                {visiblePages[0] > 2 && <span className="px-1 text-xs font-mono text-ink-lighter">...</span>}
+                {visiblePages.map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`min-w-9 rounded-full border px-3 py-2 text-xs font-mono ${
+                      page === currentPage
+                        ? "border-terracotta bg-terracotta text-white"
+                        : "border-border text-ink-lighter"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                {visiblePages[visiblePages.length - 1] < totalPages - 1 && (
+                  <span className="px-1 text-xs font-mono text-ink-lighter">...</span>
+                )}
+                {visiblePages[visiblePages.length - 1] < totalPages && (
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    className="rounded-full border border-border px-3 py-2 text-xs font-mono text-ink-lighter"
+                  >
+                    {totalPages}
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={currentPage === totalPages}
+                className="rounded-full border border-border px-4 py-2 text-xs font-mono text-ink-lighter disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  children,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-xs font-mono uppercase tracking-widest text-ink-lighter">{label}</label>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="rounded-md border border-border bg-parchment px-4 py-2.5 text-sm font-body text-ink focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+      >
+        {children}
+      </select>
+    </div>
+  );
+}
+
+export default function AdminPostsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="py-16 text-center">
+          <span className="text-sm font-body text-ink-lighter">Loading posts...</span>
+        </div>
+      }
+    >
+      <AdminPostsPageInner />
+    </Suspense>
   );
 }
