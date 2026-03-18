@@ -7,6 +7,7 @@ import {
   Cormorant_Garamond,
 } from "next/font/google";
 import DevelopmentBanner from "@/components/DevelopmentBanner";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { ComingSoonToastProvider } from "@/components/ComingSoonToast";
 import "./globals.css";
 
@@ -57,6 +58,7 @@ export default function RootLayout({
       <body
         className={`${playfair.variable} ${dmSans.variable} ${jetbrainsMono.variable} ${lora.variable} ${cormorant.variable} antialiased`}
       >
+        <GoogleAnalytics />
         <ComingSoonToastProvider>
           <DevelopmentBanner />
           {children}
