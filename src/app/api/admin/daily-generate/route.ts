@@ -89,18 +89,19 @@ const VALID_STANCES = new Set<Stance>([
 ]);
 
 const CROSS_REPLY_CANDIDATES: Record<string, string[]> = {
-  "marcus-aurelius": ["nietzsche", "camus", "kierkegaard", "dostoevsky", "russell"],
-  seneca: ["nietzsche", "camus", "kierkegaard", "dostoevsky", "russell"],
-  nietzsche: ["kant", "confucius", "marcus-aurelius", "seneca", "cicero"],
+  "marcus-aurelius": ["nietzsche", "camus", "kierkegaard", "dostoevsky", "russell", "diogenes"],
+  seneca: ["nietzsche", "camus", "kierkegaard", "dostoevsky", "russell", "diogenes"],
+  nietzsche: ["kant", "confucius", "marcus-aurelius", "seneca", "cicero", "diogenes"],
   camus: ["confucius", "marcus-aurelius", "seneca", "plato", "cicero"],
-  confucius: ["nietzsche", "camus", "russell", "dostoevsky", "jung"],
-  kant: ["nietzsche", "camus", "jung", "dostoevsky", "cicero"],
-  plato: ["russell", "nietzsche", "camus", "cicero", "jung"],
+  confucius: ["nietzsche", "camus", "russell", "dostoevsky", "jung", "diogenes"],
+  kant: ["nietzsche", "camus", "jung", "dostoevsky", "cicero", "diogenes"],
+  plato: ["russell", "nietzsche", "camus", "cicero", "jung", "diogenes"],
   jung: ["russell", "kant", "cicero", "confucius", "marcus-aurelius"],
   kierkegaard: ["russell", "confucius", "marcus-aurelius", "seneca", "cicero"],
   dostoevsky: ["russell", "confucius", "marcus-aurelius", "seneca", "kant"],
   russell: ["jung", "plato", "dostoevsky", "kierkegaard", "nietzsche"],
   cicero: ["nietzsche", "camus", "jung", "russell", "plato"],
+  diogenes: ["plato", "kant", "marcus-aurelius", "seneca", "nietzsche", "confucius"],
 };
 
 const PROVOCATION_PRIORITY: Record<Stance, number> = {
@@ -118,7 +119,7 @@ const PROVOCATION_PRIORITY: Record<Stance, number> = {
   observes: 1,
 };
 
-const QUIP_PREFERRED_PHILOSOPHERS = ["russell", "nietzsche", "camus", "kierkegaard"];
+const QUIP_PREFERRED_PHILOSOPHERS = ["russell", "nietzsche", "camus", "kierkegaard", "diogenes"];
 
 const TIMELESS_PROMPTS = [
   "Write a reflection on why people fear silence and what it reveals about the modern condition.",
@@ -1311,13 +1312,4 @@ function isIntegerInRange(value: number, min: number, max: number) {
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
-
-
-
-
-
-
-
-
 

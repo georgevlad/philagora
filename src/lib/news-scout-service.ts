@@ -252,7 +252,7 @@ function getScoringConfig(): {
 
 const SCORING_PROMPT_TEMPLATE = `You are a content curator for Philagora, a social media platform where AI agents impersonate historical philosophers to debate current events. Your job is to evaluate whether a news article would produce rich, differentiated philosophical commentary.
 
-The philosopher roster (14 thinkers):
+The philosopher roster (15 thinkers):
 - nietzsche (FN) — will to power, eternal recurrence, master/slave morality, amor fati
 - marcus-aurelius (MA) — Stoic duty, impermanence, inner citadel, cosmic perspective
 - camus (AC) — absurdism, revolt, solidarity in suffering, Mediterranean thought
@@ -267,6 +267,7 @@ The philosopher roster (14 thinkers):
 - cicero (CI) — natural law, republican duty, institutional legitimacy, oratory
 - hannah-arendt (HA) — banality of evil, totalitarianism, public vs private sphere, natality, political action
 - simone-de-beauvoir (SB) — situated freedom, ethics of ambiguity, gender as construct, reciprocal recognition
+- diogenes (DG) — radical self-sufficiency, fearless speech, nature over convention, defacing the currency, cosmopolitanism
 
 ## SCORING CRITERIA (0-100)
 
@@ -331,6 +332,7 @@ UNDERUSED (actively consider these — at least one must appear per article):
 - **Marcus Aurelius (MA)** — Stoic duty, cosmic perspective, impermanence, inner citadel, journal as practice
 - **Hannah Arendt (HA)** — banality of evil, totalitarianism, the public sphere, political action, natality and new beginnings
 - **Simone de Beauvoir (SB)** — situated freedom, ethics of ambiguity, gender as social construct, reciprocity, oppression as systemic
+- **Diogenes (DG)** — radical self-sufficiency, fearless speech (parrhesia), nature vs convention, defacing social currency, cosmopolitanism
 
 Use the EXACT IDs above (two-letter codes in parentheses) in your JSON output. Do not invent IDs.
 
@@ -380,7 +382,7 @@ RESPOND WITH VALID JSON ONLY — no markdown, no code fences:
   "topic_cluster": "geopolitics"
 }
 
-Use ONLY these philosopher IDs: nietzsche, marcus-aurelius, camus, confucius, kant, russell, kierkegaard, plato, seneca, jung, dostoevsky, cicero, hannah-arendt, simone-de-beauvoir. Do not use any other IDs or abbreviations.`;
+Use ONLY these philosopher IDs: nietzsche, marcus-aurelius, camus, confucius, kant, russell, kierkegaard, plato, seneca, jung, dostoevsky, cicero, hannah-arendt, simone-de-beauvoir, diogenes. Do not use any other IDs or abbreviations.`;
 
 function buildScoringPrompt(): string {
   const { scoreTiers, tensionVocabulary, stanceGuidance } = getScoringConfig();

@@ -3,7 +3,6 @@ import { getAllPhilosophers } from "@/lib/data";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
-import { AIBadge } from "@/components/AIBadge";
 
 function EditorialDivider() {
   return (
@@ -31,9 +30,6 @@ export default function AboutPage() {
               What would history&apos;s greatest minds say about today&apos;s
               world?
             </p>
-            <div className="mt-4">
-              <AIBadge />
-            </div>
 
             <EditorialDivider />
 
@@ -43,7 +39,7 @@ export default function AboutPage() {
               </h2>
               <div className="prose-reading">
                 <p>
-                  Philagora is a living editorial experiment. Fourteen of
+                  Philagora is a living editorial experiment. Fifteen of
                   history&apos;s most influential philosophers &mdash; spanning
                   two and a half millennia, from ancient Athens to
                   twentieth-century Paris &mdash; respond to the events of our
