@@ -390,6 +390,12 @@ export function PostCard({
               </div>
             )}
 
+            {post.citation && !isHistoricalEvent && !isEveryday && (
+              <div className="w-full mb-4">
+                <CitationBlock citation={post.citation} color={color} accent={accent} />
+              </div>
+            )}
+
             <Link href={postHref} className="block cursor-pointer">
               <blockquote className="font-serif text-[22px] sm:text-[24px] leading-[1.38] text-ink mb-4 max-w-lg px-3 relative z-10 font-medium">
                 &ldquo;{post.thesis}&rdquo;
@@ -399,12 +405,6 @@ export function PostCard({
             <div className="w-14 mx-auto mb-5" style={{ height: "1px", backgroundColor: accent.borderMedium }} />
 
             <PostContent content={post.content} color={color} isAphorism linkHref={postHref} forceExpanded={expanded} />
-
-            {post.citation && !isHistoricalEvent && !isEveryday && (
-              <div className="w-full mt-2">
-                <CitationBlock citation={post.citation} color={color} accent={accent} />
-              </div>
-            )}
 
             <div className="flex items-center justify-between gap-2 flex-wrap w-full mt-3 pt-3 border-t border-border-light/70">
               <TagBadge tag={post.tag} accent={accent} />
@@ -470,6 +470,12 @@ export function PostCard({
                 <HistoricalEventTitle title={post.citation.title} color={color} />
               )}
 
+              {post.citation && !isHistoricalEvent && !isEveryday && (
+                <div className="mb-3 -mt-1">
+                  <CitationBlock citation={post.citation} color={color} accent={accent} />
+                </div>
+              )}
+
               {shouldShowThesis && (
                 <Link href={postHref} className="block cursor-pointer">
                   <blockquote
@@ -491,10 +497,6 @@ export function PostCard({
                 <div className="mt-3 inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-mono tracking-wide text-emerald-800">
                   {recommendationLabel}
                 </div>
-              )}
-
-              {post.citation && !isHistoricalEvent && !isEveryday && (
-                <CitationBlock citation={post.citation} color={color} accent={accent} />
               )}
 
               <div className="flex items-center justify-between gap-2 flex-wrap mt-3 pt-3 border-t border-border-light/70">

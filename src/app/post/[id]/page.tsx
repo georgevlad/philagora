@@ -62,6 +62,18 @@ export default async function PostPage({ params }: PageProps) {
         </Link>
 
         <PostCard post={post} expanded />
+
+        <div className="mt-8 flex justify-center">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm font-mono text-ink-lighter transition-colors hover:text-athenian"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M10 4L6 8L10 12" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Back to feed
+          </Link>
+        </div>
       </div>
     </main>
   );

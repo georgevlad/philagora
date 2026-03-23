@@ -57,7 +57,7 @@ export function FeedTabs({ mobileIntegrated = false }: { mobileIntegrated?: bool
               aria-pressed={isActive}
               className={`
                 flex-1 sm:flex-initial
-                rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2
+                cursor-pointer rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2
                 text-center font-body text-[12px] sm:text-[13px]
                 tracking-wide
                 transition-all duration-200 ease-out
