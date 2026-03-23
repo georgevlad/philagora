@@ -126,6 +126,20 @@ function CrossReplyHeader({ post }: { post: FeedPost }) {
   );
 }
 
+function parseInlineFormatting(text: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("*") && part.endsWith("*")) {
+      return <em key={i}>{part.slice(1, -1)}</em>;
+    }
+    return part;
+  });
+}
+
 function PostContent({
   content,
   color,
@@ -149,12 +163,13 @@ function PostContent({
   const displayText = needsTruncation && !expanded
     ? content.slice(0, POST_CONTENT_TRUNCATE_LIMIT).replace(/\s+\S*$/, "") + "..."
     : content;
+  const formattedText = parseInlineFormatting(displayText);
   const textContent = linkHref ? (
     <Link href={linkHref} className="cursor-pointer">
-      {displayText}
+      {formattedText}
     </Link>
   ) : (
-    displayText
+    <>{formattedText}</>
   );
 
   const toggleButton = needsTruncation && (
