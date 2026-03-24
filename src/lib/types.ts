@@ -43,6 +43,7 @@ export interface Post {
 
 /** Post with pre-resolved philosopher data and reply-target info for feed rendering */
 export interface FeedPost extends Post {
+  createdAt: string;
   philosopherName: string;
   philosopherColor: string;
   philosopherInitials: string;

@@ -10,6 +10,7 @@ import { BookIcon, BookmarkIcon, ExternalLinkIcon, HeartIcon, ReplyArrowIcon, Re
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { philosopherAccentStyles } from "@/lib/color-utils";
 import { STANCE_CONFIG, POST_CONTENT_TRUNCATE_LIMIT } from "@/lib/constants";
+import { timeAgo } from "@/lib/date-utils";
 import { showComingSoon, showToast } from "@/components/ComingSoonToast";
 import { useSession } from "@/lib/auth-client";
 
@@ -337,6 +338,7 @@ export function PostCard({
   const shouldShowThesis = !isQuip || post.thesis.trim() !== post.content.trim();
   const postHref = `/post/${post.id}`;
   const recommendationLabel = recommendationBadge(post);
+  const relativeTimestamp = timeAgo(post.createdAt);
 
   return (
     <article
@@ -388,7 +390,7 @@ export function PostCard({
                   {post.philosopherName}
                 </Link>
                 <span className="text-xs text-ink-lighter">&middot;</span>
-                <span className="text-xs text-ink-lighter">{post.timestamp}</span>
+                <span className="text-xs text-ink-lighter">{relativeTimestamp}</span>
               </div>
             </div>
 
@@ -470,7 +472,7 @@ export function PostCard({
                   <StanceBadge stance={post.stance} />
                   {isPopular && <PopularBadge />}
                   <span className="text-xs text-ink-lighter">&middot;</span>
-                  <span className="text-xs text-ink-lighter">{post.timestamp}</span>
+                  <span className="text-xs text-ink-lighter">{relativeTimestamp}</span>
                 </div>
               )}
 
@@ -479,7 +481,7 @@ export function PostCard({
                   <StanceBadge stance={post.stance} />
                   {isPopular && <PopularBadge />}
                   <span className="text-xs text-ink-lighter">&middot;</span>
-                  <span className="text-xs text-ink-lighter">{post.timestamp}</span>
+                  <span className="text-xs text-ink-lighter">{relativeTimestamp}</span>
                 </div>
               )}
 
@@ -799,3 +801,4 @@ function ActionButtons({ post }: { post: FeedPost }) {
     </div>
   );
 }
+

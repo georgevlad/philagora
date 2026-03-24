@@ -1,5 +1,4 @@
 import { getDb } from "@/lib/db";
-import { timeAgo } from "@/lib/date-utils";
 import { interleaveFeed } from "@/lib/feed-interleave";
 import { buildFeedContentTypeConditions } from "@/lib/feed-utils";
 import { isPostSourceType } from "@/lib/historical-events";
@@ -84,7 +83,8 @@ function mapFeedPost(row: FeedPostRow): FeedPost {
     bookmarks: row.bookmarks,
     isLiked: row.is_liked === 1 ? true : undefined,
     isBookmarked: row.is_bookmarked === 1 ? true : undefined,
-    timestamp: timeAgo(row.created_at),
+    timestamp: row.created_at,
+    createdAt: row.created_at,
     replyTo: row.reply_to ?? undefined,
     philosopherName: row.philosopher_name,
     philosopherColor: row.philosopher_color,
@@ -525,7 +525,7 @@ function buildAgoraThreadDetail(
     question: t.question,
     askedBy: t.asked_by,
     status: t.status,
-    createdAt: timeAgo(t.created_at),
+    createdAt: t.created_at,
     philosophers: philRows.map((r) => r.philosopher_id),
     responses,
     synthesis,

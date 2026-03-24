@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import type { PostRow } from "@/lib/db-types";
-import { timeAgo } from "@/lib/date-utils";
 import { interleaveFeed } from "@/lib/feed-interleave";
 import { classifyPostFormat } from "@/lib/feed-utils";
 import { isPostSourceType } from "@/lib/historical-events";
@@ -71,7 +70,7 @@ function mapPreviewPost(row: PostRow): PreviewPost {
     likes: row.likes,
     replies: row.replies,
     bookmarks: row.bookmarks,
-    timestamp: timeAgo(row.created_at),
+    timestamp: row.created_at,
     replyTo: row.reply_to ?? undefined,
     philosopherName: row.philosopher_name,
     philosopherColor: row.philosopher_color,
