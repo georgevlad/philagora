@@ -1,15 +1,18 @@
 import fs from "fs/promises";
+import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { resolveDatabasePath } from "../../../../../db/index";
+import { getDb } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
   const denied = requireAdmin(request);
   if (denied) return denied;
 
+  const tempPath = path.join("/tmp", `philagora-backup-${Date.now()}.db`);
+
   try {
-    const dbPath = resolveDatabasePath();
-    const file = await fs.readFile(dbPath);
+    await getDb().backup(tempPath);
+    const file = await fs.readFile(tempPath);
     const date = new Date().toISOString().slice(0, 10);
 
     return new NextResponse(file, {
@@ -24,5 +27,11 @@ export async function GET(request: NextRequest) {
       { error: "Failed to download database" },
       { status: 500 }
     );
+  } finally {
+    try {
+      await fs.unlink(tempPath);
+    } catch {
+      // temp file cleanup is best-effort
+    }
   }
 }
