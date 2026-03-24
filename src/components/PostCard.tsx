@@ -615,15 +615,68 @@ function ActionButtons({ post }: { post: FeedPost }) {
   const { data: session, isPending: sessionPending } = useSession();
   const pathname = usePathname();
   const router = useRouter();
+  const [liked, setLiked] = useState(post.isLiked ?? false);
+  const [likeCount, setLikeCount] = useState(post.likes);
+  const [likePending, setLikePending] = useState(false);
   const [bookmarked, setBookmarked] = useState(post.isBookmarked ?? false);
   const [bookmarkCount, setBookmarkCount] = useState(post.bookmarks);
   const [bookmarkPending, setBookmarkPending] = useState(false);
 
   useEffect(() => {
+    setLiked(post.isLiked ?? false);
+    setLikeCount(post.likes);
+    setLikePending(false);
     setBookmarked(post.isBookmarked ?? false);
     setBookmarkCount(post.bookmarks);
     setBookmarkPending(false);
-  }, [post.bookmarks, post.id, post.isBookmarked]);
+  }, [post.bookmarks, post.id, post.isBookmarked, post.isLiked, post.likes]);
+
+  async function handleLikeToggle() {
+    if (likePending || sessionPending) {
+      return;
+    }
+
+    if (!session?.user) {
+      window.location.assign("/sign-in");
+      return;
+    }
+
+    const wasLiked = liked;
+    const previousCount = likeCount;
+
+    setLikePending(true);
+    setLiked(!wasLiked);
+    setLikeCount(wasLiked ? Math.max(0, previousCount - 1) : previousCount + 1);
+
+    try {
+      const res = await fetch("/api/likes", {
+        method: wasLiked ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId: post.id }),
+      });
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          window.location.assign("/sign-in");
+        }
+        throw new Error(`Like toggle failed with status ${res.status}`);
+      }
+
+      const data = await res.json() as { liked?: boolean };
+      if (typeof data.liked === "boolean") {
+        setLiked(data.liked);
+        if (!data.liked && pathname === "/profile") {
+          router.refresh();
+        }
+      }
+    } catch {
+      setLiked(wasLiked);
+      setLikeCount(previousCount);
+      showToast("Could not update like");
+    } finally {
+      setLikePending(false);
+    }
+  }
 
   async function handleBookmarkToggle() {
     if (bookmarkPending || sessionPending) {
@@ -711,9 +764,13 @@ function ActionButtons({ post }: { post: FeedPost }) {
       <ActionButton
         label="Like"
         icon={
-          <HeartIcon />
+          <HeartIcon fill={liked ? "currentColor" : "none"} />
         }
-        onClick={() => showComingSoon("Likes")}
+        count={likeCount > 0 ? likeCount : undefined}
+        active={liked}
+        onClick={() => {
+          void handleLikeToggle();
+        }}
       />
       <ActionButton
         label="Bookmark"

@@ -27,7 +27,10 @@ import type {
   AgoraSynthesis,
 } from "@/lib/types";
 
-type FeedPostRow = PostRow & { is_bookmarked?: number | null };
+type FeedPostRow = PostRow & {
+  is_bookmarked?: number | null;
+  is_liked?: number | null;
+};
 
 // ── Raw DB row types (snake_case) ──────────────────────────
 
@@ -79,6 +82,7 @@ function mapFeedPost(row: FeedPostRow): FeedPost {
     likes: row.likes,
     replies: row.replies,
     bookmarks: row.bookmarks,
+    isLiked: row.is_liked === 1 ? true : undefined,
     isBookmarked: row.is_bookmarked === 1 ? true : undefined,
     timestamp: timeAgo(row.created_at),
     replyTo: row.reply_to ?? undefined,
@@ -132,6 +136,7 @@ function buildFeedPostQuery(userId?: string): {
           rph.color     AS reply_target_philosopher_color,
           rph.initials  AS reply_target_philosopher_initials,
           he.thumbnail_filename AS historical_event_thumbnail,
+          CASE WHEN ul.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_liked,
           CASE WHEN ub.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_bookmarked
         FROM posts p
         JOIN philosophers ph ON p.philosopher_id = ph.id
@@ -139,8 +144,9 @@ function buildFeedPostQuery(userId?: string): {
         LEFT JOIN philosophers rph ON rp.philosopher_id = rph.id
         LEFT JOIN historical_events he ON p.historical_event_id = he.id
         LEFT JOIN user_bookmarks ub ON ub.post_id = p.id AND ub.user_id = ?
+        LEFT JOIN user_likes ul ON ul.post_id = p.id AND ul.user_id = ?
       `,
-      extraParams: [userId],
+      extraParams: [userId, userId],
     };
   }
 
@@ -245,6 +251,20 @@ export function getBookmarkedPosts(userId: string): FeedPost[] {
       baseQuery
       + " WHERE p.status = 'published' AND ub.user_id IS NOT NULL"
       + " ORDER BY ub.created_at DESC"
+    )
+    .all(...extraParams) as FeedPostRow[];
+
+  return rows.map(mapFeedPost);
+}
+
+export function getLikedPosts(userId: string): FeedPost[] {
+  const db = getDb();
+  const { sql: baseQuery, extraParams } = buildFeedPostQuery(userId);
+  const rows = db
+    .prepare(
+      baseQuery
+      + " WHERE p.status = 'published' AND ul.user_id IS NOT NULL"
+      + " ORDER BY ul.created_at DESC"
     )
     .all(...extraParams) as FeedPostRow[];
 

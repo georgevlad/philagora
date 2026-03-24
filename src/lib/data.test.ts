@@ -15,6 +15,7 @@ import {
   getBookmarkedPosts,
   getFilteredPublishedPosts,
   getInterleavedFeed,
+  getLikedPosts,
   getPhilosopherById,
   getPhilosophersMap,
   getPostById,
@@ -115,6 +116,14 @@ function seedBookmark(userId: string, postId: string, createdAt: string) {
     .run(userId, postId, createdAt);
 }
 
+function seedLike(userId: string, postId: string, createdAt: string) {
+  testDb
+    .prepare(
+      "INSERT INTO user_likes (user_id, post_id, created_at) VALUES (?, ?, ?)"
+    )
+    .run(userId, postId, createdAt);
+}
+
 describe("getPostById", () => {
   it("returns a published post by ID", () => {
     const post = getPostById("post-1");
@@ -184,6 +193,17 @@ describe("getPostById", () => {
 
     expect(bookmarkedPost?.isBookmarked).toBe(true);
     expect(otherUsersPost?.isBookmarked).toBeUndefined();
+  });
+
+  it("resolves like state for the requesting user", () => {
+    seedLike("user-1", "post-2", "2025-03-02 09:00:00");
+    seedLike("user-2", "post-1", "2025-03-02 10:00:00");
+
+    const likedPost = getPostById("post-2", "user-1");
+    const otherUsersPost = getPostById("post-1", "user-1");
+
+    expect(likedPost?.isLiked).toBe(true);
+    expect(otherUsersPost?.isLiked).toBeUndefined();
   });
 });
 
@@ -343,5 +363,19 @@ describe("getBookmarkedPosts", () => {
 
     expect(posts.map((post) => post.id)).toEqual(["post-4", "post-1"]);
     expect(posts.every((post) => post.isBookmarked)).toBe(true);
+  });
+});
+
+describe("getLikedPosts", () => {
+  it("returns published liked posts ordered by like time", () => {
+    seedLike("user-1", "post-2", "2025-03-02 09:00:00");
+    seedLike("user-1", "post-3", "2025-03-02 11:00:00");
+    seedLike("user-1", "post-draft", "2025-03-02 12:00:00");
+    seedLike("user-2", "post-1", "2025-03-02 13:00:00");
+
+    const posts = getLikedPosts("user-1");
+
+    expect(posts.map((post) => post.id)).toEqual(["post-3", "post-2"]);
+    expect(posts.every((post) => post.isLiked)).toBe(true);
   });
 });

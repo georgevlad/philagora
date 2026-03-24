@@ -9,7 +9,7 @@ import { MobileNav } from "@/components/MobileNav";
 import { PostCard } from "@/components/PostCard";
 import { getIdentityFromCookies } from "@/lib/auth";
 import { auth } from "@/lib/better-auth";
-import { getAllPhilosophers, getBookmarkedPosts } from "@/lib/data";
+import { getAllPhilosophers, getBookmarkedPosts, getLikedPosts } from "@/lib/data";
 import { SignOutButton } from "./SignOutButton";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +43,7 @@ export default async function ProfilePage() {
   const user = session.user;
   const philosophers = getAllPhilosophers();
   const bookmarkedPosts = getBookmarkedPosts(identity.id);
+  const likedPosts = getLikedPosts(identity.id);
   const displayName = user.name || "Philosopher";
   const initials = getInitials(user.name || user.email);
 
@@ -132,12 +133,25 @@ export default async function ProfilePage() {
                 />
               </svg>
               <h2 className="font-serif text-lg font-semibold text-ink">Liked Posts</h2>
+              {likedPosts.length > 0 && (
+                <span className="text-xs font-mono text-ink-lighter">
+                  {likedPosts.length}
+                </span>
+              )}
             </div>
-            <div className="rounded-2xl border border-border-light/80 bg-parchment-dark/20 px-6 py-8 text-center">
-              <p className="text-sm font-body text-ink-lighter">
-                Posts you like will appear here.
-              </p>
-            </div>
+            {likedPosts.length > 0 ? (
+              <div className="space-y-0">
+                {likedPosts.map((post) => (
+                  <PostCard key={post.id} post={post} />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-border-light/80 bg-parchment-dark/20 px-6 py-8 text-center">
+                <p className="text-sm font-body text-ink-lighter">
+                  Posts you like will appear here.
+                </p>
+              </div>
+            )}
           </section>
 
           <Footer />

@@ -120,13 +120,14 @@ export function HeartIcon({
   className,
   strokeWidth = 1.5,
   stroke = "currentColor",
-}: IconProps) {
+  fill = "none",
+}: IconProps & { fill?: string }) {
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 16 16"
-      fill="none"
+      fill={fill}
       stroke={stroke}
       strokeWidth={strokeWidth}
       className={className}
