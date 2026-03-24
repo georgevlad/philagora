@@ -43,7 +43,8 @@ export async function middleware(req: NextRequest) {
   // Skip login page and auth API — they must be accessible without a session
   if (
     pathname === "/admin/login" ||
-    pathname.startsWith("/api/admin/auth")
+    pathname.startsWith("/api/admin/auth") ||
+    pathname.startsWith("/api/auth")
   ) {
     return NextResponse.next();
   }

@@ -29,6 +29,11 @@ const MIGRATIONS: Migration[] = [
     name: "legacy_baseline",
     migrate: runLegacyMigrations,
   },
+  {
+    version: 2,
+    name: "add_user_interactions",
+    migrate: (db) => migrateAddUserInteractions(db),
+  },
   // ── Future migrations go here ──
   // {
   //   version: 2,
@@ -186,6 +191,30 @@ function runLegacyMigrations(db: Database.Database, options: MigrationOptions): 
 
   migrateAddPostSourceType(db);
   migrateGenerationLogSchema(db);
+}
+
+function migrateAddUserInteractions(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_bookmarks (
+      user_id    TEXT NOT NULL,
+      post_id    TEXT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, post_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_user_bookmarks_user ON user_bookmarks(user_id);
+    CREATE INDEX IF NOT EXISTS idx_user_bookmarks_post ON user_bookmarks(post_id);
+
+    CREATE TABLE IF NOT EXISTS user_likes (
+      user_id    TEXT NOT NULL,
+      post_id    TEXT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, post_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_user_likes_user ON user_likes(user_id);
+    CREATE INDEX IF NOT EXISTS idx_user_likes_post ON user_likes(post_id);
+  `);
 }
 
 function migrateNewsScout(db: Database.Database, options: MigrationOptions): void {

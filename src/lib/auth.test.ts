@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/headers", () => ({
   cookies: vi.fn(),
+  headers: vi.fn(),
 }));
 
 vi.mock("@/lib/admin-auth", () => ({
@@ -9,15 +10,26 @@ vi.mock("@/lib/admin-auth", () => ({
   verifyAdminToken: vi.fn(),
 }));
 
+vi.mock("@/lib/better-auth", () => ({
+  auth: {
+    api: {
+      getSession: vi.fn(),
+    },
+  },
+}));
+
 import {
+  getIdentityFromHeaders,
   getIdentityFromRequest,
   isAdmin,
   isAuthenticated,
   requireAdmin,
 } from "@/lib/auth";
 import { verifyAdminToken } from "@/lib/admin-auth";
+import { auth as betterAuthInstance } from "@/lib/better-auth";
 
 const mockVerifyAdminToken = vi.mocked(verifyAdminToken);
+const mockGetSession = vi.mocked(betterAuthInstance.api.getSession);
 
 function makeRequest(cookies: Record<string, string> = {}) {
   return {
@@ -32,6 +44,7 @@ function makeRequest(cookies: Record<string, string> = {}) {
 
 beforeEach(() => {
   mockVerifyAdminToken.mockReset();
+  mockGetSession.mockReset();
 });
 
 describe("getIdentityFromRequest", () => {
@@ -96,6 +109,80 @@ describe("requireAdmin", () => {
     expect(result).not.toBeNull();
     expect(result!.status).toBe(401);
     await expect(result!.json()).resolves.toEqual({ error: "Unauthorized" });
+  });
+});
+
+describe("getIdentityFromHeaders", () => {
+  it("returns admin identity when admin token is valid", async () => {
+    mockVerifyAdminToken.mockReturnValue(true);
+    const req = makeRequest({ philagora_admin: "valid-token" });
+    (req as { headers?: Headers }).headers = new Headers();
+
+    const identity = await getIdentityFromHeaders(req as never);
+
+    expect(identity).toEqual({ type: "admin" });
+    expect(mockGetSession).not.toHaveBeenCalled();
+  });
+
+  it("returns user identity when Better Auth session exists", async () => {
+    mockVerifyAdminToken.mockReturnValue(false);
+    mockGetSession.mockResolvedValue({
+      session: {
+        id: "sess-1",
+        userId: "user-1",
+        token: "t",
+        expiresAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      user: {
+        id: "user-1",
+        email: "test@example.com",
+        name: "Test User",
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        image: null,
+      },
+    } as never);
+
+    const req = makeRequest({});
+    (req as { headers?: Headers }).headers = new Headers();
+
+    const identity = await getIdentityFromHeaders(req as never);
+
+    expect(identity).toEqual({
+      type: "user",
+      id: "user-1",
+      email: "test@example.com",
+    });
+    expect(mockGetSession).toHaveBeenCalledWith({
+      headers: expect.any(Headers),
+    });
+  });
+
+  it("returns anonymous when no session exists", async () => {
+    mockVerifyAdminToken.mockReturnValue(false);
+    mockGetSession.mockResolvedValue(null as never);
+
+    const req = makeRequest({});
+    (req as { headers?: Headers }).headers = new Headers();
+
+    const identity = await getIdentityFromHeaders(req as never);
+
+    expect(identity).toEqual({ type: "anonymous" });
+  });
+
+  it("returns anonymous when Better Auth throws", async () => {
+    mockVerifyAdminToken.mockReturnValue(false);
+    mockGetSession.mockRejectedValue(new Error("DB error"));
+
+    const req = makeRequest({});
+    (req as { headers?: Headers }).headers = new Headers();
+
+    const identity = await getIdentityFromHeaders(req as never);
+
+    expect(identity).toEqual({ type: "anonymous" });
   });
 });
 

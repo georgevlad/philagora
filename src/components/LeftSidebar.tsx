@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import type { Philosopher } from "@/lib/types";
 import { AgoraIcon, DebatesIcon, HomeIcon } from "./Icons";
 import { PhilosopherAvatar } from "./PhilosopherAvatar";
+import { UserMenu } from "./UserMenu";
 
 const navItems = [
   {
@@ -154,6 +155,12 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
               </span>
             </Link>
           ))}
+        </div>
+      </div>
+
+      <div className="mt-auto border-t border-border-light/60 px-2 pt-4">
+        <div className="flex items-center justify-between px-2 py-2">
+          <UserMenu />
         </div>
       </div>
     </aside>
