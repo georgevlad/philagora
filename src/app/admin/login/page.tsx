@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
@@ -95,12 +96,12 @@ export default function AdminLoginPage() {
         </form>
 
         <div className="mt-6 text-center">
-          <a
+          <Link
             href="/"
             className="text-xs text-ink-lighter hover:text-terracotta transition-colors font-mono"
           >
             &larr; Back to site
-          </a>
+          </Link>
         </div>
       </div>
     </div>

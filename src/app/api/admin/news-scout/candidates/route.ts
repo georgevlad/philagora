@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 
     // Batch-fetch post usage data for returned candidates
     const urls = candidates.map((c) => c.url).filter(Boolean);
-    let usageMap: Record<
+    const usageMap: Record<
       string,
       Array<{ philosopher_id: string; status: string; post_id: string }>
     > = {};

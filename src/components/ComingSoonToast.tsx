@@ -25,7 +25,6 @@ export function ComingSoonToastProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [mounted, setMounted] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [visible, setVisible] = useState(false);
 
@@ -39,10 +38,6 @@ export function ComingSoonToastProvider({
   }, []);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
     globalShow = show;
     return () => {
       globalShow = null;
@@ -51,8 +46,6 @@ export function ComingSoonToastProvider({
 
   useEffect(() => {
     if (!toast) return;
-
-    setVisible(true);
 
     const hideTimer = window.setTimeout(() => {
       setVisible(false);
@@ -68,7 +61,7 @@ export function ComingSoonToastProvider({
     };
   }, [toast]);
 
-  const portal = mounted && toast
+  const portal = toast && typeof document !== "undefined"
     ? createPortal(
         <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex justify-center px-4">
           <div

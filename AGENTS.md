@@ -10,9 +10,10 @@ Hosted on: `Railway`
 
 ## Stack
 
-- Framework: Next.js 15 App Router
+- Framework: Next.js 16 App Router
 - UI: React 19
 - Database: SQLite via `better-sqlite3` at `db/philagora.db`
+- Auth: Better Auth (user sessions) + HMAC-SHA256 (admin sessions)
 - AI: Anthropic Claude models for generation and scoring
 - Styling: Tailwind CSS v4 with a warm parchment/editorial design system
 - Data access: raw SQL with prepared statements only; no ORM
@@ -26,11 +27,16 @@ src/
 |  |- agora/                      # Public Agora views
 |  |- debates/                    # Public debate views
 |  |- philosophers/[id]/          # Philosopher profile pages
+|  |- profile/                    # User profile page
 |  |- schools/                    # Schools of thought page
+|  |- sign-in/                    # Sign-in page
 |  |- admin/                      # Admin panel pages
 |  \- api/
 |     |- admin/                   # Protected admin API routes
 |     |- agora/                   # Public Agora endpoints
+|     |- auth/                    # Better Auth API handler
+|     |- feed/                    # Public feed pagination API
+|     |- thumbnails/              # Historical event thumbnail proxy
 |     \- philosophers/            # Public philosopher list
 |- components/                    # Shared React components
 \- hooks/                         # Client-side UI hooks
@@ -38,10 +44,18 @@ src/
 \- lib/
    |- admin-auth.ts               # Admin auth helpers
    |- anthropic-utils.ts          # Claude client and JSON parsing
+   |- auth.ts                     # Unified auth module (admin + Better Auth user sessions)
+   |- better-auth.ts              # Better Auth configuration and client
    |- content-templates.ts        # Content type templates
+   |- constants.ts                # Stances, status colors, labels
    |- data.ts                     # Public read-side data shaping
+   |- date-utils.ts               # Relative time and date formatting
    |- db.ts                       # Path-alias re-export for db/index.ts
+   |- feed-interleave.ts          # Feed reordering algorithm
+   |- feed-utils.ts               # Feed content type helpers
    |- generation-service.ts       # AI content generation pipeline
+   |- historical-events.ts        # Historical event helpers
+   |- json-utils.ts               # Safe JSON parse helpers
    |- news-scout-service.ts       # RSS fetching and scoring
    |- scoring-config.ts           # News Scout scoring settings
    \- types.ts                    # Shared TypeScript interfaces
@@ -117,6 +131,7 @@ Admin uses HMAC-SHA256 cookie-based auth.
 - Password source: `ADMIN_PASSWORD`
 - If unset locally, admin may be open for development convenience
 - `src/middleware.ts` protects `/admin/*` and `/api/admin/*`
+- Next.js 16 has deprecated the current middleware pattern in favor of proxy. The build emits a warning but middleware still functions. A future migration to the proxy pattern is expected.
 
 ### Public routes
 
@@ -129,9 +144,9 @@ These are intended to stay public unless product requirements change:
 
 Important:
 
-- there is currently no public `/api/feed` route
+- there is a public `/api/feed` route used for paginated feed loading and authenticated user-specific state during infinite scroll
 - there are currently no public `/api/debates/*` read APIs
-- the public feed, debates, philosopher pages, and Agora pages read directly from `src/lib/data.ts` on the server side
+- the initial public feed, debates, philosopher pages, and Agora pages read directly from `src/lib/data.ts` on the server side
 
 ### Database migrations
 
@@ -244,6 +259,7 @@ Create `src/app/api/<path>/route.ts`.
 - Daily generation creates `draft` posts first
 - Reactions, cross-replies, timeless reflections, and cultural recommendations are all generated through `/api/admin/daily-generate`
 - Regeneration replaces draft content and can invalidate dependent draft replies
+- The `resolveSourceType()` helper in the daily-generate route maps `DailyItemType` to the correct `source_type` (`news` for reactions/replies, `reflection` for reflections/quips/recommendations). This is set on both initial generation and regeneration.
 - Publishing is a separate editorial action
 
 ## Working assumptions for Codex
@@ -254,4 +270,6 @@ Create `src/app/api/<path>/route.ts`.
 - Treat `db/index.ts` as the DB bootstrap entrypoint and `db/migrations.ts` as the operational source of truth for migration logic
 - Be careful not to break the public feed, debate flow, Agora flow, or admin review workflow
 - Be careful not to break the daily generation workflow or News Scout scoring pipeline
+- Timestamps should stay as raw ISO strings in the data layer (`src/lib/data.ts`); format with `timeAgo()` or `formatDate()` only in UI components
+- The Agora public pipeline uses `failed` status for threads where generation crashed; the admin pipeline is separate
 - Respect existing editorial tone and classical visual identity

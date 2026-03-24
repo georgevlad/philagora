@@ -5,22 +5,25 @@ import { useEffect, useRef, useState } from "react";
 const STORAGE_KEY = "philagora_last_visit";
 const UPDATE_DELAY_MS = 5000;
 
+function getStoredLastVisit(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
 export function useNewPostIndicator(): (postTimestamp: string) => boolean {
-  const [lastVisit, setLastVisit] = useState<string | null>(null);
+  const [lastVisit] = useState<string | null>(() => getStoredLastVisit());
   const initialized = useRef(false);
 
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
-
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setLastVisit(stored);
-      }
-    } catch {
-      // localStorage unavailable (private browsing, etc.) — gracefully degrade
-    }
 
     const timer = window.setTimeout(() => {
       try {
