@@ -34,6 +34,11 @@ const MIGRATIONS: Migration[] = [
     name: "add_user_interactions",
     migrate: (db) => migrateAddUserInteractions(db),
   },
+  {
+    version: 3,
+    name: "backfill_reflection_source_type",
+    migrate: (db) => migrateBackfillReflectionSourceType(db),
+  },
   // ── Future migrations go here ──
   // {
   //   version: 2,
@@ -633,8 +638,22 @@ function migrateScoringStanceGuidanceV2(db: Database.Database): void {
   ).run(UPDATED_STANCE_GUIDANCE_VALUE);
 }
 
+function migrateBackfillReflectionSourceType(db: Database.Database): void {
+  db.prepare(
+    `UPDATE posts
+     SET source_type = 'reflection'
+     WHERE source_type = 'news'
+       AND reply_to IS NULL
+       AND citation_title IS NULL
+       AND citation_source IS NULL
+       AND citation_url IS NULL
+       AND historical_event_id IS NULL`
+  ).run();
+}
+
 // ── Test-only exports ──────────────────────────────────────────
 // Used by db/migrations.test.ts to verify version tracking behavior
 
 export { getSchemaVersion, setSchemaVersion, ensureMetaTable, MIGRATIONS };
 export type { Migration, MigrationOptions };
+

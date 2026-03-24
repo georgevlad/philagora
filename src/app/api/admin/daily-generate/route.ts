@@ -73,6 +73,20 @@ interface DailyGeneratedItem {
   recommendation_medium?: string;
 }
 
+function resolveSourceType(type: DailyItemType): string {
+  switch (type) {
+    case "news_reaction":
+    case "cross_reply":
+      return "news";
+    case "timeless_reflection":
+    case "quip":
+    case "cultural_recommendation":
+      return "reflection";
+    default:
+      return "news";
+  }
+}
+
 const VALID_STANCES = new Set<Stance>([
   "challenges",
   "defends",
@@ -630,7 +644,7 @@ export async function PATCH(request: NextRequest) {
       `UPDATE posts
        SET content = ?, thesis = ?, stance = ?, tag = ?, recommendation_title = ?,
            recommendation_medium = ?, citation_title = ?, citation_source = ?,
-           citation_url = ?, citation_image_url = ?, reply_to = ?, updated_at = datetime('now')
+           citation_url = ?, citation_image_url = ?, source_type = ?, reply_to = ?, updated_at = datetime('now')
        WHERE id = ?`
     );
     const updateLogStatus = db.prepare("UPDATE generation_log SET status = ? WHERE id = ?");
@@ -693,6 +707,7 @@ export async function PATCH(request: NextRequest) {
         citation.source,
         citation.url,
         citation.imageUrl,
+        resolveSourceType(body.type),
         replyToPostId ?? existingPost.reply_to,
         body.post_id
       );
@@ -841,9 +856,10 @@ async function generateDailyDraft(args: {
     `INSERT INTO posts (
       id, philosopher_id, content, thesis, stance, tag,
       recommendation_title, recommendation_medium,
+      source_type,
       citation_title, citation_source, citation_url, citation_image_url,
       reply_to, likes, replies, bookmarks, status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 'draft', datetime('now'), datetime('now'))`
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 'draft', datetime('now'), datetime('now'))`
   );
   const logId = db.transaction(() => {
     const logResult = insertLog.run(
@@ -863,6 +879,7 @@ async function generateDailyDraft(args: {
       normalized.tag,
       normalized.recommendation_title ?? null,
       normalized.recommendation_medium ?? null,
+      resolveSourceType(args.type),
       args.citation?.title ?? null,
       args.citation?.source ?? null,
       args.citation?.url ?? null,
@@ -1312,4 +1329,5 @@ function isIntegerInRange(value: number, min: number, max: number) {
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
 
