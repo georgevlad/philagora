@@ -163,6 +163,7 @@ async function runGeneration(
 ): Promise<void> {
   try {
     const db = getDb();
+    let successCount = 0;
 
     // 1. Generate each philosopher's response sequentially (with one retry)
     for (let i = 0; i < philosopherIds.length; i++) {
@@ -203,6 +204,7 @@ async function runGeneration(
               JSON.stringify(posts),
               i
             );
+            successCount += 1;
             break; // Success — move to next philosopher
           }
 
@@ -222,6 +224,13 @@ async function runGeneration(
           if (attempt >= maxAttempts) break; // Exhausted retries
         }
       }
+    }
+
+    if (successCount === 0) {
+      db.prepare(
+        "UPDATE agora_threads SET status = 'failed' WHERE id = ?"
+      ).run(threadId);
+      return;
     }
 
     // 2. Generate synthesis from all completed responses
@@ -294,17 +303,16 @@ async function runGeneration(
       console.error("Agora synthesis generation failed:", err);
     }
 
-    // 3. Always mark the thread as complete
+    // 3. Mark the thread as complete once it has at least one response
     db.prepare(
       "UPDATE agora_threads SET status = 'complete' WHERE id = ?"
     ).run(threadId);
   } catch (err) {
     console.error("Agora background generation crashed:", err);
-    // Still try to mark as complete so the thread isn't stuck
     try {
       const db = getDb();
       db.prepare(
-        "UPDATE agora_threads SET status = 'complete' WHERE id = ?"
+        "UPDATE agora_threads SET status = 'failed' WHERE id = ?"
       ).run(threadId);
     } catch {
       // Nothing more we can do

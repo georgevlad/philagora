@@ -39,6 +39,11 @@ const MIGRATIONS: Migration[] = [
     name: "backfill_reflection_source_type",
     migrate: (db) => migrateBackfillReflectionSourceType(db),
   },
+  {
+    version: 4,
+    name: "add_failed_agora_thread_status",
+    migrate: (db) => migrateAgoraThreadsFailedStatus(db),
+  },
   // ── Future migrations go here ──
   // {
   //   version: 2,
@@ -653,6 +658,50 @@ function migrateBackfillReflectionSourceType(db: Database.Database): void {
 
 // ── Test-only exports ──────────────────────────────────────────
 // Used by db/migrations.test.ts to verify version tracking behavior
+
+function migrateAgoraThreadsFailedStatus(db: Database.Database): void {
+  const tableInfo = db
+    .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='agora_threads'")
+    .get() as { sql: string } | undefined;
+
+  if (!tableInfo || tableInfo.sql.includes("failed")) return;
+
+  const columns = db
+    .prepare("PRAGMA table_info(agora_threads)")
+    .all() as Array<{ name: string }>;
+  const hasIpAddress = columns.some((column) => column.name === "ip_address");
+
+  db.exec("PRAGMA foreign_keys = OFF;");
+
+  db.transaction(() => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS agora_threads_new (
+        id          TEXT PRIMARY KEY,
+        question    TEXT NOT NULL,
+        asked_by    TEXT NOT NULL DEFAULT 'Anonymous User',
+        status      TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','in_progress','complete','failed')),
+        ip_address  TEXT,
+        created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+
+    db.exec(`
+      INSERT INTO agora_threads_new (id, question, asked_by, status, ip_address, created_at)
+      SELECT
+        id,
+        question,
+        asked_by,
+        status,
+        ${hasIpAddress ? "ip_address" : "NULL"},
+        created_at
+      FROM agora_threads;
+    `);
+    db.exec("DROP TABLE agora_threads;");
+    db.exec("ALTER TABLE agora_threads_new RENAME TO agora_threads;");
+  })();
+
+  db.exec("PRAGMA foreign_keys = ON;");
+}
 
 export { getSchemaVersion, setSchemaVersion, ensureMetaTable, MIGRATIONS };
 export type { Migration, MigrationOptions };

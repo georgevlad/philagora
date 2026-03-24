@@ -165,11 +165,13 @@ export interface AgoraSynthesis {
   practicalTakeaways: string[];
 }
 
+export type AgoraThreadStatus = "pending" | "in_progress" | "complete" | "failed";
+
 export interface AgoraThreadDetail {
   id: string;
   question: string;
   askedBy: string;
-  status: string;
+  status: AgoraThreadStatus;
   createdAt: string;
   philosophers: string[];
   responses: AgoraResponse[];

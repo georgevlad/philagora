@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS agora_threads (
   id         TEXT PRIMARY KEY,
   question   TEXT NOT NULL,
   asked_by   TEXT NOT NULL DEFAULT 'Anonymous User',
-  status     TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','in_progress','complete')),
+  status     TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','in_progress','complete','failed')),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

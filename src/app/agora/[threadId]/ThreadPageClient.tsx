@@ -11,6 +11,7 @@ import { AIBadge } from "@/components/AIBadge";
 import { SynthesisCard } from "@/components/SynthesisCard";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { formatDate } from "@/lib/date-utils";
+import type { AgoraThreadStatus } from "@/lib/types";
 
 // Types for API response
 
@@ -18,7 +19,7 @@ interface ApiThread {
   id: string;
   question: string;
   asked_by: string;
-  status: string;
+  status: AgoraThreadStatus;
   created_at: string;
 }
 
@@ -55,6 +56,10 @@ interface ApiThreadData {
 }
 
 // Thinking messages per philosopher
+
+function isThreadSettled(status: AgoraThreadStatus): boolean {
+  return status === "complete" || status === "failed";
+}
 
 const thinkingMessages: Record<string, string> = {
   "marcus-aurelius": "Consulting his journal...",
@@ -235,9 +240,9 @@ export function ThreadPageClient({
 
   // Initial fetch + start polling if needed
   useEffect(() => {
-    // If we have a complete initial thread from the server, convert it to API shape
-    // so we don't need an initial API call
-    if (initialThread && initialThread.status === "complete") {
+    // If we have a settled initial thread from the server, convert it to API shape
+    // so we don't need an initial API call.
+    if (initialThread && isThreadSettled(initialThread.status)) {
       const apiData = convertInitialThread(initialThread, philosophersMap);
       setData(apiData);
       setLoading(false);
@@ -246,7 +251,7 @@ export function ThreadPageClient({
 
     // Otherwise, fetch from API and potentially start polling
     fetchThread().then((result) => {
-      if (result && result.thread.status !== "complete") {
+      if (result && !isThreadSettled(result.thread.status)) {
         startPolling();
       }
     });
@@ -259,7 +264,7 @@ export function ThreadPageClient({
     if (pollingRef.current) return;
     pollingRef.current = setInterval(async () => {
       const result = await fetchThread();
-      if (result && result.thread.status === "complete") {
+      if (result && isThreadSettled(result.thread.status)) {
         stopPolling();
       }
     }, 4000);
@@ -307,8 +312,8 @@ export function ThreadPageClient({
     );
   }
 
-  const isGenerating = data.thread.status !== "complete";
-  const respondedIds = new Set(data.responses.map((r) => r.philosopher_id));
+  const isFailed = data.thread.status === "failed";
+  const isGenerating = !isThreadSettled(data.thread.status);
 
   return (
     <PageWrapper philosophers={philosophers}>
@@ -363,61 +368,69 @@ export function ThreadPageClient({
             </span>
           </div>
         )}
+
+        {isFailed && (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center">
+            <p className="text-sm font-body text-red-900">
+              The philosophers were unable to respond to this question. Please
+              try submitting again.
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Responses / thinking cards */}
-      <div>
-        {data.philosophers.map((philosopher, idx) => {
-          const response = data.responses.find(
-            (r) => r.philosopher_id === philosopher.id
-          );
-
-          if (response) {
-            return (
-              <ResponseCard
-                key={philosopher.id}
-                response={response}
-                delay={idx * 3}
-              />
+      {!isFailed && (
+        <div>
+          {data.philosophers.map((philosopher, idx) => {
+            const response = data.responses.find(
+              (r) => r.philosopher_id === philosopher.id
             );
-          }
 
-          // Philosopher hasn't responded yet, show thinking card
-          if (isGenerating) {
-            return (
-              <ThinkingCard key={philosopher.id} philosopher={philosopher} />
-            );
-          }
-
-          // Thread is complete but philosopher has no response (generation failed)
-          return (
-            <div
-              key={philosopher.id}
-              className="px-5 py-5 border-b border-border-light/60"
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <PhilosopherAvatar
-                  philosopherId={philosopher.id}
-                  name={philosopher.name}
-                  color={philosopher.color}
-                  initials={philosopher.initials}
-                  size="sm"
+            if (response) {
+              return (
+                <ResponseCard
+                  key={philosopher.id}
+                  response={response}
+                  delay={idx * 3}
                 />
-                <span className="font-serif font-semibold text-ink">
-                  {philosopher.name}
-                </span>
+              );
+            }
+
+            if (isGenerating) {
+              return (
+                <ThinkingCard key={philosopher.id} philosopher={philosopher} />
+              );
+            }
+
+            return (
+              <div
+                key={philosopher.id}
+                className="px-5 py-5 border-b border-border-light/60"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <PhilosopherAvatar
+                    philosopherId={philosopher.id}
+                    name={philosopher.name}
+                    color={philosopher.color}
+                    initials={philosopher.initials}
+                    size="sm"
+                  />
+                  <span className="font-serif font-semibold text-ink">
+                    {philosopher.name}
+                  </span>
+                </div>
+                <p className="text-sm text-ink-lighter italic">
+                  {philosopher.name} was unable to respond to this question. This
+                  can happen occasionally. Try asking again.
+                </p>
               </div>
-              <p className="text-sm text-ink-lighter italic">
-                {philosopher.name} was unable to respond to this question. This
-                can happen occasionally. Try asking again.
-              </p>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Synthesis section */}
-      {data.synthesis && (
+      {!isFailed && data.synthesis && (
         <div className="px-5 py-5">
           <SynthesisCard
             tensions={data.synthesis.tensions}

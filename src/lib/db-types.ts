@@ -1,5 +1,5 @@
 import type { ContentTypeKey } from "@/lib/content-templates";
-import type { Stance } from "@/lib/types";
+import type { AgoraThreadStatus, Stance } from "@/lib/types";
 
 export interface PhilosopherRow {
   id: string;
@@ -87,7 +87,7 @@ export interface AgoraThreadRow {
   id: string;
   question: string;
   asked_by: string;
-  status: string;
+  status: AgoraThreadStatus;
   created_at: string;
 }
 
