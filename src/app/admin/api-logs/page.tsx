@@ -10,6 +10,7 @@ const CALLER_FILTERS = [
   { value: "scoring", label: "Scoring" },
   { value: "synthesis", label: "Synthesis" },
   { value: "historical-events", label: "Historical Events" },
+  { value: "better-auth", label: "Auth" },
 ] as const;
 const STATUS_FILTERS = [
   { value: "all", label: "All" },
@@ -260,7 +261,7 @@ export default function ApiLogsPage() {
         <div>
           <h1 className="font-serif text-xl font-bold text-ink">API Logs</h1>
           <p className="font-mono text-xs text-ink-lighter mt-1">
-            Anthropic request telemetry for generation, scoring, synthesis, and historical event tools.
+            Request telemetry for AI generation, scoring, synthesis, historical event tools, and Better Auth.
           </p>
         </div>
 
@@ -397,7 +398,7 @@ export default function ApiLogsPage() {
           <div className="px-5 py-16 text-center">
             <p className="font-serif text-lg text-ink">No API logs yet.</p>
             <p className="mt-2 font-mono text-xs text-ink-lighter">
-              Anthropic calls will start appearing here once logged.
+              AI and auth requests will start appearing here once logged.
             </p>
           </div>
         ) : (
@@ -413,7 +414,7 @@ export default function ApiLogsPage() {
                       Caller
                     </th>
                     <th className="px-4 py-3 text-left font-mono text-[11px] uppercase tracking-wider text-ink-lighter">
-                      Model
+                      Target
                     </th>
                     <th className="px-4 py-3 text-left font-mono text-[11px] uppercase tracking-wider text-ink-lighter">
                       Tokens

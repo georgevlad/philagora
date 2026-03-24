@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { getMigrations } from "better-auth/db/migration";
 import { nextCookies } from "better-auth/next-js";
 import Database from "better-sqlite3";
 import fs from "fs";
@@ -39,3 +40,34 @@ export const auth = betterAuth({
   },
   plugins: [nextCookies()],
 });
+
+let betterAuthSchemaPromise: Promise<void> | null = null;
+
+/**
+ * Better Auth owns its own tables, so we keep those out of our app migration
+ * runner and instead ensure them lazily before auth/session work happens.
+ */
+export function ensureBetterAuthTables(): Promise<void> {
+  if (!betterAuthSchemaPromise) {
+    betterAuthSchemaPromise = (async () => {
+      const migrations = await getMigrations(auth.options);
+      const pendingChanges = migrations.toBeCreated.length + migrations.toBeAdded.length;
+
+      if (pendingChanges === 0) {
+        return;
+      }
+
+      console.log(
+        `[Philagora] Better Auth schema sync starting (${migrations.toBeCreated.length} tables, ${migrations.toBeAdded.length} table updates)`
+      );
+      await migrations.runMigrations();
+      console.log("[Philagora] Better Auth schema sync complete");
+    })().catch((error) => {
+      betterAuthSchemaPromise = null;
+      console.error("[Philagora] Better Auth schema sync failed:", error);
+      throw error;
+    });
+  }
+
+  return betterAuthSchemaPromise;
+}

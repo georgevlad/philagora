@@ -64,6 +64,40 @@ export function logApiCall(entry: ApiCallLogEntry): void {
   }
 }
 
+interface AuthLogEntry {
+  action: string;
+  success: boolean;
+  latencyMs?: number | null;
+  errorMessage?: string | null;
+  errorType?: string | null;
+}
+
+export function logAuthEvent(entry: AuthLogEntry): void {
+  const status = entry.success ? "OK" : "ERR";
+  const latency = typeof entry.latencyMs === "number" ? `${entry.latencyMs}ms` : "?ms";
+  const errorInfo = entry.errorMessage ? ` err=${entry.errorMessage.slice(0, 120)}` : "";
+
+  console.log(`[AUTH] ${status} ${entry.action} | ${latency}${errorInfo}`);
+
+  try {
+    const db = getDb();
+    db.prepare(
+      `INSERT INTO api_call_log (
+        caller, model, latency_ms, success, error_message, error_type
+      ) VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(
+      "better-auth",
+      entry.action,
+      entry.latencyMs ?? null,
+      entry.success ? 1 : 0,
+      entry.errorMessage ?? null,
+      entry.errorType ?? null
+    );
+  } catch (err) {
+    console.error("[AUTH Logger] Failed to write log:", err);
+  }
+}
+
 export function classifyError(err: unknown): { message: string; type: string } {
   if (err instanceof Error) {
     const message = err.message;

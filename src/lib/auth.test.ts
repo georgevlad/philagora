@@ -16,6 +16,7 @@ vi.mock("@/lib/better-auth", () => ({
       getSession: vi.fn(),
     },
   },
+  ensureBetterAuthTables: vi.fn().mockResolvedValue(undefined),
 }));
 
 import {

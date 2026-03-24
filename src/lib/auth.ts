@@ -25,7 +25,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { ADMIN_COOKIE_NAME, verifyAdminToken } from "@/lib/admin-auth";
-import { auth as betterAuthInstance } from "@/lib/better-auth";
+import { auth as betterAuthInstance, ensureBetterAuthTables } from "@/lib/better-auth";
 
 export type RequestIdentity =
   | { type: "admin" }
@@ -58,6 +58,7 @@ export async function getIdentityFromHeaders(
   }
 
   try {
+    await ensureBetterAuthTables();
     const session = await betterAuthInstance.api.getSession({
       headers: new Headers(request.headers),
     });
@@ -88,6 +89,7 @@ export async function getIdentityFromCookies(): Promise<RequestIdentity> {
   }
 
   try {
+    await ensureBetterAuthTables();
     const session = await betterAuthInstance.api.getSession({
       headers: new Headers(await getHeaders()),
     });
