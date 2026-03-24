@@ -10,7 +10,7 @@ Hosted on: `Railway`
 
 ## Stack
 
-- Framework: Next.js 16 App Router
+- Framework: Next.js 15 App Router
 - UI: React 19
 - Database: SQLite via `better-sqlite3` at `db/philagora.db`
 - AI: Anthropic Claude models for generation and scoring
