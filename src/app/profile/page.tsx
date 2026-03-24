@@ -10,6 +10,7 @@ import { PostCard } from "@/components/PostCard";
 import { getIdentityFromCookies } from "@/lib/auth";
 import { auth } from "@/lib/better-auth";
 import { getAllPhilosophers, getBookmarkedPosts } from "@/lib/data";
+import { SignOutButton } from "./SignOutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,10 @@ export default async function ProfilePage() {
               <h1 className="font-serif text-2xl font-bold text-ink">{displayName}</h1>
               <p className="mt-1 text-sm font-mono text-ink-lighter">{user.email}</p>
             </div>
+          </div>
+
+          <div className="mb-8">
+            <SignOutButton />
           </div>
 
           <section className="mb-8">

@@ -1,12 +1,14 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "@/lib/auth-client";
 import type { Philosopher } from "@/lib/types";
 import { AgoraIcon, DebatesIcon, HomeIcon } from "./Icons";
 import { PhilosopherAvatar } from "./PhilosopherAvatar";
-import { UserMenu } from "./UserMenu";
 
 const navItems = [
   {
@@ -48,8 +50,25 @@ const navItems = [
   },
 ];
 
+function getInitials(value: string) {
+  return value
+    .split(" ")
+    .map((word) => word.trim())
+    .filter(Boolean)
+    .map((word) => word[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+function getUserLabel(name: string | null | undefined, email: string) {
+  const firstName = name?.trim().split(/\s+/)[0];
+  return firstName || email;
+}
+
 export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
   const pathname = usePathname();
+  const { data: session, isPending } = useSession();
 
   return (
     <aside className="hidden lg:flex flex-col w-64 shrink-0 sticky top-0 h-screen border-r border-border-light/80 bg-parchment-dark/55 supports-[backdrop-filter]:backdrop-blur-sm py-6 px-4 shadow-[inset_-1px_0_0_rgba(255,255,255,0.35)]">
@@ -103,6 +122,70 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
         })}
       </nav>
 
+      <div className="mb-4">
+        {isPending ? (
+          <div className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-ink-light">
+            <div className="h-8 w-8 animate-pulse rounded-full bg-border-light/60" />
+            <div className="h-4 w-24 animate-pulse rounded bg-border-light/60" />
+          </div>
+        ) : session?.user ? (
+          <Link
+            href="/profile"
+            className={`relative flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium tracking-wide transition-all duration-200 ${
+              pathname.startsWith("/profile")
+                ? "bg-athenian/10 text-athenian border border-athenian/10 shadow-[0_10px_24px_rgba(35,57,46,0.08)]"
+                : "text-ink-light hover:bg-parchment-tint/80 hover:text-athenian border border-transparent"
+            }`}
+          >
+            {pathname.startsWith("/profile") ? (
+              <span className="absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-full bg-gold" />
+            ) : null}
+            {session.user.image ? (
+              <img
+                src={session.user.image}
+                alt={`${session.user.name || "User"} avatar`}
+                className="h-8 w-8 rounded-full border border-border-light/80 object-cover"
+              />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-athenian/20 bg-athenian/15 text-[11px] font-mono font-medium text-athenian">
+                {getInitials(session.user.name || session.user.email)}
+              </div>
+            )}
+            <span className="truncate">
+              {getUserLabel(session.user.name, session.user.email)}
+            </span>
+          </Link>
+        ) : (
+          <Link
+            href="/sign-in"
+            className={`relative flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium tracking-wide transition-all duration-200 ${
+              pathname.startsWith("/sign-in")
+                ? "bg-athenian/10 text-athenian border border-athenian/10 shadow-[0_10px_24px_rgba(35,57,46,0.08)]"
+                : "text-ink-light hover:bg-parchment-tint/80 hover:text-athenian border border-transparent"
+            }`}
+          >
+            {pathname.startsWith("/sign-in") ? (
+              <span className="absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-full bg-gold" />
+            ) : null}
+            <span className={pathname.startsWith("/sign-in") ? "text-athenian" : "text-ink-lighter"}>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                aria-hidden="true"
+              >
+                <circle cx="10" cy="7" r="3" />
+                <path d="M4 17C4 14 6.5 12 10 12C13.5 12 16 14 16 17" strokeLinecap="round" />
+              </svg>
+            </span>
+            <span>Sign in</span>
+          </Link>
+        )}
+      </div>
+
       {/* Ask CTA */}
       <Link
         href="/agora"
@@ -138,7 +221,7 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
           </h3>
           <div className="flex-1 h-px bg-gradient-to-r from-border-light/20 via-border-light to-border-light/20" />
         </div>
-        <div className="overflow-y-auto max-h-[calc(100vh-390px)] space-y-1 pr-1">
+        <div className="h-full overflow-y-auto space-y-1 pr-1">
           {philosophers.map((p) => (
             <Link
               key={p.id}
@@ -155,12 +238,6 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
               </span>
             </Link>
           ))}
-        </div>
-      </div>
-
-      <div className="mt-auto border-t border-border-light/60 px-2 pt-4">
-        <div className="flex items-center justify-between px-2 py-2">
-          <UserMenu />
         </div>
       </div>
     </aside>
