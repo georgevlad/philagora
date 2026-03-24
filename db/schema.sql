@@ -275,3 +275,10 @@ CREATE TABLE IF NOT EXISTS scoring_config (
   value TEXT NOT NULL,
   updated_at TEXT DEFAULT (datetime('now'))
 );
+
+-- ── Schema Version Tracking ──────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS _schema_meta (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);

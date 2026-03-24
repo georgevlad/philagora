@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { verifyAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
+import { getIdentityFromCookies, isAdmin } from "@/lib/auth";
 import { AdminLogoutButton } from "./AdminLogoutButton";
 import { AdminNav } from "./AdminNav";
 
@@ -9,9 +8,8 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(ADMIN_COOKIE_NAME)?.value;
-  const isAuthenticated = verifyAdminToken(token);
+  const identity = await getIdentityFromCookies();
+  const isAuthenticated = isAdmin(identity);
 
   // Unauthenticated → render children bare (login page via middleware redirect)
   if (!isAuthenticated) {

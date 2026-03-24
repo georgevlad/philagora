@@ -1,15 +1,11 @@
 import fs from "fs/promises";
 import { NextRequest, NextResponse } from "next/server";
-import { verifyAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/auth";
 import { resolveDatabasePath } from "../../../../../db/index";
 
 export async function GET(request: NextRequest) {
-  const token = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
-  const isAuthenticated = verifyAdminToken(token);
-
-  if (!isAuthenticated) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = requireAdmin(request);
+  if (denied) return denied;
 
   try {
     const dbPath = resolveDatabasePath();

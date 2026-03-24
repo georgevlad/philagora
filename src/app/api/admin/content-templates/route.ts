@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
-import { ADMIN_COOKIE_NAME, verifyAdminToken } from "@/lib/admin-auth";
 import type { ContentTemplateRow } from "@/lib/db-types";
 import {
   CONTENT_TEMPLATES,
@@ -24,19 +24,13 @@ const TEMPLATE_LABELS: Record<ContentTypeKey, string> = {
 
 const TEMPLATE_KEYS = Object.keys(CONTENT_TEMPLATES) as ContentTypeKey[];
 
-function ensureAdmin(request: NextRequest) {
-  const token = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
-  return verifyAdminToken(token);
-}
-
 function isTemplateKey(value: string | null): value is ContentTypeKey {
   return Boolean(value && TEMPLATE_KEYS.includes(value as ContentTypeKey));
 }
 
 export async function GET(request: NextRequest) {
-  if (!ensureAdmin(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = requireAdmin(request);
+  if (denied) return denied;
 
   try {
     const db = getDb();
@@ -102,9 +96,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!ensureAdmin(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = requireAdmin(request);
+  if (denied) return denied;
 
   try {
     const db = getDb();
@@ -156,9 +149,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  if (!ensureAdmin(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = requireAdmin(request);
+  if (denied) return denied;
 
   try {
     const db = getDb();
@@ -214,9 +206,8 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!ensureAdmin(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = requireAdmin(request);
+  if (denied) return denied;
 
   try {
     const db = getDb();

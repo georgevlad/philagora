@@ -1,6 +1,42 @@
 import type Database from "better-sqlite3";
 import { DEFAULT_SCORING_CONFIG_VALUES } from "../src/lib/scoring-config";
 
+// ── Migration Registry ─────────────────────────────────────────
+
+interface Migration {
+  version: number;
+  name: string;
+  migrate: (db: Database.Database, options: MigrationOptions) => void;
+}
+
+interface MigrationOptions {
+  bootstrapNewsSources?: boolean;
+}
+
+/**
+ * Ordered list of all migrations. Each migration has a version number,
+ * a human-readable name, and a migrate function.
+ *
+ * Rules:
+ * - Version numbers must be sequential starting from 1
+ * - Never reorder, rename, or remove existing migrations
+ * - New migrations are appended to the end with the next version number
+ * - Migration functions receive the db instance and options
+ */
+const MIGRATIONS: Migration[] = [
+  {
+    version: 1,
+    name: "legacy_baseline",
+    migrate: runLegacyMigrations,
+  },
+  // ── Future migrations go here ──
+  // {
+  //   version: 2,
+  //   name: "add_user_profiles",
+  //   migrate: migrateAddUserProfiles,
+  // },
+];
+
 const DEFAULT_NEWS_SOURCES: [string, string, string, string][] = [
   ["bbc-world", "BBC World News", "https://feeds.bbci.co.uk/news/world/rss.xml", "world"],
   ["npr-top", "NPR Top Stories", "https://feeds.npr.org/1001/rss.xml", "world"],
@@ -72,10 +108,65 @@ const UPDATED_STANCE_GUIDANCE_VALUE = JSON.stringify({
     "CRITICAL: Each suggested philosopher MUST have a DIFFERENT stance. Never assign the same stance to 2+ philosophers on the same article.\n\nStance hierarchy (prefer top, avoid bottom):\n1. 'challenges' + 'defends' \u2014 genuine opposition, highest value\n2. 'reframes' \u2014 shifts the question itself, high value when authentic\n3. 'questions' \u2014 Socratic interrogation, moderate value\n4. 'warns' \u2014 use ONLY when a philosopher's framework genuinely predicts danger, not as a safe default\n5. 'observes' \u2014 LAST RESORT. A philosopher who merely 'observes' adds little friction. If you find yourself assigning 'observes', ask: could this philosopher 'reframe' or 'question' instead? Almost always yes.\n\nMaximum ONE 'observes' per article. Maximum ONE 'warns' per article. If an article can't generate at least one 'challenges' or 'defends', it probably deserves a lower score.",
 });
 
+// ── Version Tracking ───────────────────────────────────────────
+
+function ensureMetaTable(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS _schema_meta (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+  `);
+}
+
+function getSchemaVersion(db: Database.Database): number {
+  ensureMetaTable(db);
+  const row = db
+    .prepare("SELECT value FROM _schema_meta WHERE key = 'schema_version'")
+    .get() as { value: string } | undefined;
+
+  return row ? parseInt(row.value, 10) : 0;
+}
+
+function setSchemaVersion(db: Database.Database, version: number): void {
+  ensureMetaTable(db);
+  db.prepare(
+    `INSERT INTO _schema_meta (key, value) VALUES ('schema_version', ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+  ).run(String(version));
+}
+
+/**
+ * Run all pending migrations sequentially.
+ * Called once during getDb() bootstrap.
+ */
 export function runMigrations(
   db: Database.Database,
   options: { bootstrapNewsSources?: boolean } = {}
 ): void {
+  const currentVersion = getSchemaVersion(db);
+  const pending = MIGRATIONS.filter((migration) => migration.version > currentVersion);
+
+  if (pending.length === 0) return;
+
+  for (const migration of pending) {
+    try {
+      migration.migrate(db, options);
+      setSchemaVersion(db, migration.version);
+      console.log(`[Philagora] Migration ${migration.version} (${migration.name}) applied`);
+    } catch (err) {
+      console.error(`[Philagora] Migration ${migration.version} (${migration.name}) FAILED:`, err);
+      throw err;
+    }
+  }
+}
+
+/**
+ * Version 1: All pre-versioning migrations bundled together.
+ * Each individual function is idempotent, so this is safe to run
+ * on databases that already have some or all of these applied.
+ */
+function runLegacyMigrations(db: Database.Database, options: MigrationOptions): void {
   migrateNewsScout(db, options);
   migrateNewsSourceLogos(db);
   migrateArticleCandidatesTopicCluster(db);
@@ -97,10 +188,7 @@ export function runMigrations(
   migrateGenerationLogSchema(db);
 }
 
-function migrateNewsScout(
-  db: Database.Database,
-  options: { bootstrapNewsSources?: boolean }
-): void {
+function migrateNewsScout(db: Database.Database, options: MigrationOptions): void {
   const newsSourcesTableExists = db
     .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='news_sources'")
     .get();
@@ -515,3 +603,9 @@ function migrateScoringStanceGuidanceV2(db: Database.Database): void {
      WHERE key = 'stance_guidance'`
   ).run(UPDATED_STANCE_GUIDANCE_VALUE);
 }
+
+// ── Test-only exports ──────────────────────────────────────────
+// Used by db/migrations.test.ts to verify version tracking behavior
+
+export { getSchemaVersion, setSchemaVersion, ensureMetaTable, MIGRATIONS };
+export type { Migration, MigrationOptions };

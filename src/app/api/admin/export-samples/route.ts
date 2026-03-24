@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
-import { verifyAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
 
 interface PhilosopherRow {
   id: string;
@@ -62,12 +62,8 @@ function buildPostBlock(post: PostRow, index: number): string {
 }
 
 export async function GET(request: NextRequest) {
-  const token = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
-  const isAuthenticated = verifyAdminToken(token);
-
-  if (!isAuthenticated) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = requireAdmin(request);
+  if (denied) return denied;
 
   try {
     const db = getDb();
