@@ -12,6 +12,7 @@ import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
 import { AIBadge } from "@/components/AIBadge";
 import { BookIcon, ChevronLeftIcon } from "@/components/Icons";
 import { PrincipleCard } from "@/components/PrincipleCard";
+import { getIdentityFromCookies } from "@/lib/auth";
 
 export default async function PhilosopherProfileDynamic({
   params,
@@ -19,6 +20,8 @@ export default async function PhilosopherProfileDynamic({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const identity = await getIdentityFromCookies();
+  const userId = identity.type === "user" ? identity.id : undefined;
 
   const philosopher = getPhilosopherById(id);
   if (!philosopher) {
@@ -32,6 +35,7 @@ export default async function PhilosopherProfileDynamic({
   const { posts: philosopherPosts, hasMore } = getInterleavedFeed({
     philosopherId: id,
     limit: 15,
+    userId,
   });
   const philosophers = getAllPhilosophers();
 

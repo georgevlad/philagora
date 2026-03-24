@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PostCard } from "@/components/PostCard";
+import { getIdentityFromCookies } from "@/lib/auth";
 import { getPostById } from "@/lib/data";
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -42,7 +43,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function PostPage({ params }: PageProps) {
   const { id } = await params;
-  const post = getPostById(id);
+  const identity = await getIdentityFromCookies();
+  const userId = identity.type === "user" ? identity.id : undefined;
+  const post = getPostById(id, userId);
 
   if (!post) {
     notFound();

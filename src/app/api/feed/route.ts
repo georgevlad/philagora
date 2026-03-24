@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getIdentityFromHeaders } from "@/lib/auth";
 import { getInterleavedFeed } from "@/lib/data";
 import { normalizeFeedContentType } from "@/lib/feed-utils";
 
@@ -6,6 +7,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
+    const identity = await getIdentityFromHeaders(request);
+    const userId = identity.type === "user" ? identity.id : undefined;
     const { searchParams } = new URL(request.url);
     const contentType = normalizeFeedContentType(searchParams.get("type"));
     const philosopherId = searchParams.get("philosopher") || undefined;
@@ -22,6 +25,7 @@ export async function GET(request: NextRequest) {
       philosopherId,
       offset,
       limit,
+      userId,
     });
 
     return NextResponse.json({ posts, hasMore, nextOffset });

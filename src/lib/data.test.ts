@@ -12,6 +12,7 @@ vi.mock("@/lib/db", () => ({
 
 import {
   getAllPhilosophers,
+  getBookmarkedPosts,
   getFilteredPublishedPosts,
   getInterleavedFeed,
   getPhilosopherById,
@@ -106,6 +107,14 @@ afterEach(() => {
   testDb.close();
 });
 
+function seedBookmark(userId: string, postId: string, createdAt: string) {
+  testDb
+    .prepare(
+      "INSERT INTO user_bookmarks (user_id, post_id, created_at) VALUES (?, ?, ?)"
+    )
+    .run(userId, postId, createdAt);
+}
+
 describe("getPostById", () => {
   it("returns a published post by ID", () => {
     const post = getPostById("post-1");
@@ -164,6 +173,17 @@ describe("getPostById", () => {
     expect(reply!.replyTo).toBe("post-2");
     expect(reply!.replyTargetPhilosopherId).toBe("camus");
     expect(reply!.replyTargetPhilosopherName).toBe("Albert Camus");
+  });
+
+  it("resolves bookmark state for the requesting user", () => {
+    seedBookmark("user-1", "post-1", "2025-03-02 09:00:00");
+    seedBookmark("user-2", "post-2", "2025-03-02 10:00:00");
+
+    const bookmarkedPost = getPostById("post-1", "user-1");
+    const otherUsersPost = getPostById("post-2", "user-1");
+
+    expect(bookmarkedPost?.isBookmarked).toBe(true);
+    expect(otherUsersPost?.isBookmarked).toBeUndefined();
   });
 });
 
@@ -266,6 +286,18 @@ describe("getInterleavedFeed", () => {
     expect(result.posts).toHaveLength(0);
     expect(result.hasMore).toBe(false);
   });
+
+  it("marks bookmarked posts for the active user", () => {
+    seedBookmark("user-1", "post-3", "2025-03-02 09:00:00");
+    seedBookmark("user-2", "post-4", "2025-03-02 10:00:00");
+
+    const result = getInterleavedFeed({ userId: "user-1" });
+    const bookmarkedPost = result.posts.find((post) => post.id === "post-3");
+    const unbookmarkedPost = result.posts.find((post) => post.id === "post-4");
+
+    expect(bookmarkedPost?.isBookmarked).toBe(true);
+    expect(unbookmarkedPost?.isBookmarked).toBeUndefined();
+  });
 });
 
 describe("getFilteredPublishedPosts", () => {
@@ -297,5 +329,19 @@ describe("getPostsByPhilosopher", () => {
     const posts = getPostsByPhilosopher("kant");
 
     expect(posts).toHaveLength(0);
+  });
+});
+
+describe("getBookmarkedPosts", () => {
+  it("returns published bookmarked posts ordered by bookmark time", () => {
+    seedBookmark("user-1", "post-1", "2025-03-02 09:00:00");
+    seedBookmark("user-1", "post-4", "2025-03-02 11:00:00");
+    seedBookmark("user-1", "post-draft", "2025-03-02 12:00:00");
+    seedBookmark("user-2", "post-2", "2025-03-02 13:00:00");
+
+    const posts = getBookmarkedPosts("user-1");
+
+    expect(posts.map((post) => post.id)).toEqual(["post-4", "post-1"]);
+    expect(posts.every((post) => post.isBookmarked)).toBe(true);
   });
 });

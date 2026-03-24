@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
 import type { FeedPost } from "@/lib/types";
 import { PhilosopherAvatar } from "./PhilosopherAvatar";
 import { BookIcon, BookmarkIcon, ExternalLinkIcon, HeartIcon, ReplyArrowIcon, ReplyIcon } from "./Icons";
@@ -10,6 +11,7 @@ import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { philosopherAccentStyles } from "@/lib/color-utils";
 import { STANCE_CONFIG, POST_CONTENT_TRUNCATE_LIMIT } from "@/lib/constants";
 import { showComingSoon, showToast } from "@/components/ComingSoonToast";
+import { useSession } from "@/lib/auth-client";
 
 function TagBadge({
   tag,
@@ -54,18 +56,26 @@ function ActionButton({
   icon,
   count,
   label,
+  active,
   onClick,
 }: {
   icon: React.ReactNode;
   count?: number;
   label: string;
+  active?: boolean;
   onClick?: () => void;
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="flex items-center gap-1.5 text-ink-faint/75 hover:text-athenian transition-colors duration-200 group"
+      className={`flex items-center gap-1.5 transition-colors duration-200 group ${
+        active
+          ? "text-athenian"
+          : "text-ink-faint/75 hover:text-athenian"
+      }`}
       aria-label={label}
+      aria-pressed={active}
     >
       <span className="group-hover:scale-105 transition-transform duration-200">{icon}</span>
       {count !== undefined && <span className="text-[11px] font-mono">{count}</span>}
@@ -602,6 +612,66 @@ function CitationBlock({
 }
 
 function ActionButtons({ post }: { post: FeedPost }) {
+  const { data: session, isPending: sessionPending } = useSession();
+  const pathname = usePathname();
+  const router = useRouter();
+  const [bookmarked, setBookmarked] = useState(post.isBookmarked ?? false);
+  const [bookmarkCount, setBookmarkCount] = useState(post.bookmarks);
+  const [bookmarkPending, setBookmarkPending] = useState(false);
+
+  useEffect(() => {
+    setBookmarked(post.isBookmarked ?? false);
+    setBookmarkCount(post.bookmarks);
+    setBookmarkPending(false);
+  }, [post.bookmarks, post.id, post.isBookmarked]);
+
+  async function handleBookmarkToggle() {
+    if (bookmarkPending || sessionPending) {
+      return;
+    }
+
+    if (!session?.user) {
+      window.location.assign("/sign-in");
+      return;
+    }
+
+    const wasBookmarked = bookmarked;
+    const previousCount = bookmarkCount;
+
+    setBookmarkPending(true);
+    setBookmarked(!wasBookmarked);
+    setBookmarkCount(wasBookmarked ? Math.max(0, previousCount - 1) : previousCount + 1);
+
+    try {
+      const res = await fetch("/api/bookmarks", {
+        method: wasBookmarked ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId: post.id }),
+      });
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          window.location.assign("/sign-in");
+        }
+        throw new Error(`Bookmark toggle failed with status ${res.status}`);
+      }
+
+      const data = await res.json() as { bookmarked?: boolean };
+      if (typeof data.bookmarked === "boolean") {
+        setBookmarked(data.bookmarked);
+        if (!data.bookmarked && pathname === "/profile") {
+          router.refresh();
+        }
+      }
+    } catch {
+      setBookmarked(wasBookmarked);
+      setBookmarkCount(previousCount);
+      showToast("Could not update bookmark");
+    } finally {
+      setBookmarkPending(false);
+    }
+  }
+
   async function handleShare(postToShare: FeedPost) {
     const url = `${window.location.origin}/post/${postToShare.id}`;
     const sourceText = (postToShare.thesis || postToShare.content).trim();
@@ -648,9 +718,13 @@ function ActionButtons({ post }: { post: FeedPost }) {
       <ActionButton
         label="Bookmark"
         icon={
-          <BookmarkIcon />
+          <BookmarkIcon fill={bookmarked ? "currentColor" : "none"} />
         }
-        onClick={() => showComingSoon("Bookmarks")}
+        count={bookmarkCount > 0 ? bookmarkCount : undefined}
+        active={bookmarked}
+        onClick={() => {
+          void handleBookmarkToggle();
+        }}
       />
       <ActionButton
         label="Share"

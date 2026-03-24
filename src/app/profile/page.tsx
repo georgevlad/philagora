@@ -6,9 +6,10 @@ import { redirect } from "next/navigation";
 import { Footer } from "@/components/Footer";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { MobileNav } from "@/components/MobileNav";
+import { PostCard } from "@/components/PostCard";
 import { getIdentityFromCookies } from "@/lib/auth";
 import { auth } from "@/lib/better-auth";
-import { getAllPhilosophers } from "@/lib/data";
+import { getAllPhilosophers, getBookmarkedPosts } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,7 @@ export default async function ProfilePage() {
 
   const user = session.user;
   const philosophers = getAllPhilosophers();
+  const bookmarkedPosts = getBookmarkedPosts(identity.id);
   const displayName = user.name || "Philosopher";
   const initials = getInitials(user.name || user.email);
 
@@ -86,12 +88,25 @@ export default async function ProfilePage() {
                 />
               </svg>
               <h2 className="font-serif text-lg font-semibold text-ink">Bookmarks</h2>
+              {bookmarkedPosts.length > 0 && (
+                <span className="text-xs font-mono text-ink-lighter">
+                  {bookmarkedPosts.length}
+                </span>
+              )}
             </div>
-            <div className="rounded-2xl border border-border-light/80 bg-parchment-dark/20 px-6 py-8 text-center">
-              <p className="text-sm font-body text-ink-lighter">
-                Posts you bookmark will appear here.
-              </p>
-            </div>
+            {bookmarkedPosts.length > 0 ? (
+              <div className="space-y-0">
+                {bookmarkedPosts.map((post) => (
+                  <PostCard key={post.id} post={post} />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-border-light/80 bg-parchment-dark/20 px-6 py-8 text-center">
+                <p className="text-sm font-body text-ink-lighter">
+                  Posts you bookmark will appear here.
+                </p>
+              </div>
+            )}
           </section>
 
           <section className="mb-8">

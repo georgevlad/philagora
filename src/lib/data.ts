@@ -27,6 +27,8 @@ import type {
   AgoraSynthesis,
 } from "@/lib/types";
 
+type FeedPostRow = PostRow & { is_bookmarked?: number | null };
+
 // ── Raw DB row types (snake_case) ──────────────────────────
 
 // ── Mappers ────────────────────────────────────────────────
@@ -48,7 +50,7 @@ function mapPhilosopher(row: PhilosopherRow): Philosopher {
   };
 }
 
-function buildCitation(row: PostRow): PostCitation | undefined {
+function buildCitation(row: FeedPostRow): PostCitation | undefined {
   if (!row.citation_title && !row.citation_source) return undefined;
   return {
     title: row.citation_title ?? "",
@@ -58,7 +60,7 @@ function buildCitation(row: PostRow): PostCitation | undefined {
   };
 }
 
-function mapFeedPost(row: PostRow): FeedPost {
+function mapFeedPost(row: FeedPostRow): FeedPost {
   return {
     id: row.id,
     philosopherId: row.philosopher_id,
@@ -77,6 +79,7 @@ function mapFeedPost(row: PostRow): FeedPost {
     likes: row.likes,
     replies: row.replies,
     bookmarks: row.bookmarks,
+    isBookmarked: row.is_bookmarked === 1 ? true : undefined,
     timestamp: timeAgo(row.created_at),
     replyTo: row.reply_to ?? undefined,
     philosopherName: row.philosopher_name,
@@ -111,10 +114,46 @@ const FEED_POST_QUERY = `
   LEFT JOIN historical_events he ON p.historical_event_id = he.id
 `;
 
+function buildFeedPostQuery(userId?: string): {
+  sql: string;
+  extraParams: (string | number)[];
+} {
+  if (userId) {
+    return {
+      sql: `
+        SELECT
+          p.*,
+          ph.name       AS philosopher_name,
+          ph.color      AS philosopher_color,
+          ph.initials   AS philosopher_initials,
+          ph.tradition  AS philosopher_tradition,
+          rph.id        AS reply_target_philosopher_id,
+          rph.name      AS reply_target_philosopher_name,
+          rph.color     AS reply_target_philosopher_color,
+          rph.initials  AS reply_target_philosopher_initials,
+          he.thumbnail_filename AS historical_event_thumbnail,
+          CASE WHEN ub.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_bookmarked
+        FROM posts p
+        JOIN philosophers ph ON p.philosopher_id = ph.id
+        LEFT JOIN posts rp ON p.reply_to = rp.id
+        LEFT JOIN philosophers rph ON rp.philosopher_id = rph.id
+        LEFT JOIN historical_events he ON p.historical_event_id = he.id
+        LEFT JOIN user_bookmarks ub ON ub.post_id = p.id AND ub.user_id = ?
+      `,
+      extraParams: [userId],
+    };
+  }
+
+  return {
+    sql: FEED_POST_QUERY,
+    extraParams: [],
+  };
+}
+
 // ── Query Functions ────────────────────────────────────────
 
-export function getPublishedPosts(): FeedPost[] {
-  return interleaveFeed(queryPublishedPosts());
+export function getPublishedPosts(userId?: string): FeedPost[] {
+  return interleaveFeed(queryPublishedPosts({ userId }));
 }
 
 function buildPublishedPostFilters(options: {
@@ -139,21 +178,24 @@ function buildPublishedPostFilters(options: {
 function queryPublishedPosts(options: {
   contentType?: string;
   philosopherId?: string;
+  userId?: string;
 } = {}): FeedPost[] {
   const db = getDb();
   const { where, params } = buildPublishedPostFilters(options);
+  const { sql: baseQuery, extraParams } = buildFeedPostQuery(options.userId);
   const rows = db
-    .prepare(FEED_POST_QUERY + where + " ORDER BY p.created_at DESC")
-    .all(...params) as PostRow[];
+    .prepare(baseQuery + where + " ORDER BY p.created_at DESC")
+    .all(...extraParams, ...params) as FeedPostRow[];
 
   return rows.map(mapFeedPost);
 }
 
 export function getFilteredPublishedPosts(
   contentType?: string,
-  philosopherId?: string
+  philosopherId?: string,
+  userId?: string
 ): FeedPost[] {
-  return interleaveFeed(queryPublishedPosts({ contentType, philosopherId }));
+  return interleaveFeed(queryPublishedPosts({ contentType, philosopherId, userId }));
 }
 
 export function getInterleavedFeed(options: {
@@ -161,6 +203,7 @@ export function getInterleavedFeed(options: {
   philosopherId?: string;
   offset?: number;
   limit?: number;
+  userId?: string;
 }): { posts: FeedPost[]; hasMore: boolean; nextOffset: number | null } {
   const limit = Math.max(1, options.limit ?? 15);
   const offset = Math.max(0, options.offset ?? 0);
@@ -168,6 +211,7 @@ export function getInterleavedFeed(options: {
     queryPublishedPosts({
       contentType: options.contentType,
       philosopherId: options.philosopherId,
+      userId: options.userId,
     })
   );
   const posts = interleavedPosts.slice(offset, offset + limit);
@@ -180,16 +224,31 @@ export function getInterleavedFeed(options: {
   };
 }
 
-export function getPostsByPhilosopher(philosopherId: string): FeedPost[] {
-  return interleaveFeed(queryPublishedPosts({ philosopherId }));
+export function getPostsByPhilosopher(philosopherId: string, userId?: string): FeedPost[] {
+  return interleaveFeed(queryPublishedPosts({ philosopherId, userId }));
 }
 
-export function getPostById(id: string): FeedPost | null {
+export function getPostById(id: string, userId?: string): FeedPost | null {
   const db = getDb();
+  const { sql: baseQuery, extraParams } = buildFeedPostQuery(userId);
   const row = db
-    .prepare(FEED_POST_QUERY + " WHERE p.id = ? AND p.status = 'published'")
-    .get(id) as PostRow | undefined;
+    .prepare(baseQuery + " WHERE p.id = ? AND p.status = 'published'")
+    .get(...extraParams, id) as FeedPostRow | undefined;
   return row ? mapFeedPost(row) : null;
+}
+
+export function getBookmarkedPosts(userId: string): FeedPost[] {
+  const db = getDb();
+  const { sql: baseQuery, extraParams } = buildFeedPostQuery(userId);
+  const rows = db
+    .prepare(
+      baseQuery
+      + " WHERE p.status = 'published' AND ub.user_id IS NOT NULL"
+      + " ORDER BY ub.created_at DESC"
+    )
+    .all(...extraParams) as FeedPostRow[];
+
+  return rows.map(mapFeedPost);
 }
 
 export function getAllPhilosophers(): Philosopher[] {

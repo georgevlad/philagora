@@ -35,6 +35,7 @@ export interface Post {
   likes: number;
   replies: number;
   bookmarks: number;
+  isBookmarked?: boolean;
   timestamp: string;
   replyTo?: string;
 }

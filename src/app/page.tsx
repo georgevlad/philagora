@@ -4,13 +4,16 @@ import { MobileNav } from "@/components/MobileNav";
 import { FeedTabs } from "@/components/FeedTabs";
 import { FeedSection } from "@/components/FeedSection";
 import { Footer } from "@/components/Footer";
+import { getIdentityFromCookies } from "@/lib/auth";
 import { getAllPhilosophers, getInterleavedFeed } from "@/lib/data";
 
 // Re-render this page on every request so published posts appear immediately
 export const dynamic = "force-dynamic";
 
-export default function HomePage() {
-  const { posts, hasMore } = getInterleavedFeed({ limit: 15 });
+export default async function HomePage() {
+  const identity = await getIdentityFromCookies();
+  const userId = identity.type === "user" ? identity.id : undefined;
+  const { posts, hasMore } = getInterleavedFeed({ limit: 15, userId });
   const philosophers = getAllPhilosophers();
 
   return (
