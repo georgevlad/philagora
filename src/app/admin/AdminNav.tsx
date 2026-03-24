@@ -20,6 +20,7 @@ const navSections: NavSection[] = [
     items: [
       { href: "/admin", label: "Dashboard", icon: "📊" },
       { href: "/admin/feed-preview", label: "Live Feed", icon: "👁️" },
+      { href: "/admin/users", label: "Users", icon: "👥" },
     ],
   },
   {
