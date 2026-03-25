@@ -107,6 +107,9 @@ CREATE TABLE IF NOT EXISTS agora_threads (
                             CHECK(question_type IN ('advice', 'conceptual', 'debate')),
   recommendations_enabled INTEGER NOT NULL DEFAULT 0
                             CHECK(recommendations_enabled IN (0, 1)),
+  visibility              TEXT NOT NULL DEFAULT 'public'
+                            CHECK(visibility IN ('public', 'private')),
+  user_id                 TEXT DEFAULT NULL,
   article_url             TEXT DEFAULT NULL,
   article_title           TEXT DEFAULT NULL,
   article_source          TEXT DEFAULT NULL,

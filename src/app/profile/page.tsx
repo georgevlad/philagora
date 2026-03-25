@@ -1,15 +1,23 @@
 /* eslint-disable @next/next/no-img-element */
 
+import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Footer } from "@/components/Footer";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { MobileNav } from "@/components/MobileNav";
+import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
 import { PostCard } from "@/components/PostCard";
 import { getIdentityFromCookies } from "@/lib/auth";
 import { auth } from "@/lib/better-auth";
-import { getAllPhilosophers, getBookmarkedPosts, getLikedPosts } from "@/lib/data";
+import { timeAgo } from "@/lib/date-utils";
+import {
+  getAllPhilosophers,
+  getBookmarkedPosts,
+  getLikedPosts,
+  getUserAgoraThreads,
+} from "@/lib/data";
 import { SignOutButton } from "./SignOutButton";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +31,34 @@ function getInitials(value: string) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
+}
+
+function VisibilityBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-parchment-dark/35 px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.14em] text-ink-faint">
+      <svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="3" y="8" width="10" height="6" rx="1" />
+        <path d="M5 8V5a3 3 0 016 0v3" />
+      </svg>
+      Private
+    </span>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  if (status === "complete") return null;
+
+  const className =
+    status === "failed"
+      ? "bg-red-100 text-red-800"
+      : "bg-blue-100 text-blue-800";
+  const label = status === "failed" ? "Failed" : "Generating";
+
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.14em] ${className}`}>
+      {label}
+    </span>
+  );
 }
 
 export default async function ProfilePage() {
@@ -42,6 +78,7 @@ export default async function ProfilePage() {
 
   const user = session.user;
   const philosophers = getAllPhilosophers();
+  const userQuestions = getUserAgoraThreads(identity.id);
   const bookmarkedPosts = getBookmarkedPosts(identity.id);
   const likedPosts = getLikedPosts(identity.id);
   const displayName = user.name || "Philosopher";
@@ -75,6 +112,75 @@ export default async function ProfilePage() {
           <div className="mb-8">
             <SignOutButton />
           </div>
+
+          <section className="mb-8">
+            <div className="mb-4 flex items-center gap-2">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                aria-hidden="true"
+              >
+                <path d="M2.5 4.5h11M4 8h8M5.5 11.5h5" strokeLinecap="round" />
+                <path d="M2.5 2.5v11h11v-11" strokeLinecap="round" />
+              </svg>
+              <h2 className="font-serif text-lg font-semibold text-ink">My Questions</h2>
+              {userQuestions.length > 0 && (
+                <span className="text-xs font-mono text-ink-lighter">
+                  {userQuestions.length}
+                </span>
+              )}
+            </div>
+            {userQuestions.length > 0 ? (
+              <div className="space-y-3">
+                {userQuestions.map((thread) => (
+                  <Link
+                    key={thread.id}
+                    href={`/agora/${thread.id}`}
+                    className="group block rounded-2xl border border-border-light/80 bg-[linear-gradient(180deg,rgba(248,243,234,0.95),rgba(242,236,226,0.82))] px-5 py-4 transition-all duration-200 hover:border-border hover:bg-parchment-tint/85 hover:shadow-[0_10px_24px_rgba(42,36,31,0.05)]"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="font-serif text-[19px] leading-[1.35] text-ink transition-colors group-hover:text-athenian">
+                        &ldquo;{thread.question}&rdquo;
+                      </p>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {thread.visibility === "private" && <VisibilityBadge />}
+                        <StatusBadge status={thread.status} />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between gap-4">
+                      <div className="flex -space-x-2">
+                        {thread.philosophers.slice(0, 4).map((philosopher) => (
+                          <div key={philosopher.id} className="rounded-full ring-2 ring-card">
+                            <PhilosopherAvatar
+                              philosopherId={philosopher.id}
+                              name={philosopher.name}
+                              color={philosopher.color}
+                              initials={philosopher.initials}
+                              size="sm"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="text-[11px] font-mono uppercase tracking-[0.14em] text-ink-faint">
+                        {timeAgo(thread.created_at)}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-border-light/80 bg-parchment-dark/20 px-6 py-8 text-center">
+                <p className="text-sm font-body text-ink-lighter">
+                  Questions you ask in the Agora will appear here.
+                </p>
+              </div>
+            )}
+          </section>
 
           <section className="mb-8">
             <div className="mb-4 flex items-center gap-2">

@@ -54,6 +54,11 @@ const MIGRATIONS: Migration[] = [
     name: "agora_article_submission_fields",
     migrate: (db) => migrateAgoraArticleSubmissionFields(db),
   },
+  {
+    version: 7,
+    name: "agora_thread_visibility_and_user_ownership",
+    migrate: (db) => migrateAgoraThreadVisibilityAndUserOwnership(db),
+  },
   // ── Future migrations go here ──
   // {
   //   version: 2,
@@ -872,6 +877,21 @@ function migrateAgoraArticleSubmissionFields(db: Database.Database): void {
 
   if (!columnNames.has("article_excerpt")) {
     db.exec("ALTER TABLE agora_threads ADD COLUMN article_excerpt TEXT DEFAULT NULL");
+  }
+}
+
+function migrateAgoraThreadVisibilityAndUserOwnership(db: Database.Database): void {
+  const columns = db
+    .prepare("PRAGMA table_info(agora_threads)")
+    .all() as Array<{ name: string }>;
+  const columnNames = new Set(columns.map((column) => column.name));
+
+  if (!columnNames.has("visibility")) {
+    db.exec("ALTER TABLE agora_threads ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public'");
+  }
+
+  if (!columnNames.has("user_id")) {
+    db.exec("ALTER TABLE agora_threads ADD COLUMN user_id TEXT DEFAULT NULL");
   }
 }
 

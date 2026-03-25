@@ -13,6 +13,8 @@ interface ThreadRow {
   status: string;
   question_type?: string;
   recommendations_enabled?: number;
+  visibility?: "public" | "private";
+  user_id?: string | null;
   article_url?: string | null;
   article_title?: string | null;
   article_source?: string | null;
@@ -53,6 +55,7 @@ export async function GET(
     const thread = db
       .prepare(
         `SELECT id, question, asked_by, status, question_type, recommendations_enabled,
+                visibility, user_id,
                 article_url, article_title, article_source, article_excerpt, created_at
          FROM agora_threads
          WHERE id = ?`
@@ -111,6 +114,8 @@ export async function GET(
         ...thread,
         recommendations_enabled: thread.recommendations_enabled ?? 0,
         question_type: thread.question_type ?? "advice",
+        visibility: thread.visibility ?? "public",
+        user_id: thread.user_id ?? null,
         article: thread.article_url
           ? {
               url: thread.article_url,

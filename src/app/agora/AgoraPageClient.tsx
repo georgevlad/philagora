@@ -4,7 +4,12 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getQuestionTypeLabel } from "@/lib/agora";
-import type { Philosopher, AgoraThreadDetail } from "@/lib/types";
+import { useSession } from "@/lib/auth-client";
+import type {
+  Philosopher,
+  AgoraThreadStatus,
+  AgoraThreadVisibility,
+} from "@/lib/types";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
@@ -32,6 +37,20 @@ interface FeaturedThread {
     initials: string;
     color: string;
     tradition: string;
+  }[];
+}
+
+interface MyThread {
+  id: string;
+  question: string;
+  status: AgoraThreadStatus;
+  visibility: AgoraThreadVisibility;
+  created_at: string;
+  philosophers: {
+    id: string;
+    name: string;
+    initials: string;
+    color: string;
   }[];
 }
 
@@ -100,19 +119,101 @@ function FeaturedThreadCard({ thread }: { thread: FeaturedThread }) {
   );
 }
 
+function ThreadStatusIcon({ status }: { status: AgoraThreadStatus }) {
+  if (status === "failed") {
+    return (
+      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-100 text-red-700">
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
+        </svg>
+      </span>
+    );
+  }
+
+  if (status === "complete") {
+    return (
+      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-stoic/10 text-stoic">
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M3.5 8.2l2.4 2.4L12.5 4.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gold/12 text-gold">
+      <span className="h-3.5 w-3.5 rounded-full border border-current/35 border-t-current animate-spin" />
+    </span>
+  );
+}
+
+function PrivateBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-parchment-dark/35 px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.14em] text-ink-faint">
+      <svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="3" y="8" width="10" height="6" rx="1" />
+        <path d="M5 8V5a3 3 0 016 0v3" />
+      </svg>
+      Private
+    </span>
+  );
+}
+
+function MyThreadCard({ thread }: { thread: MyThread }) {
+  return (
+    <Link
+      href={`/agora/${thread.id}`}
+      className="group block rounded-2xl border border-border-light/80 bg-[linear-gradient(180deg,rgba(248,243,234,0.94),rgba(242,236,226,0.84))] px-4 py-3 transition-all duration-200 hover:border-border hover:bg-parchment-tint/90 hover:shadow-[0_10px_24px_rgba(42,36,31,0.05)]"
+    >
+      <div className="flex items-start gap-3">
+        <ThreadStatusIcon status={thread.status} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-serif text-[16px] leading-[1.35] text-ink line-clamp-2 group-hover:text-athenian transition-colors">
+              &ldquo;{thread.question}&rdquo;
+            </p>
+            {thread.visibility === "private" && <PrivateBadge />}
+          </div>
+
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <div className="flex -space-x-1.5">
+              {thread.philosophers.slice(0, 4).map((philosopher) => (
+                <div key={philosopher.id} className="rounded-full ring-2 ring-card">
+                  <PhilosopherAvatar
+                    philosopherId={philosopher.id}
+                    name={philosopher.name}
+                    color={philosopher.color}
+                    initials={philosopher.initials}
+                    size="xs"
+                  />
+                </div>
+              ))}
+            </div>
+            <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-ink-faint">
+              {timeAgo(thread.created_at)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export function AgoraPageClient({
   philosophers,
 }: {
-  philosophersMap: Record<string, Philosopher>;
   philosophers: Philosopher[];
-  threads: AgoraThreadDetail[];
 }) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const sessionUserId = session?.user?.id ?? null;
+  const isLoggedIn = Boolean(session?.user);
 
   const [step, setStep] = useState<"question" | "philosophers">("question");
   const [question, setQuestion] = useState("");
   const [askedBy, setAskedBy] = useState("");
   const [articleUrl, setArticleUrl] = useState("");
+  const [visibility, setVisibility] = useState<AgoraThreadVisibility>("public");
   const [editingName, setEditingName] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -123,6 +224,7 @@ export function AgoraPageClient({
   const [selectablePhilosophers, setSelectablePhilosophers] = useState<SelectablePhilosopher[]>([]);
   const [featuredThreads, setFeaturedThreads] = useState<FeaturedThread[]>([]);
   const [featuredLoading, setFeaturedLoading] = useState(true);
+  const [myThreads, setMyThreads] = useState<MyThread[]>([]);
 
   useEffect(() => {
     async function loadPhilosophers() {
@@ -155,6 +257,38 @@ export function AgoraPageClient({
     }
     loadFeatured();
   }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setVisibility("public");
+      setMyThreads([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadMyThreads() {
+      try {
+        const res = await fetch("/api/agora/my-threads");
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (!cancelled) {
+          setMyThreads(Array.isArray(data.threads) ? data.threads : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setMyThreads([]);
+        }
+      }
+    }
+
+    loadMyThreads();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, sessionUserId]);
 
   const trimmedQuestion = question.trim();
   const charCount = trimmedQuestion.length;
@@ -196,6 +330,7 @@ export function AgoraPageClient({
           asked_by: askedBy.trim() || undefined,
           philosopher_ids: selectedIds,
           article_url: trimmedArticleUrl || undefined,
+          visibility: session?.user ? visibility : undefined,
         }),
       });
 
@@ -335,6 +470,29 @@ export function AgoraPageClient({
                           placeholder="https://example.com/article..."
                           className="w-full bg-white/60 border border-border-light/80 rounded-xl px-4 py-2.5 text-[14px] font-body text-ink placeholder:text-ink-lighter/50 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold/40 transition-colors"
                         />
+
+                        {session?.user && (
+                          <div className="mt-4 flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setVisibility((current) => current === "public" ? "private" : "public")}
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
+                                visibility === "public" ? "bg-stoic" : "bg-ink-lighter/40"
+                              }`}
+                            >
+                              <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                                  visibility === "public" ? "translate-x-6" : "translate-x-1"
+                                }`}
+                              />
+                            </button>
+                            <span className="text-[12px] font-body text-ink-light">
+                              {visibility === "public"
+                                ? "Public - appears in the archive"
+                                : "Private - only you can find this via your profile"}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -501,6 +659,30 @@ export function AgoraPageClient({
               </div>
             )}
           </section>
+
+          {myThreads.length > 0 && (
+            <section className="mb-8">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="text-[10px] font-mono tracking-[0.22em] uppercase text-ink-faint">
+                  Your questions
+                </div>
+                {myThreads.length > 3 && (
+                  <Link
+                    href="/profile"
+                    className="text-[11px] font-mono text-athenian transition-colors hover:text-athenian/80"
+                  >
+                    View all &rarr;
+                  </Link>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                {myThreads.slice(0, 3).map((thread) => (
+                  <MyThreadCard key={thread.id} thread={thread} />
+                ))}
+              </div>
+            </section>
+          )}
 
           {!featuredLoading && featuredThreads.length > 0 && (
             <section className="border-t border-border-light/80 pt-8">

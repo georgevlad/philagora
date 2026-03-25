@@ -10,6 +10,7 @@ import type {
   AgoraThreadDetail,
   AgoraThreadStatus,
   AgoraQuestionType,
+  AgoraThreadVisibility,
   Philosopher,
 } from "@/lib/types";
 import { LeftSidebar } from "@/components/LeftSidebar";
@@ -30,6 +31,8 @@ interface ApiThread {
   status: AgoraThreadStatus;
   question_type: AgoraQuestionType;
   recommendations_enabled: number;
+  visibility: AgoraThreadVisibility;
+  user_id?: string | null;
   article: AgoraThreadArticle | null;
   created_at: string;
 }
@@ -425,6 +428,15 @@ export function ThreadPageClient({
           <span className="inline-flex items-center px-3 py-1 rounded-full bg-athenian/8 text-athenian text-[10px] font-mono uppercase tracking-[0.16em]">
             {getQuestionTypeLabel(data.thread.question_type)}
           </span>
+          {data.thread.visibility === "private" && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.16em] text-ink-faint bg-parchment-dark/30 px-2 py-0.5 rounded-full ml-2">
+              <svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="3" y="8" width="10" height="6" rx="1" />
+                <path d="M5 8V5a3 3 0 016 0v3" />
+              </svg>
+              Private
+            </span>
+          )}
         </div>
 
         {/* Philosopher avatars row */}
@@ -683,6 +695,8 @@ function convertInitialThread(
         status: thread.status,
         question_type: thread.questionType,
         recommendations_enabled: thread.recommendationsEnabled ? 1 : 0,
+        visibility: thread.visibility,
+        user_id: thread.userId ?? null,
         article: thread.article,
         created_at: thread.createdAt,
       },

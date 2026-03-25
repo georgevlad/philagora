@@ -208,6 +208,7 @@ export interface AgoraSynthesis {
 }
 
 export type AgoraThreadStatus = "pending" | "in_progress" | "complete" | "failed";
+export type AgoraThreadVisibility = "public" | "private";
 
 export interface AgoraThreadArticle {
   url: string;
@@ -224,6 +225,8 @@ export interface AgoraThreadDetail {
   createdAt: string;
   questionType: AgoraQuestionType;
   recommendationsEnabled: boolean;
+  visibility: AgoraThreadVisibility;
+  userId?: string | null;
   article: AgoraThreadArticle | null;
   philosophers: string[];
   responses: AgoraResponse[];

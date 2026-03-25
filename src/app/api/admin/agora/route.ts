@@ -13,7 +13,7 @@ import {
   classifyAgoraQuestion,
   type QuestionClassification,
 } from "@/lib/generation-service";
-import type { AgoraQuestionType } from "@/lib/types";
+import type { AgoraQuestionType, AgoraThreadVisibility } from "@/lib/types";
 
 interface ThreadRow {
   id: string;
@@ -22,6 +22,7 @@ interface ThreadRow {
   status: string;
   question_type?: AgoraQuestionType;
   recommendations_enabled?: number;
+  visibility?: AgoraThreadVisibility;
   article_url?: string | null;
   article_title?: string | null;
   article_source?: string | null;
@@ -42,6 +43,10 @@ function normalizeRecommendationsEnabled(value: unknown): boolean | null {
   return null;
 }
 
+function normalizeVisibility(value: unknown): AgoraThreadVisibility {
+  return value === "private" ? "private" : "public";
+}
+
 /** POST — Create a new agora thread */
 export async function POST(request: NextRequest) {
   try {
@@ -54,6 +59,7 @@ export async function POST(request: NextRequest) {
       question_type,
       recommendations_enabled,
       article_url,
+      visibility,
     } = body;
 
     if (!question?.trim()) {
@@ -133,6 +139,7 @@ export async function POST(request: NextRequest) {
     const finalQuestionType = question_type ?? classification.questionType;
     const finalRecommendationsEnabled =
       normalizedRecommendations ?? classification.recommendationsAppropriate;
+    const finalVisibility = normalizeVisibility(visibility);
     const articleSource = articleData?.source ?? getArticleSourceFromUrl(normalizedArticleUrl);
 
     db.transaction(() => {
@@ -144,18 +151,20 @@ export async function POST(request: NextRequest) {
            status,
            question_type,
            recommendations_enabled,
+           visibility,
            article_url,
            article_title,
            article_source,
            article_excerpt
          )
-         VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)`
+         VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`
       ).run(
         threadId,
         question.trim(),
         asked_by || "Anonymous User",
         finalQuestionType,
         finalRecommendationsEnabled ? 1 : 0,
+        finalVisibility,
         normalizedArticleUrl,
         articleData?.title ?? null,
         articleSource,
@@ -180,6 +189,7 @@ export async function POST(request: NextRequest) {
           status: string;
           question_type?: AgoraQuestionType;
           recommendations_enabled?: number;
+          visibility?: AgoraThreadVisibility;
           article_url?: string | null;
           article_title?: string | null;
           article_source?: string | null;
@@ -201,6 +211,7 @@ export async function POST(request: NextRequest) {
       {
         thread: thread && {
           ...thread,
+          visibility: thread.visibility ?? "public",
           article: thread.article_url
             ? {
                 url: thread.article_url,
@@ -244,6 +255,7 @@ export async function GET() {
 
     const threads = rows.map((row) => ({
       ...row,
+      visibility: row.visibility ?? "public",
       philosopher_ids: parseGroupConcat(row.philosopher_ids),
       philosopher_names: parseGroupConcat(row.philosopher_names),
       article_source: row.article_source ?? null,

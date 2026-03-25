@@ -25,6 +25,7 @@ import type {
   AgoraThreadDetail,
   AgoraResponse,
   AgoraSynthesis,
+  AgoraThreadVisibility,
 } from "@/lib/types";
 
 type FeedPostRow = PostRow & {
@@ -452,6 +453,7 @@ export function getRecentAgoraThreads(limit = 5) {
       `SELECT id, question, asked_by, question_type, created_at
        FROM agora_threads
        WHERE status = 'complete'
+         AND visibility = 'public'
        ORDER BY created_at DESC
        LIMIT ?`
     )
@@ -472,6 +474,51 @@ export function getRecentAgoraThreads(limit = 5) {
 
   return threads.map((thread) => ({
     ...thread,
+    question_type: thread.question_type ?? "advice",
+    philosophers: getPhilosophers.all(thread.id) as Array<{
+      id: string;
+      name: string;
+      initials: string;
+      color: string;
+    }>,
+  }));
+}
+
+export function getUserAgoraThreads(userId: string) {
+  const db = getDb();
+
+  const threads = db
+    .prepare(
+      `SELECT id, question, asked_by, status, visibility, question_type,
+              article_url, article_title, article_source, created_at
+       FROM agora_threads
+       WHERE user_id = ?
+       ORDER BY created_at DESC
+       LIMIT 20`
+    )
+    .all(userId) as Array<{
+      id: string;
+      question: string;
+      asked_by: string;
+      status: string;
+      visibility: AgoraThreadVisibility | null;
+      question_type: AgoraQuestionType | null;
+      article_url: string | null;
+      article_title: string | null;
+      article_source: string | null;
+      created_at: string;
+    }>;
+
+  const getPhilosophers = db.prepare(
+    `SELECT p.id, p.name, p.initials, p.color
+     FROM philosophers p
+     JOIN agora_thread_philosophers atp ON p.id = atp.philosopher_id
+     WHERE atp.thread_id = ?`
+  );
+
+  return threads.map((thread) => ({
+    ...thread,
+    visibility: thread.visibility === "private" ? "private" : "public",
     question_type: thread.question_type ?? "advice",
     philosophers: getPhilosophers.all(thread.id) as Array<{
       id: string;
@@ -522,6 +569,8 @@ function buildAgoraThreadDetail(
     createdAt: t.created_at,
     questionType: t.question_type ?? "advice",
     recommendationsEnabled: t.recommendations_enabled === 1,
+    visibility: t.visibility === "private" ? "private" : "public",
+    userId: t.user_id ?? null,
     article: t.article_url
       ? {
           url: t.article_url,

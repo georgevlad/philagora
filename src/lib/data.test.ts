@@ -21,6 +21,8 @@ import {
   getPhilosophersMap,
   getPostById,
   getPostsByPhilosopher,
+  getRecentAgoraThreads,
+  getUserAgoraThreads,
 } from "@/lib/data";
 
 const TEST_POSTS = [
@@ -491,6 +493,8 @@ describe("getAgoraThreadById", () => {
     expect(thread).not.toBeNull();
     expect(thread?.questionType).toBe("conceptual");
     expect(thread?.recommendationsEnabled).toBe(true);
+    expect(thread?.visibility).toBe("public");
+    expect(thread?.userId).toBeNull();
     expect(thread?.article).toEqual({
       url: "https://example.com/freedom",
       title: "Freedom in a Fractured Age",
@@ -538,6 +542,8 @@ describe("getAgoraThreadById", () => {
 
     expect(thread).not.toBeNull();
     expect(thread?.article).toBeNull();
+    expect(thread?.visibility).toBe("public");
+    expect(thread?.userId).toBeNull();
     expect(thread?.synthesis).toEqual({
       type: "advice",
       sections: {
@@ -546,5 +552,82 @@ describe("getAgoraThreadById", () => {
         practicalTakeaways: ["Look for honesty before you offer restored trust."],
       },
     });
+  });
+});
+
+describe("getRecentAgoraThreads", () => {
+  it("returns only public completed agora threads", () => {
+    seedAgoraThread({
+      id: "agora-private-complete",
+      question: "What is courage in public life?",
+      status: "complete",
+      philosopherIds: ["plato", "kant"],
+    });
+    testDb
+      .prepare("UPDATE agora_threads SET visibility = 'private' WHERE id = ?")
+      .run("agora-private-complete");
+
+    seedAgoraThread({
+      id: "agora-public-complete",
+      question: "How should I endure uncertainty?",
+      status: "complete",
+      philosopherIds: ["camus", "nietzsche"],
+    });
+
+    seedAgoraThread({
+      id: "agora-public-pending",
+      question: "What do we owe future generations?",
+      status: "pending",
+      philosopherIds: ["kant", "plato"],
+    });
+
+    const threads = getRecentAgoraThreads(10);
+
+    expect(threads.map((thread) => thread.id)).toEqual(["agora-public-complete"]);
+  });
+});
+
+describe("getUserAgoraThreads", () => {
+  it("returns a user's public and private threads with philosopher previews", () => {
+    seedAgoraThread({
+      id: "agora-user-public",
+      question: "How should I live with grief?",
+      philosopherIds: ["camus", "plato"],
+    });
+    testDb
+      .prepare("UPDATE agora_threads SET user_id = ?, visibility = 'public' WHERE id = ?")
+      .run("user-1", "agora-user-public");
+
+    seedAgoraThread({
+      id: "agora-user-private",
+      question: "Should I leave my current work behind?",
+      philosopherIds: ["nietzsche", "kant"],
+    });
+    testDb
+      .prepare("UPDATE agora_threads SET user_id = ?, visibility = 'private' WHERE id = ?")
+      .run("user-1", "agora-user-private");
+
+    seedAgoraThread({
+      id: "agora-other-user",
+      question: "How should I face public shame?",
+      philosopherIds: ["plato", "camus"],
+    });
+    testDb
+      .prepare("UPDATE agora_threads SET user_id = ?, visibility = 'private' WHERE id = ?")
+      .run("user-2", "agora-other-user");
+
+    const threads = getUserAgoraThreads("user-1");
+
+    expect(threads.map((thread) => thread.id).sort()).toEqual([
+      "agora-user-private",
+      "agora-user-public",
+    ]);
+
+    const byId = Object.fromEntries(threads.map((thread) => [thread.id, thread]));
+
+    expect(byId["agora-user-public"]?.visibility).toBe("public");
+    expect(byId["agora-user-private"]?.visibility).toBe("private");
+    expect(byId["agora-user-public"]?.philosophers).toHaveLength(2);
+    expect(byId["agora-user-private"]?.philosophers).toHaveLength(2);
   });
 });

@@ -168,6 +168,8 @@ describe("migration system", () => {
       expect(threadColNames).toContain("ip_address");
       expect(threadColNames).toContain("question_type");
       expect(threadColNames).toContain("recommendations_enabled");
+      expect(threadColNames).toContain("visibility");
+      expect(threadColNames).toContain("user_id");
       expect(threadColNames).toContain("article_url");
       expect(threadColNames).toContain("article_title");
       expect(threadColNames).toContain("article_source");

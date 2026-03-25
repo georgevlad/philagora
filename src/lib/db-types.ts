@@ -1,5 +1,10 @@
 import type { ContentTypeKey } from "@/lib/content-templates";
-import type { AgoraQuestionType, AgoraThreadStatus, Stance } from "@/lib/types";
+import type {
+  AgoraQuestionType,
+  AgoraThreadStatus,
+  AgoraThreadVisibility,
+  Stance,
+} from "@/lib/types";
 
 export interface PhilosopherRow {
   id: string;
@@ -91,6 +96,8 @@ export interface AgoraThreadRow {
   ip_address?: string | null;
   question_type?: AgoraQuestionType;
   recommendations_enabled?: number;
+  visibility?: AgoraThreadVisibility;
+  user_id?: string | null;
   article_url?: string | null;
   article_title?: string | null;
   article_source?: string | null;

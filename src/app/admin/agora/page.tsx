@@ -6,7 +6,11 @@ import { AGORA_STATUS_COLORS } from "@/lib/constants";
 import { formatDate } from "@/lib/date-utils";
 import { SynthesisCard } from "@/components/SynthesisCard";
 import { Spinner } from "@/components/Spinner";
-import type { AgoraQuestionType, AgoraRecommendation } from "@/lib/types";
+import type {
+  AgoraQuestionType,
+  AgoraRecommendation,
+  AgoraThreadVisibility,
+} from "@/lib/types";
 import type {
   AdminAgoraSynthesisData,
   Philosopher,
@@ -22,6 +26,7 @@ interface ThreadListItem {
   status: string;
   question_type: AgoraQuestionType;
   recommendations_enabled: number;
+  visibility: AgoraThreadVisibility;
   article_source?: string | null;
   created_at: string;
   philosopher_names: string[];
@@ -610,7 +615,17 @@ export default function AgoraWorkshopPage() {
                     onClick={() => resumeThread(t.id)}
                     className="min-w-0 flex-1 mr-4 text-left hover:opacity-70 transition-opacity"
                   >
-                    <span className="font-serif font-bold text-ink text-sm line-clamp-1">{t.question}</span>
+                    <span className="flex items-center gap-2">
+                      {t.visibility === "private" && (
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-parchment-dark/40 text-ink-faint">
+                          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <rect x="3" y="8" width="10" height="6" rx="1" />
+                            <path d="M5 8V5a3 3 0 016 0v3" />
+                          </svg>
+                        </span>
+                      )}
+                      <span className="font-serif font-bold text-ink text-sm line-clamp-1">{t.question}</span>
+                    </span>
                     <span className="text-xs text-ink-lighter block mt-0.5">
                       Asked by {t.asked_by} &middot; {t.philosopher_names.join(", ")}
                     </span>

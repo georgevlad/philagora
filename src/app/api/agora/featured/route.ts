@@ -28,6 +28,7 @@ export async function GET() {
         `SELECT id, question, asked_by, question_type, article_source, created_at
          FROM agora_threads
          WHERE status = 'complete'
+           AND visibility = 'public'
          ORDER BY created_at DESC
          LIMIT 10`
       )

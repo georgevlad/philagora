@@ -20,6 +20,7 @@ import {
   generateSynthesis,
   type QuestionClassification,
 } from "@/lib/generation-service";
+import type { AgoraThreadVisibility } from "@/lib/types";
 
 interface CountRow {
   count: number;
@@ -48,6 +49,10 @@ type RuntimeArticleContext = {
   content: string;
 };
 
+function normalizeVisibility(value: unknown): AgoraThreadVisibility {
+  return value === "private" ? "private" : "public";
+}
+
 /** POST /api/agora/submit — Submit a question to the Agora */
 export async function POST(request: NextRequest) {
   try {
@@ -62,6 +67,7 @@ export async function POST(request: NextRequest) {
       .trim() || "Anonymous";
     const philosopherIds: unknown = body.philosopher_ids;
     const rawArticleUrl = typeof body.article_url === "string" ? body.article_url.trim() : "";
+    const requestedVisibility = normalizeVisibility(body.visibility);
 
     if (question.length < 10 || question.length > 500) {
       return NextResponse.json(
@@ -114,6 +120,8 @@ export async function POST(request: NextRequest) {
 
     // ── Rate limit ────────────────────────────────────────────────────
     const identity = await getIdentityFromHeaders(request);
+    const userId = identity.type === "user" ? identity.id : null;
+    const visibility = identity.type === "user" ? requestedVisibility : "public";
     const isOwner =
       identity.type === "user" && identity.email === "george.vlad.utcn@gmail.com";
 
@@ -190,12 +198,14 @@ export async function POST(request: NextRequest) {
            ip_address,
            question_type,
            recommendations_enabled,
+           visibility,
+           user_id,
            article_url,
            article_title,
            article_source,
            article_excerpt
          )
-         VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`
+         VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(
         threadId,
         sanitizedQuestion,
@@ -203,6 +213,8 @@ export async function POST(request: NextRequest) {
         clientIp,
         classification.questionType,
         classification.recommendationsAppropriate ? 1 : 0,
+        visibility,
+        userId,
         normalizedArticleUrl,
         articleData?.title ?? null,
         articleSource,
