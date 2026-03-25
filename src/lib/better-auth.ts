@@ -26,6 +26,7 @@ function resolveDatabasePath(): string {
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
+  trustedOrigins: [process.env.BETTER_AUTH_URL ?? "https://philagora.social"],
   secret: process.env.BETTER_AUTH_SECRET,
   database: new Database(resolveDatabasePath()),
   socialProviders: {

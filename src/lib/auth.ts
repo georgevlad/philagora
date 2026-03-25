@@ -70,8 +70,8 @@ export async function getIdentityFromHeaders(
         email: session.user.email,
       };
     }
-  } catch {
-    // Treat Better Auth lookup failures as anonymous requests.
+  } catch (err) {
+    console.warn("[AUTH] Better Auth session lookup failed:", err instanceof Error ? err.message : err);
   }
 
   return { type: "anonymous" };
@@ -101,8 +101,8 @@ export async function getIdentityFromCookies(): Promise<RequestIdentity> {
         email: session.user.email,
       };
     }
-  } catch {
-    // Treat Better Auth lookup failures as anonymous requests.
+  } catch (err) {
+    console.warn("[AUTH] Better Auth session lookup failed:", err instanceof Error ? err.message : err);
   }
 
   return { type: "anonymous" };

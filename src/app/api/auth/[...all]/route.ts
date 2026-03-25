@@ -54,14 +54,16 @@ async function handleAuthRequest(
   try {
     await ensureBetterAuthTables();
     const response = await handler(request);
-    const errorMessage = await readErrorMessage(response);
+    response.headers.set("Cache-Control", "no-store");
+    const success = response.ok || (response.status >= 300 && response.status < 400);
+    const errorMessage = success ? null : await readErrorMessage(response);
 
     logAuthEvent({
       action,
-      success: response.ok,
+      success,
       latencyMs: Date.now() - startedAt,
       errorMessage,
-      errorType: response.ok ? null : `http_${response.status}`,
+      errorType: success ? null : `http_${response.status}`,
     });
 
     return response;
