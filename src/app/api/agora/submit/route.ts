@@ -125,9 +125,7 @@ export async function POST(request: NextRequest) {
     }
 
     const todayCount = db
-      .prepare(
-        "SELECT COUNT(*) as count FROM agora_threads WHERE ip_address IS NOT NULL AND created_at >= date('now')"
-      )
+      .prepare("SELECT COUNT(*) as count FROM agora_threads WHERE created_at >= date('now')")
       .get() as CountRow;
 
     if (todayCount.count >= 10) {
