@@ -170,6 +170,7 @@ describe("migration system", () => {
       expect(threadColNames).toContain("recommendations_enabled");
       expect(threadColNames).toContain("visibility");
       expect(threadColNames).toContain("user_id");
+      expect(threadColNames).toContain("follow_up_to");
       expect(threadColNames).toContain("article_url");
       expect(threadColNames).toContain("article_title");
       expect(threadColNames).toContain("article_source");
@@ -181,6 +182,13 @@ describe("migration system", () => {
       const responseColNames = responseColumns.map((column) => column.name);
 
       expect(responseColNames).toContain("recommendation");
+
+      const indexes = db
+        .prepare("PRAGMA index_list(agora_threads)")
+        .all() as Array<{ name: string }>;
+      const indexNames = indexes.map((index) => index.name);
+
+      expect(indexNames).toContain("idx_agora_threads_follow_up");
     });
 
     it("seeds news sources when bootstrapNewsSources is true", () => {

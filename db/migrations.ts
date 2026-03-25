@@ -59,6 +59,11 @@ const MIGRATIONS: Migration[] = [
     name: "agora_thread_visibility_and_user_ownership",
     migrate: (db) => migrateAgoraThreadVisibilityAndUserOwnership(db),
   },
+  {
+    version: 8,
+    name: "agora_thread_follow_up_linking",
+    migrate: (db) => migrateAgoraThreadFollowUpLinking(db),
+  },
   // ── Future migrations go here ──
   // {
   //   version: 2,
@@ -893,6 +898,19 @@ function migrateAgoraThreadVisibilityAndUserOwnership(db: Database.Database): vo
   if (!columnNames.has("user_id")) {
     db.exec("ALTER TABLE agora_threads ADD COLUMN user_id TEXT DEFAULT NULL");
   }
+}
+
+function migrateAgoraThreadFollowUpLinking(db: Database.Database): void {
+  const columns = db
+    .prepare("PRAGMA table_info(agora_threads)")
+    .all() as Array<{ name: string }>;
+  const columnNames = new Set(columns.map((column) => column.name));
+
+  if (!columnNames.has("follow_up_to")) {
+    db.exec("ALTER TABLE agora_threads ADD COLUMN follow_up_to TEXT DEFAULT NULL");
+  }
+
+  db.exec("CREATE INDEX IF NOT EXISTS idx_agora_threads_follow_up ON agora_threads(follow_up_to)");
 }
 
 function safeJsonArray(value: string | null | undefined): string[] {

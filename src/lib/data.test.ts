@@ -134,18 +134,20 @@ function seedAgoraThread(args: {
   status?: string;
   questionType?: "advice" | "conceptual" | "debate";
   recommendationsEnabled?: number;
+  followUpTo?: string | null;
   articleUrl?: string | null;
   articleTitle?: string | null;
   articleSource?: string | null;
   articleExcerpt?: string | null;
+  createdAt?: string;
   philosopherIds: string[];
 }) {
   testDb
     .prepare(
       `INSERT INTO agora_threads (
         id, question, asked_by, status, question_type, recommendations_enabled,
-        article_url, article_title, article_source, article_excerpt, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        follow_up_to, article_url, article_title, article_source, article_excerpt, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       args.id,
@@ -154,11 +156,12 @@ function seedAgoraThread(args: {
       args.status ?? "complete",
       args.questionType ?? "advice",
       args.recommendationsEnabled ?? 0,
+      args.followUpTo ?? null,
       args.articleUrl ?? null,
       args.articleTitle ?? null,
       args.articleSource ?? null,
       args.articleExcerpt ?? null,
-      "2025-03-01 16:00:00"
+      args.createdAt ?? "2025-03-01 16:00:00"
     );
 
   const insertPhilosopher = testDb.prepare(
@@ -553,6 +556,55 @@ describe("getAgoraThreadById", () => {
       },
     });
   });
+
+  it("includes follow-up data on the parent thread and parent reference on the child thread", () => {
+    seedAgoraThread({
+      id: "agora-parent",
+      question: "What should I do with my ambition?",
+      philosopherIds: ["nietzsche", "camus"],
+    });
+    seedAgoraThread({
+      id: "agora-child",
+      question: "What if that ambition isolates me from everyone else?",
+      followUpTo: "agora-parent",
+      createdAt: "2025-03-01 17:00:00",
+      philosopherIds: ["nietzsche", "camus"],
+    });
+    seedAgoraResponse({
+      id: "agora-child-response-1",
+      threadId: "agora-child",
+      philosopherId: "nietzsche",
+      posts: ["Isolation can be the price of becoming who you are."],
+    });
+    testDb
+      .prepare(
+        "INSERT INTO agora_synthesis_v2 (thread_id, synthesis_type, sections) VALUES (?, ?, ?)"
+      )
+      .run(
+        "agora-child",
+        "advice",
+        JSON.stringify({
+          tensions: ["Nietzsche treats isolation as a possible cost of self-creation."],
+          agreements: ["The cost should be faced consciously rather than passively."],
+          practicalTakeaways: ["Decide what kind of solitude is chosen versus imposed."],
+        })
+      );
+
+    const parent = getAgoraThreadById("agora-parent");
+    const child = getAgoraThreadById("agora-child");
+
+    expect(parent?.followUpTo).toBeNull();
+    expect(parent?.followUp).toMatchObject({
+      id: "agora-child",
+      question: "What if that ambition isolates me from everyone else?",
+      status: "complete",
+      createdAt: "2025-03-01 17:00:00",
+    });
+    expect(parent?.followUp?.responses[0]?.philosopherId).toBe("nietzsche");
+    expect(parent?.followUp?.synthesis?.type).toBe("advice");
+    expect(child?.followUpTo).toBe("agora-parent");
+    expect(child?.followUp).toBeNull();
+  });
 });
 
 describe("getRecentAgoraThreads", () => {
@@ -584,6 +636,28 @@ describe("getRecentAgoraThreads", () => {
     const threads = getRecentAgoraThreads(10);
 
     expect(threads.map((thread) => thread.id)).toEqual(["agora-public-complete"]);
+  });
+
+  it("excludes follow-up threads from recent public thread lists", () => {
+    seedAgoraThread({
+      id: "agora-root-thread",
+      question: "How should I think about loyalty?",
+      status: "complete",
+      createdAt: "2025-03-01 16:00:00",
+      philosopherIds: ["plato", "kant"],
+    });
+    seedAgoraThread({
+      id: "agora-follow-up-thread",
+      question: "What if loyalty conflicts with honesty?",
+      status: "complete",
+      followUpTo: "agora-root-thread",
+      createdAt: "2025-03-01 17:00:00",
+      philosopherIds: ["plato", "kant"],
+    });
+
+    const threads = getRecentAgoraThreads(10);
+
+    expect(threads.map((thread) => thread.id)).toEqual(["agora-root-thread"]);
   });
 });
 

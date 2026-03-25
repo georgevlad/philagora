@@ -8,6 +8,7 @@ interface ThreadRow {
   question_type: string;
   article_source: string | null;
   created_at: string;
+  has_follow_up: number;
 }
 
 interface PhilosopherRow {
@@ -25,11 +26,13 @@ export async function GET() {
 
     const threads = db
       .prepare(
-        `SELECT id, question, asked_by, question_type, article_source, created_at
-         FROM agora_threads
-         WHERE status = 'complete'
-           AND visibility = 'public'
-         ORDER BY created_at DESC
+        `SELECT t.id, t.question, t.asked_by, t.question_type, t.article_source, t.created_at,
+                EXISTS(SELECT 1 FROM agora_threads child WHERE child.follow_up_to = t.id) as has_follow_up
+         FROM agora_threads t
+         WHERE t.status = 'complete'
+           AND t.visibility = 'public'
+           AND t.follow_up_to IS NULL
+         ORDER BY t.created_at DESC
          LIMIT 10`
       )
       .all() as ThreadRow[];
@@ -43,6 +46,7 @@ export async function GET() {
 
     const result = threads.map((thread) => ({
       ...thread,
+      has_follow_up: thread.has_follow_up === 1,
       philosophers: getPhilosophers.all(thread.id) as PhilosopherRow[],
     }));
 

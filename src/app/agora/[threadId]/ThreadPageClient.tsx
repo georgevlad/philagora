@@ -33,6 +33,7 @@ interface ApiThread {
   recommendations_enabled: number;
   visibility: AgoraThreadVisibility;
   user_id?: string | null;
+  follow_up_to?: string | null;
   article: AgoraThreadArticle | null;
   created_at: string;
 }
@@ -62,11 +63,21 @@ interface ApiSynthesis {
   sections: AgoraSynthesisSections;
 }
 
+interface ApiFollowUp {
+  id: string;
+  question: string;
+  status: AgoraThreadStatus;
+  created_at: string;
+  responses: ApiResponse[];
+  synthesis: ApiSynthesis | null;
+}
+
 interface ApiThreadData {
   thread: ApiThread;
   philosophers: ApiPhilosopher[];
   responses: ApiResponse[];
   synthesis: ApiSynthesis | null;
+  followUp?: ApiFollowUp | null;
 }
 
 // Thinking messages per philosopher
@@ -289,9 +300,14 @@ export function ThreadPageClient({
 }) {
   const [data, setData] = useState<ApiThreadData | null>(null);
   const [articleWarning, setArticleWarning] = useState<string | null>(null);
+  const [followUpText, setFollowUpText] = useState("");
+  const [followUpSubmitting, setFollowUpSubmitting] = useState(false);
+  const [followUpError, setFollowUpError] = useState<string | null>(null);
+  const [shareConfirm, setShareConfirm] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const shareTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchThread = useCallback(async () => {
     try {
@@ -304,6 +320,9 @@ export function ThreadPageClient({
       if (!res.ok) throw new Error("Failed to fetch");
       const json = (await res.json()) as ApiThreadData;
       setData(json);
+      if (json.followUp) {
+        setFollowUpError(null);
+      }
       setLoading(false);
       return json;
     } catch {
@@ -312,8 +331,23 @@ export function ThreadPageClient({
     }
   }, [threadId]);
 
+  function shouldPoll(result: ApiThreadData) {
+    return (
+      !isThreadSettled(result.thread.status)
+      || Boolean(result.followUp && !isThreadSettled(result.followUp.status))
+    );
+  }
+
   // Initial fetch + start polling if needed
   useEffect(() => {
+    const cleanup = () => {
+      stopPolling();
+      if (shareTimeoutRef.current) {
+        clearTimeout(shareTimeoutRef.current);
+        shareTimeoutRef.current = null;
+      }
+    };
+
     if (typeof window !== "undefined") {
       const key = `agora-article-warning:${threadId}`;
       const warning = sessionStorage.getItem(key);
@@ -329,17 +363,20 @@ export function ThreadPageClient({
       const apiData = convertInitialThread(initialThread, philosophersMap);
       setData(apiData);
       setLoading(false);
-      return;
+      if (shouldPoll(apiData)) {
+        startPolling();
+      }
+      return cleanup;
     }
 
     // Otherwise, fetch from API and potentially start polling
     fetchThread().then((result) => {
-      if (result && !isThreadSettled(result.thread.status)) {
+      if (result && shouldPoll(result)) {
         startPolling();
       }
     });
 
-    return () => stopPolling();
+    return cleanup;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId]);
 
@@ -347,7 +384,7 @@ export function ThreadPageClient({
     if (pollingRef.current) return;
     pollingRef.current = setInterval(async () => {
       const result = await fetchThread();
-      if (result && isThreadSettled(result.thread.status)) {
+      if (result && !shouldPoll(result)) {
         stopPolling();
       }
     }, 4000);
@@ -357,6 +394,71 @@ export function ThreadPageClient({
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
+    }
+  }
+
+  async function handleFollowUpSubmit() {
+    const trimmed = followUpText.trim();
+    if (trimmed.length < 10 || followUpSubmitting || !data) return;
+
+    setFollowUpSubmitting(true);
+    setFollowUpError(null);
+
+    try {
+      const res = await fetch(`/api/agora/${data.thread.id}/follow-up`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: trimmed }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to submit follow-up");
+      }
+
+      setFollowUpText("");
+      startPolling();
+      const result = await fetchThread();
+      if (result && !shouldPoll(result)) {
+        stopPolling();
+      }
+    } catch (error) {
+      setFollowUpError(
+        error instanceof Error ? error.message : "Failed to submit follow-up"
+      );
+    } finally {
+      setFollowUpSubmitting(false);
+    }
+  }
+
+  async function handleShareThread() {
+    if (!data) return;
+
+    const url = `${window.location.origin}/agora/${data.thread.id}`;
+    const text = `"${data.thread.question}" — Philagora Agora`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Philagora", text, url });
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareConfirm(true);
+      if (shareTimeoutRef.current) {
+        clearTimeout(shareTimeoutRef.current);
+      }
+      shareTimeoutRef.current = setTimeout(() => {
+        setShareConfirm(false);
+      }, 2000);
+    } catch {
+      // Ignore clipboard failures when sharing isn't available.
     }
   }
 
@@ -397,6 +499,10 @@ export function ThreadPageClient({
 
   const isFailed = data.thread.status === "failed";
   const isGenerating = !isThreadSettled(data.thread.status);
+  const isFollowUpThread = Boolean(data.thread.follow_up_to);
+  const followUpIsGenerating = Boolean(
+    data.followUp && !isThreadSettled(data.followUp.status)
+  );
   const recommendations = data.responses
     .filter((response) => response.recommendation)
     .map((response) => ({
@@ -406,6 +512,17 @@ export function ThreadPageClient({
 
   return (
     <PageWrapper philosophers={philosophers}>
+      {data.thread.follow_up_to && (
+        <div className="px-5 py-3 border-b border-border-light bg-parchment-dark/10">
+          <Link
+            href={`/agora/${data.thread.follow_up_to}`}
+            className="text-[11px] font-mono text-athenian hover:text-athenian/80 transition-colors"
+          >
+            ← View original question
+          </Link>
+        </div>
+      )}
+
       {/* Question header */}
       <div className="px-5 py-6 bg-parchment-dark/40 border-b border-border-light">
         <blockquote className="font-serif text-[22px] sm:text-[24px] leading-[1.5] text-ink text-center max-w-lg mx-auto px-4"
@@ -629,30 +746,146 @@ export function ThreadPageClient({
         </div>
       )}
 
-      {/* CTA to ask a new question */}
-      {!isGenerating && (
-        <div className="px-5 py-6 border-t border-border-light text-center">
-          <Link
-            href="/agora"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-mono text-sm text-white bg-athenian hover:bg-athenian/90 transition-colors duration-200"
-          >
-            Ask your own question
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
+      {/* Post-synthesis actions */}
+      {!isFailed && data.thread.status === "complete" && (
+        <div className="px-5 py-6 border-t border-border-light">
+          {!isFollowUpThread && !data.followUp && (
+            <div className="mb-5">
+              <div className="text-[10px] font-mono tracking-[0.2em] uppercase text-ink-faint mb-3">
+                Continue the dialogue
+              </div>
+              <div className="rounded-2xl border border-border-light/80 bg-[linear-gradient(180deg,rgba(248,243,234,0.6),rgba(255,255,255,0.4))] p-4">
+                <textarea
+                  value={followUpText}
+                  onChange={(event) => {
+                    setFollowUpText(event.target.value);
+                    if (followUpError) {
+                      setFollowUpError(null);
+                    }
+                  }}
+                  placeholder="What else would you like to ask these philosophers?"
+                  maxLength={500}
+                  rows={3}
+                  className="w-full bg-transparent border-none text-[15px] font-body text-ink placeholder:text-ink-lighter/50 focus:outline-none resize-none leading-relaxed"
+                />
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-border-light/60">
+                  <span className="text-[11px] font-mono text-ink-faint">
+                    {followUpText.length}/500
+                  </span>
+                  <button
+                    onClick={handleFollowUpSubmit}
+                    disabled={followUpText.trim().length < 10 || followUpSubmitting}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-athenian text-white text-sm font-body hover:bg-athenian/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {followUpSubmitting ? "Submitting..." : "Ask follow-up →"}
+                  </button>
+                </div>
+                {followUpError && (
+                  <p className="mt-2 text-sm text-red-700">{followUpError}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!isFollowUpThread && followUpIsGenerating && data.followUp && (
+            <div className="mb-5">
+              <div className="text-[10px] font-mono tracking-[0.2em] uppercase text-ink-faint mb-3">
+                Continue the dialogue
+              </div>
+              <div className="rounded-2xl border border-border-light/80 bg-[linear-gradient(180deg,rgba(248,243,234,0.6),rgba(255,255,255,0.4))] px-4 py-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 border-2 border-gold/30 border-t-gold rounded-full animate-spin shrink-0" />
+                  <div>
+                    <p className="text-sm font-body italic text-ink-light">
+                      The philosophers are considering your follow-up...
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-center gap-x-6 gap-y-3 flex-wrap">
+            <button
+              onClick={handleShareThread}
+              className="inline-flex items-center gap-2 text-[12px] font-mono text-ink-lighter hover:text-athenian transition-colors"
             >
-              <path
-                d="M3 8H13M10 5L13 8L10 11"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </Link>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M2 8V13C2 13.5523 2.44772 14 3 14H13C13.5523 14 14 13.5523 14 13V8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M8 2V10" strokeLinecap="round" />
+                <path d="M5 5L8 2L11 5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {shareConfirm ? "Link copied!" : "Share this thread"}
+            </button>
+
+            <Link
+              href="/agora"
+              className="inline-flex items-center gap-1.5 text-[12px] font-mono text-ink-lighter hover:text-athenian transition-colors"
+            >
+              New conversation →
+            </Link>
+          </div>
         </div>
+      )}
+
+      {/* Follow-up continuation */}
+      {data.followUp && (
+        <>
+          <div className="px-5 py-4 border-t border-border-light">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
+              <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-gold">
+                Follow-up
+              </span>
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
+            </div>
+          </div>
+
+          <div className="px-5 py-4">
+            <blockquote className="font-serif text-[20px] sm:text-[24px] leading-[1.22] text-ink">
+              &ldquo;{data.followUp.question}&rdquo;
+            </blockquote>
+            <div className="mt-2 text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">
+              {timeAgo(data.followUp.created_at)}
+            </div>
+          </div>
+
+          {(data.followUp.status === "complete" || data.followUp.responses.length > 0) && (
+            <div>
+              {data.followUp.responses.map((response, index) => (
+                <ResponseCard key={response.id} response={response} delay={index * 3} />
+              ))}
+            </div>
+          )}
+
+          {followUpIsGenerating && (
+            <div className="px-5 py-6 text-center">
+              <div className="w-6 h-6 border-2 border-gold/30 border-t-gold rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-sm font-body italic text-ink-lighter">
+                The philosophers are considering your follow-up...
+              </p>
+            </div>
+          )}
+
+          {data.followUp.status === "failed" && (
+            <div className="px-5 py-4">
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                <p className="text-sm font-body text-red-900">
+                  The philosophers were unable to complete this follow-up. You can start a new conversation instead.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {data.followUp.synthesis && (
+            <div className="px-5 py-5">
+              <SynthesisCard
+                type={data.followUp.synthesis.type}
+                sections={data.followUp.synthesis.sections}
+              />
+            </div>
+          )}
+        </>
       )}
     </PageWrapper>
   );
@@ -697,6 +930,7 @@ function convertInitialThread(
         recommendations_enabled: thread.recommendationsEnabled ? 1 : 0,
         visibility: thread.visibility,
         user_id: thread.userId ?? null,
+        follow_up_to: thread.followUpTo ?? null,
         article: thread.article,
         created_at: thread.createdAt,
       },
@@ -725,6 +959,31 @@ function convertInitialThread(
       ? {
           type: thread.synthesis.type,
           sections: thread.synthesis.sections,
+        }
+      : null,
+    followUp: thread.followUp
+      ? {
+          id: thread.followUp.id,
+          question: thread.followUp.question,
+          status: thread.followUp.status,
+          created_at: thread.followUp.createdAt,
+          responses: thread.followUp.responses.map((response) => ({
+            id: `${response.philosopherId}-${response.sortOrder}`,
+            philosopher_id: response.philosopherId,
+            posts: response.posts,
+            recommendation: response.recommendation ?? null,
+            sort_order: response.sortOrder,
+            philosopher_name: response.philosopherName,
+            philosopher_initials: response.philosopherInitials,
+            philosopher_color: response.philosopherColor,
+            philosopher_tradition: response.philosopherTradition,
+          })),
+          synthesis: thread.followUp.synthesis
+            ? {
+                type: thread.followUp.synthesis.type,
+                sections: thread.followUp.synthesis.sections,
+              }
+            : null,
         }
       : null,
   };

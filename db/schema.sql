@@ -110,12 +110,15 @@ CREATE TABLE IF NOT EXISTS agora_threads (
   visibility              TEXT NOT NULL DEFAULT 'public'
                             CHECK(visibility IN ('public', 'private')),
   user_id                 TEXT DEFAULT NULL,
+  follow_up_to            TEXT DEFAULT NULL REFERENCES agora_threads(id),
   article_url             TEXT DEFAULT NULL,
   article_title           TEXT DEFAULT NULL,
   article_source          TEXT DEFAULT NULL,
   article_excerpt         TEXT DEFAULT NULL,
   created_at              TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE INDEX IF NOT EXISTS idx_agora_threads_follow_up ON agora_threads(follow_up_to);
 
 -- ── Agora Thread ↔ Philosopher junction ──────────────────────────────
 

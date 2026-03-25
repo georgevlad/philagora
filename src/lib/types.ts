@@ -217,6 +217,15 @@ export interface AgoraThreadArticle {
   excerpt: string | null;
 }
 
+export interface AgoraThreadFollowUp {
+  id: string;
+  question: string;
+  status: AgoraThreadStatus;
+  createdAt: string;
+  responses: AgoraResponse[];
+  synthesis: AgoraSynthesis | null;
+}
+
 export interface AgoraThreadDetail {
   id: string;
   question: string;
@@ -231,4 +240,6 @@ export interface AgoraThreadDetail {
   philosophers: string[];
   responses: AgoraResponse[];
   synthesis: AgoraSynthesis | null;
+  followUpTo?: string | null;
+  followUp?: AgoraThreadFollowUp | null;
 }

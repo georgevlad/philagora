@@ -45,6 +45,15 @@ function VisibilityBadge() {
   );
 }
 
+function FollowUpBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-gold/10 px-2 py-0.5 text-[10px] font-mono uppercase tracking-[0.14em] text-gold">
+      <span className="h-1.5 w-1.5 rounded-full bg-current/70" />
+      Follow-up
+    </span>
+  );
+}
+
 function StatusBadge({ status }: { status: string }) {
   if (status === "complete") return null;
 
@@ -147,6 +156,7 @@ export default async function ProfilePage() {
                         &ldquo;{thread.question}&rdquo;
                       </p>
                       <div className="flex items-center gap-2 shrink-0">
+                        {thread.has_follow_up && <FollowUpBadge />}
                         {thread.visibility === "private" && <VisibilityBadge />}
                         <StatusBadge status={thread.status} />
                       </div>

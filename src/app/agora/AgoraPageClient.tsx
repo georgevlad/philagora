@@ -32,6 +32,7 @@ interface FeaturedThread {
   question_type: "advice" | "conceptual" | "debate";
   article_source: string | null;
   created_at: string;
+  has_follow_up: boolean;
   philosophers: {
     id: string;
     name: string;
@@ -108,10 +109,16 @@ function FeaturedThreadCard({ thread }: { thread: FeaturedThread }) {
           <p className="font-serif text-[20px] sm:text-[22px] leading-[1.26] text-ink line-clamp-2 group-hover:text-athenian transition-colors text-balance">
             &ldquo;{thread.question}&rdquo;
           </p>
-          <div className="mt-2">
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
             <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-athenian/8 text-athenian text-[9px] font-mono uppercase tracking-[0.14em]">
               {getQuestionTypeLabel(thread.question_type)}
             </span>
+            {thread.has_follow_up && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gold/10 text-gold text-[9px] font-mono uppercase tracking-[0.14em]">
+                <span className="h-1.5 w-1.5 rounded-full bg-current/70" />
+                Follow-up
+              </span>
+            )}
           </div>
           {thread.article_source && (
             <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.14em] text-ink-faint">

@@ -13,13 +13,17 @@ import {
   classifyAgoraQuestion,
   type QuestionClassification,
 } from "@/lib/generation-service";
-import type { AgoraQuestionType, AgoraThreadVisibility } from "@/lib/types";
+import type {
+  AgoraQuestionType,
+  AgoraThreadStatus,
+  AgoraThreadVisibility,
+} from "@/lib/types";
 
 interface ThreadRow {
   id: string;
   question: string;
   asked_by: string;
-  status: string;
+  status: AgoraThreadStatus;
   question_type?: AgoraQuestionType;
   recommendations_enabled?: number;
   visibility?: AgoraThreadVisibility;
@@ -30,6 +34,7 @@ interface ThreadRow {
   created_at: string;
   philosopher_ids: string;
   philosopher_names: string;
+  follow_up_status?: AgoraThreadStatus | null;
 }
 
 function isAgoraQuestionType(value: unknown): value is AgoraQuestionType {
@@ -243,11 +248,13 @@ export async function GET() {
     const rows = db
       .prepare(
         `SELECT t.*,
-           GROUP_CONCAT(atp.philosopher_id) as philosopher_ids,
-           GROUP_CONCAT(p.name) as philosopher_names
-         FROM agora_threads t
+            (SELECT child.status FROM agora_threads child WHERE child.follow_up_to = t.id LIMIT 1) as follow_up_status,
+            GROUP_CONCAT(atp.philosopher_id) as philosopher_ids,
+            GROUP_CONCAT(p.name) as philosopher_names
+          FROM agora_threads t
          LEFT JOIN agora_thread_philosophers atp ON t.id = atp.thread_id
          LEFT JOIN philosophers p ON atp.philosopher_id = p.id
+         WHERE t.follow_up_to IS NULL
          GROUP BY t.id
          ORDER BY t.created_at DESC`
       )
@@ -259,6 +266,7 @@ export async function GET() {
       philosopher_ids: parseGroupConcat(row.philosopher_ids),
       philosopher_names: parseGroupConcat(row.philosopher_names),
       article_source: row.article_source ?? null,
+      follow_up_status: row.follow_up_status ?? null,
     }));
 
     return NextResponse.json(threads);

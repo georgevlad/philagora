@@ -19,6 +19,25 @@ type LegacyAgoraSynthesisRow = {
   practical_takeaways: string | null;
 };
 
+export type AgoraGenerationArticle = AgoraThreadArticle & {
+  content?: string | null;
+};
+
+export interface AgoraGenerationResponseRow {
+  posts: string;
+  philosopher_name: string;
+  philosopher_tradition: string;
+}
+
+export interface AgoraGenerationRecommendationRow {
+  recommendation: string;
+  philosopher_name: string;
+}
+
+export interface AgoraFollowUpContextResponseRow extends AgoraGenerationResponseRow {
+  recommendation?: string | null;
+}
+
 const AGORA_QUESTION_TYPES: AgoraQuestionType[] = ["advice", "conceptual", "debate"];
 const AGORA_RECOMMENDATION_MEDIA: AgoraRecommendationMedium[] = [
   "book",
@@ -236,6 +255,17 @@ export function buildAgoraClassificationInput(
   return classificationInput;
 }
 
+export function sanitizeAgoraQuestion(question: string): string {
+  return question
+    .replace(/\[INST\]/gi, "")
+    .replace(/<\/?system>/gi, "")
+    .replace(/<\/?assistant>/gi, "")
+    .replace(/<\/?human>/gi, "")
+    .replace(/<\/?user>/gi, "")
+    .replace(/^(system|assistant|human|user)\s*:/gim, "")
+    .trim();
+}
+
 export function buildAgoraResponseSourceMaterial(args: {
   question: string;
   askedBy: string;
@@ -243,7 +273,7 @@ export function buildAgoraResponseSourceMaterial(args: {
   recommendationsAppropriate: boolean;
   recommendationHint: string | null;
   alreadyRecommended?: string[];
-  article?: (AgoraThreadArticle & { content?: string | null }) | null;
+  article?: AgoraGenerationArticle | null;
 }): string {
   const alreadyRecommended = args.alreadyRecommended ?? [];
   const hasArticleContent = Boolean(args.article?.content);
@@ -286,15 +316,8 @@ export function buildAgoraSynthesisSourceMaterial(args: {
   question: string;
   askedBy: string;
   questionType: AgoraQuestionType;
-  responses: Array<{
-    posts: string;
-    philosopher_name: string;
-    philosopher_tradition: string;
-  }>;
-  recommendations: Array<{
-    recommendation: string;
-    philosopher_name: string;
-  }>;
+  responses: AgoraGenerationResponseRow[];
+  recommendations: AgoraGenerationRecommendationRow[];
   article?: AgoraThreadArticle | null;
 }): string {
   let sourceMaterial = `USER QUESTION: ${args.question}\n`;
@@ -341,4 +364,120 @@ export function buildAgoraSynthesisSourceMaterial(args: {
   }
 
   return sourceMaterial;
+}
+
+function buildAgoraFollowUpContextPrefix(args: {
+  parentQuestion: string;
+  askedBy: string;
+  parentResponses: AgoraFollowUpContextResponseRow[];
+  parentSynthesis: AgoraSynthesis | null;
+  article?: AgoraThreadArticle | null;
+}): string {
+  let sourceMaterial = "";
+
+  if (args.article && (args.article.title || args.article.source || args.article.excerpt)) {
+    sourceMaterial += "=== ORIGINAL ARTICLE CONTEXT ===\n";
+    if (args.article.title) {
+      sourceMaterial += `Title: ${args.article.title}\n`;
+    }
+    if (args.article.source) {
+      sourceMaterial += `Source: ${args.article.source}\n`;
+    }
+    if (args.article.excerpt) {
+      sourceMaterial += `Excerpt: ${args.article.excerpt}\n`;
+    }
+    sourceMaterial += "\n";
+  }
+
+  sourceMaterial += "=== ORIGINAL QUESTION ===\n";
+  sourceMaterial += `${args.parentQuestion}\n`;
+  sourceMaterial += `Asked by: ${args.askedBy}\n\n`;
+
+  if (args.parentResponses.length > 0) {
+    sourceMaterial += "=== PREVIOUS PHILOSOPHER RESPONSES ===\n\n";
+
+    for (const response of args.parentResponses) {
+      const posts = safeJsonParse<string[]>(response.posts, []);
+      sourceMaterial += `${response.philosopher_name} (${response.philosopher_tradition}) said:\n`;
+
+      for (const post of posts) {
+        sourceMaterial += `${post}\n\n`;
+      }
+
+      const recommendation = parseAgoraRecommendation(response.recommendation);
+      if (recommendation) {
+        sourceMaterial += `Recommendation: "${recommendation.title}" (${recommendation.medium}) - ${recommendation.reason}\n\n`;
+      }
+    }
+  }
+
+  if (args.parentSynthesis) {
+    sourceMaterial += "=== ORIGINAL EDITORIAL SYNTHESIS ===\n";
+    sourceMaterial += `Type: ${args.parentSynthesis.type}\n`;
+    sourceMaterial += `${JSON.stringify(args.parentSynthesis.sections, null, 2)}\n\n`;
+  }
+
+  return sourceMaterial;
+}
+
+export function buildAgoraFollowUpResponseSourceMaterial(args: {
+  parentQuestion: string;
+  askedBy: string;
+  parentResponses: AgoraFollowUpContextResponseRow[];
+  parentSynthesis: AgoraSynthesis | null;
+  followUpQuestion: string;
+  questionType: AgoraQuestionType;
+  recommendationsAppropriate: boolean;
+  recommendationHint: string | null;
+  alreadyRecommended?: string[];
+  article?: AgoraThreadArticle | null;
+}): string {
+  const originalContext = buildAgoraFollowUpContextPrefix({
+    parentQuestion: args.parentQuestion,
+    askedBy: args.askedBy,
+    parentResponses: args.parentResponses,
+    parentSynthesis: args.parentSynthesis,
+    article: args.article,
+  });
+  const followUpPrompt = buildAgoraResponseSourceMaterial({
+    question: args.followUpQuestion,
+    askedBy: args.askedBy,
+    questionType: args.questionType,
+    recommendationsAppropriate: args.recommendationsAppropriate,
+    recommendationHint: args.recommendationHint,
+    alreadyRecommended: args.alreadyRecommended,
+    article: null,
+  });
+
+  return `${originalContext}=== FOLLOW-UP QUESTION ===\n${followUpPrompt}\n\nThe user has already read the earlier responses and synthesis. Address the follow-up directly, deepen the conversation, and avoid simply repeating your earlier answer.`;
+}
+
+export function buildAgoraFollowUpSynthesisSourceMaterial(args: {
+  parentQuestion: string;
+  askedBy: string;
+  parentResponses: AgoraFollowUpContextResponseRow[];
+  parentSynthesis: AgoraSynthesis | null;
+  followUpQuestion: string;
+  questionType: AgoraQuestionType;
+  responses: AgoraGenerationResponseRow[];
+  recommendations: AgoraGenerationRecommendationRow[];
+  article?: AgoraThreadArticle | null;
+}): string {
+  const originalContext = buildAgoraFollowUpContextPrefix({
+    parentQuestion: args.parentQuestion,
+    askedBy: args.askedBy,
+    parentResponses: args.parentResponses,
+    parentSynthesis: args.parentSynthesis,
+    article: args.article,
+  });
+  const followUpExchange = buildAgoraSynthesisSourceMaterial({
+    question: args.followUpQuestion,
+    askedBy: args.askedBy,
+    questionType: args.questionType,
+    responses: args.responses,
+    recommendations: args.recommendations,
+    article: null,
+  });
+
+  return `${originalContext}=== FOLLOW-UP EXCHANGE ===\n${followUpExchange}\nSynthesize the follow-up exchange as a continuation of the original dialogue, focusing on what deepened, shifted, or remained unresolved.`;
 }

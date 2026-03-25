@@ -9,6 +9,7 @@ import { Spinner } from "@/components/Spinner";
 import type {
   AgoraQuestionType,
   AgoraRecommendation,
+  AgoraThreadStatus,
   AgoraThreadVisibility,
 } from "@/lib/types";
 import type {
@@ -23,13 +24,14 @@ interface ThreadListItem {
   id: string;
   question: string;
   asked_by: string;
-  status: string;
+  status: AgoraThreadStatus;
   question_type: AgoraQuestionType;
   recommendations_enabled: number;
   visibility: AgoraThreadVisibility;
   article_source?: string | null;
   created_at: string;
   philosopher_names: string[];
+  follow_up_status: AgoraThreadStatus | null;
 }
 
 interface AdminAgoraArticle {
@@ -50,8 +52,52 @@ interface AgResponseRow {
   philosopher_tradition: string;
 }
 
+interface AdminFollowUpData {
+  id: string;
+  question: string;
+  status: AgoraThreadStatus;
+  created_at: string;
+  responses: AgResponseRow[];
+  synthesis: AdminAgoraSynthesisData | null;
+}
+
+interface AdminThreadDetailPayload {
+  thread: {
+    question: string;
+    asked_by: string;
+    status: AgoraThreadStatus;
+    question_type?: AgoraQuestionType;
+    recommendations_enabled?: number;
+    article?: AdminAgoraArticle | null;
+  };
+  philosophers: Philosopher[];
+  responses: AgResponseRow[];
+  synthesis: AdminAgoraSynthesisData | null;
+  followUp: AdminFollowUpData | null;
+}
+
 function recommendationMediumLabel(medium: string): string {
   return medium.charAt(0).toUpperCase() + medium.slice(1);
+}
+
+function formatAgoraStatus(status: AgoraThreadStatus) {
+  return status.replace("_", " ");
+}
+
+function StatusPill({
+  status,
+  prefix,
+}: {
+  status: AgoraThreadStatus;
+  prefix?: string;
+}) {
+  const label = prefix ? `${prefix} ${formatAgoraStatus(status)}` : formatAgoraStatus(status);
+
+  return (
+    <span className={`inline-flex items-center text-[11px] font-mono px-2.5 py-0.5 rounded-full ${AGORA_STATUS_COLORS[status] || "bg-gray-100 text-gray-700"}`}>
+      {label}
+    </span>
+  );
 }
 
 function ArticleSummary({ article }: { article: AdminAgoraArticle }) {
@@ -83,6 +129,143 @@ function ArticleSummary({ article }: { article: AdminAgoraArticle }) {
         )}
       </div>
     </a>
+  );
+}
+
+function FollowUpResponseCard({ response }: { response: AgResponseRow }) {
+  return (
+    <div className="bg-white border border-border rounded-xl overflow-hidden">
+      <div className="px-6 py-4 flex items-center justify-between gap-3 border-b border-border/50 bg-parchment-dark/15">
+        <div className="flex items-center gap-3">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-serif font-bold shrink-0"
+            style={{ backgroundColor: response.philosopher_color }}
+          >
+            {response.philosopher_initials}
+          </div>
+          <div>
+            <span className="font-serif font-bold text-ink text-sm">{response.philosopher_name}</span>
+            <span
+              className="ml-2 text-[11px] font-mono px-2 py-0.5 rounded"
+              style={{ backgroundColor: `${response.philosopher_color}15`, color: response.philosopher_color }}
+            >
+              {response.philosopher_tradition}
+            </span>
+          </div>
+        </div>
+        <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-ink-faint">
+          Follow-up response
+        </span>
+      </div>
+
+      <div className="px-6 py-5 space-y-3">
+        {response.posts.map((post, index) => (
+          <div
+            key={`${response.id}-${index}`}
+            className="text-sm text-ink leading-relaxed whitespace-pre-line pl-3"
+            style={{ borderLeft: `2px solid ${response.philosopher_color}40` }}
+          >
+            {response.posts.length > 1 && (
+              <span className="text-[10px] font-mono text-ink-lighter block mb-1">
+                Response {index + 1}
+              </span>
+            )}
+            {post}
+          </div>
+        ))}
+
+        {response.recommendation && (
+          <div
+            className="rounded-xl border bg-parchment-dark/35 px-4 py-3"
+            style={{
+              borderColor: `${response.philosopher_color}25`,
+              borderLeftColor: response.philosopher_color,
+              borderLeftWidth: "3px",
+            }}
+          >
+            <div className="flex items-center justify-between gap-3 mb-1.5">
+              <div>
+                <p className="font-serif text-[15px] text-ink">
+                  {response.recommendation.title}
+                </p>
+                <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-ink-faint mt-1">
+                  {recommendationMediumLabel(response.recommendation.medium)}
+                </p>
+              </div>
+              <span
+                className="text-[10px] font-mono px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: `${response.philosopher_color}12`, color: response.philosopher_color }}
+              >
+                Recommendation
+              </span>
+            </div>
+            <p className="text-sm text-ink-light leading-relaxed">
+              {response.recommendation.reason}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FollowUpThreadSection({ followUp }: { followUp: AdminFollowUpData }) {
+  return (
+    <section className="mt-8">
+      <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-gold">
+            Follow-up
+          </div>
+          <h3 className="mt-1 font-serif text-lg font-bold text-ink">
+            Continuation of the dialogue
+          </h3>
+        </div>
+        <StatusPill status={followUp.status} prefix="Follow-up" />
+      </div>
+
+      <div className="bg-parchment-dark/30 border border-border rounded-xl px-6 py-5 mb-4">
+        <p className="text-xs font-mono uppercase tracking-wider text-ink-lighter mb-1">
+          Question
+        </p>
+        <p className="font-serif text-ink leading-relaxed">{followUp.question}</p>
+        <p className="text-xs text-ink-lighter mt-2">{formatDate(followUp.created_at)}</p>
+      </div>
+
+      {followUp.responses.length > 0 && (
+        <div className="space-y-3">
+          {followUp.responses.map((response) => (
+            <FollowUpResponseCard key={response.id} response={response} />
+          ))}
+        </div>
+      )}
+
+      {(followUp.status === "pending" || followUp.status === "in_progress") && (
+        <div className="mt-4 bg-white border border-border rounded-xl px-6 py-6 text-center">
+          <Spinner className="h-5 w-5 mx-auto mb-2 text-terracotta" />
+          <p className="text-sm text-ink-lighter">
+            The public follow-up is still generating.
+          </p>
+        </div>
+      )}
+
+      {followUp.status === "failed" && (
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-6 py-4 text-sm text-red-800">
+          Follow-up generation failed.
+        </div>
+      )}
+
+      {followUp.synthesis && (
+        <div className="mt-4 bg-white border border-border rounded-xl shadow-sm overflow-hidden">
+          <div className="px-3 py-3">
+            <SynthesisCard
+              type={followUp.synthesis.type}
+              sections={followUp.synthesis.sections}
+            />
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -121,6 +304,7 @@ export default function AgoraWorkshopPage() {
   const [synthesisRawOutput, setSynthesisRawOutput] = useState("");
   const [showSynthesisRaw, setShowSynthesisRaw] = useState(false);
   const [savingSynthesis, setSavingSynthesis] = useState(false);
+  const [followUp, setFollowUp] = useState<AdminFollowUpData | null>(null);
 
   // ── Selected philosopher objects ──────────────────────────────────────
   const selectedPhilosophers = selectedIds
@@ -159,6 +343,7 @@ export default function AgoraWorkshopPage() {
 
       if (threadId === id) {
         setThreadId(null);
+        setFollowUp(null);
         setStep(1);
       }
     } catch {
@@ -176,7 +361,7 @@ export default function AgoraWorkshopPage() {
       try {
         const res = await fetch(`/api/admin/agora/${id}`);
         if (!res.ok) throw new Error("Failed to load thread");
-        const data = await res.json();
+        const data = await res.json() as AdminThreadDetailPayload;
 
         setThreadId(id);
         setQuestion(data.thread.question);
@@ -228,6 +413,7 @@ export default function AgoraWorkshopPage() {
           setSynthesisData(null);
           setSynthesisState("pending");
         }
+        setFollowUp(data.followUp ?? null);
 
         // Determine step
         const allResponsesApproved =
@@ -289,6 +475,7 @@ export default function AgoraWorkshopPage() {
       setArticle(data.thread.article ?? null);
       setArticleUrl(data.thread.article?.url ?? trimmedArticleUrl);
       setNotice(data.articleWarning || "");
+      setFollowUp(null);
 
       // Initialize responses state
       const init: Record<string, PhiloState> = {};
@@ -642,9 +829,10 @@ export default function AgoraWorkshopPage() {
                     </span>
                   </button>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full ${AGORA_STATUS_COLORS[t.status] || "bg-gray-100 text-gray-700"}`}>
-                      {t.status}
-                    </span>
+                    {t.follow_up_status && (
+                      <StatusPill status={t.follow_up_status} prefix="Follow-up" />
+                    )}
+                    <StatusPill status={t.status} />
                     <span className="text-xs text-ink-lighter font-mono">{formatDate(t.created_at)}</span>
                     {confirmDeleteId === t.id ? (
                       <div className="flex items-center gap-2">
@@ -1032,6 +1220,8 @@ export default function AgoraWorkshopPage() {
               )}
             </div>
           )}
+
+          {followUp && <FollowUpThreadSection followUp={followUp} />}
         </div>
       )}
 

@@ -23,6 +23,7 @@ import type {
   DebatePost,
   AgoraQuestionType,
   AgoraThreadDetail,
+  AgoraThreadFollowUp,
   AgoraResponse,
   AgoraSynthesis,
   AgoraThreadVisibility,
@@ -439,7 +440,7 @@ export function getAllAgoraThreads(): AgoraThreadDetail[] {
   const db = getDb();
 
   const threads = db
-    .prepare("SELECT * FROM agora_threads ORDER BY created_at DESC")
+    .prepare("SELECT * FROM agora_threads WHERE follow_up_to IS NULL ORDER BY created_at DESC")
     .all() as AgoraThreadRow[];
 
   return threads.map((t) => buildAgoraThreadDetail(db, t));
@@ -454,6 +455,7 @@ export function getRecentAgoraThreads(limit = 5) {
        FROM agora_threads
        WHERE status = 'complete'
          AND visibility = 'public'
+         AND follow_up_to IS NULL
        ORDER BY created_at DESC
        LIMIT ?`
     )
@@ -489,10 +491,12 @@ export function getUserAgoraThreads(userId: string) {
 
   const threads = db
     .prepare(
-      `SELECT id, question, asked_by, status, visibility, question_type,
-              article_url, article_title, article_source, created_at
-       FROM agora_threads
-       WHERE user_id = ?
+      `SELECT t.id, t.question, t.asked_by, t.status, t.visibility, t.question_type,
+              t.article_url, t.article_title, t.article_source, t.created_at,
+              EXISTS(SELECT 1 FROM agora_threads child WHERE child.follow_up_to = t.id) as has_follow_up
+       FROM agora_threads t
+       WHERE t.user_id = ?
+         AND t.follow_up_to IS NULL
        ORDER BY created_at DESC
        LIMIT 20`
     )
@@ -507,6 +511,7 @@ export function getUserAgoraThreads(userId: string) {
       article_title: string | null;
       article_source: string | null;
       created_at: string;
+      has_follow_up: number;
     }>;
 
   const getPhilosophers = db.prepare(
@@ -520,6 +525,7 @@ export function getUserAgoraThreads(userId: string) {
     ...thread,
     visibility: thread.visibility === "private" ? "private" : "public",
     question_type: thread.question_type ?? "advice",
+    has_follow_up: thread.has_follow_up === 1,
     philosophers: getPhilosophers.all(thread.id) as Array<{
       id: string;
       name: string;
@@ -529,14 +535,10 @@ export function getUserAgoraThreads(userId: string) {
   }));
 }
 
-function buildAgoraThreadDetail(
+function buildAgoraResponses(
   db: ReturnType<typeof getDb>,
-  t: AgoraThreadRow
-): AgoraThreadDetail {
-  const philRows = db
-    .prepare("SELECT philosopher_id FROM agora_thread_philosophers WHERE thread_id = ?")
-    .all(t.id) as AgoraPhilosopherRow[];
-
+  threadId: string
+): AgoraResponse[] {
   const responseRows = db
     .prepare(
       `SELECT ar.*, ph.name AS philosopher_name, ph.color AS philosopher_color,
@@ -546,9 +548,9 @@ function buildAgoraThreadDetail(
        WHERE ar.thread_id = ?
        ORDER BY ar.sort_order ASC`
     )
-    .all(t.id) as AgoraResponseRow[];
+    .all(threadId) as AgoraResponseRow[];
 
-  const responses: AgoraResponse[] = responseRows.map((r) => ({
+  return responseRows.map((r) => ({
     philosopherId: r.philosopher_id,
     philosopherName: r.philosopher_name,
     philosopherColor: r.philosopher_color,
@@ -558,8 +560,36 @@ function buildAgoraThreadDetail(
     recommendation: parseAgoraRecommendation(r.recommendation) ?? null,
     sortOrder: r.sort_order,
   }));
+}
 
+function buildAgoraFollowUpDetail(
+  db: ReturnType<typeof getDb>,
+  thread: AgoraThreadRow
+): AgoraThreadFollowUp {
+  return {
+    id: thread.id,
+    question: thread.question,
+    status: thread.status,
+    createdAt: thread.created_at,
+    responses: buildAgoraResponses(db, thread.id),
+    synthesis: getAgoraSynthesisForThread(db, thread.id),
+  };
+}
+
+function buildAgoraThreadDetail(
+  db: ReturnType<typeof getDb>,
+  t: AgoraThreadRow
+): AgoraThreadDetail {
+  const philRows = db
+    .prepare("SELECT philosopher_id FROM agora_thread_philosophers WHERE thread_id = ?")
+    .all(t.id) as AgoraPhilosopherRow[];
+  const responses = buildAgoraResponses(db, t.id);
   const synthesis: AgoraSynthesis | null = getAgoraSynthesisForThread(db, t.id);
+  const followUpRow = t.follow_up_to
+    ? null
+    : (db
+        .prepare("SELECT * FROM agora_threads WHERE follow_up_to = ? LIMIT 1")
+        .get(t.id) as AgoraThreadRow | undefined);
 
   return {
     id: t.id,
@@ -582,6 +612,8 @@ function buildAgoraThreadDetail(
     philosophers: philRows.map((r) => r.philosopher_id),
     responses,
     synthesis,
+    followUpTo: t.follow_up_to ?? null,
+    followUp: followUpRow ? buildAgoraFollowUpDetail(db, followUpRow) : null,
   };
 }
 
