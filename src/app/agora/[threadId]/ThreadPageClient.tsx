@@ -766,7 +766,7 @@ export function ThreadPageClient({
                 Continue the dialogue
               </div>
               <p className="text-[12px] font-body text-ink-lighter mb-3">
-                You have one follow-up — make it count.
+                If something surprised you or left you unconvinced, you can ask one follow-up.
               </p>
               <div className="rounded-2xl border border-border-light/80 bg-[linear-gradient(180deg,rgba(248,243,234,0.6),rgba(255,255,255,0.4))] p-4">
                 <textarea
