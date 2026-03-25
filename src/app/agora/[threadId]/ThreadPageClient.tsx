@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { getQuestionTypeLabel } from "@/lib/agora";
+import { useSession } from "@/lib/auth-client";
 import type {
   AgoraRecommendation,
   AgoraSynthesisSections,
@@ -306,6 +307,8 @@ export function ThreadPageClient({
   const [shareConfirm, setShareConfirm] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { data: session } = useSession();
+  const isLoggedIn = Boolean(session?.user);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const shareTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -879,6 +882,35 @@ export function ThreadPageClient({
             </div>
           )}
         </>
+      )}
+
+      {!isFailed && data.thread.status === "complete" && !isLoggedIn && (
+        <div className="mx-5 mt-1 mb-2 rounded-2xl border border-gold/20 bg-[linear-gradient(135deg,rgba(248,243,234,0.95),rgba(238,230,216,0.85))] px-5 py-4">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gold/12 flex items-center justify-center shrink-0 mt-0.5">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" className="text-gold">
+                <path d="M10 2L3 6V7H17V6L10 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                <path d="M5 7V14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M10 7V14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M15 7V14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M3 14H17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M2 17H18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[14px] font-body text-ink leading-[1.55]">
+                Some questions are personal.{" "}
+                <Link
+                  href="/sign-in"
+                  className="font-medium text-athenian hover:text-athenian-light transition-colors underline underline-offset-2 decoration-athenian/30"
+                >
+                  Sign in
+                </Link>
+                {" "}to ask private questions, save threads, and bookmark posts from the feed.
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
       {!isFailed && data.thread.status === "complete" && !followUpIsGenerating && (

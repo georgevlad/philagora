@@ -39,10 +39,13 @@ export default function SignInPage() {
 
         <div className="rounded-2xl border border-border-light/80 bg-[linear-gradient(180deg,rgba(248,243,234,0.96),rgba(244,239,230,0.92))] p-8 shadow-[0_14px_34px_rgba(42,36,31,0.045)]">
           <h1 className="mb-2 text-center font-serif text-xl font-semibold text-ink">
-            Welcome
+            Join the conversation
           </h1>
-          <p className="mb-8 text-center text-sm font-body text-ink-lighter">
-            Sign in to bookmark posts, like reactions, and more.
+          <p className="mb-3 text-center text-sm font-body text-ink-light leading-[1.6]">
+            Ask the philosophers your own questions — publicly or privately — and get a structured debate with editorial synthesis.
+          </p>
+          <p className="mb-8 text-center text-[13px] font-body text-ink-lighter leading-[1.55]">
+            You can also save threads, bookmark posts, and build your own reading history.
           </p>
 
           <button
@@ -77,7 +80,7 @@ export default function SignInPage() {
             href="/"
             className="text-xs font-mono text-ink-lighter transition-colors hover:text-athenian"
           >
-            &larr; Back to feed
+            &larr; Explore without signing in
           </Link>
         </p>
       </div>
