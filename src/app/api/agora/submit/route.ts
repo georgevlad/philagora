@@ -20,7 +20,7 @@ import {
   generateSynthesis,
   type QuestionClassification,
 } from "@/lib/generation-service";
-import type { AgoraThreadVisibility } from "@/lib/types";
+import type { AgoraQuestionType, AgoraThreadVisibility } from "@/lib/types";
 
 interface CountRow {
   count: number;
@@ -53,6 +53,10 @@ function normalizeVisibility(value: unknown): AgoraThreadVisibility {
   return value === "private" ? "private" : "public";
 }
 
+function isAgoraQuestionType(value: unknown): value is AgoraQuestionType {
+  return value === "advice" || value === "conceptual" || value === "debate";
+}
+
 /** POST /api/agora/submit — Submit a question to the Agora */
 export async function POST(request: NextRequest) {
   try {
@@ -65,6 +69,11 @@ export async function POST(request: NextRequest) {
       .replace(/[^a-zA-Z0-9\s\-_.]/g, "")
       .slice(0, 40)
       .trim() || "Anonymous";
+    const clientClassification = body.classification as {
+      questionType?: string;
+      recommendationsAppropriate?: boolean;
+      recommendationHint?: string | null;
+    } | undefined;
     const philosopherIds: unknown = body.philosopher_ids;
     const rawArticleUrl = typeof body.article_url === "string" ? body.article_url.trim() : "";
     const requestedVisibility = normalizeVisibility(body.visibility);
@@ -184,7 +193,21 @@ export async function POST(request: NextRequest) {
           }
         : null
     );
-    const classification = await classifyAgoraQuestion(classificationInput);
+    const classification: QuestionClassification = isAgoraQuestionType(
+      clientClassification?.questionType
+    )
+      ? {
+          questionType: clientClassification.questionType,
+          recommendationsAppropriate: Boolean(
+            clientClassification.recommendationsAppropriate
+          ),
+          recommendationHint:
+            typeof clientClassification.recommendationHint === "string"
+            && clientClassification.recommendationHint.trim().length > 0
+              ? clientClassification.recommendationHint.trim()
+              : null,
+        }
+      : await classifyAgoraQuestion(classificationInput);
     const threadId = crypto.randomUUID();
     const validPids = philosopherIds as string[];
 

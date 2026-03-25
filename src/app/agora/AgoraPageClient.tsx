@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { getQuestionTypeLabel } from "@/lib/agora";
 import { useSession } from "@/lib/auth-client";
 import type {
+  AgoraQuestionType,
   Philosopher,
   AgoraThreadStatus,
   AgoraThreadVisibility,
@@ -52,6 +53,17 @@ interface MyThread {
     initials: string;
     color: string;
   }[];
+}
+
+interface PhilosopherSuggestion {
+  id: string;
+  reason: string;
+}
+
+interface SuggestedClassification {
+  questionType: AgoraQuestionType;
+  recommendationsAppropriate: boolean;
+  recommendationHint: string | null;
 }
 
 const PHILOSOPHER_QUOTES: Record<string, string> = {
@@ -217,9 +229,15 @@ export function AgoraPageClient({
   const [editingName, setEditingName] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<PhilosopherSuggestion[]>([]);
+  const [classification, setClassification] = useState<SuggestedClassification | null>(null);
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestError, setSuggestError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [hoveredPhilosopher, setHoveredPhilosopher] = useState<string | null>(null);
+  const suggestAbortRef = useRef<AbortController | null>(null);
+  const suggestRequestIdRef = useRef(0);
 
   const [selectablePhilosophers, setSelectablePhilosophers] = useState<SelectablePhilosopher[]>([]);
   const [featuredThreads, setFeaturedThreads] = useState<FeaturedThread[]>([]);
@@ -290,6 +308,12 @@ export function AgoraPageClient({
     };
   }, [isLoggedIn, sessionUserId]);
 
+  useEffect(() => {
+    return () => {
+      suggestAbortRef.current?.abort();
+    };
+  }, []);
+
   const trimmedQuestion = question.trim();
   const charCount = trimmedQuestion.length;
   const isValid =
@@ -307,6 +331,102 @@ export function AgoraPageClient({
       if (prev.length >= 4) return prev;
       return [...prev, id];
     });
+  }
+
+  function cancelSuggestionRequest() {
+    suggestRequestIdRef.current += 1;
+    suggestAbortRef.current?.abort();
+    suggestAbortRef.current = null;
+    setSuggesting(false);
+  }
+
+  function handleBack() {
+    cancelSuggestionRequest();
+    setStep("question");
+    setSuggestions([]);
+    setClassification(null);
+    setSelectedIds([]);
+    setSuggestError(false);
+  }
+
+  async function handleContinue() {
+    if (!canContinue || suggesting) return;
+
+    cancelSuggestionRequest();
+    setFormError(null);
+    setSuggestError(false);
+    setSuggestions([]);
+    setClassification(null);
+    setSelectedIds([]);
+    setSuggesting(true);
+    setStep("philosophers");
+
+    const requestId = suggestRequestIdRef.current + 1;
+    suggestRequestIdRef.current = requestId;
+
+    const controller = new AbortController();
+    suggestAbortRef.current = controller;
+
+    try {
+      const trimmedArticleUrl = articleUrl.trim();
+      const res = await fetch("/api/agora/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: trimmedQuestion,
+          article_url: trimmedArticleUrl || undefined,
+        }),
+        signal: controller.signal,
+      });
+
+      if (requestId !== suggestRequestIdRef.current) {
+        return;
+      }
+
+      if (!res.ok) {
+        setSuggestError(true);
+        return;
+      }
+
+      const data = await res.json();
+
+      if (requestId !== suggestRequestIdRef.current) {
+        return;
+      }
+
+      if (data.classification) {
+        setClassification(data.classification as SuggestedClassification);
+      }
+
+      const nextSuggestions: PhilosopherSuggestion[] = Array.isArray(data.suggestions)
+        ? data.suggestions.filter(
+            (suggestion: unknown): suggestion is PhilosopherSuggestion =>
+              Boolean(suggestion)
+              && typeof suggestion === "object"
+              && typeof (suggestion as PhilosopherSuggestion).id === "string"
+              && typeof (suggestion as PhilosopherSuggestion).reason === "string"
+          )
+        : [];
+
+      setSuggestions(nextSuggestions);
+
+      if (nextSuggestions.length >= 2) {
+        setSelectedIds(nextSuggestions.map((suggestion) => suggestion.id));
+      }
+    } catch {
+      if (controller.signal.aborted || requestId !== suggestRequestIdRef.current) {
+        return;
+      }
+
+      setSuggestError(true);
+    } finally {
+      if (requestId === suggestRequestIdRef.current) {
+        setSuggesting(false);
+        if (suggestAbortRef.current === controller) {
+          suggestAbortRef.current = null;
+        }
+      }
+    }
   }
 
   async function handleSubmit() {
@@ -331,6 +451,7 @@ export function AgoraPageClient({
           philosopher_ids: selectedIds,
           article_url: trimmedArticleUrl || undefined,
           visibility: session?.user ? visibility : undefined,
+          classification: classification ?? undefined,
         }),
       });
 
@@ -369,6 +490,7 @@ export function AgoraPageClient({
     trimmedQuestion.length > 110
       ? trimmedQuestion.slice(0, 107).replace(/\s+\S*$/, "") + "..."
       : trimmedQuestion;
+  const showSuggestedPhilosophers = !suggesting && !suggestError && suggestions.length > 0;
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0">
@@ -510,7 +632,7 @@ export function AgoraPageClient({
 
                     <div className="mt-5 pt-4 border-t border-border-light/70">
                       <button
-                        onClick={() => canContinue && setStep("philosophers")}
+                        onClick={handleContinue}
                         disabled={!canContinue}
                         className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[16px] bg-athenian text-white font-body text-sm tracking-wide hover:bg-athenian-light disabled:opacity-45 disabled:cursor-not-allowed transition-colors"
                       >
@@ -528,7 +650,7 @@ export function AgoraPageClient({
               <div className="px-6 py-7 lg:px-8 lg:py-8">
                 <div className="flex items-center justify-between gap-4 flex-wrap mb-6">
                   <button
-                    onClick={() => setStep("question")}
+                    onClick={handleBack}
                     className="text-sm text-ink-lighter hover:text-ink transition-colors duration-200 inline-flex items-center gap-1"
                   >
                     <span aria-hidden="true">&larr;</span> Back to your question
@@ -539,69 +661,144 @@ export function AgoraPageClient({
                 </div>
 
                 <div className="grid lg:grid-cols-[minmax(0,1.4fr)_320px] gap-6 lg:gap-7 items-start">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {selectablePhilosophers.map((p) => {
-                      const isSelected = selectedIds.includes(p.id);
-                      const isDimmed = atMaxSelection && !isSelected;
-                      const isHovered = hoveredPhilosopher === p.id;
-
-                      return (
-                        <button
-                          key={p.id}
-                          onClick={() => togglePhilosopher(p.id)}
-                          onMouseEnter={() => setHoveredPhilosopher(p.id)}
-                          onMouseLeave={() => setHoveredPhilosopher(null)}
-                          disabled={isDimmed}
-                          className={`relative flex flex-col items-center text-center px-3 py-4 rounded-2xl border transition-all duration-300 ${
-                            isSelected
-                              ? "bg-card border-transparent"
-                              : isDimmed
-                                ? "bg-parchment-dark/20 border-border-light opacity-40 cursor-not-allowed"
-                                : "bg-white/35 border-border-light hover:bg-card/90"
-                          }`}
-                          style={{
-                            ...(isSelected
-                              ? {
-                                  boxShadow: `0 0 0 2px ${p.color}60, 0 10px 20px ${p.color}14`,
-                                }
-                              : isHovered && !isDimmed
-                                ? {
-                                    boxShadow: `0 10px 20px ${p.color}18`,
-                                    transform: "translateY(-2px)",
-                                  }
-                                : {}),
-                          }}
-                        >
-                          <PhilosopherAvatar
-                            philosopherId={p.id}
-                            name={p.name}
-                            color={p.color}
-                            initials={p.initials}
-                            size="md"
-                          />
-
-                          <div className="mt-2 font-serif text-[15px] font-semibold text-ink">{p.name}</div>
-                          <div className="text-[10px] font-mono tracking-[0.14em] uppercase mt-1" style={{ color: p.color }}>
-                            {p.tradition}
-                          </div>
-
-                          <div
-                            className="mt-3 text-[12px] font-serif italic text-ink-lighter leading-snug min-h-[36px] transition-opacity duration-300"
-                            style={{ opacity: isHovered && !isSelected ? 1 : 0.25 }}
-                          >
-                            {PHILOSOPHER_QUOTES[p.id] ? `"${PHILOSOPHER_QUOTES[p.id]}"` : ""}
-                          </div>
-
-                          {isSelected && (
-                            <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: p.color }}>
-                              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="2.5">
-                                <path d="M3 8L7 12L13 4" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
+                  <div>
+                    {suggesting ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <div className="w-8 h-8 border-2 border-gold/30 border-t-gold rounded-full animate-spin mb-4" />
+                        <p className="font-serif text-[18px] text-ink-light italic">
+                          Finding the best voices for your question...
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        {showSuggestedPhilosophers && (
+                          <div className="mb-6">
+                            <div className="text-[10px] font-mono tracking-[0.2em] uppercase text-gold mb-3">
+                              Suggested for your question
                             </div>
-                          )}
-                        </button>
-                      );
-                    })}
+                            <div className="space-y-2">
+                              {suggestions.map((suggestion) => {
+                                const philosopher = selectablePhilosophers.find(
+                                  (candidate) => candidate.id === suggestion.id
+                                );
+
+                                if (!philosopher) {
+                                  return null;
+                                }
+
+                                const isSelected = selectedIds.includes(suggestion.id);
+
+                                return (
+                                  <button
+                                    key={suggestion.id}
+                                    type="button"
+                                    onClick={() => togglePhilosopher(suggestion.id)}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all duration-200 ${
+                                      isSelected
+                                        ? "border-athenian/40 bg-athenian/5 shadow-sm"
+                                        : "border-border-light/80 bg-white/40 hover:border-border"
+                                    }`}
+                                  >
+                                    <PhilosopherAvatar
+                                      philosopherId={philosopher.id}
+                                      name={philosopher.name}
+                                      color={philosopher.color}
+                                      initials={philosopher.initials}
+                                      size="sm"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-serif text-[15px] font-semibold text-ink leading-none">
+                                        {philosopher.name}
+                                      </div>
+                                      <p className="text-[12px] text-ink-light mt-1 leading-snug">
+                                        {suggestion.reason}
+                                      </p>
+                                    </div>
+                                    {isSelected && (
+                                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 text-athenian">
+                                        <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.1" />
+                                        <path d="M5 8L7 10L11 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                      </svg>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            <div className="mt-4 pt-4 border-t border-border-light/60">
+                              <div className="text-[10px] font-mono tracking-[0.2em] uppercase text-ink-faint mb-3">
+                                Or pick your own
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {selectablePhilosophers.map((p) => {
+                            const isSelected = selectedIds.includes(p.id);
+                            const isDimmed = atMaxSelection && !isSelected;
+                            const isHovered = hoveredPhilosopher === p.id;
+
+                            return (
+                              <button
+                                key={p.id}
+                                onClick={() => togglePhilosopher(p.id)}
+                                onMouseEnter={() => setHoveredPhilosopher(p.id)}
+                                onMouseLeave={() => setHoveredPhilosopher(null)}
+                                disabled={isDimmed}
+                                className={`relative flex flex-col items-center text-center px-3 py-4 rounded-2xl border transition-all duration-300 ${
+                                  isSelected
+                                    ? "bg-card border-transparent"
+                                    : isDimmed
+                                      ? "bg-parchment-dark/20 border-border-light opacity-40 cursor-not-allowed"
+                                      : "bg-white/35 border-border-light hover:bg-card/90"
+                                }`}
+                                style={{
+                                  ...(isSelected
+                                    ? {
+                                        boxShadow: `0 0 0 2px ${p.color}60, 0 10px 20px ${p.color}14`,
+                                      }
+                                    : isHovered && !isDimmed
+                                      ? {
+                                          boxShadow: `0 10px 20px ${p.color}18`,
+                                          transform: "translateY(-2px)",
+                                        }
+                                      : {}),
+                                }}
+                              >
+                                <PhilosopherAvatar
+                                  philosopherId={p.id}
+                                  name={p.name}
+                                  color={p.color}
+                                  initials={p.initials}
+                                  size="md"
+                                />
+
+                                <div className="mt-2 font-serif text-[15px] font-semibold text-ink">{p.name}</div>
+                                <div className="text-[10px] font-mono tracking-[0.14em] uppercase mt-1" style={{ color: p.color }}>
+                                  {p.tradition}
+                                </div>
+
+                                <div
+                                  className="mt-3 text-[12px] font-serif italic text-ink-lighter leading-snug min-h-[36px] transition-opacity duration-300"
+                                  style={{ opacity: isHovered && !isSelected ? 1 : 0.25 }}
+                                >
+                                  {PHILOSOPHER_QUOTES[p.id] ? `"${PHILOSOPHER_QUOTES[p.id]}"` : ""}
+                                </div>
+
+                                {isSelected && (
+                                  <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: p.color }}>
+                                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="2.5">
+                                      <path d="M3 8L7 12L13 4" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <aside className="justify-self-end w-full max-w-[320px] rounded-[22px] border border-border-light/80 bg-[linear-gradient(180deg,rgba(238,230,216,0.52),rgba(248,243,234,0.92))] px-5 py-5 shadow-[0_10px_24px_rgba(42,36,31,0.03)]">
