@@ -566,7 +566,7 @@ export function AgoraPageClient({
                                 key={exampleQuestion}
                                 type="button"
                                 onClick={() => setQuestion(exampleQuestion)}
-                                className="px-3.5 py-2 rounded-xl border border-border-light/80 bg-white/50 text-[13px] font-body text-ink-light italic leading-snug text-left hover:border-gold/40 hover:bg-white/80 transition-colors duration-200 cursor-pointer"
+                                className="max-w-fit px-3.5 py-2 rounded-xl border border-border-light/80 bg-white/50 text-[13px] font-body text-ink-light italic leading-snug text-left hover:border-gold/40 hover:bg-white/80 transition-colors duration-200 cursor-pointer"
                               >
                                 {exampleQuestion}
                               </button>
@@ -611,23 +611,21 @@ export function AgoraPageClient({
                       </div>
 
                       <div className="mt-5 pt-5 border-t border-border-light/60">
-                        <div className="rounded-xl border border-border-light/80 bg-white/30 px-4 py-3.5">
-                          <div className="flex items-center gap-2 mb-2.5">
-                            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gold">
-                              <path d="M6.5 11.5L4 14c-1.1 1.1-3 1.1-4 0s-1.1-3 0-4l2.5-2.5M9.5 4.5L12 2c1.1-1.1 3-1.1 4 0s1.1 3 0 4l-2.5 2.5M5.5 10.5l5-5" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                            <span className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-light">
-                              Or share an article for them to react to
-                            </span>
-                          </div>
-                          <input
-                            type="url"
-                            value={articleUrl}
-                            onChange={(event) => setArticleUrl(event.target.value)}
-                            placeholder="Paste a link to a news story, essay, or opinion piece..."
-                            className="w-full bg-white/60 border border-border-light/80 rounded-lg px-3.5 py-2.5 text-[14px] font-body text-ink placeholder:text-ink-lighter/50 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold/40 transition-colors"
-                          />
+                        <div className="flex items-center gap-2 mb-2.5">
+                          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gold">
+                            <path d="M6.5 11.5L4 14c-1.1 1.1-3 1.1-4 0s-1.1-3 0-4l2.5-2.5M9.5 4.5L12 2c1.1-1.1 3-1.1 4 0s1.1 3 0 4l-2.5 2.5M5.5 10.5l5-5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          <span className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-light">
+                            Or share an article for them to react to
+                          </span>
                         </div>
+                        <input
+                          type="url"
+                          value={articleUrl}
+                          onChange={(event) => setArticleUrl(event.target.value)}
+                          placeholder="Paste a link to a news story, essay, or opinion piece..."
+                          className="w-full bg-white/60 border border-border-light/80 rounded-lg px-3.5 py-2.5 text-[14px] font-body text-ink placeholder:text-ink-lighter/50 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold/40 transition-colors"
+                        />
 
                         {session?.user && (
                           <div className="mt-4 flex items-center gap-3">
