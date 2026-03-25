@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getQuestionTypeLabel } from "@/lib/agora";
 import { getPhilosophersMap, getAllDebates, getRecentAgoraThreads } from "@/lib/data";
 import { PhilosopherAvatar } from "./PhilosopherAvatar";
 
@@ -93,6 +94,11 @@ export function RightSidebar() {
                 <p className="text-[13px] font-serif text-ink leading-snug line-clamp-2 group-hover:text-athenian transition-colors duration-200">
                   &ldquo;{thread.question}&rdquo;
                 </p>
+                <div className="mt-2">
+                  <span className="inline-flex items-center px-2 py-1 rounded-full bg-athenian/8 text-athenian text-[9px] font-mono uppercase tracking-[0.14em]">
+                    {getQuestionTypeLabel(thread.question_type)}
+                  </span>
+                </div>
                 <div className="mt-2 flex items-center gap-2">
                   <div className="flex -space-x-1.5 shrink-0">
                     {thread.philosophers.slice(0, 3).map((p) => (

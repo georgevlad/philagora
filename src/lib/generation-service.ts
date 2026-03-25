@@ -18,9 +18,12 @@ import {
 } from "@/lib/content-templates";
 import {
   DEFAULT_GENERATION_MODEL,
+  DEFAULT_SCORING_MODEL,
   parseGenerationModel,
+  parseScoringModel,
 } from "@/lib/scoring-config";
 import type { PhilosopherRow, PromptRow } from "@/lib/db-types";
+import type { AgoraQuestionType } from "@/lib/types";
 
 // ── Configuration ────────────────────────────────────────────────────
 
@@ -38,21 +41,27 @@ const SYNTHESIS_TEMPERATURE = 0.4; // Lower for precision and consistency
 const SYNTHESIS_MAX_TOKENS = 2048; // Synthesis output is longer
 
 function getGenerationModels(): {
+  scoringModel: string;
   generationModel: string;
   synthesisModel: string;
 } {
   const db = getDb();
-  const getConfig = (key: string, fallback: string): string => {
+  const getConfig = (
+    key: string,
+    fallback: string,
+    parser: (raw: string | undefined) => string
+  ): string => {
     const row = db
       .prepare("SELECT value FROM scoring_config WHERE key = ?")
       .get(key) as { value: string } | undefined;
 
-    return parseGenerationModel(row?.value ?? JSON.stringify(fallback));
+    return parser(row?.value ?? JSON.stringify(fallback));
   };
 
   return {
-    generationModel: getConfig("generation_model", DEFAULT_GENERATION_MODEL),
-    synthesisModel: getConfig("synthesis_model", DEFAULT_GENERATION_MODEL),
+    scoringModel: getConfig("scoring_model", DEFAULT_SCORING_MODEL, parseScoringModel),
+    generationModel: getConfig("generation_model", DEFAULT_GENERATION_MODEL, parseGenerationModel),
+    synthesisModel: getConfig("synthesis_model", DEFAULT_GENERATION_MODEL, parseGenerationModel),
   };
 }
 
@@ -74,13 +83,90 @@ export interface GenerationError {
 
 export type GenerationOutcome = GenerationResult | GenerationError;
 
+export interface QuestionClassification {
+  questionType: AgoraQuestionType;
+  recommendationsAppropriate: boolean;
+  recommendationHint: string | null;
+}
+
+const DEFAULT_QUESTION_CLASSIFICATION: QuestionClassification = {
+  questionType: "advice",
+  recommendationsAppropriate: false,
+  recommendationHint: null,
+};
+
+function isQuestionType(value: unknown): value is AgoraQuestionType {
+  return value === "advice" || value === "conceptual" || value === "debate";
+}
+
+export async function classifyAgoraQuestion(
+  question: string
+): Promise<QuestionClassification> {
+  const client = getAnthropicClient();
+  if (!client) {
+    return DEFAULT_QUESTION_CLASSIFICATION;
+  }
+
+  const { scoringModel } = getGenerationModels();
+
+  const systemPrompt = `You classify questions submitted to a philosophy forum. Determine:
+
+1. question_type: one of "advice", "conceptual", or "debate"
+   - "advice": personal dilemmas, practical decisions, "should I...", "how do I cope with...", requests for guidance on a specific life situation
+   - "conceptual": big ideas, definitions, meaning, "what is...", "why does...", "how do X and Y relate", explorations of abstract concepts
+   - "debate": contested issues with clear sides, policy questions, ethical dilemmas about society, "is it right to...", "should society..."
+
+2. recommendations_appropriate: boolean - would a book/film/essay recommendation genuinely enrich the response to this question? Be selective - roughly 30-40% of questions warrant recommendations. Good signals: existential themes, questions about meaning/suffering/identity/creativity, philosophical traditions. Bad signals: very specific practical decisions, time-sensitive dilemmas, narrow tactical questions.
+
+3. recommendation_hint: if recommendations_appropriate is true, a brief hint about what kind of works would fit (e.g. "existential literature, absurdist film", "Stoic texts, mindfulness guides"). null if not appropriate.
+
+RESPOND WITH VALID JSON ONLY:
+{"questionType":"advice|conceptual|debate","recommendationsAppropriate":true,"recommendationHint":"string or null"}`;
+
+  try {
+    const response = await createMessage(
+      client,
+      {
+        model: scoringModel,
+        max_tokens: 256,
+        temperature: 0.2,
+        system: systemPrompt,
+        messages: [{ role: "user", content: question }],
+      },
+      "classification"
+    );
+
+    const rawOutput = response.content
+      .filter((block) => block.type === "text")
+      .map((block) => (block.type === "text" ? block.text : ""))
+      .join("");
+
+    const parsed = parseJsonResponse(rawOutput) as Partial<QuestionClassification>;
+
+    return {
+      questionType: isQuestionType(parsed.questionType)
+        ? parsed.questionType
+        : DEFAULT_QUESTION_CLASSIFICATION.questionType,
+      recommendationsAppropriate: Boolean(parsed.recommendationsAppropriate),
+      recommendationHint:
+        typeof parsed.recommendationHint === "string" && parsed.recommendationHint.trim().length > 0
+          ? parsed.recommendationHint.trim()
+          : null,
+    };
+  } catch (err) {
+    console.error("Question classification failed, defaulting to advice:", err);
+    return DEFAULT_QUESTION_CLASSIFICATION;
+  }
+}
+
 // ── Philosopher content generation ───────────────────────────────────
 
 export async function generateContent(
   philosopherId: string,
   contentTypeKey: ContentTypeKey,
   sourceMaterial: string,
-  targetLength?: TargetLength
+  targetLength?: TargetLength,
+  templateOverride?: string
 ): Promise<GenerationOutcome> {
   const db = getDb();
   const { generationModel } = getGenerationModels();
@@ -118,7 +204,7 @@ export async function generateContent(
   }
 
   // 3. Get the content template (DB-first, code fallback)
-  const templateInstructions = getActiveTemplate(contentTypeKey);
+  const templateInstructions = templateOverride ?? getActiveTemplate(contentTypeKey);
 
   // 4. Parse core principles for context
   let principlesText = "";
@@ -250,12 +336,13 @@ ${instructions}`;
 
 export async function generateSynthesis(
   synthesisType: "debate_synthesis" | "agora_synthesis",
-  sourceMaterial: string
+  sourceMaterial: string,
+  templateOverride?: string
 ): Promise<GenerationOutcome> {
   const { synthesisModel } = getGenerationModels();
 
   // 1. Get the synthesis template (DB-first, code fallback)
-  const systemMessage = getActiveTemplate(synthesisType);
+  const systemMessage = templateOverride ?? getActiveTemplate(synthesisType);
 
   // 3. Call the Anthropic API with lower temperature
   const client = getAnthropicClient();

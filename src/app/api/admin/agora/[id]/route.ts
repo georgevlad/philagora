@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  getAgoraSynthesisForThread,
+  parseAgoraRecommendation,
+} from "@/lib/agora";
 import { getDb } from "@/lib/db";
+import type { AgoraSynthesisSections } from "@/lib/types";
 
 /** GET — Fetch full agora thread detail */
 export async function GET(
@@ -12,7 +17,17 @@ export async function GET(
 
     const thread = db
       .prepare("SELECT * FROM agora_threads WHERE id = ?")
-      .get(id);
+      .get(id) as
+      | {
+          id: string;
+          question: string;
+          asked_by: string;
+          status: string;
+          question_type?: string;
+          recommendations_enabled?: number;
+          created_at: string;
+        }
+      | undefined;
     if (!thread) {
       return NextResponse.json({ error: "Thread not found" }, { status: 404 });
     }
@@ -26,7 +41,7 @@ export async function GET(
       )
       .all(id);
 
-    const responses = db
+    const responses = (db
       .prepare(
         `SELECT ar.*, p.name as philosopher_name, p.color as philosopher_color,
                 p.initials as philosopher_initials, p.tradition as philosopher_tradition
@@ -35,13 +50,47 @@ export async function GET(
          WHERE ar.thread_id = ?
          ORDER BY ar.sort_order`
       )
-      .all(id);
+      .all(id) as Array<{
+      id: string;
+      thread_id: string;
+      philosopher_id: string;
+      posts: string;
+      recommendation?: string | null;
+      sort_order: number;
+      philosopher_name: string;
+      philosopher_color: string;
+      philosopher_initials: string;
+      philosopher_tradition: string;
+    }>).map((response) => ({
+      ...response,
+      posts: JSON.parse(response.posts) as string[],
+      recommendation: parseAgoraRecommendation(response.recommendation) ?? null,
+    }));
 
-    const synthesis = db
-      .prepare("SELECT * FROM agora_synthesis WHERE thread_id = ?")
-      .get(id);
+    const parsedSynthesis = getAgoraSynthesisForThread(db, id);
+    const synthesis = parsedSynthesis
+      ? (() => {
+          const sections = parsedSynthesis.sections as AgoraSynthesisSections;
 
-    return NextResponse.json({ thread, philosophers, responses, synthesis });
+          return {
+            type: parsedSynthesis.type,
+            ...sections,
+            synthesis_type: parsedSynthesis.type,
+            sections,
+          };
+        })()
+      : null;
+
+    return NextResponse.json({
+      thread: {
+        ...thread,
+        question_type: thread.question_type ?? "advice",
+        recommendations_enabled: thread.recommendations_enabled ?? 0,
+      },
+      philosophers,
+      responses,
+      synthesis,
+    });
   } catch (error) {
     console.error("Failed to fetch agora thread:", error);
     return NextResponse.json(

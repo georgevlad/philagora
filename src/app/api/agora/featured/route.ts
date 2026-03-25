@@ -5,6 +5,7 @@ interface ThreadRow {
   id: string;
   question: string;
   asked_by: string;
+  question_type: string;
   created_at: string;
 }
 
@@ -23,7 +24,7 @@ export async function GET() {
 
     const threads = db
       .prepare(
-        `SELECT id, question, asked_by, created_at
+        `SELECT id, question, asked_by, question_type, created_at
          FROM agora_threads
          WHERE status = 'complete'
          ORDER BY created_at DESC

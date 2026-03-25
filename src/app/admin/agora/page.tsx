@@ -1,10 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { Philosopher, PhiloStatus, PhiloState } from "@/types/admin";
+import { getQuestionTypeLabel } from "@/lib/agora";
 import { AGORA_STATUS_COLORS } from "@/lib/constants";
 import { formatDate } from "@/lib/date-utils";
+import { SynthesisCard } from "@/components/SynthesisCard";
 import { Spinner } from "@/components/Spinner";
+import type { AgoraQuestionType, AgoraRecommendation } from "@/lib/types";
+import type {
+  AdminAgoraSynthesisData,
+  Philosopher,
+  PhiloState,
+} from "@/types/admin";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -13,6 +20,8 @@ interface ThreadListItem {
   question: string;
   asked_by: string;
   status: string;
+  question_type: AgoraQuestionType;
+  recommendations_enabled: number;
   created_at: string;
   philosopher_names: string[];
 }
@@ -20,17 +29,16 @@ interface ThreadListItem {
 interface AgResponseRow {
   id: string;
   philosopher_id: string;
-  posts: string; // JSON
+  posts: string[];
+  recommendation?: AgoraRecommendation | null;
   philosopher_name: string;
   philosopher_color: string;
   philosopher_initials: string;
   philosopher_tradition: string;
 }
 
-interface AgoraSynthesisData {
-  tensions: string[];
-  agreements: string[];
-  practicalTakeaways: string[];
+function recommendationMediumLabel(medium: string): string {
+  return medium.charAt(0).toUpperCase() + medium.slice(1);
 }
 
 // ── Component ───────────────────────────────────────────────────────────
@@ -50,6 +58,8 @@ export default function AgoraWorkshopPage() {
   // Step 1: Setup
   const [question, setQuestion] = useState("");
   const [askedBy, setAskedBy] = useState("Anonymous User");
+  const [questionType, setQuestionType] = useState<AgoraQuestionType>("advice");
+  const [recommendationsEnabled, setRecommendationsEnabled] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
 
@@ -58,7 +68,7 @@ export default function AgoraWorkshopPage() {
 
   // Step 3: Synthesis
   const [synthesisState, setSynthesisState] = useState<"pending" | "generating" | "preview" | "approved">("pending");
-  const [synthesisData, setSynthesisData] = useState<AgoraSynthesisData | null>(null);
+  const [synthesisData, setSynthesisData] = useState<AdminAgoraSynthesisData | null>(null);
   const [synthesisLogId, setSynthesisLogId] = useState<number | null>(null);
   const [synthesisRawOutput, setSynthesisRawOutput] = useState("");
   const [showSynthesisRaw, setShowSynthesisRaw] = useState(false);
@@ -122,6 +132,8 @@ export default function AgoraWorkshopPage() {
         setThreadId(id);
         setQuestion(data.thread.question);
         setAskedBy(data.thread.asked_by);
+        setQuestionType(data.thread.question_type ?? "advice");
+        setRecommendationsEnabled((data.thread.recommendations_enabled ?? 0) === 1);
 
         const philoIds = (data.philosophers as Philosopher[]).map((p) => p.id);
         setSelectedIds(philoIds);
@@ -143,8 +155,11 @@ export default function AgoraWorkshopPage() {
         for (const pid of philoIds) {
           const existing = existingResponses.find((r) => r.philosopher_id === pid);
           if (existing) {
-            const posts = JSON.parse(existing.posts) as string[];
-            responsesMap[pid] = { status: "approved", posts };
+            responsesMap[pid] = {
+              status: "approved",
+              posts: existing.posts,
+              recommendation: existing.recommendation ?? null,
+            };
           } else {
             responsesMap[pid] = { status: "pending" };
           }
@@ -153,10 +168,10 @@ export default function AgoraWorkshopPage() {
 
         // Build synthesis state
         if (data.synthesis) {
-          const tensions = JSON.parse(data.synthesis.tensions || "[]");
-          const agreements = JSON.parse(data.synthesis.agreements || "[]");
-          const takeaways = JSON.parse(data.synthesis.practical_takeaways || "[]");
-          setSynthesisData({ tensions, agreements, practicalTakeaways: takeaways });
+          setSynthesisData({
+            type: data.synthesis.type,
+            sections: data.synthesis.sections,
+          });
           setSynthesisState("approved");
         } else {
           setSynthesisData(null);
@@ -202,6 +217,8 @@ export default function AgoraWorkshopPage() {
           question: question.trim(),
           asked_by: askedBy.trim() || "Anonymous User",
           philosopher_ids: selectedIds,
+          question_type: questionType,
+          recommendations_enabled: recommendationsEnabled,
         }),
       });
       if (!res.ok) {
@@ -241,11 +258,13 @@ export default function AgoraWorkshopPage() {
       if (!res.ok) throw new Error(data.error || "Generation failed");
 
       const posts = data.generated.posts as string[];
+      const recommendation = data.generated.recommendation ?? null;
       setResponses((prev) => ({
         ...prev,
         [philosopherId]: {
           status: "preview",
           posts,
+          recommendation,
           logId: data.log_entry?.id,
           rawOutput: data.raw_output,
         },
@@ -269,6 +288,7 @@ export default function AgoraWorkshopPage() {
         body: JSON.stringify({
           philosopher_id: philosopherId,
           posts: state.posts,
+          recommendation: state.recommendation ?? null,
           generation_log_id: state.logId,
         }),
       });
@@ -301,7 +321,10 @@ export default function AgoraWorkshopPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Synthesis generation failed");
 
-      setSynthesisData(data.generated as AgoraSynthesisData);
+      setSynthesisData({
+        type: data.generated.type,
+        sections: data.generated.sections,
+      });
       setSynthesisLogId(data.log_entry?.id ?? null);
       setSynthesisRawOutput(data.raw_output || "");
       setSynthesisState("preview");
@@ -322,7 +345,11 @@ export default function AgoraWorkshopPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "save",
-          data: { ...synthesisData, generation_log_id: synthesisLogId },
+          data: {
+            synthesisType: synthesisData.type,
+            sections: synthesisData.sections,
+            generation_log_id: synthesisLogId,
+          },
         }),
       });
       if (!res.ok) {
@@ -437,6 +464,37 @@ export default function AgoraWorkshopPage() {
               ))}
             </div>
 
+            {state.recommendation && (
+              <div
+                className="mt-4 rounded-xl border bg-parchment-dark/35 px-4 py-3"
+                style={{
+                  borderColor: `${philosopher.color}25`,
+                  borderLeftColor: philosopher.color,
+                  borderLeftWidth: "3px",
+                }}
+              >
+                <div className="flex items-center justify-between gap-3 mb-1.5">
+                  <div>
+                    <p className="font-serif text-[15px] text-ink">
+                      {state.recommendation.title}
+                    </p>
+                    <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-ink-faint mt-1">
+                      {recommendationMediumLabel(state.recommendation.medium)}
+                    </p>
+                  </div>
+                  <span
+                    className="text-[10px] font-mono px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: `${philosopher.color}12`, color: philosopher.color }}
+                  >
+                    Recommendation
+                  </span>
+                </div>
+                <p className="text-sm text-ink-light leading-relaxed">
+                  {state.recommendation.reason}
+                </p>
+              </div>
+            )}
+
             {state.status === "preview" && (
               <div className="flex items-center gap-3 mt-3">
                 <button
@@ -496,6 +554,9 @@ export default function AgoraWorkshopPage() {
                     <span className="font-serif font-bold text-ink text-sm line-clamp-1">{t.question}</span>
                     <span className="text-xs text-ink-lighter block mt-0.5">
                       Asked by {t.asked_by} &middot; {t.philosopher_names.join(", ")}
+                    </span>
+                    <span className="inline-flex items-center mt-2 px-2 py-1 rounded-full bg-athenian/8 text-athenian text-[10px] font-mono uppercase tracking-[0.14em]">
+                      {getQuestionTypeLabel(t.question_type)}
                     </span>
                   </button>
                   <div className="flex items-center gap-2 shrink-0">
@@ -620,6 +681,35 @@ export default function AgoraWorkshopPage() {
               />
             </div>
 
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                  Question Type
+                </label>
+                <select
+                  value={questionType}
+                  onChange={(event) => setQuestionType(event.target.value as AgoraQuestionType)}
+                  className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+                >
+                  <option value="advice">Seeking advice</option>
+                  <option value="conceptual">Exploring a concept</option>
+                  <option value="debate">A contested question</option>
+                </select>
+              </div>
+
+              <div className="flex items-end">
+                <label className="flex items-center gap-3 rounded-lg border border-border bg-parchment px-4 py-3 text-sm text-ink font-body cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={recommendationsEnabled}
+                    onChange={(event) => setRecommendationsEnabled(event.target.checked)}
+                    className="h-4 w-4 rounded border-border text-terracotta focus:ring-terracotta/40"
+                  />
+                  Enable recommendations
+                </label>
+              </div>
+            </div>
+
             {/* Philosopher multi-select */}
             <div>
               <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
@@ -680,6 +770,26 @@ export default function AgoraWorkshopPage() {
             <p className="text-xs font-mono uppercase tracking-wider text-ink-lighter mb-1">Question</p>
             <p className="font-serif text-ink leading-relaxed">{question}</p>
             <p className="text-xs text-ink-lighter mt-1">— {askedBy}</p>
+            <div className="mt-3 flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center px-2 py-1 rounded-full bg-athenian/8 text-athenian text-[10px] font-mono uppercase tracking-[0.14em]">
+                {getQuestionTypeLabel(questionType)}
+              </span>
+              {recommendationsEnabled && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full bg-gold/10 text-gold text-[10px] font-mono uppercase tracking-[0.14em]">
+                  Recommendations enabled
+                </span>
+              )}
+            </div>
+            <div className="mt-3 flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center px-2 py-1 rounded-full bg-athenian/8 text-athenian text-[10px] font-mono uppercase tracking-[0.14em]">
+                {getQuestionTypeLabel(questionType)}
+              </span>
+              {recommendationsEnabled && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full bg-gold/10 text-gold text-[10px] font-mono uppercase tracking-[0.14em]">
+                  Recommendations enabled
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center justify-between mb-4">
@@ -764,36 +874,11 @@ export default function AgoraWorkshopPage() {
 
           {(synthesisState === "preview" || synthesisState === "approved") && synthesisData && (
             <div className="bg-white border border-border rounded-xl shadow-sm overflow-hidden">
-              <div className="px-6 py-5 space-y-5">
-                {/* Tensions */}
-                <div>
-                  <h3 className="text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">Tensions</h3>
-                  <ul className="space-y-1.5">
-                    {synthesisData.tensions.map((t, i) => (
-                      <li key={i} className="text-sm text-ink leading-relaxed pl-3 border-l-2 border-red-300">{t}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Agreements */}
-                <div>
-                  <h3 className="text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">Agreements</h3>
-                  <ul className="space-y-1.5">
-                    {synthesisData.agreements.map((a, i) => (
-                      <li key={i} className="text-sm text-ink leading-relaxed pl-3 border-l-2 border-green-300">{a}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Practical Takeaways */}
-                <div>
-                  <h3 className="text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">Practical Takeaways</h3>
-                  <ul className="space-y-1.5">
-                    {synthesisData.practicalTakeaways.map((t, i) => (
-                      <li key={i} className="text-sm text-ink leading-relaxed pl-3 border-l-2 border-terracotta/50">{t}</li>
-                    ))}
-                  </ul>
-                </div>
+              <div className="px-3 py-3">
+                <SynthesisCard
+                  type={synthesisData.type}
+                  sections={synthesisData.sections}
+                />
 
                 {/* Raw output */}
                 <div>

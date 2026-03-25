@@ -4,7 +4,10 @@ import { philosophers } from "./philosophers";
 export function seedDatabase(db: Database.Database): void {
   db.exec("DELETE FROM generation_log");
   db.exec("DELETE FROM system_prompts");
-  db.exec("DELETE FROM agora_synthesis");
+  db.exec("DELETE FROM agora_synthesis_v2");
+  if (db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='agora_synthesis'").get()) {
+    db.exec("DELETE FROM agora_synthesis");
+  }
   db.exec("DELETE FROM agora_responses");
   db.exec("DELETE FROM agora_thread_philosophers");
   db.exec("DELETE FROM agora_threads");

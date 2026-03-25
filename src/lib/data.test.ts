@@ -12,6 +12,7 @@ vi.mock("@/lib/db", () => ({
 
 import {
   getAllPhilosophers,
+  getAgoraThreadById,
   getBookmarkedPosts,
   getFilteredPublishedPosts,
   getInterleavedFeed,
@@ -122,6 +123,64 @@ function seedLike(userId: string, postId: string, createdAt: string) {
       "INSERT INTO user_likes (user_id, post_id, created_at) VALUES (?, ?, ?)"
     )
     .run(userId, postId, createdAt);
+}
+
+function seedAgoraThread(args: {
+  id: string;
+  question: string;
+  askedBy?: string;
+  status?: string;
+  questionType?: "advice" | "conceptual" | "debate";
+  recommendationsEnabled?: number;
+  philosopherIds: string[];
+}) {
+  testDb
+    .prepare(
+      `INSERT INTO agora_threads (
+        id, question, asked_by, status, question_type, recommendations_enabled, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(
+      args.id,
+      args.question,
+      args.askedBy ?? "Anonymous User",
+      args.status ?? "complete",
+      args.questionType ?? "advice",
+      args.recommendationsEnabled ?? 0,
+      "2025-03-01 16:00:00"
+    );
+
+  const insertPhilosopher = testDb.prepare(
+    "INSERT INTO agora_thread_philosophers (thread_id, philosopher_id) VALUES (?, ?)"
+  );
+
+  for (const philosopherId of args.philosopherIds) {
+    insertPhilosopher.run(args.id, philosopherId);
+  }
+}
+
+function seedAgoraResponse(args: {
+  id: string;
+  threadId: string;
+  philosopherId: string;
+  posts: string[];
+  sortOrder?: number;
+  recommendation?: string | null;
+}) {
+  testDb
+    .prepare(
+      `INSERT INTO agora_responses (
+        id, thread_id, philosopher_id, posts, sort_order, recommendation
+      ) VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    .run(
+      args.id,
+      args.threadId,
+      args.philosopherId,
+      JSON.stringify(args.posts),
+      args.sortOrder ?? 0,
+      args.recommendation ?? null
+    );
 }
 
 describe("getPostById", () => {
@@ -377,5 +436,95 @@ describe("getLikedPosts", () => {
 
     expect(posts.map((post) => post.id)).toEqual(["post-3", "post-2"]);
     expect(posts.every((post) => post.isLiked)).toBe(true);
+  });
+});
+
+describe("getAgoraThreadById", () => {
+  it("returns v2 synthesis plus parsed response recommendations", () => {
+    seedAgoraThread({
+      id: "agora-v2",
+      question: "What is freedom?",
+      questionType: "conceptual",
+      recommendationsEnabled: 1,
+      philosopherIds: ["nietzsche", "camus"],
+    });
+    seedAgoraResponse({
+      id: "agora-response-1",
+      threadId: "agora-v2",
+      philosopherId: "nietzsche",
+      posts: ["Freedom begins where inherited morality loses its authority."],
+      recommendation: JSON.stringify({
+        title: "Thus Spoke Zarathustra",
+        medium: "book",
+        reason: "It dramatizes freedom as self-overcoming instead of mere permission.",
+      }),
+    });
+    testDb
+      .prepare(
+        "INSERT INTO agora_synthesis_v2 (thread_id, synthesis_type, sections) VALUES (?, ?, ?)"
+      )
+      .run(
+        "agora-v2",
+        "conceptual",
+        JSON.stringify({
+          keyInsight: "Freedom appears less as choice than as self-creation under pressure.",
+          frameworkComparison: ["Nietzsche treats freedom as self-authorship."],
+          deeperQuestions: ["What kind of self can actually author values?"],
+        })
+      );
+
+    const thread = getAgoraThreadById("agora-v2");
+
+    expect(thread).not.toBeNull();
+    expect(thread?.questionType).toBe("conceptual");
+    expect(thread?.recommendationsEnabled).toBe(true);
+    expect(thread?.responses[0].recommendation?.title).toBe("Thus Spoke Zarathustra");
+    expect(thread?.synthesis).toEqual({
+      type: "conceptual",
+      sections: {
+        keyInsight: "Freedom appears less as choice than as self-creation under pressure.",
+        frameworkComparison: ["Nietzsche treats freedom as self-authorship."],
+        deeperQuestions: ["What kind of self can actually author values?"],
+      },
+    });
+  });
+
+  it("falls back to legacy agora_synthesis rows when v2 is missing", () => {
+    seedAgoraThread({
+      id: "agora-legacy",
+      question: "Should I forgive a friend who betrayed me?",
+      philosopherIds: ["camus", "plato"],
+    });
+    testDb.exec(`
+      CREATE TABLE IF NOT EXISTS agora_synthesis (
+        thread_id TEXT PRIMARY KEY,
+        tensions TEXT NOT NULL DEFAULT '[]',
+        agreements TEXT NOT NULL DEFAULT '[]',
+        practical_takeaways TEXT NOT NULL DEFAULT '[]'
+      );
+    `);
+    testDb
+      .prepare(
+        `INSERT INTO agora_synthesis (thread_id, tensions, agreements, practical_takeaways)
+         VALUES (?, ?, ?, ?)`
+      )
+      .run(
+        "agora-legacy",
+        JSON.stringify(["Camus resists easy reconciliation while Plato prioritizes moral repair."]),
+        JSON.stringify(["Neither thinks resentment should rule the next step."]),
+        JSON.stringify(["Look for honesty before you offer restored trust."])
+      );
+
+    const thread = getAgoraThreadById("agora-legacy");
+
+    expect(thread).not.toBeNull();
+    expect(thread?.synthesis).toEqual({
+      type: "advice",
+      sections: {
+        tensions: ["Camus resists easy reconciliation while Plato prioritizes moral repair."],
+        agreements: ["Neither thinks resentment should rule the next step."],
+        practicalTakeaways: ["Look for honesty before you offer restored trust."],
+      },
+    });
   });
 });

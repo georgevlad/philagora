@@ -2,15 +2,33 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
 import { parseGroupConcat } from "@/lib/db-utils";
+import {
+  classifyAgoraQuestion,
+  type QuestionClassification,
+} from "@/lib/generation-service";
+import type { AgoraQuestionType } from "@/lib/types";
 
 interface ThreadRow {
   id: string;
   question: string;
   asked_by: string;
   status: string;
+  question_type?: AgoraQuestionType;
+  recommendations_enabled?: number;
   created_at: string;
   philosopher_ids: string;
   philosopher_names: string;
+}
+
+function isAgoraQuestionType(value: unknown): value is AgoraQuestionType {
+  return value === "advice" || value === "conceptual" || value === "debate";
+}
+
+function normalizeRecommendationsEnabled(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value;
+  if (value === 1 || value === "1") return true;
+  if (value === 0 || value === "0") return false;
+  return null;
 }
 
 /** POST — Create a new agora thread */
@@ -18,7 +36,7 @@ export async function POST(request: NextRequest) {
   try {
     const db = getDb();
     const body = await request.json();
-    const { question, asked_by, philosopher_ids } = body;
+    const { question, asked_by, philosopher_ids, question_type, recommendations_enabled } = body;
 
     if (!question?.trim()) {
       return NextResponse.json(
@@ -34,13 +52,55 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (question_type !== undefined && !isAgoraQuestionType(question_type)) {
+      return NextResponse.json(
+        { error: "question_type must be advice, conceptual, or debate" },
+        { status: 400 }
+      );
+    }
+
+    const normalizedRecommendations = normalizeRecommendationsEnabled(
+      recommendations_enabled
+    );
+
+    if (recommendations_enabled !== undefined && normalizedRecommendations === null) {
+      return NextResponse.json(
+        { error: "recommendations_enabled must be true/false or 1/0" },
+        { status: 400 }
+      );
+    }
+
     const threadId = `agora-${Date.now()}`;
+    const classification: QuestionClassification =
+      question_type !== undefined && normalizedRecommendations !== null
+        ? {
+            questionType: question_type,
+            recommendationsAppropriate: normalizedRecommendations,
+            recommendationHint: null,
+          }
+        : await classifyAgoraQuestion(question.trim());
+    const finalQuestionType = question_type ?? classification.questionType;
+    const finalRecommendationsEnabled =
+      normalizedRecommendations ?? classification.recommendationsAppropriate;
 
     db.transaction(() => {
       db.prepare(
-        `INSERT INTO agora_threads (id, question, asked_by, status)
-         VALUES (?, ?, ?, 'pending')`
-      ).run(threadId, question.trim(), asked_by || "Anonymous User");
+        `INSERT INTO agora_threads (
+           id,
+           question,
+           asked_by,
+           status,
+           question_type,
+           recommendations_enabled
+         )
+         VALUES (?, ?, ?, 'pending', ?, ?)`
+      ).run(
+        threadId,
+        question.trim(),
+        asked_by || "Anonymous User",
+        finalQuestionType,
+        finalRecommendationsEnabled ? 1 : 0
+      );
 
       const insertPhilosopher = db.prepare(
         "INSERT INTO agora_thread_philosophers (thread_id, philosopher_id) VALUES (?, ?)"

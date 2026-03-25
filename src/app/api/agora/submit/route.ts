@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { parseAgoraRecommendation } from "@/lib/agora";
+import { getAgoraResponseTemplate, getSynthesisTemplateForType } from "@/lib/content-templates";
 import { getDb } from "@/lib/db";
-import { generateContent, generateSynthesis } from "@/lib/generation-service";
+import {
+  classifyAgoraQuestion,
+  generateContent,
+  generateSynthesis,
+  type QuestionClassification,
+} from "@/lib/generation-service";
 import crypto from "crypto";
 
 interface CountRow {
@@ -15,6 +22,49 @@ interface ResponseRow {
   posts: string; // JSON string
   name: string;
   tradition: string;
+}
+
+interface RecommendationRow {
+  recommendation: string;
+  name: string;
+}
+
+function buildAgoraSynthesisSourceMaterial(args: {
+  question: string;
+  askedBy: string;
+  questionType: QuestionClassification["questionType"];
+  responses: ResponseRow[];
+  recommendations: RecommendationRow[];
+}): string {
+  let sourceMaterial = `USER QUESTION: ${args.question}\n`;
+  sourceMaterial += `Asked by: ${args.askedBy}\n`;
+  sourceMaterial += `Question type: ${args.questionType}\n\n`;
+  sourceMaterial += "=== PHILOSOPHER RESPONSES ===\n\n";
+
+  for (const resp of args.responses) {
+    const posts = JSON.parse(resp.posts) as string[];
+    sourceMaterial += `### ${resp.name} (${resp.tradition}):\n`;
+    posts.forEach((post, idx) => {
+      if (posts.length > 1) {
+        sourceMaterial += `Response ${idx + 1}: ${post}\n\n`;
+      } else {
+        sourceMaterial += `${post}\n\n`;
+      }
+    });
+  }
+
+  if (args.recommendations.length > 0) {
+    sourceMaterial += "\n=== PHILOSOPHER RECOMMENDATIONS ===\n\n";
+
+    for (const rec of args.recommendations) {
+      const parsed = parseAgoraRecommendation(rec.recommendation);
+      if (!parsed) continue;
+
+      sourceMaterial += `${rec.name} recommends: "${parsed.title}" (${parsed.medium}) - ${parsed.reason}\n`;
+    }
+  }
+
+  return sourceMaterial;
 }
 
 /** POST /api/agora/submit — Submit a question to the Agora */
@@ -119,12 +169,28 @@ export async function POST(request: NextRequest) {
 
     const threadId = crypto.randomUUID();
     const validPids = philosopherIds as string[];
+    const classification = await classifyAgoraQuestion(sanitizedQuestion);
 
     db.transaction(() => {
       db.prepare(
-        `INSERT INTO agora_threads (id, question, asked_by, status, ip_address)
-         VALUES (?, ?, ?, 'in_progress', ?)`
-      ).run(threadId, sanitizedQuestion, askedBy, clientIp);
+        `INSERT INTO agora_threads (
+           id,
+           question,
+           asked_by,
+           status,
+           ip_address,
+           question_type,
+           recommendations_enabled
+         )
+         VALUES (?, ?, ?, 'pending', ?, ?, ?)`
+      ).run(
+        threadId,
+        sanitizedQuestion,
+        askedBy,
+        clientIp,
+        classification.questionType,
+        classification.recommendationsAppropriate ? 1 : 0
+      );
 
       const insertPhilosopher = db.prepare(
         "INSERT INTO agora_thread_philosophers (thread_id, philosopher_id) VALUES (?, ?)"
@@ -136,7 +202,7 @@ export async function POST(request: NextRequest) {
 
     // ── Fire-and-forget generation ────────────────────────────────────
 
-    runGeneration(threadId, sanitizedQuestion, askedBy, validPids);
+    runGeneration(threadId, sanitizedQuestion, askedBy, validPids, classification);
 
     return NextResponse.json({ threadId }, { status: 201 });
   } catch (error) {
@@ -159,16 +225,38 @@ async function runGeneration(
   threadId: string,
   question: string,
   askedBy: string,
-  philosopherIds: string[]
+  philosopherIds: string[],
+  classification: QuestionClassification
 ): Promise<void> {
   try {
     const db = getDb();
     let successCount = 0;
 
+    db.prepare("UPDATE agora_threads SET status = 'in_progress' WHERE id = ?").run(threadId);
+
     // 1. Generate each philosopher's response sequentially (with one retry)
     for (let i = 0; i < philosopherIds.length; i++) {
       const pid = philosopherIds[i];
-      const sourceMaterial = `USER QUESTION:\n${question}\n\nAsked by: ${askedBy}\n\nRespond to this person's situation through your philosophical framework.`;
+      const responseTemplate = getAgoraResponseTemplate(
+        classification.questionType,
+        classification.recommendationsAppropriate,
+        classification.recommendationHint
+      );
+      const recommendationContext = classification.recommendationsAppropriate
+        ? `Recommendations may be appropriate for this question. If useful, keep in mind this recommendation direction: ${classification.recommendationHint ?? "philosophically resonant works"}.`
+        : "Do not force cultural recommendations; the main task is philosophical response.";
+      const sourceMaterial = `USER QUESTION:\n${question}
+
+Asked by: ${askedBy}
+
+CLASSIFICATION:
+- Question type: ${classification.questionType}
+- Recommendations appropriate: ${classification.recommendationsAppropriate ? "yes" : "no"}
+- Recommendation hint: ${classification.recommendationHint ?? "none"}
+
+${recommendationContext}
+
+Respond to this person's situation through your philosophical framework.`;
       const maxAttempts = 2;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -176,7 +264,9 @@ async function runGeneration(
           const outcome = await generateContent(
             pid,
             "agora_response",
-            sourceMaterial
+            sourceMaterial,
+            undefined,
+            responseTemplate
           );
 
           // Log to generation_log
@@ -192,17 +282,36 @@ async function runGeneration(
 
           if (outcome.success) {
             const responseId = crypto.randomUUID();
-            const posts = (outcome.data as { posts: string[] }).posts;
+            const data = outcome.data as {
+              posts: string[];
+              recommendation?: {
+                title: string;
+                medium: string;
+                reason: string;
+              };
+            };
+            const posts = Array.isArray(data.posts) ? data.posts : [];
+            const recommendation = data.recommendation
+              ? JSON.stringify(data.recommendation)
+              : null;
 
             db.prepare(
-              `INSERT INTO agora_responses (id, thread_id, philosopher_id, posts, sort_order)
-               VALUES (?, ?, ?, ?, ?)`
+              `INSERT INTO agora_responses (
+                 id,
+                 thread_id,
+                 philosopher_id,
+                 posts,
+                 sort_order,
+                 recommendation
+               )
+               VALUES (?, ?, ?, ?, ?, ?)`
             ).run(
               responseId,
               threadId,
               pid,
               JSON.stringify(posts),
-              i
+              i,
+              recommendation
             );
             successCount += 1;
             break; // Success — move to next philosopher
@@ -246,28 +355,31 @@ async function runGeneration(
         .all(threadId) as ResponseRow[];
 
       if (responses.length > 0) {
-        let sourceMaterial = `USER QUESTION: ${question}\n`;
-        sourceMaterial += `Asked by: ${askedBy}\n\n`;
-        sourceMaterial += "=== PHILOSOPHER RESPONSES ===\n\n";
-
-        for (const resp of responses) {
-          const posts = JSON.parse(resp.posts) as string[];
-          sourceMaterial += `### ${resp.name} (${resp.tradition}):\n`;
-          posts.forEach((post, idx) => {
-            if (posts.length > 1) {
-              sourceMaterial += `Response ${idx + 1}: ${post}\n\n`;
-            } else {
-              sourceMaterial += `${post}\n\n`;
-            }
-          });
-        }
-
-        sourceMaterial +=
-          "Analyze the tensions, agreements, and practical takeaways.";
+        const recommendations = classification.recommendationsAppropriate
+          ? (db
+              .prepare(
+                `SELECT ar.recommendation, p.name
+                 FROM agora_responses ar
+                 JOIN philosophers p ON ar.philosopher_id = p.id
+                 WHERE ar.thread_id = ? AND ar.recommendation IS NOT NULL`
+              )
+              .all(threadId) as RecommendationRow[])
+          : [];
+        const sourceMaterial = buildAgoraSynthesisSourceMaterial({
+          question,
+          askedBy,
+          questionType: classification.questionType,
+          responses,
+          recommendations,
+        });
+        const synthesisTemplate = getSynthesisTemplateForType(
+          classification.questionType
+        );
 
         const outcome = await generateSynthesis(
           "agora_synthesis",
-          sourceMaterial
+          sourceMaterial,
+          synthesisTemplate
         );
 
         // Log synthesis to generation_log
@@ -282,20 +394,13 @@ async function runGeneration(
         ).run(null, null, sourceMaterial, rawOutput, status);
 
         if (outcome.success) {
-          const data = outcome.data as {
-            tensions?: string[];
-            agreements?: string[];
-            practicalTakeaways?: string[];
-          };
-
           db.prepare(
-            `INSERT INTO agora_synthesis (thread_id, tensions, agreements, practical_takeaways)
-             VALUES (?, ?, ?, ?)`
+            `INSERT INTO agora_synthesis_v2 (thread_id, synthesis_type, sections)
+             VALUES (?, ?, ?)`
           ).run(
             threadId,
-            JSON.stringify(data.tensions ?? []),
-            JSON.stringify(data.agreements ?? []),
-            JSON.stringify(data.practicalTakeaways ?? [])
+            classification.questionType,
+            JSON.stringify(outcome.data)
           );
         }
       }

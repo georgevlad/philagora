@@ -132,6 +132,7 @@ describe("migration system", () => {
       expect(tableNames).toContain("posts");
       expect(tableNames).toContain("debates");
       expect(tableNames).toContain("agora_threads");
+      expect(tableNames).toContain("agora_synthesis_v2");
 
       expect(tableNames).toContain("news_sources");
       expect(tableNames).toContain("article_candidates");
@@ -154,6 +155,26 @@ describe("migration system", () => {
       expect(colNames).toContain("historical_event_id");
       expect(colNames).toContain("recommendation_title");
       expect(colNames).toContain("recommendation_medium");
+    });
+
+    it("adds expected columns to agora tables", () => {
+      runMigrations(db, { bootstrapNewsSources: true });
+
+      const threadColumns = db
+        .prepare("PRAGMA table_info(agora_threads)")
+        .all() as Array<{ name: string }>;
+      const threadColNames = threadColumns.map((column) => column.name);
+
+      expect(threadColNames).toContain("ip_address");
+      expect(threadColNames).toContain("question_type");
+      expect(threadColNames).toContain("recommendations_enabled");
+
+      const responseColumns = db
+        .prepare("PRAGMA table_info(agora_responses)")
+        .all() as Array<{ name: string }>;
+      const responseColNames = responseColumns.map((column) => column.name);
+
+      expect(responseColNames).toContain("recommendation");
     });
 
     it("seeds news sources when bootstrapNewsSources is true", () => {

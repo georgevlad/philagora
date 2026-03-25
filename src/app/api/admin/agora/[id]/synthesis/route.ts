@@ -1,4 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  buildAdviceSectionsJson,
+  getAgoraSynthesisForThread,
+  parseAgoraRecommendation,
+} from "@/lib/agora";
+import { getSynthesisTemplateForType } from "@/lib/content-templates";
 import { getDb } from "@/lib/db";
 import { generateSynthesis } from "@/lib/generation-service";
 
@@ -6,12 +12,57 @@ interface ThreadRow {
   id: string;
   question: string;
   asked_by: string;
+  question_type?: string;
+  recommendations_enabled?: number;
 }
 
 interface ResponseRow {
   posts: string; // JSON array
   philosopher_name: string;
   philosopher_tradition: string;
+}
+
+interface RecommendationRow {
+  recommendation: string;
+  philosopher_name: string;
+}
+
+function buildSynthesisSourceMaterial(args: {
+  question: string;
+  askedBy: string;
+  questionType: string;
+  responses: ResponseRow[];
+  recommendations: RecommendationRow[];
+}): string {
+  let sourceMaterial = `USER QUESTION: ${args.question}\n`;
+  sourceMaterial += `Asked by: ${args.askedBy}\n`;
+  sourceMaterial += `Question type: ${args.questionType}\n\n`;
+  sourceMaterial += "=== PHILOSOPHER RESPONSES ===\n\n";
+
+  for (const resp of args.responses) {
+    const posts = JSON.parse(resp.posts) as string[];
+    sourceMaterial += `### ${resp.philosopher_name} (${resp.philosopher_tradition}):\n`;
+    posts.forEach((post, i) => {
+      if (posts.length > 1) {
+        sourceMaterial += `Response ${i + 1}: ${post}\n\n`;
+      } else {
+        sourceMaterial += `${post}\n\n`;
+      }
+    });
+  }
+
+  if (args.recommendations.length > 0) {
+    sourceMaterial += "\n=== PHILOSOPHER RECOMMENDATIONS ===\n\n";
+
+    for (const rec of args.recommendations) {
+      const parsed = parseAgoraRecommendation(rec.recommendation);
+      if (!parsed) continue;
+
+      sourceMaterial += `${rec.philosopher_name} recommends: "${parsed.title}" (${parsed.medium}) - ${parsed.reason}\n`;
+    }
+  }
+
+  return sourceMaterial;
 }
 
 /** POST — Generate or save agora synthesis */
@@ -33,7 +84,11 @@ export async function POST(
     }
 
     const thread = db
-      .prepare("SELECT id, question, asked_by FROM agora_threads WHERE id = ?")
+      .prepare(
+        `SELECT id, question, asked_by, question_type, recommendations_enabled
+         FROM agora_threads
+         WHERE id = ?`
+      )
       .get(threadId) as ThreadRow | undefined;
 
     if (!thread) {
@@ -52,27 +107,32 @@ export async function POST(
         )
         .all(threadId) as ResponseRow[];
 
-      // Compose source material
-      let sourceMaterial = `USER QUESTION: ${thread.question}\n`;
-      sourceMaterial += `Asked by: ${thread.asked_by}\n\n`;
-      sourceMaterial += "=== PHILOSOPHER RESPONSES ===\n\n";
-
-      for (const resp of responses) {
-        const posts = JSON.parse(resp.posts) as string[];
-        sourceMaterial += `### ${resp.philosopher_name} (${resp.philosopher_tradition}):\n`;
-        posts.forEach((post, i) => {
-          if (posts.length > 1) {
-            sourceMaterial += `Response ${i + 1}: ${post}\n\n`;
-          } else {
-            sourceMaterial += `${post}\n\n`;
-          }
-        });
-      }
-
-      sourceMaterial += "Analyze the tensions, agreements, and practical takeaways.";
+      const recommendations = thread.recommendations_enabled === 1
+        ? (db
+            .prepare(
+              `SELECT ar.recommendation, p.name as philosopher_name
+               FROM agora_responses ar
+               JOIN philosophers p ON ar.philosopher_id = p.id
+               WHERE ar.thread_id = ? AND ar.recommendation IS NOT NULL`
+            )
+            .all(threadId) as RecommendationRow[])
+        : [];
+      const questionType = thread.question_type ?? "advice";
+      const sourceMaterial = buildSynthesisSourceMaterial({
+        question: thread.question,
+        askedBy: thread.asked_by,
+        questionType,
+        responses,
+        recommendations,
+      });
+      const synthesisTemplate = getSynthesisTemplateForType(questionType);
 
       // Generate synthesis
-      const outcome = await generateSynthesis("agora_synthesis", sourceMaterial);
+      const outcome = await generateSynthesis(
+        "agora_synthesis",
+        sourceMaterial,
+        synthesisTemplate
+      );
 
       // Log to generation_log with null philosopher_id
       const status = outcome.success ? "generated" : "rejected";
@@ -99,7 +159,14 @@ export async function POST(
       }
 
       return NextResponse.json(
-        { generated: outcome.data, log_entry: logEntry, raw_output: outcome.rawOutput },
+        {
+          generated: {
+            type: questionType,
+            sections: outcome.data,
+          },
+          log_entry: logEntry,
+          raw_output: outcome.rawOutput,
+        },
         { status: 201 }
       );
     }
@@ -113,20 +180,21 @@ export async function POST(
     }
 
     db.transaction(() => {
-      // Upsert agora_synthesis
+      const synthesisType = data.synthesisType ?? thread.question_type ?? "advice";
+      const sectionsJson =
+        data.sections && typeof data.sections === "object"
+          ? JSON.stringify(data.sections)
+          : synthesisType === "advice"
+            ? buildAdviceSectionsJson(data)
+            : JSON.stringify(data);
+
       db.prepare(
-        `INSERT INTO agora_synthesis (thread_id, tensions, agreements, practical_takeaways)
-         VALUES (?, ?, ?, ?)
+        `INSERT INTO agora_synthesis_v2 (thread_id, synthesis_type, sections)
+         VALUES (?, ?, ?)
          ON CONFLICT(thread_id) DO UPDATE SET
-           tensions = excluded.tensions,
-           agreements = excluded.agreements,
-           practical_takeaways = excluded.practical_takeaways`
-      ).run(
-        threadId,
-        JSON.stringify(data.tensions || []),
-        JSON.stringify(data.agreements || []),
-        JSON.stringify(data.practicalTakeaways || [])
-      );
+           synthesis_type = excluded.synthesis_type,
+           sections = excluded.sections`
+      ).run(threadId, synthesisType, sectionsJson);
 
       // Mark thread as complete
       db.prepare("UPDATE agora_threads SET status = 'complete' WHERE id = ?").run(
@@ -144,9 +212,15 @@ export async function POST(
     const updated = db
       .prepare("SELECT * FROM agora_threads WHERE id = ?")
       .get(threadId);
-    const synthesis = db
-      .prepare("SELECT * FROM agora_synthesis WHERE thread_id = ?")
-      .get(threadId);
+    const parsedSynthesis = getAgoraSynthesisForThread(db, threadId);
+    const synthesis = parsedSynthesis
+      ? (() => {
+          return {
+            type: parsedSynthesis.type,
+            sections: parsedSynthesis.sections,
+          };
+        })()
+      : null;
 
     return NextResponse.json({ thread: updated, synthesis });
   } catch (error) {

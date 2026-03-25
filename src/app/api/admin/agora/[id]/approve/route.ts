@@ -14,7 +14,7 @@ export async function POST(
     const db = getDb();
     const { id: threadId } = await params;
     const body = await request.json();
-    const { philosopher_id, posts, generation_log_id } = body;
+    const { philosopher_id, posts, generation_log_id, recommendation } = body;
 
     if (!philosopher_id || !Array.isArray(posts) || posts.length === 0) {
       return NextResponse.json(
@@ -43,9 +43,23 @@ export async function POST(
 
     db.transaction(() => {
       db.prepare(
-        `INSERT INTO agora_responses (id, thread_id, philosopher_id, posts, sort_order)
-         VALUES (?, ?, ?, ?, ?)`
-      ).run(responseId, threadId, philosopher_id, JSON.stringify(posts), sortOrder);
+        `INSERT INTO agora_responses (
+           id,
+           thread_id,
+           philosopher_id,
+           posts,
+           sort_order,
+           recommendation
+         )
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).run(
+        responseId,
+        threadId,
+        philosopher_id,
+        JSON.stringify(posts),
+        sortOrder,
+        recommendation ? JSON.stringify(recommendation) : null
+      );
 
       if (generation_log_id) {
         db.prepare("UPDATE generation_log SET status = 'approved' WHERE id = ?").run(

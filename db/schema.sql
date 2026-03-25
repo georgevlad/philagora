@@ -98,11 +98,16 @@ CREATE INDEX IF NOT EXISTS idx_debate_posts_debate ON debate_posts(debate_id);
 -- ── Agora Threads ────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS agora_threads (
-  id         TEXT PRIMARY KEY,
-  question   TEXT NOT NULL,
-  asked_by   TEXT NOT NULL DEFAULT 'Anonymous User',
-  status     TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','in_progress','complete','failed')),
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  id                      TEXT PRIMARY KEY,
+  question                TEXT NOT NULL,
+  asked_by                TEXT NOT NULL DEFAULT 'Anonymous User',
+  status                  TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','in_progress','complete','failed')),
+  ip_address              TEXT,
+  question_type           TEXT NOT NULL DEFAULT 'advice'
+                            CHECK(question_type IN ('advice', 'conceptual', 'debate')),
+  recommendations_enabled INTEGER NOT NULL DEFAULT 0
+                            CHECK(recommendations_enabled IN (0, 1)),
+  created_at              TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 -- ── Agora Thread ↔ Philosopher junction ──────────────────────────────
@@ -120,6 +125,7 @@ CREATE TABLE IF NOT EXISTS agora_responses (
   thread_id       TEXT NOT NULL REFERENCES agora_threads(id) ON DELETE CASCADE,
   philosopher_id  TEXT NOT NULL REFERENCES philosophers(id),
   posts           TEXT NOT NULL DEFAULT '[]',   -- JSON array of strings
+  recommendation  TEXT DEFAULT NULL,            -- JSON object or NULL
   sort_order      INTEGER NOT NULL DEFAULT 0
 );
 
@@ -127,11 +133,12 @@ CREATE INDEX IF NOT EXISTS idx_agora_responses_thread ON agora_responses(thread_
 
 -- ── Agora Synthesis ──────────────────────────────────────────────────
 
-CREATE TABLE IF NOT EXISTS agora_synthesis (
-  thread_id            TEXT PRIMARY KEY REFERENCES agora_threads(id) ON DELETE CASCADE,
-  tensions             TEXT NOT NULL DEFAULT '[]',   -- JSON array of strings
-  agreements           TEXT NOT NULL DEFAULT '[]',   -- JSON array of strings
-  practical_takeaways  TEXT NOT NULL DEFAULT '[]'    -- JSON array of strings
+CREATE TABLE IF NOT EXISTS agora_synthesis_v2 (
+  thread_id        TEXT PRIMARY KEY REFERENCES agora_threads(id) ON DELETE CASCADE,
+  synthesis_type   TEXT NOT NULL DEFAULT 'advice'
+                     CHECK(synthesis_type IN ('advice', 'conceptual', 'debate')),
+  sections         TEXT NOT NULL DEFAULT '{}',   -- JSON object, structure varies by type
+  created_at       TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 -- ── System Prompts ───────────────────────────────────────────────────

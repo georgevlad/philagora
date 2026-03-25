@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAgoraResponseTemplate } from "@/lib/content-templates";
 import { getDb } from "@/lib/db";
 import { generateContent } from "@/lib/generation-service";
 
@@ -6,6 +7,8 @@ interface ThreadRow {
   id: string;
   question: string;
   asked_by: string;
+  question_type?: "advice" | "conceptual" | "debate";
+  recommendations_enabled?: number;
 }
 
 /** POST — Generate an agora response for a philosopher */
@@ -27,19 +30,37 @@ export async function POST(
     }
 
     const thread = db
-      .prepare("SELECT id, question, asked_by FROM agora_threads WHERE id = ?")
+      .prepare(
+        `SELECT id, question, asked_by, question_type, recommendations_enabled
+         FROM agora_threads
+         WHERE id = ?`
+      )
       .get(threadId) as ThreadRow | undefined;
 
     if (!thread) {
       return NextResponse.json({ error: "Thread not found" }, { status: 404 });
     }
 
-    const sourceMaterial = `USER QUESTION:\n${thread.question}\n\nAsked by: ${thread.asked_by}\n\nRespond to this person's situation through your philosophical framework.`;
+    const questionType = thread.question_type ?? "advice";
+    const recommendationsEnabled = thread.recommendations_enabled === 1;
+    const template = getAgoraResponseTemplate(questionType, recommendationsEnabled);
+    const sourceMaterial = `USER QUESTION:\n${thread.question}
+
+Asked by: ${thread.asked_by}
+
+CLASSIFICATION:
+- Question type: ${questionType}
+- Recommendations appropriate: ${recommendationsEnabled ? "yes" : "no"}
+- Recommendation hint: none
+
+Respond to this person's situation through your philosophical framework.`;
 
     const outcome = await generateContent(
       philosopher_id,
       "agora_response",
-      sourceMaterial
+      sourceMaterial,
+      undefined,
+      template
     );
 
     // Log to generation_log

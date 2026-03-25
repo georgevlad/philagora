@@ -4,6 +4,7 @@
  */
 
 import { getDb } from "@/lib/db";
+import type { AgoraQuestionType } from "@/lib/types";
 
 export type TargetLength = "short" | "medium" | "long";
 
@@ -114,6 +115,119 @@ interface ContentTemplate {
   key: ContentTypeKey;
   instructions: string;
 }
+
+const AGORA_CONCEPTUAL_OVERRIDE = `
+TASK: A user has asked a conceptual/philosophical question on Philagora's Agora. Respond through your philosophical framework. Go deep into your tradition's perspective on this question - this is your territory.
+
+REQUIREMENTS:
+- You may write 1-2 response posts (use multiple if the question has layers worth unpacking)
+- Length: 120-250 words per post
+- OPEN by reframing the question through your specific philosophical lens. Show how your tradition sees this differently from common assumptions.
+- Develop your framework's answer with precision. Use your key concepts, but make them accessible.
+- End with a provocation or a reframing that complicates easy answers - do NOT end with a neat conclusion.
+- If writing a second post: explore a tension or paradox within your OWN framework's answer. Show intellectual honesty.
+
+RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
+{
+  "posts": ["First response (120-250 words)", "Optional second response (120-250 words)"]
+}
+`.trim();
+
+const AGORA_DEBATE_OVERRIDE = `
+TASK: A user has brought a contested question to Philagora's Agora. Take a clear position informed by your philosophical framework.
+
+REQUIREMENTS:
+- You may write 1-2 response posts
+- Length: 100-200 words per post
+- OPEN by stating your position clearly in one sentence.
+- Defend it using your philosophical framework - make the strongest case your tradition can make.
+- Acknowledge the best counter-argument and explain why your position withstands it.
+- Do NOT hedge or try to be balanced. The synthesis will provide balance. Your job is to argue.
+
+RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
+{
+  "posts": ["First response (100-200 words)", "Optional second response (100-200 words)"]
+}
+`.trim();
+
+const AGORA_RECOMMENDATION_APPENDIX = `
+ADDITIONAL: If a specific work (book, film, essay, album, poem, play, or speech) genuinely speaks to this question from your philosophical perspective, include a recommendation. Only recommend something you would authentically champion - do not force a recommendation if nothing fits.
+
+If recommending, add a "recommendation" field to your JSON response:
+{
+  "posts": ["..."],
+  "recommendation": {
+    "title": "Work title",
+    "medium": "book|film|essay|album|poem|play|podcast|speech",
+    "reason": "One sentence on why this work matters here (max 30 words)"
+  }
+}
+
+If no recommendation fits naturally, omit the "recommendation" field entirely.
+`.trim();
+
+const AGORA_SYNTHESIS_ADVICE = `
+TASK: Editorial synthesis for a practical/advice question. Identify:
+1. tensions - where these thinkers offer conflicting advice or framings
+2. agreements - what they converge on despite different frameworks
+3. practicalTakeaways - concrete advice the questioner can actually act on
+
+REQUIREMENTS:
+- Open with the most surprising or consequential disagreement. Do NOT open with "The philosophers discussed X."
+- Be precise. Name the philosophers: "Russell advises X while Plato recommends Y."
+- Distill 2-4 practical takeaways the questioner can actually use.
+- Length: Each item should be 1-2 sentences.
+
+RESPOND WITH VALID JSON ONLY:
+{
+  "tensions": ["..."],
+  "agreements": ["..."],
+  "practicalTakeaways": ["..."]
+}
+`.trim();
+
+const AGORA_SYNTHESIS_CONCEPTUAL = `
+TASK: Editorial synthesis for a conceptual/philosophical question. This is NOT advice - do not force practical takeaways. Instead, identify:
+1. keyInsight - the single most striking reframing or unexpected convergence across all responses (2-3 sentences, written as a mini editorial paragraph, not a list item)
+2. frameworkComparison - how did the philosophical lenses produce genuinely different answers? Focus on the WHY of their disagreement, not just that they disagree.
+3. deeperQuestions - what new, more precise questions emerge from this dialogue? These should be questions the user did NOT originally ask but might now want to explore.
+
+REQUIREMENTS:
+- The keyInsight should read like the opening of an editorial essay - vivid, specific, non-obvious.
+- frameworkComparison entries should name the philosophers and explain the root of their divergence (tradition, metaphysics, view of human nature).
+- deeperQuestions should be genuine follow-ups, not rephrases of the original question.
+- Length: keyInsight is 2-3 sentences. Each frameworkComparison and deeperQuestions item is 1-2 sentences.
+
+RESPOND WITH VALID JSON ONLY:
+{
+  "keyInsight": "...",
+  "frameworkComparison": ["..."],
+  "deeperQuestions": ["..."]
+}
+`.trim();
+
+const AGORA_SYNTHESIS_DEBATE = `
+TASK: Editorial synthesis for a debate/contested question. Identify:
+1. centralFaultLine - the core disagreement in one precise sentence
+2. tensions - the specific points where philosophers take opposing positions
+3. commonGround - what they agree on despite disagreeing on the main question
+4. whatIsAtStake - one sentence on why this disagreement matters beyond philosophy
+
+REQUIREMENTS:
+- Open centralFaultLine with the sharpest formulation of the disagreement you can find. Be surgical.
+- tensions should name philosophers and be specific about what each argues.
+- commonGround should surprise - find agreement where readers might not expect it.
+- whatIsAtStake should connect the philosophical disagreement to real consequences.
+- Length: centralFaultLine is 1 sentence. Each tension/commonGround item is 1-2 sentences. whatIsAtStake is 1-2 sentences.
+
+RESPOND WITH VALID JSON ONLY:
+{
+  "centralFaultLine": "...",
+  "tensions": ["..."],
+  "commonGround": ["..."],
+  "whatIsAtStake": "..."
+}
+`.trim();
 
 export const CONTENT_TEMPLATES: Record<ContentTypeKey, ContentTemplate> = {
   news_reaction: {
@@ -407,25 +521,7 @@ RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
 
   agora_synthesis: {
     key: "agora_synthesis",
-    instructions: `
-TASK: This is NOT a philosopher voice. This is the editorial voice of Philagora. You have read all the philosopher responses to a user's question below. Your job is to identify:
-1. tensions - where do these thinkers offer conflicting advice or framings?
-2. agreements - what do they converge on, despite different frameworks?
-3. practicalTakeaways - concrete advice the questioner can actually act on
-
-REQUIREMENTS:
-- Open with one sentence that captures the most surprising or consequential disagreement. Do NOT open with a generic summary like "The philosophers discussed X." Lead with the clash.
-- Be precise. Name the philosophers. Do not just say "some disagree" - say "Russell advises X while Plato recommends Y."
-- Distill 2-4 practical takeaways the questioner can actually use
-- Length: Each tension/agreement/takeaway should be 1-2 sentences.
-
-RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
-{
-  "tensions": ["Tension 1...", "Tension 2..."],
-  "agreements": ["Agreement 1..."],
-  "practicalTakeaways": ["Takeaway 1...", "Takeaway 2..."]
-}
-`.trim(),
+    instructions: AGORA_SYNTHESIS_ADVICE,
   },
 };
 
@@ -448,6 +544,44 @@ export function getActiveTemplate(key: ContentTypeKey): string {
   }
 
   return CONTENT_TEMPLATES[key].instructions;
+}
+
+export function getAgoraResponseTemplate(
+  questionType: AgoraQuestionType,
+  recommendationsEnabled: boolean,
+  recommendationHint?: string | null
+): string {
+  const baseTemplate = getActiveTemplate("agora_response");
+
+  let template = baseTemplate;
+  if (questionType === "conceptual") {
+    template = AGORA_CONCEPTUAL_OVERRIDE;
+  } else if (questionType === "debate") {
+    template = AGORA_DEBATE_OVERRIDE;
+  }
+
+  if (!recommendationsEnabled) {
+    return template;
+  }
+
+  const hintLine =
+    recommendationHint && recommendationHint.trim().length > 0
+      ? `\nHINT: Consider works in the area of: ${recommendationHint.trim()}`
+      : "";
+
+  return `${template}\n\n${AGORA_RECOMMENDATION_APPENDIX}${hintLine}`;
+}
+
+export function getSynthesisTemplateForType(questionType: string): string {
+  switch (questionType) {
+    case "conceptual":
+      return AGORA_SYNTHESIS_CONCEPTUAL;
+    case "debate":
+      return AGORA_SYNTHESIS_DEBATE;
+    case "advice":
+    default:
+      return getActiveTemplate("agora_synthesis");
+  }
 }
 
 /**

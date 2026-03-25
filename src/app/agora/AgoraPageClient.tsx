@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { getQuestionTypeLabel } from "@/lib/agora";
 import type { Philosopher, AgoraThreadDetail } from "@/lib/types";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { MobileNav } from "@/components/MobileNav";
@@ -22,6 +23,7 @@ interface FeaturedThread {
   id: string;
   question: string;
   asked_by: string;
+  question_type: "advice" | "conceptual" | "debate";
   created_at: string;
   philosophers: {
     id: string;
@@ -74,6 +76,11 @@ function FeaturedThreadCard({ thread }: { thread: FeaturedThread }) {
           <p className="font-serif text-[20px] sm:text-[22px] leading-[1.26] text-ink line-clamp-2 group-hover:text-athenian transition-colors text-balance">
             &ldquo;{thread.question}&rdquo;
           </p>
+          <div className="mt-2">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-athenian/8 text-athenian text-[9px] font-mono uppercase tracking-[0.14em]">
+              {getQuestionTypeLabel(thread.question_type)}
+            </span>
+          </div>
           <div className="mt-2 text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">
             {thread.asked_by} <span className="mx-2 text-border">/</span>
             {timeAgo(thread.created_at)}

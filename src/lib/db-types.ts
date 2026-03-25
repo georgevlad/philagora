@@ -1,5 +1,5 @@
 import type { ContentTypeKey } from "@/lib/content-templates";
-import type { AgoraThreadStatus, Stance } from "@/lib/types";
+import type { AgoraQuestionType, AgoraThreadStatus, Stance } from "@/lib/types";
 
 export interface PhilosopherRow {
   id: string;
@@ -88,6 +88,9 @@ export interface AgoraThreadRow {
   question: string;
   asked_by: string;
   status: AgoraThreadStatus;
+  ip_address?: string | null;
+  question_type?: AgoraQuestionType;
+  recommendations_enabled?: number;
   created_at: string;
 }
 
@@ -96,6 +99,7 @@ export interface AgoraResponseRow {
   thread_id: string;
   philosopher_id: string;
   posts: string;
+  recommendation?: string | null;
   sort_order: number;
   philosopher_name: string;
   philosopher_color: string;
@@ -105,9 +109,9 @@ export interface AgoraResponseRow {
 
 export interface AgoraSynthesisRow {
   thread_id: string;
-  tensions: string;
-  agreements: string;
-  practical_takeaways: string;
+  synthesis_type: AgoraQuestionType;
+  sections: string;
+  created_at?: string;
 }
 
 export interface AgoraPhilosopherRow {

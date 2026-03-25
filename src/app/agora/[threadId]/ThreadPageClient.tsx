@@ -2,7 +2,15 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import type { Philosopher, AgoraThreadDetail } from "@/lib/types";
+import { getQuestionTypeLabel } from "@/lib/agora";
+import type {
+  AgoraRecommendation,
+  AgoraSynthesisSections,
+  AgoraThreadDetail,
+  AgoraThreadStatus,
+  AgoraQuestionType,
+  Philosopher,
+} from "@/lib/types";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
@@ -11,7 +19,6 @@ import { AIBadge } from "@/components/AIBadge";
 import { SynthesisCard } from "@/components/SynthesisCard";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { timeAgo } from "@/lib/date-utils";
-import type { AgoraThreadStatus } from "@/lib/types";
 
 // Types for API response
 
@@ -20,6 +27,8 @@ interface ApiThread {
   question: string;
   asked_by: string;
   status: AgoraThreadStatus;
+  question_type: AgoraQuestionType;
+  recommendations_enabled: number;
   created_at: string;
 }
 
@@ -35,6 +44,7 @@ interface ApiResponse {
   id: string;
   philosopher_id: string;
   posts: string[];
+  recommendation?: AgoraRecommendation | null;
   sort_order: number;
   philosopher_name: string;
   philosopher_initials: string;
@@ -43,9 +53,8 @@ interface ApiResponse {
 }
 
 interface ApiSynthesis {
-  tensions: string[];
-  agreements: string[];
-  practical_takeaways: string[];
+  type: AgoraQuestionType;
+  sections: AgoraSynthesisSections;
 }
 
 interface ApiThreadData {
@@ -78,6 +87,28 @@ const thinkingMessages: Record<string, string> = {
 
 function getThinkingMessage(philosopherId: string): string {
   return thinkingMessages[philosopherId] ?? "Considering your question...";
+}
+
+function recommendationMediumLabel(medium: AgoraRecommendation["medium"]): string {
+  switch (medium) {
+    case "film":
+      return "Film";
+    case "essay":
+      return "Essay";
+    case "album":
+      return "Album";
+    case "poem":
+      return "Poem";
+    case "play":
+      return "Play";
+    case "podcast":
+      return "Podcast";
+    case "speech":
+      return "Speech";
+    case "book":
+    default:
+      return "Book";
+  }
 }
 
 // Response card (matches AgoraPageClient pattern)
@@ -130,7 +161,7 @@ function ResponseCard({
             className="space-y-3"
             style={{
               borderLeft: `2px solid ${response.philosopher_color}18`,
-              paddingLeft: '14px',
+              paddingLeft: "14px",
             }}
           >
             {response.posts.map((post, i) => (
@@ -148,6 +179,43 @@ function ResponseCard({
               </div>
             ))}
           </div>
+
+          {response.recommendation && (
+            <div
+              className="mt-4 rounded-2xl border bg-parchment-dark/35 px-4 py-3"
+              style={{
+                borderColor: `${response.philosopher_color}25`,
+                borderLeftColor: response.philosopher_color,
+                borderLeftWidth: "3px",
+              }}
+            >
+              <div className="flex items-center justify-between gap-3 mb-1.5">
+                <div className="min-w-0">
+                  <p className="font-serif text-[16px] text-ink leading-tight">
+                    {response.recommendation.title}
+                  </p>
+                  <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-ink-faint mt-1">
+                    {recommendationMediumLabel(response.recommendation.medium)}
+                  </p>
+                </div>
+                <span
+                  className="text-[10px] font-mono px-2 py-0.5 rounded-full"
+                  style={{
+                    backgroundColor: `${response.philosopher_color}12`,
+                    color: response.philosopher_color,
+                  }}
+                >
+                  Go deeper
+                </span>
+              </div>
+              <p className="text-sm text-ink-light leading-relaxed">
+                {response.recommendation.reason}
+              </p>
+              <p className="mt-2 text-[11px] font-mono text-right uppercase tracking-[0.14em] text-ink-faint">
+                {response.philosopher_name}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -314,6 +382,12 @@ export function ThreadPageClient({
 
   const isFailed = data.thread.status === "failed";
   const isGenerating = !isThreadSettled(data.thread.status);
+  const recommendations = data.responses
+    .filter((response) => response.recommendation)
+    .map((response) => ({
+      philosopherName: response.philosopher_name,
+      recommendation: response.recommendation as AgoraRecommendation,
+    }));
 
   return (
     <PageWrapper philosophers={philosophers}>
@@ -335,6 +409,11 @@ export function ThreadPageClient({
             {timeAgo(data.thread.created_at)}
           </span>
         </p>
+        <div className="mt-3 flex justify-center">
+          <span className="inline-flex items-center px-3 py-1 rounded-full bg-athenian/8 text-athenian text-[10px] font-mono uppercase tracking-[0.16em]">
+            {getQuestionTypeLabel(data.thread.question_type)}
+          </span>
+        </div>
 
         {/* Philosopher avatars row */}
         <div className="flex items-center gap-2 mt-3">
@@ -432,12 +511,27 @@ export function ThreadPageClient({
       {/* Synthesis section */}
       {!isFailed && data.synthesis && (
         <div className="px-5 py-5">
-          <SynthesisCard
-            tensions={data.synthesis.tensions}
-            agreements={data.synthesis.agreements}
-            questionsOrTakeaways={data.synthesis.practical_takeaways}
-            questionsLabel="Practical Takeaways"
-          />
+          <SynthesisCard type={data.synthesis.type} sections={data.synthesis.sections} />
+          {recommendations.length > 0 && (
+            <div className="mx-3 sm:mx-5 mt-6 rounded-lg border border-border-light bg-parchment-dark/30 px-5 py-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="text-[10px] font-mono tracking-[0.18em] uppercase text-ink-faint">
+                  Go deeper
+                </div>
+                <div className="h-px flex-1 bg-border-light" />
+              </div>
+              <div className="space-y-2.5">
+                {recommendations.map((item) => (
+                  <div key={`${item.philosopherName}-${item.recommendation.title}`} className="text-sm text-ink-light leading-relaxed">
+                    <span className="font-medium text-ink">{item.philosopherName}</span>
+                    {" "}recommends:{" "}
+                    <span className="font-serif text-ink">{item.recommendation.title}</span>
+                    {" "}({recommendationMediumLabel(item.recommendation.medium).toLowerCase()})
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -523,13 +617,15 @@ function convertInitialThread(
   philosophersMap: Record<string, Philosopher>
 ): ApiThreadData {
   return {
-    thread: {
-      id: thread.id,
-      question: thread.question,
-      asked_by: thread.askedBy,
-      status: thread.status,
-      created_at: thread.createdAt,
-    },
+      thread: {
+        id: thread.id,
+        question: thread.question,
+        asked_by: thread.askedBy,
+        status: thread.status,
+        question_type: thread.questionType,
+        recommendations_enabled: thread.recommendationsEnabled ? 1 : 0,
+        created_at: thread.createdAt,
+      },
     philosophers: thread.philosophers.map((pid) => {
       const p = philosophersMap[pid];
       return {
@@ -544,6 +640,7 @@ function convertInitialThread(
       id: `${r.philosopherId}-${r.sortOrder}`,
       philosopher_id: r.philosopherId,
       posts: r.posts,
+      recommendation: r.recommendation ?? null,
       sort_order: r.sortOrder,
       philosopher_name: r.philosopherName,
       philosopher_initials: r.philosopherInitials,
@@ -552,9 +649,8 @@ function convertInitialThread(
     })),
     synthesis: thread.synthesis
       ? {
-          tensions: thread.synthesis.tensions,
-          agreements: thread.synthesis.agreements,
-          practical_takeaways: thread.synthesis.practicalTakeaways,
+          type: thread.synthesis.type,
+          sections: thread.synthesis.sections,
         }
       : null,
   };

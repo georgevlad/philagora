@@ -19,6 +19,47 @@ export interface PostCitation {
   imageUrl?: string;
 }
 
+export type AgoraQuestionType = "advice" | "conceptual" | "debate";
+export type AgoraRecommendationMedium =
+  | "book"
+  | "film"
+  | "essay"
+  | "album"
+  | "poem"
+  | "play"
+  | "podcast"
+  | "speech";
+
+export interface AgoraRecommendation {
+  title: string;
+  medium: AgoraRecommendationMedium;
+  reason: string;
+}
+
+export interface AdviceSynthesis {
+  tensions: string[];
+  agreements: string[];
+  practicalTakeaways: string[];
+}
+
+export interface ConceptualSynthesis {
+  keyInsight: string;
+  frameworkComparison: string[];
+  deeperQuestions: string[];
+}
+
+export interface DebateSynthesis {
+  centralFaultLine: string;
+  tensions: string[];
+  commonGround: string[];
+  whatIsAtStake: string;
+}
+
+export type AgoraSynthesisSections =
+  | AdviceSynthesis
+  | ConceptualSynthesis
+  | DebateSynthesis;
+
 export interface Post {
   id: string;
   philosopherId: string;
@@ -157,13 +198,13 @@ export interface AgoraResponse {
   philosopherInitials: string;
   philosopherTradition: string;
   posts: string[];
+  recommendation?: AgoraRecommendation | null;
   sortOrder: number;
 }
 
 export interface AgoraSynthesis {
-  tensions: string[];
-  agreements: string[];
-  practicalTakeaways: string[];
+  type: AgoraQuestionType;
+  sections: AgoraSynthesisSections;
 }
 
 export type AgoraThreadStatus = "pending" | "in_progress" | "complete" | "failed";
@@ -174,6 +215,8 @@ export interface AgoraThreadDetail {
   askedBy: string;
   status: AgoraThreadStatus;
   createdAt: string;
+  questionType: AgoraQuestionType;
+  recommendationsEnabled: boolean;
   philosophers: string[];
   responses: AgoraResponse[];
   synthesis: AgoraSynthesis | null;

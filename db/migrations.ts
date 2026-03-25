@@ -44,6 +44,11 @@ const MIGRATIONS: Migration[] = [
     name: "add_failed_agora_thread_status",
     migrate: (db) => migrateAgoraThreadsFailedStatus(db),
   },
+  {
+    version: 5,
+    name: "agora_question_categorization_and_flexible_synthesis",
+    migrate: (db) => migrateAgoraQuestionCategorizationAndFlexibleSynthesis(db),
+  },
   // ── Future migrations go here ──
   // {
   //   version: 2,
@@ -701,6 +706,156 @@ function migrateAgoraThreadsFailedStatus(db: Database.Database): void {
   })();
 
   db.exec("PRAGMA foreign_keys = ON;");
+}
+
+function migrateAgoraQuestionCategorizationAndFlexibleSynthesis(
+  db: Database.Database
+): void {
+  ensureAgoraThreadsQuestionMetadata(db);
+  ensureAgoraSynthesisV2(db);
+  migrateLegacyAgoraSynthesisRows(db);
+  ensureAgoraResponseRecommendationColumn(db);
+}
+
+function ensureAgoraThreadsQuestionMetadata(db: Database.Database): void {
+  const tableInfo = db
+    .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='agora_threads'")
+    .get() as { sql: string } | undefined;
+
+  if (!tableInfo) return;
+
+  const columns = db
+    .prepare("PRAGMA table_info(agora_threads)")
+    .all() as Array<{ name: string }>;
+  const columnNames = new Set(columns.map((column) => column.name));
+  const hasQuestionType = columnNames.has("question_type");
+  const hasRecommendationsEnabled = columnNames.has("recommendations_enabled");
+  const hasIpAddress = columnNames.has("ip_address");
+  const hasQuestionTypeCheck = tableInfo.sql.includes("question_type IN ('advice', 'conceptual', 'debate')");
+  const hasRecommendationsCheck = tableInfo.sql.includes(
+    "recommendations_enabled IN (0, 1)"
+  );
+
+  if (
+    hasQuestionType &&
+    hasRecommendationsEnabled &&
+    hasIpAddress &&
+    hasQuestionTypeCheck &&
+    hasRecommendationsCheck
+  ) {
+    return;
+  }
+
+  db.exec("PRAGMA foreign_keys = OFF;");
+
+  db.transaction(() => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS agora_threads_new (
+        id                      TEXT PRIMARY KEY,
+        question                TEXT NOT NULL,
+        asked_by                TEXT NOT NULL DEFAULT 'Anonymous User',
+        status                  TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','in_progress','complete','failed')),
+        ip_address              TEXT,
+        question_type           TEXT NOT NULL DEFAULT 'advice'
+                                  CHECK(question_type IN ('advice', 'conceptual', 'debate')),
+        recommendations_enabled INTEGER NOT NULL DEFAULT 0
+                                  CHECK(recommendations_enabled IN (0, 1)),
+        created_at              TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+
+    db.exec(`
+      INSERT INTO agora_threads_new (
+        id,
+        question,
+        asked_by,
+        status,
+        ip_address,
+        question_type,
+        recommendations_enabled,
+        created_at
+      )
+      SELECT
+        id,
+        question,
+        asked_by,
+        status,
+        ${hasIpAddress ? "ip_address" : "NULL"},
+        ${hasQuestionType ? "COALESCE(question_type, 'advice')" : "'advice'"},
+        ${hasRecommendationsEnabled ? "COALESCE(recommendations_enabled, 0)" : "0"},
+        created_at
+      FROM agora_threads;
+    `);
+
+    db.exec("DROP TABLE agora_threads;");
+    db.exec("ALTER TABLE agora_threads_new RENAME TO agora_threads;");
+  })();
+
+  db.exec("PRAGMA foreign_keys = ON;");
+}
+
+function ensureAgoraSynthesisV2(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS agora_synthesis_v2 (
+      thread_id        TEXT PRIMARY KEY REFERENCES agora_threads(id) ON DELETE CASCADE,
+      synthesis_type   TEXT NOT NULL DEFAULT 'advice'
+                         CHECK(synthesis_type IN ('advice', 'conceptual', 'debate')),
+      sections         TEXT NOT NULL DEFAULT '{}',
+      created_at       TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+}
+
+function migrateLegacyAgoraSynthesisRows(db: Database.Database): void {
+  const legacyTable = db
+    .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='agora_synthesis'")
+    .get();
+
+  if (!legacyTable) return;
+
+  const existingRows = db.prepare(
+    "SELECT thread_id, tensions, agreements, practical_takeaways FROM agora_synthesis"
+  ).all() as Array<{
+    thread_id: string;
+    tensions: string | null;
+    agreements: string | null;
+    practical_takeaways: string | null;
+  }>;
+
+  const insertV2 = db.prepare(
+    `INSERT OR IGNORE INTO agora_synthesis_v2 (thread_id, synthesis_type, sections)
+     VALUES (?, 'advice', ?)`
+  );
+
+  for (const row of existingRows) {
+    const sections = JSON.stringify({
+      tensions: safeJsonArray(row.tensions),
+      agreements: safeJsonArray(row.agreements),
+      practicalTakeaways: safeJsonArray(row.practical_takeaways),
+    });
+    insertV2.run(row.thread_id, sections);
+  }
+}
+
+function ensureAgoraResponseRecommendationColumn(db: Database.Database): void {
+  const columns = db
+    .prepare("PRAGMA table_info(agora_responses)")
+    .all() as Array<{ name: string }>;
+
+  if (columns.some((column) => column.name === "recommendation")) return;
+
+  db.exec("ALTER TABLE agora_responses ADD COLUMN recommendation TEXT DEFAULT NULL");
+}
+
+function safeJsonArray(value: string | null | undefined): string[] {
+  try {
+    const parsed = JSON.parse(value ?? "[]");
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === "string")
+      : [];
+  } catch {
+    return [];
+  }
 }
 
 export { getSchemaVersion, setSchemaVersion, ensureMetaTable, MIGRATIONS };

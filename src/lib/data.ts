@@ -1,3 +1,4 @@
+import { getAgoraSynthesisForThread, parseAgoraRecommendation } from "@/lib/agora";
 import { getDb } from "@/lib/db";
 import { interleaveFeed } from "@/lib/feed-interleave";
 import { buildFeedContentTypeConditions } from "@/lib/feed-utils";
@@ -6,7 +7,6 @@ import { safeJsonParse } from "@/lib/json-utils";
 import type {
   AgoraPhilosopherRow,
   AgoraResponseRow,
-  AgoraSynthesisRow,
   AgoraThreadRow,
   DebatePhilosopherRow,
   DebatePostRow,
@@ -21,6 +21,7 @@ import type {
   DebateListItem,
   DebateDetail,
   DebatePost,
+  AgoraQuestionType,
   AgoraThreadDetail,
   AgoraResponse,
   AgoraSynthesis,
@@ -448,7 +449,7 @@ export function getRecentAgoraThreads(limit = 5) {
 
   const threads = db
     .prepare(
-      `SELECT id, question, asked_by, created_at
+      `SELECT id, question, asked_by, question_type, created_at
        FROM agora_threads
        WHERE status = 'complete'
        ORDER BY created_at DESC
@@ -458,6 +459,7 @@ export function getRecentAgoraThreads(limit = 5) {
       id: string;
       question: string;
       asked_by: string;
+      question_type: AgoraQuestionType | null;
       created_at: string;
     }>;
 
@@ -470,6 +472,7 @@ export function getRecentAgoraThreads(limit = 5) {
 
   return threads.map((thread) => ({
     ...thread,
+    question_type: thread.question_type ?? "advice",
     philosophers: getPhilosophers.all(thread.id) as Array<{
       id: string;
       name: string;
@@ -498,10 +501,6 @@ function buildAgoraThreadDetail(
     )
     .all(t.id) as AgoraResponseRow[];
 
-  const synthRow = db
-    .prepare("SELECT * FROM agora_synthesis WHERE thread_id = ?")
-    .get(t.id) as AgoraSynthesisRow | undefined;
-
   const responses: AgoraResponse[] = responseRows.map((r) => ({
     philosopherId: r.philosopher_id,
     philosopherName: r.philosopher_name,
@@ -509,16 +508,11 @@ function buildAgoraThreadDetail(
     philosopherInitials: r.philosopher_initials,
     philosopherTradition: r.philosopher_tradition,
     posts: safeJsonParse<string[]>(r.posts, []),
+    recommendation: parseAgoraRecommendation(r.recommendation) ?? null,
     sortOrder: r.sort_order,
   }));
 
-  const synthesis: AgoraSynthesis | null = synthRow
-    ? {
-        tensions: safeJsonParse<string[]>(synthRow.tensions, []),
-        agreements: safeJsonParse<string[]>(synthRow.agreements, []),
-        practicalTakeaways: safeJsonParse<string[]>(synthRow.practical_takeaways, []),
-      }
-    : null;
+  const synthesis: AgoraSynthesis | null = getAgoraSynthesisForThread(db, t.id);
 
   return {
     id: t.id,
@@ -526,6 +520,8 @@ function buildAgoraThreadDetail(
     askedBy: t.asked_by,
     status: t.status,
     createdAt: t.created_at,
+    questionType: t.question_type ?? "advice",
+    recommendationsEnabled: t.recommendations_enabled === 1,
     philosophers: philRows.map((r) => r.philosopher_id),
     responses,
     synthesis,
