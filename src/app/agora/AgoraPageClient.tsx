@@ -330,8 +330,10 @@ export function AgoraPageClient({
 
   const trimmedQuestion = question.trim();
   const charCount = trimmedQuestion.length;
+  const hasArticleUrl = articleUrl.trim().length > 0;
+  const canContinue = charCount >= 10 || hasArticleUrl;
   const isValid =
-    charCount >= 10 &&
+    canContinue &&
     charCount <= 500 &&
     selectedIds.length >= 2 &&
     selectedIds.length <= 4;
@@ -496,7 +498,6 @@ export function AgoraPageClient({
     }
   }
 
-  const canContinue = charCount >= 10;
   const selectedPhilosophers = selectedIds
     .map((id) => selectablePhilosophers.find((sp) => sp.id === id))
     .filter(Boolean) as SelectablePhilosopher[];
@@ -549,13 +550,17 @@ export function AgoraPageClient({
                       <textarea
                         value={question}
                         onChange={(e) => setQuestion(e.target.value)}
-                        placeholder="What troubles your mind today? Pose your question to the philosophers..."
+                        placeholder={
+                          hasArticleUrl
+                            ? "Add your own angle, or leave blank to let the article speak for itself..."
+                            : "What troubles your mind today? Pose your question to the philosophers..."
+                        }
                         maxLength={500}
                         className="w-full bg-transparent border-transparent text-[22px] lg:text-[26px] font-serif text-ink placeholder:italic placeholder:text-ink-lighter/55 focus:outline-none resize-none leading-[1.32]"
                         style={{ minHeight: "152px" }}
                       />
 
-                      {question.trim() === "" && (
+                      {question.trim() === "" && !hasArticleUrl && (
                         <div className="mt-4">
                           <div className="text-[10px] font-mono tracking-[0.16em] uppercase text-ink-faint">
                             Or try one of these
@@ -710,7 +715,9 @@ export function AgoraPageClient({
                         <span aria-hidden="true">-&gt;</span>
                       </button>
                       <p className="mt-3 text-[10px] font-mono uppercase tracking-[0.16em] text-ink-faint text-center leading-[1.6]">
-                        Continue once your question is at least 10 characters
+                        {hasArticleUrl
+                          ? "You can continue with just the article"
+                          : "Continue once your question is at least 10 characters"}
                       </p>
                     </div>
                   </aside>

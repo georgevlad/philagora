@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const db = getDb();
     const body = await request.json();
 
-    const question = (body.question ?? "").trim();
+    let question = (body.question ?? "").trim();
     const askedBy = (body.asked_by ?? "")
       .replace(/<[^>]*>/g, "")
       .replace(/[^a-zA-Z0-9\s\-_.]/g, "")
@@ -57,16 +57,23 @@ export async function POST(request: NextRequest) {
     } | undefined;
     const philosopherIds: unknown = body.philosopher_ids;
     const rawArticleUrl = typeof body.article_url === "string" ? body.article_url.trim() : "";
+    const hasArticleUrl =
+      typeof body.article_url === "string" && body.article_url.trim().length > 0;
     const requestedVisibility = normalizeVisibility(body.visibility);
 
-    if (question.length < 10 || question.length > 500) {
+    if (!hasArticleUrl && (question.length < 10 || question.length > 500)) {
       return NextResponse.json(
         { error: "Question must be between 10 and 500 characters" },
         { status: 400 }
       );
     }
 
-    const sanitizedQuestion = sanitizeAgoraQuestion(question);
+    if (hasArticleUrl && question.length > 500) {
+      return NextResponse.json(
+        { error: "Question must be 500 characters or fewer" },
+        { status: 400 }
+      );
+    }
 
     if (
       !Array.isArray(philosopherIds)
@@ -154,6 +161,14 @@ export async function POST(request: NextRequest) {
         }
       }
     }
+
+    if (!question && articleData?.title) {
+      question = articleData.title;
+    } else if (!question) {
+      question = "What should we make of this?";
+    }
+
+    const sanitizedQuestion = sanitizeAgoraQuestion(question);
 
     const articleSource = articleData?.source ?? getArticleSourceFromUrl(normalizedArticleUrl);
     const classificationInput = buildAgoraClassificationInput(
