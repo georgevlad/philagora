@@ -16,6 +16,21 @@ export const STANCE_CONFIG: Record<Stance, { label: string; color: string; bg: s
   recommends: { label: "Recommends", color: "#1F6A4B", bg: "#E7F3EC", border: "#B9D7C8" },
 };
 
+export const STANCE_CONNECTOR_PHRASES: Record<Stance, string> = {
+  challenges: "pushes back on",
+  defends: "stands behind",
+  reframes: "reframes",
+  questions: "questions",
+  warns: "raises an alarm about",
+  observes: "reflects on",
+  diagnoses: "diagnoses",
+  provokes: "provokes a rethinking of",
+  laments: "mourns",
+  quips: "quips about",
+  mocks: "has fun with",
+  recommends: "recommends",
+};
+
 // Workshop status badge colors (Tailwind classes)
 export const DEBATE_STATUS_COLORS: Record<string, string> = {
   scheduled: "bg-yellow-100 text-yellow-800",

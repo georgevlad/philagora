@@ -9,7 +9,7 @@ import { PhilosopherAvatar } from "./PhilosopherAvatar";
 import { BookIcon, BookmarkIcon, ExternalLinkIcon, HeartIcon, ReplyArrowIcon, ReplyIcon } from "./Icons";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { philosopherAccentStyles } from "@/lib/color-utils";
-import { STANCE_CONFIG, POST_CONTENT_TRUNCATE_LIMIT } from "@/lib/constants";
+import { POST_CONTENT_TRUNCATE_LIMIT, STANCE_CONFIG, STANCE_CONNECTOR_PHRASES } from "@/lib/constants";
 import { timeAgo } from "@/lib/date-utils";
 import { showComingSoon, showToast } from "@/components/ComingSoonToast";
 import { useSession } from "@/lib/auth-client";
@@ -33,22 +33,6 @@ function TagBadge({
       }}
     >
       {tag}
-    </span>
-  );
-}
-
-function StanceBadge({ stance }: { stance: FeedPost["stance"] }) {
-  const config = STANCE_CONFIG[stance];
-  return (
-    <span
-      className="inline-flex items-center px-2.5 py-1 text-[9px] font-mono tracking-[0.18em] uppercase rounded-full"
-      style={{
-        backgroundColor: config.bg,
-        color: config.color,
-        border: `1px solid ${config.border}`,
-      }}
-    >
-      {config.label}
     </span>
   );
 }
@@ -92,6 +76,56 @@ function PopularBadge() {
       </svg>
       Trending
     </span>
+  );
+}
+
+function PostConnectorLine({
+  post,
+  className,
+}: {
+  post: FeedPost;
+  className?: string;
+}) {
+  const connectorPhrase = STANCE_CONNECTOR_PHRASES[post.stance];
+  const connectorColor = STANCE_CONFIG[post.stance].color;
+  const citationTitle = post.citation?.title?.trim();
+  const hasReplyTarget = Boolean(post.replyTo && post.replyTargetPhilosopherName);
+  const classes = ["mb-2", "text-sm", "font-body", "leading-relaxed", "text-ink-light", className]
+    .filter(Boolean)
+    .join(" ");
+
+  if (hasReplyTarget) {
+    return (
+      <div className={classes}>
+        <span className="font-semibold text-ink">{post.philosopherName}</span>{" "}
+        <span style={{ color: connectorColor }}>{connectorPhrase}</span>{" "}
+        <span>{`${post.replyTargetPhilosopherName}'s take`}</span>
+      </div>
+    );
+  }
+
+  if (!citationTitle) {
+    return null;
+  }
+
+  return (
+    <div className={classes}>
+      <span className="font-semibold text-ink">{post.philosopherName}</span>{" "}
+      <span style={{ color: connectorColor }}>{connectorPhrase}</span>
+      {": "}
+      {post.citation?.url ? (
+        <a
+          href={post.citation.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-ink-light no-underline transition-colors hover:text-terracotta"
+        >
+          {citationTitle}
+        </a>
+      ) : (
+        <span>{citationTitle}</span>
+      )}
+    </div>
   );
 }
 
@@ -378,11 +412,11 @@ export function PostCard({
               />
             )}
 
-            <div className="flex items-center gap-2 mb-4 relative z-10">
+            <div className="flex items-center gap-2 mb-2 relative z-10">
               <Link href={`/philosophers/${post.philosopherId}`}>
                 <PhilosopherAvatar philosopherId={post.philosopherId} name={post.philosopherName} color={color} initials={post.philosopherInitials} />
               </Link>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap justify-center">
                 <Link
                   href={`/philosophers/${post.philosopherId}`}
                   className="font-serif font-semibold text-[17px] text-ink hover:text-athenian transition-colors duration-200 link-underline"
@@ -391,13 +425,14 @@ export function PostCard({
                 </Link>
                 <span className="text-xs text-ink-lighter">&middot;</span>
                 <span className="text-xs text-ink-lighter">{relativeTimestamp}</span>
+                {isPopular && <PopularBadge />}
               </div>
             </div>
 
-            <div className="flex items-center gap-2 mb-4 relative z-10">
-              <StanceBadge stance={post.stance} />
-              {isPopular && <PopularBadge />}
-            </div>
+            <PostConnectorLine
+              post={post}
+              className="relative z-10 w-full max-w-lg text-center"
+            />
 
             {isHistoricalEvent && post.citation?.source && (
               <div className="relative z-10">
@@ -469,21 +504,21 @@ export function PostCard({
                   >
                     {post.philosopherName}
                   </Link>
-                  <StanceBadge stance={post.stance} />
-                  {isPopular && <PopularBadge />}
                   <span className="text-xs text-ink-lighter">&middot;</span>
                   <span className="text-xs text-ink-lighter">{relativeTimestamp}</span>
+                  {isPopular && <PopularBadge />}
                 </div>
               )}
 
               {isCrossReply && (
                 <div className="flex items-center gap-2 flex-wrap mb-2">
-                  <StanceBadge stance={post.stance} />
                   {isPopular && <PopularBadge />}
-                  <span className="text-xs text-ink-lighter">&middot;</span>
+                  {isPopular && <span className="text-xs text-ink-lighter">&middot;</span>}
                   <span className="text-xs text-ink-lighter">{relativeTimestamp}</span>
                 </div>
               )}
+
+              <PostConnectorLine post={post} />
 
               {isHistoricalEvent && post.citation?.source && (
                 <TodayInHistoryHeader source={post.citation.source} />
