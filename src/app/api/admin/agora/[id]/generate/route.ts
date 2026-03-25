@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { parseAgoraRecommendation } from "@/lib/agora";
 import { getAgoraResponseTemplate } from "@/lib/content-templates";
 import { getDb } from "@/lib/db";
 import { generateContent } from "@/lib/generation-service";
@@ -43,7 +44,30 @@ export async function POST(
 
     const questionType = thread.question_type ?? "advice";
     const recommendationsEnabled = thread.recommendations_enabled === 1;
-    const template = getAgoraResponseTemplate(questionType, recommendationsEnabled);
+    const existingRecs = recommendationsEnabled
+      ? (db
+          .prepare(
+            `SELECT ar.recommendation, p.name
+             FROM agora_responses ar
+             JOIN philosophers p ON ar.philosopher_id = p.id
+             WHERE ar.thread_id = ? AND ar.recommendation IS NOT NULL`
+          )
+          .all(threadId) as Array<{ recommendation: string; name: string }>)
+      : [];
+    const alreadyRecommended = existingRecs.flatMap((row) => {
+      const recommendation = parseAgoraRecommendation(row.recommendation);
+      if (!recommendation) {
+        return [];
+      }
+
+      return [`"${recommendation.title}" (${recommendation.medium}) - recommended by ${row.name}`];
+    });
+    const template = getAgoraResponseTemplate(
+      questionType,
+      recommendationsEnabled,
+      undefined,
+      alreadyRecommended
+    );
     const sourceMaterial = `USER QUESTION:\n${thread.question}
 
 Asked by: ${thread.asked_by}

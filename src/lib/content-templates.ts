@@ -153,6 +153,12 @@ RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
 const AGORA_RECOMMENDATION_APPENDIX = `
 ADDITIONAL: If a specific work (book, film, essay, album, poem, play, or speech) genuinely speaks to this question from your philosophical perspective, include a recommendation. Only recommend something you would authentically champion - do not force a recommendation if nothing fits.
 
+CRITICAL RECOMMENDATION RULES:
+- Your recommendation must reflect YOUR tradition's distinctive lens. Do not recommend the most famous or obvious work on this topic.
+- A Stoic should recommend differently than an Existentialist. A Confucian should recommend differently than an Analytic philosopher. If your recommendation could plausibly come from any thinker, it's too generic - dig deeper into your own tradition.
+- Prefer works that are surprising but defensible: lesser-known works by major authors, works from adjacent disciplines, works from your own cultural/historical context, or canonical works from YOUR tradition applied unexpectedly to this question.
+- NEVER recommend a work that appears in the ALREADY RECOMMENDED list below (if any).
+
 If recommending, add a "recommendation" field to your JSON response:
 {
   "posts": ["..."],
@@ -549,7 +555,8 @@ export function getActiveTemplate(key: ContentTypeKey): string {
 export function getAgoraResponseTemplate(
   questionType: AgoraQuestionType,
   recommendationsEnabled: boolean,
-  recommendationHint?: string | null
+  recommendationHint?: string | null,
+  alreadyRecommended?: string[]
 ): string {
   const baseTemplate = getActiveTemplate("agora_response");
 
@@ -568,8 +575,12 @@ export function getAgoraResponseTemplate(
     recommendationHint && recommendationHint.trim().length > 0
       ? `\nHINT: Consider works in the area of: ${recommendationHint.trim()}`
       : "";
+  const alreadyRecommendedBlock =
+    alreadyRecommended && alreadyRecommended.length > 0
+      ? `\n\nALREADY RECOMMENDED by other philosophers (do NOT recommend these):\n${alreadyRecommended.map((item) => `- ${item}`).join("\n")}`
+      : "";
 
-  return `${template}\n\n${AGORA_RECOMMENDATION_APPENDIX}${hintLine}`;
+  return `${template}\n\n${AGORA_RECOMMENDATION_APPENDIX}${hintLine}${alreadyRecommendedBlock}`;
 }
 
 export function getSynthesisTemplateForType(questionType: string): string {

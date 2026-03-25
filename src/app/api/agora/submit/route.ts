@@ -231,6 +231,7 @@ async function runGeneration(
   try {
     const db = getDb();
     let successCount = 0;
+    const alreadyRecommended: string[] = [];
 
     db.prepare("UPDATE agora_threads SET status = 'in_progress' WHERE id = ?").run(threadId);
 
@@ -240,12 +241,13 @@ async function runGeneration(
       const responseTemplate = getAgoraResponseTemplate(
         classification.questionType,
         classification.recommendationsAppropriate,
-        classification.recommendationHint
+        classification.recommendationHint,
+        alreadyRecommended
       );
       const recommendationContext = classification.recommendationsAppropriate
         ? `Recommendations may be appropriate for this question. If useful, keep in mind this recommendation direction: ${classification.recommendationHint ?? "philosophically resonant works"}.`
         : "Do not force cultural recommendations; the main task is philosophical response.";
-      const sourceMaterial = `USER QUESTION:\n${question}
+      let sourceMaterial = `USER QUESTION:\n${question}
 
 Asked by: ${askedBy}
 
@@ -257,6 +259,9 @@ CLASSIFICATION:
 ${recommendationContext}
 
 Respond to this person's situation through your philosophical framework.`;
+      if (classification.recommendationsAppropriate && alreadyRecommended.length > 0) {
+        sourceMaterial += `\n\nALREADY RECOMMENDED by other philosophers (do NOT recommend these):\n${alreadyRecommended.map((item) => `- ${item}`).join("\n")}`;
+      }
       const maxAttempts = 2;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -294,6 +299,12 @@ Respond to this person's situation through your philosophical framework.`;
             const recommendation = data.recommendation
               ? JSON.stringify(data.recommendation)
               : null;
+
+            if (data.recommendation?.title) {
+              alreadyRecommended.push(
+                `"${data.recommendation.title}" (${data.recommendation.medium})`
+              );
+            }
 
             db.prepare(
               `INSERT INTO agora_responses (
