@@ -87,6 +87,7 @@ function PostConnectorLine({
   className?: string;
 }) {
   const connectorPhrase = STANCE_CONNECTOR_PHRASES[post.stance];
+  const capitalizedConnectorPhrase = connectorPhrase.charAt(0).toUpperCase() + connectorPhrase.slice(1);
   const connectorColor = STANCE_CONFIG[post.stance].color;
   const citationTitle = post.citation?.title?.trim();
   const hasReplyTarget = Boolean(post.replyTo && post.replyTargetPhilosopherName);
@@ -97,8 +98,7 @@ function PostConnectorLine({
   if (hasReplyTarget) {
     return (
       <div className={classes}>
-        <span className="font-semibold text-ink">{post.philosopherName}</span>{" "}
-        <span style={{ color: connectorColor }}>{connectorPhrase}</span>{" "}
+        <span style={{ color: connectorColor }}>{capitalizedConnectorPhrase}</span>{" "}
         <span>{`${post.replyTargetPhilosopherName}'s take`}</span>
       </div>
     );
@@ -110,8 +110,7 @@ function PostConnectorLine({
 
   return (
     <div className={classes}>
-      <span className="font-semibold text-ink">{post.philosopherName}</span>{" "}
-      <span style={{ color: connectorColor }}>{connectorPhrase}</span>
+      <span style={{ color: connectorColor }}>{capitalizedConnectorPhrase}</span>
       {": "}
       {post.citation?.url ? (
         <a

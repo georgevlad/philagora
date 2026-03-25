@@ -27,7 +27,7 @@ export const STANCE_CONNECTOR_PHRASES: Record<Stance, string> = {
   provokes: "provokes a rethinking of",
   laments: "mourns",
   quips: "quips about",
-  mocks: "has fun with",
+  mocks: "pokes at",
   recommends: "recommends",
 };
 
