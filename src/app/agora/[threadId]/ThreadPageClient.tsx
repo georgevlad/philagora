@@ -541,12 +541,12 @@ export function ThreadPageClient({
             {timeAgo(data.thread.created_at)}
           </span>
         </p>
-        <div className="mt-3 flex justify-center">
+        <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
           <span className="inline-flex items-center px-3 py-1 rounded-full bg-athenian/8 text-athenian text-[10px] font-mono uppercase tracking-[0.16em]">
             {getQuestionTypeLabel(data.thread.question_type)}
           </span>
           {data.thread.visibility === "private" && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.16em] text-ink-faint bg-parchment-dark/30 px-2 py-0.5 rounded-full ml-2">
+            <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.16em] text-ink-faint bg-parchment-dark/30 px-2 py-0.5 rounded-full">
               <svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <rect x="3" y="8" width="10" height="6" rx="1" />
                 <path d="M5 8V5a3 3 0 016 0v3" />
@@ -554,6 +554,25 @@ export function ThreadPageClient({
               Private
             </span>
           )}
+          <div className="inline-flex items-center gap-2">
+            <button
+              onClick={handleShareThread}
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-parchment-dark/30 transition-colors text-ink-lighter hover:text-athenian"
+              title={shareConfirm ? "Link copied!" : "Share this thread"}
+              aria-label={shareConfirm ? "Link copied!" : "Share this thread"}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M2 8V13C2 13.5523 2.44772 14 3 14H13C13.5523 14 14 13.5523 14 13V8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M8 2V10" strokeLinecap="round" />
+                <path d="M5 5L8 2L11 5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {shareConfirm && (
+              <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-athenian">
+                Link copied!
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Philosopher avatars row */}
@@ -727,33 +746,28 @@ export function ThreadPageClient({
       {isGenerating && !data.synthesis && (
         <div className="px-5 py-6 border-t border-border-light">
           <div className="flex items-center gap-3 text-ink-lighter">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="opacity-40"
-            >
-              <path d="M8 1L10 5.5L15 6.5L11.5 10L12.5 15L8 12.5L3.5 15L4.5 10L1 6.5L6 5.5L8 1Z" />
-            </svg>
+            <div className="w-5 h-5 border-2 border-gold/30 border-t-gold rounded-full animate-spin" />
             <p className="text-sm font-body italic">
-              The editorial synthesis will appear once all philosophers have
-              responded.
+              Weaving the editorial synthesis...
             </p>
           </div>
         </div>
       )}
 
       {/* Post-synthesis actions */}
-      {!isFailed && data.thread.status === "complete" && (
+      {!isFailed
+        && data.thread.status === "complete"
+        && !isFollowUpThread
+        && (!data.followUp || followUpIsGenerating) && (
         <div className="px-5 py-6 border-t border-border-light">
           {!isFollowUpThread && !data.followUp && (
             <div className="mb-5">
               <div className="text-[10px] font-mono tracking-[0.2em] uppercase text-ink-faint mb-3">
                 Continue the dialogue
               </div>
+              <p className="text-[12px] font-body text-ink-lighter mb-3">
+                You have one follow-up — make it count.
+              </p>
               <div className="rounded-2xl border border-border-light/80 bg-[linear-gradient(180deg,rgba(248,243,234,0.6),rgba(255,255,255,0.4))] p-4">
                 <textarea
                   value={followUpText}
@@ -804,27 +818,6 @@ export function ThreadPageClient({
               </div>
             </div>
           )}
-
-          <div className="flex items-center justify-center gap-x-6 gap-y-3 flex-wrap">
-            <button
-              onClick={handleShareThread}
-              className="inline-flex items-center gap-2 text-[12px] font-mono text-ink-lighter hover:text-athenian transition-colors"
-            >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M2 8V13C2 13.5523 2.44772 14 3 14H13C13.5523 14 14 13.5523 14 13V8" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M8 2V10" strokeLinecap="round" />
-                <path d="M5 5L8 2L11 5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              {shareConfirm ? "Link copied!" : "Share this thread"}
-            </button>
-
-            <Link
-              href="/agora"
-              className="inline-flex items-center gap-1.5 text-[12px] font-mono text-ink-lighter hover:text-athenian transition-colors"
-            >
-              New conversation →
-            </Link>
-          </div>
         </div>
       )}
 
@@ -886,6 +879,31 @@ export function ThreadPageClient({
             </div>
           )}
         </>
+      )}
+
+      {!isFailed && data.thread.status === "complete" && !followUpIsGenerating && (
+        <div className="px-5 py-6 border-t border-border-light">
+          <div className="flex items-center justify-center gap-x-6 gap-y-3 flex-wrap">
+            <button
+              onClick={handleShareThread}
+              className="inline-flex items-center gap-2 text-[12px] font-mono text-ink-lighter hover:text-athenian transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M2 8V13C2 13.5523 2.44772 14 3 14H13C13.5523 14 14 13.5523 14 13V8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M8 2V10" strokeLinecap="round" />
+                <path d="M5 5L8 2L11 5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {shareConfirm ? "Link copied!" : "Share this thread"}
+            </button>
+
+            <Link
+              href="/agora"
+              className="inline-flex items-center gap-1.5 text-[12px] font-mono text-ink-lighter hover:text-athenian transition-colors"
+            >
+              New conversation →
+            </Link>
+          </div>
+        </div>
       )}
     </PageWrapper>
   );
