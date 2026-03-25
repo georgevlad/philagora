@@ -6,6 +6,7 @@ import { getQuestionTypeLabel } from "@/lib/agora";
 import type {
   AgoraRecommendation,
   AgoraSynthesisSections,
+  AgoraThreadArticle,
   AgoraThreadDetail,
   AgoraThreadStatus,
   AgoraQuestionType,
@@ -29,6 +30,7 @@ interface ApiThread {
   status: AgoraThreadStatus;
   question_type: AgoraQuestionType;
   recommendations_enabled: number;
+  article: AgoraThreadArticle | null;
   created_at: string;
 }
 
@@ -283,6 +285,7 @@ export function ThreadPageClient({
   philosophers: Philosopher[];
 }) {
   const [data, setData] = useState<ApiThreadData | null>(null);
+  const [articleWarning, setArticleWarning] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -308,6 +311,15 @@ export function ThreadPageClient({
 
   // Initial fetch + start polling if needed
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const key = `agora-article-warning:${threadId}`;
+      const warning = sessionStorage.getItem(key);
+      if (warning) {
+        setArticleWarning(warning);
+        sessionStorage.removeItem(key);
+      }
+    }
+
     // If we have a settled initial thread from the server, convert it to API shape
     // so we don't need an initial API call.
     if (initialThread && isThreadSettled(initialThread.status)) {
@@ -457,6 +469,53 @@ export function ThreadPageClient({
           </div>
         )}
       </div>
+
+      {articleWarning && (
+        <div className="mx-5 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm text-amber-900 leading-relaxed">
+            {articleWarning}
+          </p>
+        </div>
+      )}
+
+      {data.thread.article && (
+        <div className="mx-5 mt-4 mb-2">
+          <a
+            href={data.thread.article.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block rounded-xl border border-border-light/80 bg-[linear-gradient(135deg,rgba(248,243,234,0.6),rgba(255,255,255,0.5))] px-4 py-3.5 hover:border-athenian/30 hover:shadow-sm transition-all duration-200 group"
+          >
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 w-8 h-8 rounded-lg bg-athenian/8 flex items-center justify-center mt-0.5">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-athenian">
+                  <path d="M2 4h12M2 8h8M2 12h10" strokeLinecap="round" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-serif text-[15px] font-medium text-ink leading-snug line-clamp-2 group-hover:text-athenian transition-colors">
+                  {data.thread.article.title || data.thread.article.source || "Open article"}
+                </p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  {data.thread.article.source && (
+                    <span className="text-[11px] font-mono uppercase tracking-[0.14em] text-ink-faint">
+                      {data.thread.article.source}
+                    </span>
+                  )}
+                  <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink-lighter opacity-0 group-hover:opacity-100 transition-opacity">
+                    <path d="M4 12L12 4M12 4H6M12 4V10" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                {data.thread.article.excerpt && (
+                  <p className="mt-2 text-[13px] text-ink-light leading-relaxed line-clamp-2">
+                    {data.thread.article.excerpt}
+                  </p>
+                )}
+              </div>
+            </div>
+          </a>
+        </div>
+      )}
 
       {!isFailed && (
         <div>
@@ -624,6 +683,7 @@ function convertInitialThread(
         status: thread.status,
         question_type: thread.questionType,
         recommendations_enabled: thread.recommendationsEnabled ? 1 : 0,
+        article: thread.article,
         created_at: thread.createdAt,
       },
     philosophers: thread.philosophers.map((pid) => {

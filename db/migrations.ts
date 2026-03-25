@@ -49,6 +49,11 @@ const MIGRATIONS: Migration[] = [
     name: "agora_question_categorization_and_flexible_synthesis",
     migrate: (db) => migrateAgoraQuestionCategorizationAndFlexibleSynthesis(db),
   },
+  {
+    version: 6,
+    name: "agora_article_submission_fields",
+    migrate: (db) => migrateAgoraArticleSubmissionFields(db),
+  },
   // ── Future migrations go here ──
   // {
   //   version: 2,
@@ -845,6 +850,29 @@ function ensureAgoraResponseRecommendationColumn(db: Database.Database): void {
   if (columns.some((column) => column.name === "recommendation")) return;
 
   db.exec("ALTER TABLE agora_responses ADD COLUMN recommendation TEXT DEFAULT NULL");
+}
+
+function migrateAgoraArticleSubmissionFields(db: Database.Database): void {
+  const columns = db
+    .prepare("PRAGMA table_info(agora_threads)")
+    .all() as Array<{ name: string }>;
+  const columnNames = new Set(columns.map((column) => column.name));
+
+  if (!columnNames.has("article_url")) {
+    db.exec("ALTER TABLE agora_threads ADD COLUMN article_url TEXT DEFAULT NULL");
+  }
+
+  if (!columnNames.has("article_title")) {
+    db.exec("ALTER TABLE agora_threads ADD COLUMN article_title TEXT DEFAULT NULL");
+  }
+
+  if (!columnNames.has("article_source")) {
+    db.exec("ALTER TABLE agora_threads ADD COLUMN article_source TEXT DEFAULT NULL");
+  }
+
+  if (!columnNames.has("article_excerpt")) {
+    db.exec("ALTER TABLE agora_threads ADD COLUMN article_excerpt TEXT DEFAULT NULL");
+  }
 }
 
 function safeJsonArray(value: string | null | undefined): string[] {

@@ -3,6 +3,7 @@ import { safeJsonParse } from "@/lib/json-utils";
 import type {
   AdviceSynthesis,
   AgoraQuestionType,
+  AgoraThreadArticle,
   AgoraRecommendationMedium,
   AgoraRecommendation,
   AgoraSynthesis,
@@ -209,4 +210,135 @@ export function getQuestionTypeLabel(questionType: AgoraQuestionType): string {
     default:
       return "Seeking advice";
   }
+}
+
+export function buildAgoraClassificationInput(
+  question: string,
+  article?: AgoraThreadArticle | null
+): string {
+  if (!article || (!article.title && !article.source && !article.excerpt)) {
+    return question;
+  }
+
+  const articleLabelParts = [article.title, article.source].filter(Boolean);
+  let classificationInput = question;
+
+  classificationInput += "\n\n[The user shared an article";
+  if (articleLabelParts.length > 0) {
+    classificationInput += `: ${articleLabelParts.join(" from ")}`;
+  }
+  classificationInput += "]";
+
+  if (article.excerpt) {
+    classificationInput += `\n\nExcerpt: ${article.excerpt}`;
+  }
+
+  return classificationInput;
+}
+
+export function buildAgoraResponseSourceMaterial(args: {
+  question: string;
+  askedBy: string;
+  questionType: AgoraQuestionType;
+  recommendationsAppropriate: boolean;
+  recommendationHint: string | null;
+  alreadyRecommended?: string[];
+  article?: (AgoraThreadArticle & { content?: string | null }) | null;
+}): string {
+  const alreadyRecommended = args.alreadyRecommended ?? [];
+  const hasArticleContent = Boolean(args.article?.content);
+  const recommendationContext = args.recommendationsAppropriate
+    ? `Recommendations may be appropriate for this question. If useful, keep in mind this recommendation direction: ${args.recommendationHint ?? "philosophically resonant works"}.`
+    : "Do not force cultural recommendations; the main task is philosophical response.";
+
+  let sourceMaterial = "";
+
+  if (hasArticleContent) {
+    sourceMaterial += "=== ARTICLE SHARED BY USER ===\n";
+    if (args.article?.title) {
+      sourceMaterial += `Title: ${args.article.title}\n`;
+    }
+    if (args.article?.source) {
+      sourceMaterial += `Source: ${args.article.source}\n`;
+    }
+    sourceMaterial += `\n${args.article?.content?.trim()}\n\n=== END ARTICLE ===\n\n`;
+  }
+
+  sourceMaterial += `USER QUESTION:\n${args.question}\n\n`;
+  sourceMaterial += `Asked by: ${args.askedBy}\n\n`;
+  sourceMaterial += "CLASSIFICATION:\n";
+  sourceMaterial += `- Question type: ${args.questionType}\n`;
+  sourceMaterial += `- Recommendations appropriate: ${args.recommendationsAppropriate ? "yes" : "no"}\n`;
+  sourceMaterial += `- Recommendation hint: ${args.recommendationHint ?? "none"}\n\n`;
+  sourceMaterial += `${recommendationContext}\n\n`;
+  sourceMaterial += hasArticleContent
+    ? "Respond to this person's question about the article through your philosophical framework. Reference specific points from the article when helpful."
+    : "Respond to this person's situation through your philosophical framework.";
+
+  if (args.recommendationsAppropriate && alreadyRecommended.length > 0) {
+    sourceMaterial += `\n\nALREADY RECOMMENDED by other philosophers (do NOT recommend these):\n${alreadyRecommended.map((item) => `- ${item}`).join("\n")}`;
+  }
+
+  return sourceMaterial;
+}
+
+export function buildAgoraSynthesisSourceMaterial(args: {
+  question: string;
+  askedBy: string;
+  questionType: AgoraQuestionType;
+  responses: Array<{
+    posts: string;
+    philosopher_name: string;
+    philosopher_tradition: string;
+  }>;
+  recommendations: Array<{
+    recommendation: string;
+    philosopher_name: string;
+  }>;
+  article?: AgoraThreadArticle | null;
+}): string {
+  let sourceMaterial = `USER QUESTION: ${args.question}\n`;
+  sourceMaterial += `Asked by: ${args.askedBy}\n`;
+  sourceMaterial += `Question type: ${args.questionType}\n\n`;
+
+  if (args.article?.url) {
+    sourceMaterial += "=== USER-SHARED ARTICLE ===\n";
+    if (args.article.title) {
+      sourceMaterial += `Title: ${args.article.title}\n`;
+    }
+    if (args.article.source) {
+      sourceMaterial += `Source: ${args.article.source}\n`;
+    }
+    if (args.article.excerpt) {
+      sourceMaterial += `Excerpt: ${args.article.excerpt}\n`;
+    }
+    sourceMaterial += "\n";
+  }
+
+  sourceMaterial += "=== PHILOSOPHER RESPONSES ===\n\n";
+
+  for (const response of args.responses) {
+    const posts = JSON.parse(response.posts) as string[];
+    sourceMaterial += `### ${response.philosopher_name} (${response.philosopher_tradition}):\n`;
+    posts.forEach((post, index) => {
+      if (posts.length > 1) {
+        sourceMaterial += `Response ${index + 1}: ${post}\n\n`;
+      } else {
+        sourceMaterial += `${post}\n\n`;
+      }
+    });
+  }
+
+  if (args.recommendations.length > 0) {
+    sourceMaterial += "\n=== PHILOSOPHER RECOMMENDATIONS ===\n\n";
+
+    for (const recommendation of args.recommendations) {
+      const parsed = parseAgoraRecommendation(recommendation.recommendation);
+      if (!parsed) continue;
+
+      sourceMaterial += `${recommendation.philosopher_name} recommends: "${parsed.title}" (${parsed.medium}) - ${parsed.reason}\n`;
+    }
+  }
+
+  return sourceMaterial;
 }

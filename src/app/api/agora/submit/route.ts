@@ -1,6 +1,17 @@
+import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { parseAgoraRecommendation } from "@/lib/agora";
-import { getAgoraResponseTemplate, getSynthesisTemplateForType } from "@/lib/content-templates";
+import {
+  buildAgoraClassificationInput,
+  buildAgoraResponseSourceMaterial,
+  buildAgoraSynthesisSourceMaterial,
+} from "@/lib/agora";
+import {
+  extractArticle,
+  getArticleSourceFromUrl,
+  normalizeArticleUrl,
+  type ExtractedArticle,
+} from "@/lib/article-extractor";
+import { getSynthesisTemplateForType, getAgoraResponseTemplate } from "@/lib/content-templates";
 import { getDb } from "@/lib/db";
 import {
   classifyAgoraQuestion,
@@ -8,7 +19,6 @@ import {
   generateSynthesis,
   type QuestionClassification,
 } from "@/lib/generation-service";
-import crypto from "crypto";
 
 interface CountRow {
   count: number;
@@ -19,53 +29,23 @@ interface PhilosopherCheck {
 }
 
 interface ResponseRow {
-  posts: string; // JSON string
-  name: string;
-  tradition: string;
+  posts: string;
+  philosopher_name: string;
+  philosopher_tradition: string;
 }
 
 interface RecommendationRow {
   recommendation: string;
-  name: string;
+  philosopher_name: string;
 }
 
-function buildAgoraSynthesisSourceMaterial(args: {
-  question: string;
-  askedBy: string;
-  questionType: QuestionClassification["questionType"];
-  responses: ResponseRow[];
-  recommendations: RecommendationRow[];
-}): string {
-  let sourceMaterial = `USER QUESTION: ${args.question}\n`;
-  sourceMaterial += `Asked by: ${args.askedBy}\n`;
-  sourceMaterial += `Question type: ${args.questionType}\n\n`;
-  sourceMaterial += "=== PHILOSOPHER RESPONSES ===\n\n";
-
-  for (const resp of args.responses) {
-    const posts = JSON.parse(resp.posts) as string[];
-    sourceMaterial += `### ${resp.name} (${resp.tradition}):\n`;
-    posts.forEach((post, idx) => {
-      if (posts.length > 1) {
-        sourceMaterial += `Response ${idx + 1}: ${post}\n\n`;
-      } else {
-        sourceMaterial += `${post}\n\n`;
-      }
-    });
-  }
-
-  if (args.recommendations.length > 0) {
-    sourceMaterial += "\n=== PHILOSOPHER RECOMMENDATIONS ===\n\n";
-
-    for (const rec of args.recommendations) {
-      const parsed = parseAgoraRecommendation(rec.recommendation);
-      if (!parsed) continue;
-
-      sourceMaterial += `${rec.name} recommends: "${parsed.title}" (${parsed.medium}) - ${parsed.reason}\n`;
-    }
-  }
-
-  return sourceMaterial;
-}
+type RuntimeArticleContext = {
+  url: string;
+  title: string;
+  source: string;
+  excerpt: string;
+  content: string;
+};
 
 /** POST /api/agora/submit — Submit a question to the Agora */
 export async function POST(request: NextRequest) {
@@ -80,8 +60,7 @@ export async function POST(request: NextRequest) {
       .slice(0, 40)
       .trim() || "Anonymous";
     const philosopherIds: unknown = body.philosopher_ids;
-
-    // ── Validation ────────────────────────────────────────────────────
+    const rawArticleUrl = typeof body.article_url === "string" ? body.article_url.trim() : "";
 
     if (question.length < 10 || question.length > 500) {
       return NextResponse.json(
@@ -90,7 +69,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Strip prompt injection patterns
     const sanitizedQuestion = question
       .replace(/\[INST\]/gi, "")
       .replace(/<\/?system>/gi, "")
@@ -101,9 +79,9 @@ export async function POST(request: NextRequest) {
       .trim();
 
     if (
-      !Array.isArray(philosopherIds) ||
-      philosopherIds.length < 2 ||
-      philosopherIds.length > 4
+      !Array.isArray(philosopherIds)
+      || philosopherIds.length < 2
+      || philosopherIds.length > 4
     ) {
       return NextResponse.json(
         { error: "Must include 2 to 4 philosopher IDs" },
@@ -111,33 +89,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify each philosopher ID exists
-    const checkPhilosopher = db.prepare(
-      "SELECT id FROM philosophers WHERE id = ?"
-    );
-    for (const pid of philosopherIds) {
-      if (typeof pid !== "string") {
+    const checkPhilosopher = db.prepare("SELECT id FROM philosophers WHERE id = ?");
+    for (const philosopherId of philosopherIds) {
+      if (typeof philosopherId !== "string") {
         return NextResponse.json(
           { error: "Each philosopher_id must be a string" },
           { status: 400 }
         );
       }
-      const found = checkPhilosopher.get(pid) as PhilosopherCheck | undefined;
+
+      const found = checkPhilosopher.get(philosopherId) as PhilosopherCheck | undefined;
       if (!found) {
         return NextResponse.json(
-          { error: `Philosopher not found: ${pid}` },
+          { error: `Philosopher not found: ${philosopherId}` },
           { status: 400 }
         );
       }
     }
 
-    // ── Rate limit ────────────────────────────────────────────────────
-
     const clientIp =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      "unknown";
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+      ?? "unknown";
 
-    // Per-IP limit: 3 submissions per day
     const ipCount = db
       .prepare(
         "SELECT COUNT(*) as count FROM agora_threads WHERE ip_address = ? AND created_at >= date('now')"
@@ -151,11 +124,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Global safety net: 10 submissions per day total
     const todayCount = db
-      .prepare(
-        "SELECT COUNT(*) as count FROM agora_threads WHERE created_at >= date('now')"
-      )
+      .prepare("SELECT COUNT(*) as count FROM agora_threads WHERE created_at >= date('now')")
       .get() as CountRow;
 
     if (todayCount.count >= 10) {
@@ -165,11 +135,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── Create thread ─────────────────────────────────────────────────
+    const normalizedArticleUrl = normalizeArticleUrl(rawArticleUrl);
+    let articleData: ExtractedArticle | null = null;
+    let articleWarning: string | null = null;
 
+    if (rawArticleUrl) {
+      if (!normalizedArticleUrl) {
+        articleWarning =
+          "We couldn't read that link as a valid article URL. The philosophers will respond to your question without article context.";
+      } else {
+        const extraction = await extractArticle(normalizedArticleUrl);
+        if (extraction.success) {
+          articleData = extraction;
+        } else {
+          articleWarning = extraction.error;
+          console.warn(
+            `Agora: article extraction failed for ${normalizedArticleUrl}: ${extraction.error}`
+          );
+        }
+      }
+    }
+
+    const articleSource = articleData?.source ?? getArticleSourceFromUrl(normalizedArticleUrl);
+    const classificationInput = buildAgoraClassificationInput(
+      sanitizedQuestion,
+      articleData && normalizedArticleUrl
+        ? {
+            url: normalizedArticleUrl,
+            title: articleData.title,
+            source: articleData.source,
+            excerpt: articleData.excerpt,
+          }
+        : null
+    );
+    const classification = await classifyAgoraQuestion(classificationInput);
     const threadId = crypto.randomUUID();
     const validPids = philosopherIds as string[];
-    const classification = await classifyAgoraQuestion(sanitizedQuestion);
 
     db.transaction(() => {
       db.prepare(
@@ -180,31 +181,59 @@ export async function POST(request: NextRequest) {
            status,
            ip_address,
            question_type,
-           recommendations_enabled
+           recommendations_enabled,
+           article_url,
+           article_title,
+           article_source,
+           article_excerpt
          )
-         VALUES (?, ?, ?, 'pending', ?, ?, ?)`
+         VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`
       ).run(
         threadId,
         sanitizedQuestion,
         askedBy,
         clientIp,
         classification.questionType,
-        classification.recommendationsAppropriate ? 1 : 0
+        classification.recommendationsAppropriate ? 1 : 0,
+        normalizedArticleUrl,
+        articleData?.title ?? null,
+        articleSource,
+        articleData?.excerpt ?? null
       );
 
       const insertPhilosopher = db.prepare(
         "INSERT INTO agora_thread_philosophers (thread_id, philosopher_id) VALUES (?, ?)"
       );
-      for (const pid of validPids) {
-        insertPhilosopher.run(threadId, pid);
+
+      for (const philosopherId of validPids) {
+        insertPhilosopher.run(threadId, philosopherId);
       }
     })();
 
-    // ── Fire-and-forget generation ────────────────────────────────────
+    runGeneration(
+      threadId,
+      sanitizedQuestion,
+      askedBy,
+      validPids,
+      classification,
+      articleData && normalizedArticleUrl
+        ? {
+            url: normalizedArticleUrl,
+            title: articleData.title,
+            source: articleData.source,
+            excerpt: articleData.excerpt,
+            content: articleData.content,
+          }
+        : null
+    );
 
-    runGeneration(threadId, sanitizedQuestion, askedBy, validPids, classification);
-
-    return NextResponse.json({ threadId }, { status: 201 });
+    return NextResponse.json(
+      {
+        threadId,
+        articleWarning: articleWarning ?? undefined,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Failed to submit agora question:", error);
     return NextResponse.json(
@@ -219,14 +248,13 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ── Background generation (not awaited) ───────────────────────────────
-
 async function runGeneration(
   threadId: string,
   question: string,
   askedBy: string,
   philosopherIds: string[],
-  classification: QuestionClassification
+  classification: QuestionClassification,
+  article: RuntimeArticleContext | null
 ): Promise<void> {
   try {
     const db = getDb();
@@ -235,46 +263,35 @@ async function runGeneration(
 
     db.prepare("UPDATE agora_threads SET status = 'in_progress' WHERE id = ?").run(threadId);
 
-    // 1. Generate each philosopher's response sequentially (with one retry)
-    for (let i = 0; i < philosopherIds.length; i++) {
-      const pid = philosopherIds[i];
+    for (let index = 0; index < philosopherIds.length; index += 1) {
+      const philosopherId = philosopherIds[index];
       const responseTemplate = getAgoraResponseTemplate(
         classification.questionType,
         classification.recommendationsAppropriate,
         classification.recommendationHint,
         alreadyRecommended
       );
-      const recommendationContext = classification.recommendationsAppropriate
-        ? `Recommendations may be appropriate for this question. If useful, keep in mind this recommendation direction: ${classification.recommendationHint ?? "philosophically resonant works"}.`
-        : "Do not force cultural recommendations; the main task is philosophical response.";
-      let sourceMaterial = `USER QUESTION:\n${question}
-
-Asked by: ${askedBy}
-
-CLASSIFICATION:
-- Question type: ${classification.questionType}
-- Recommendations appropriate: ${classification.recommendationsAppropriate ? "yes" : "no"}
-- Recommendation hint: ${classification.recommendationHint ?? "none"}
-
-${recommendationContext}
-
-Respond to this person's situation through your philosophical framework.`;
-      if (classification.recommendationsAppropriate && alreadyRecommended.length > 0) {
-        sourceMaterial += `\n\nALREADY RECOMMENDED by other philosophers (do NOT recommend these):\n${alreadyRecommended.map((item) => `- ${item}`).join("\n")}`;
-      }
+      const sourceMaterial = buildAgoraResponseSourceMaterial({
+        question,
+        askedBy,
+        questionType: classification.questionType,
+        recommendationsAppropriate: classification.recommendationsAppropriate,
+        recommendationHint: classification.recommendationHint,
+        alreadyRecommended,
+        article,
+      });
       const maxAttempts = 2;
 
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         try {
           const outcome = await generateContent(
-            pid,
+            philosopherId,
             "agora_response",
             sourceMaterial,
             undefined,
             responseTemplate
           );
 
-          // Log to generation_log
           const logStatus = outcome.success ? "generated" : "rejected";
           const rawOutput = outcome.success
             ? JSON.stringify(outcome.data, null, 2)
@@ -283,7 +300,7 @@ Respond to this person's situation through your philosophical framework.`;
           db.prepare(
             `INSERT INTO generation_log (philosopher_id, content_type, system_prompt_id, user_input, raw_output, status)
              VALUES (?, 'agora_response', ?, ?, ?, ?)`
-          ).run(pid, outcome.systemPromptId, sourceMaterial, rawOutput, logStatus);
+          ).run(philosopherId, outcome.systemPromptId, sourceMaterial, rawOutput, logStatus);
 
           if (outcome.success) {
             const responseId = crypto.randomUUID();
@@ -319,45 +336,41 @@ Respond to this person's situation through your philosophical framework.`;
             ).run(
               responseId,
               threadId,
-              pid,
+              philosopherId,
               JSON.stringify(posts),
-              i,
+              index,
               recommendation
             );
             successCount += 1;
-            break; // Success — move to next philosopher
+            break;
           }
 
-          // Failed — retry if we have attempts left
           if (attempt < maxAttempts) {
-            console.warn(
-              `Agora: retrying ${pid} (attempt ${attempt} failed)`
-            );
+            console.warn(`Agora: retrying ${philosopherId} (attempt ${attempt} failed)`);
             continue;
           }
-          // Exhausted retries — move to next philosopher
-        } catch (err) {
+        } catch (error) {
           console.error(
-            `Agora generation failed for philosopher ${pid} (attempt ${attempt}):`,
-            err
+            `Agora generation failed for philosopher ${philosopherId} (attempt ${attempt}):`,
+            error
           );
-          if (attempt >= maxAttempts) break; // Exhausted retries
+
+          if (attempt >= maxAttempts) {
+            break;
+          }
         }
       }
     }
 
     if (successCount === 0) {
-      db.prepare(
-        "UPDATE agora_threads SET status = 'failed' WHERE id = ?"
-      ).run(threadId);
+      db.prepare("UPDATE agora_threads SET status = 'failed' WHERE id = ?").run(threadId);
       return;
     }
 
-    // 2. Generate synthesis from all completed responses
     try {
       const responses = db
         .prepare(
-          `SELECT ar.posts, p.name, p.tradition
+          `SELECT ar.posts, p.name as philosopher_name, p.tradition as philosopher_tradition
            FROM agora_responses ar
            JOIN philosophers p ON ar.philosopher_id = p.id
            WHERE ar.thread_id = ?
@@ -369,7 +382,7 @@ Respond to this person's situation through your philosophical framework.`;
         const recommendations = classification.recommendationsAppropriate
           ? (db
               .prepare(
-                `SELECT ar.recommendation, p.name
+                `SELECT ar.recommendation, p.name as philosopher_name
                  FROM agora_responses ar
                  JOIN philosophers p ON ar.philosopher_id = p.id
                  WHERE ar.thread_id = ? AND ar.recommendation IS NOT NULL`
@@ -382,10 +395,16 @@ Respond to this person's situation through your philosophical framework.`;
           questionType: classification.questionType,
           responses,
           recommendations,
+          article: article
+            ? {
+                url: article.url,
+                title: article.title,
+                source: article.source,
+                excerpt: article.excerpt,
+              }
+            : null,
         });
-        const synthesisTemplate = getSynthesisTemplateForType(
-          classification.questionType
-        );
+        const synthesisTemplate = getSynthesisTemplateForType(classification.questionType);
 
         const outcome = await generateSynthesis(
           "agora_synthesis",
@@ -393,7 +412,6 @@ Respond to this person's situation through your philosophical framework.`;
           synthesisTemplate
         );
 
-        // Log synthesis to generation_log
         const status = outcome.success ? "generated" : "rejected";
         const rawOutput = outcome.success
           ? JSON.stringify(outcome.data, null, 2)
@@ -415,23 +433,18 @@ Respond to this person's situation through your philosophical framework.`;
           );
         }
       }
-    } catch (err) {
-      console.error("Agora synthesis generation failed:", err);
+    } catch (error) {
+      console.error("Agora synthesis generation failed:", error);
     }
 
-    // 3. Mark the thread as complete once it has at least one response
-    db.prepare(
-      "UPDATE agora_threads SET status = 'complete' WHERE id = ?"
-    ).run(threadId);
-  } catch (err) {
-    console.error("Agora background generation crashed:", err);
+    db.prepare("UPDATE agora_threads SET status = 'complete' WHERE id = ?").run(threadId);
+  } catch (error) {
+    console.error("Agora background generation crashed:", error);
     try {
       const db = getDb();
-      db.prepare(
-        "UPDATE agora_threads SET status = 'failed' WHERE id = ?"
-      ).run(threadId);
+      db.prepare("UPDATE agora_threads SET status = 'failed' WHERE id = ?").run(threadId);
     } catch {
-      // Nothing more we can do
+      // Nothing more we can do here.
     }
   }
 }

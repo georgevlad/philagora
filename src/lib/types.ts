@@ -209,6 +209,13 @@ export interface AgoraSynthesis {
 
 export type AgoraThreadStatus = "pending" | "in_progress" | "complete" | "failed";
 
+export interface AgoraThreadArticle {
+  url: string;
+  title: string | null;
+  source: string | null;
+  excerpt: string | null;
+}
+
 export interface AgoraThreadDetail {
   id: string;
   question: string;
@@ -217,6 +224,7 @@ export interface AgoraThreadDetail {
   createdAt: string;
   questionType: AgoraQuestionType;
   recommendationsEnabled: boolean;
+  article: AgoraThreadArticle | null;
   philosophers: string[];
   responses: AgoraResponse[];
   synthesis: AgoraSynthesis | null;

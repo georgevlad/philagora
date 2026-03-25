@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { buildAgoraClassificationInput } from "@/lib/agora";
+import {
+  extractArticle,
+  getArticleSourceFromUrl,
+  normalizeArticleUrl,
+  type ExtractedArticle,
+} from "@/lib/article-extractor";
 import { getDb } from "@/lib/db";
 import { parseGroupConcat } from "@/lib/db-utils";
 import {
@@ -15,6 +22,10 @@ interface ThreadRow {
   status: string;
   question_type?: AgoraQuestionType;
   recommendations_enabled?: number;
+  article_url?: string | null;
+  article_title?: string | null;
+  article_source?: string | null;
+  article_excerpt?: string | null;
   created_at: string;
   philosopher_ids: string;
   philosopher_names: string;
@@ -36,7 +47,14 @@ export async function POST(request: NextRequest) {
   try {
     const db = getDb();
     const body = await request.json();
-    const { question, asked_by, philosopher_ids, question_type, recommendations_enabled } = body;
+    const {
+      question,
+      asked_by,
+      philosopher_ids,
+      question_type,
+      recommendations_enabled,
+      article_url,
+    } = body;
 
     if (!question?.trim()) {
       return NextResponse.json(
@@ -70,6 +88,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const rawArticleUrl = typeof article_url === "string" ? article_url.trim() : "";
+    const normalizedArticleUrl = normalizeArticleUrl(rawArticleUrl);
+    let articleWarning: string | null = null;
+    let articleData: ExtractedArticle | null = null;
+
+    if (rawArticleUrl) {
+      if (!normalizedArticleUrl) {
+        articleWarning =
+          "We couldn't read that link as a valid article URL. The thread was created without article context.";
+      } else {
+        const extraction = await extractArticle(normalizedArticleUrl);
+        if (extraction.success) {
+          articleData = extraction;
+        } else {
+          articleWarning = extraction.error;
+          console.warn(
+            `Admin Agora: article extraction failed for ${normalizedArticleUrl}: ${extraction.error}`
+          );
+        }
+      }
+    }
+
+    const classificationInput = buildAgoraClassificationInput(
+      question.trim(),
+      articleData && normalizedArticleUrl
+        ? {
+            url: normalizedArticleUrl,
+            title: articleData.title,
+            source: articleData.source,
+            excerpt: articleData.excerpt,
+          }
+        : null
+    );
     const threadId = `agora-${Date.now()}`;
     const classification: QuestionClassification =
       question_type !== undefined && normalizedRecommendations !== null
@@ -78,10 +129,11 @@ export async function POST(request: NextRequest) {
             recommendationsAppropriate: normalizedRecommendations,
             recommendationHint: null,
           }
-        : await classifyAgoraQuestion(question.trim());
+        : await classifyAgoraQuestion(classificationInput);
     const finalQuestionType = question_type ?? classification.questionType;
     const finalRecommendationsEnabled =
       normalizedRecommendations ?? classification.recommendationsAppropriate;
+    const articleSource = articleData?.source ?? getArticleSourceFromUrl(normalizedArticleUrl);
 
     db.transaction(() => {
       db.prepare(
@@ -91,15 +143,23 @@ export async function POST(request: NextRequest) {
            asked_by,
            status,
            question_type,
-           recommendations_enabled
+           recommendations_enabled,
+           article_url,
+           article_title,
+           article_source,
+           article_excerpt
          )
-         VALUES (?, ?, ?, 'pending', ?, ?)`
+         VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)`
       ).run(
         threadId,
         question.trim(),
         asked_by || "Anonymous User",
         finalQuestionType,
-        finalRecommendationsEnabled ? 1 : 0
+        finalRecommendationsEnabled ? 1 : 0,
+        normalizedArticleUrl,
+        articleData?.title ?? null,
+        articleSource,
+        articleData?.excerpt ?? null
       );
 
       const insertPhilosopher = db.prepare(
@@ -112,7 +172,21 @@ export async function POST(request: NextRequest) {
 
     const thread = db
       .prepare("SELECT * FROM agora_threads WHERE id = ?")
-      .get(threadId);
+      .get(threadId) as
+      | {
+          id: string;
+          question: string;
+          asked_by: string;
+          status: string;
+          question_type?: AgoraQuestionType;
+          recommendations_enabled?: number;
+          article_url?: string | null;
+          article_title?: string | null;
+          article_source?: string | null;
+          article_excerpt?: string | null;
+          created_at: string;
+        }
+      | undefined;
 
     const philosophers = db
       .prepare(
@@ -123,7 +197,24 @@ export async function POST(request: NextRequest) {
       )
       .all(threadId);
 
-    return NextResponse.json({ thread, philosophers }, { status: 201 });
+    return NextResponse.json(
+      {
+        thread: thread && {
+          ...thread,
+          article: thread.article_url
+            ? {
+                url: thread.article_url,
+                title: thread.article_title ?? null,
+                source: thread.article_source ?? null,
+                excerpt: thread.article_excerpt ?? null,
+              }
+            : null,
+        },
+        philosophers,
+        articleWarning: articleWarning ?? undefined,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Failed to create agora thread:", error);
     return NextResponse.json(
@@ -149,12 +240,13 @@ export async function GET() {
          GROUP BY t.id
          ORDER BY t.created_at DESC`
       )
-      .all() as ThreadRow[];
+     .all() as ThreadRow[];
 
     const threads = rows.map((row) => ({
       ...row,
       philosopher_ids: parseGroupConcat(row.philosopher_ids),
       philosopher_names: parseGroupConcat(row.philosopher_names),
+      article_source: row.article_source ?? null,
     }));
 
     return NextResponse.json(threads);

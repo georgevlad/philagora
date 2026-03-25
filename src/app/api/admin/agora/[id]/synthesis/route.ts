@@ -1,19 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  buildAgoraSynthesisSourceMaterial,
   buildAdviceSectionsJson,
   getAgoraSynthesisForThread,
-  parseAgoraRecommendation,
 } from "@/lib/agora";
 import { getSynthesisTemplateForType } from "@/lib/content-templates";
 import { getDb } from "@/lib/db";
 import { generateSynthesis } from "@/lib/generation-service";
+import type { AgoraQuestionType } from "@/lib/types";
 
 interface ThreadRow {
   id: string;
   question: string;
   asked_by: string;
-  question_type?: string;
+  question_type?: AgoraQuestionType;
   recommendations_enabled?: number;
+  article_url?: string | null;
+  article_title?: string | null;
+  article_source?: string | null;
+  article_excerpt?: string | null;
 }
 
 interface ResponseRow {
@@ -25,44 +30,6 @@ interface ResponseRow {
 interface RecommendationRow {
   recommendation: string;
   philosopher_name: string;
-}
-
-function buildSynthesisSourceMaterial(args: {
-  question: string;
-  askedBy: string;
-  questionType: string;
-  responses: ResponseRow[];
-  recommendations: RecommendationRow[];
-}): string {
-  let sourceMaterial = `USER QUESTION: ${args.question}\n`;
-  sourceMaterial += `Asked by: ${args.askedBy}\n`;
-  sourceMaterial += `Question type: ${args.questionType}\n\n`;
-  sourceMaterial += "=== PHILOSOPHER RESPONSES ===\n\n";
-
-  for (const resp of args.responses) {
-    const posts = JSON.parse(resp.posts) as string[];
-    sourceMaterial += `### ${resp.philosopher_name} (${resp.philosopher_tradition}):\n`;
-    posts.forEach((post, i) => {
-      if (posts.length > 1) {
-        sourceMaterial += `Response ${i + 1}: ${post}\n\n`;
-      } else {
-        sourceMaterial += `${post}\n\n`;
-      }
-    });
-  }
-
-  if (args.recommendations.length > 0) {
-    sourceMaterial += "\n=== PHILOSOPHER RECOMMENDATIONS ===\n\n";
-
-    for (const rec of args.recommendations) {
-      const parsed = parseAgoraRecommendation(rec.recommendation);
-      if (!parsed) continue;
-
-      sourceMaterial += `${rec.philosopher_name} recommends: "${parsed.title}" (${parsed.medium}) - ${parsed.reason}\n`;
-    }
-  }
-
-  return sourceMaterial;
 }
 
 /** POST — Generate or save agora synthesis */
@@ -85,7 +52,8 @@ export async function POST(
 
     const thread = db
       .prepare(
-        `SELECT id, question, asked_by, question_type, recommendations_enabled
+        `SELECT id, question, asked_by, question_type, recommendations_enabled,
+                article_url, article_title, article_source, article_excerpt
          FROM agora_threads
          WHERE id = ?`
       )
@@ -118,12 +86,20 @@ export async function POST(
             .all(threadId) as RecommendationRow[])
         : [];
       const questionType = thread.question_type ?? "advice";
-      const sourceMaterial = buildSynthesisSourceMaterial({
+      const sourceMaterial = buildAgoraSynthesisSourceMaterial({
         question: thread.question,
         askedBy: thread.asked_by,
         questionType,
         responses,
         recommendations,
+        article: thread.article_url
+          ? {
+              url: thread.article_url,
+              title: thread.article_title ?? null,
+              source: thread.article_source ?? null,
+              excerpt: thread.article_excerpt ?? null,
+            }
+          : null,
       });
       const synthesisTemplate = getSynthesisTemplateForType(questionType);
 

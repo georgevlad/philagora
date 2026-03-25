@@ -168,6 +168,10 @@ describe("migration system", () => {
       expect(threadColNames).toContain("ip_address");
       expect(threadColNames).toContain("question_type");
       expect(threadColNames).toContain("recommendations_enabled");
+      expect(threadColNames).toContain("article_url");
+      expect(threadColNames).toContain("article_title");
+      expect(threadColNames).toContain("article_source");
+      expect(threadColNames).toContain("article_excerpt");
 
       const responseColumns = db
         .prepare("PRAGMA table_info(agora_responses)")

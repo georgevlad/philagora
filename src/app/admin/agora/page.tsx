@@ -22,8 +22,16 @@ interface ThreadListItem {
   status: string;
   question_type: AgoraQuestionType;
   recommendations_enabled: number;
+  article_source?: string | null;
   created_at: string;
   philosopher_names: string[];
+}
+
+interface AdminAgoraArticle {
+  url: string;
+  title: string | null;
+  source: string | null;
+  excerpt: string | null;
 }
 
 interface AgResponseRow {
@@ -41,6 +49,38 @@ function recommendationMediumLabel(medium: string): string {
   return medium.charAt(0).toUpperCase() + medium.slice(1);
 }
 
+function ArticleSummary({ article }: { article: AdminAgoraArticle }) {
+  return (
+    <a
+      href={article.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-4 flex items-start gap-3 rounded-xl border border-border bg-white/60 px-4 py-3 transition-colors hover:border-athenian/30"
+    >
+      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-athenian/8">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-athenian">
+          <path d="M2 4h12M2 8h8M2 12h10" strokeLinecap="round" />
+        </svg>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-serif text-sm text-ink leading-snug">
+          {article.title || article.source || "Attached article"}
+        </p>
+        {article.source && (
+          <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.14em] text-ink-faint">
+            {article.source}
+          </p>
+        )}
+        {article.excerpt && (
+          <p className="mt-2 text-xs text-ink-light leading-relaxed line-clamp-2">
+            {article.excerpt}
+          </p>
+        )}
+      </div>
+    </a>
+  );
+}
+
 // ── Component ───────────────────────────────────────────────────────────
 
 export default function AgoraWorkshopPage() {
@@ -48,6 +88,7 @@ export default function AgoraWorkshopPage() {
   const [philosophers, setPhilosophers] = useState<Philosopher[]>([]);
   const [existingThreads, setExistingThreads] = useState<ThreadListItem[]>([]);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -58,6 +99,8 @@ export default function AgoraWorkshopPage() {
   // Step 1: Setup
   const [question, setQuestion] = useState("");
   const [askedBy, setAskedBy] = useState("Anonymous User");
+  const [articleUrl, setArticleUrl] = useState("");
+  const [article, setArticle] = useState<AdminAgoraArticle | null>(null);
   const [questionType, setQuestionType] = useState<AgoraQuestionType>("advice");
   const [recommendationsEnabled, setRecommendationsEnabled] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -124,6 +167,7 @@ export default function AgoraWorkshopPage() {
   const resumeThread = useCallback(
     async (id: string) => {
       setError("");
+      setNotice("");
       try {
         const res = await fetch(`/api/admin/agora/${id}`);
         if (!res.ok) throw new Error("Failed to load thread");
@@ -132,6 +176,8 @@ export default function AgoraWorkshopPage() {
         setThreadId(id);
         setQuestion(data.thread.question);
         setAskedBy(data.thread.asked_by);
+        setArticle(data.thread.article ?? null);
+        setArticleUrl(data.thread.article?.url ?? "");
         setQuestionType(data.thread.question_type ?? "advice");
         setRecommendationsEnabled((data.thread.recommendations_enabled ?? 0) === 1);
 
@@ -199,12 +245,19 @@ export default function AgoraWorkshopPage() {
   // ── Step 1: Create thread ─────────────────────────────────────────────
   async function handleCreateThread() {
     setError("");
+    setNotice("");
     if (!question.trim()) {
       setError("A question is required.");
       return;
     }
     if (selectedIds.length < 2) {
       setError("Select at least 2 philosophers.");
+      return;
+    }
+
+    const trimmedArticleUrl = articleUrl.trim();
+    if (trimmedArticleUrl && !/^https?:\/\/\S+/i.test(trimmedArticleUrl)) {
+      setError("Article links must start with http:// or https://");
       return;
     }
 
@@ -219,6 +272,7 @@ export default function AgoraWorkshopPage() {
           philosopher_ids: selectedIds,
           question_type: questionType,
           recommendations_enabled: recommendationsEnabled,
+          article_url: trimmedArticleUrl || undefined,
         }),
       });
       if (!res.ok) {
@@ -227,6 +281,9 @@ export default function AgoraWorkshopPage() {
       }
       const data = await res.json();
       setThreadId(data.thread.id);
+      setArticle(data.thread.article ?? null);
+      setArticleUrl(data.thread.article?.url ?? trimmedArticleUrl);
+      setNotice(data.articleWarning || "");
 
       // Initialize responses state
       const init: Record<string, PhiloState> = {};
@@ -246,6 +303,7 @@ export default function AgoraWorkshopPage() {
   async function handleGenerateResponse(philosopherId: string) {
     if (!threadId) return;
     setError("");
+    setNotice("");
     setResponses((prev) => ({ ...prev, [philosopherId]: { status: "generating" } }));
 
     try {
@@ -259,6 +317,7 @@ export default function AgoraWorkshopPage() {
 
       const posts = data.generated.posts as string[];
       const recommendation = data.generated.recommendation ?? null;
+      setNotice(data.articleWarning || "");
       setResponses((prev) => ({
         ...prev,
         [philosopherId]: {
@@ -555,6 +614,14 @@ export default function AgoraWorkshopPage() {
                     <span className="text-xs text-ink-lighter block mt-0.5">
                       Asked by {t.asked_by} &middot; {t.philosopher_names.join(", ")}
                     </span>
+                    {t.article_source && (
+                      <span className="mt-1.5 flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.14em] text-ink-faint">
+                        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <path d="M2 4h12M2 8h8M2 12h10" strokeLinecap="round" />
+                        </svg>
+                        {t.article_source}
+                      </span>
+                    )}
                     <span className="inline-flex items-center mt-2 px-2 py-1 rounded-full bg-athenian/8 text-athenian text-[10px] font-mono uppercase tracking-[0.14em]">
                       {getQuestionTypeLabel(t.question_type)}
                     </span>
@@ -645,6 +712,11 @@ export default function AgoraWorkshopPage() {
           {error}
         </div>
       )}
+      {notice && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {notice}
+        </div>
+      )}
 
       {/* ── Step 1: Setup ──────────────────────────────────────────── */}
       {step === 1 && !threadId && (
@@ -679,6 +751,22 @@ export default function AgoraWorkshopPage() {
                 placeholder="Anonymous User"
                 className="w-full max-w-xs rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                Article URL
+              </label>
+              <input
+                type="url"
+                value={articleUrl}
+                onChange={(event) => setArticleUrl(event.target.value)}
+                placeholder="https://example.com/article..."
+                className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+              />
+              <p className="mt-2 text-xs text-ink-lighter">
+                Optional. If we can read the article, the responses will use it as source context.
+              </p>
             </div>
 
             <div className="grid sm:grid-cols-2 gap-4">
@@ -770,16 +858,7 @@ export default function AgoraWorkshopPage() {
             <p className="text-xs font-mono uppercase tracking-wider text-ink-lighter mb-1">Question</p>
             <p className="font-serif text-ink leading-relaxed">{question}</p>
             <p className="text-xs text-ink-lighter mt-1">— {askedBy}</p>
-            <div className="mt-3 flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center px-2 py-1 rounded-full bg-athenian/8 text-athenian text-[10px] font-mono uppercase tracking-[0.14em]">
-                {getQuestionTypeLabel(questionType)}
-              </span>
-              {recommendationsEnabled && (
-                <span className="inline-flex items-center px-2 py-1 rounded-full bg-gold/10 text-gold text-[10px] font-mono uppercase tracking-[0.14em]">
-                  Recommendations enabled
-                </span>
-              )}
-            </div>
+            {article && <ArticleSummary article={article} />}
             <div className="mt-3 flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center px-2 py-1 rounded-full bg-athenian/8 text-athenian text-[10px] font-mono uppercase tracking-[0.14em]">
                 {getQuestionTypeLabel(questionType)}
@@ -844,6 +923,7 @@ export default function AgoraWorkshopPage() {
             <p className="text-xs font-mono uppercase tracking-wider text-ink-lighter mb-1">Question</p>
             <p className="font-serif text-ink leading-relaxed">{question}</p>
             <p className="text-xs text-ink-lighter mt-1">— {askedBy}</p>
+            {article && <ArticleSummary article={article} />}
           </div>
 
           <h2 className="font-serif text-lg font-bold text-ink mb-4">Synthesis</h2>

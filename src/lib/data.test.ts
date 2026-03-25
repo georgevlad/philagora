@@ -132,13 +132,18 @@ function seedAgoraThread(args: {
   status?: string;
   questionType?: "advice" | "conceptual" | "debate";
   recommendationsEnabled?: number;
+  articleUrl?: string | null;
+  articleTitle?: string | null;
+  articleSource?: string | null;
+  articleExcerpt?: string | null;
   philosopherIds: string[];
 }) {
   testDb
     .prepare(
       `INSERT INTO agora_threads (
-        id, question, asked_by, status, question_type, recommendations_enabled, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+        id, question, asked_by, status, question_type, recommendations_enabled,
+        article_url, article_title, article_source, article_excerpt, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       args.id,
@@ -147,6 +152,10 @@ function seedAgoraThread(args: {
       args.status ?? "complete",
       args.questionType ?? "advice",
       args.recommendationsEnabled ?? 0,
+      args.articleUrl ?? null,
+      args.articleTitle ?? null,
+      args.articleSource ?? null,
+      args.articleExcerpt ?? null,
       "2025-03-01 16:00:00"
     );
 
@@ -446,6 +455,10 @@ describe("getAgoraThreadById", () => {
       question: "What is freedom?",
       questionType: "conceptual",
       recommendationsEnabled: 1,
+      articleUrl: "https://example.com/freedom",
+      articleTitle: "Freedom in a Fractured Age",
+      articleSource: "example.com",
+      articleExcerpt: "A long-form essay about freedom under pressure.",
       philosopherIds: ["nietzsche", "camus"],
     });
     seedAgoraResponse({
@@ -478,6 +491,12 @@ describe("getAgoraThreadById", () => {
     expect(thread).not.toBeNull();
     expect(thread?.questionType).toBe("conceptual");
     expect(thread?.recommendationsEnabled).toBe(true);
+    expect(thread?.article).toEqual({
+      url: "https://example.com/freedom",
+      title: "Freedom in a Fractured Age",
+      source: "example.com",
+      excerpt: "A long-form essay about freedom under pressure.",
+    });
     expect(thread?.responses[0].recommendation?.title).toBe("Thus Spoke Zarathustra");
     expect(thread?.synthesis).toEqual({
       type: "conceptual",
@@ -518,6 +537,7 @@ describe("getAgoraThreadById", () => {
     const thread = getAgoraThreadById("agora-legacy");
 
     expect(thread).not.toBeNull();
+    expect(thread?.article).toBeNull();
     expect(thread?.synthesis).toEqual({
       type: "advice",
       sections: {

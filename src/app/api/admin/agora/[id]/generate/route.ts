@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parseAgoraRecommendation } from "@/lib/agora";
+import { buildAgoraResponseSourceMaterial, parseAgoraRecommendation } from "@/lib/agora";
+import { extractArticle } from "@/lib/article-extractor";
 import { getAgoraResponseTemplate } from "@/lib/content-templates";
 import { getDb } from "@/lib/db";
 import { generateContent } from "@/lib/generation-service";
@@ -10,6 +11,10 @@ interface ThreadRow {
   asked_by: string;
   question_type?: "advice" | "conceptual" | "debate";
   recommendations_enabled?: number;
+  article_url?: string | null;
+  article_title?: string | null;
+  article_source?: string | null;
+  article_excerpt?: string | null;
 }
 
 /** POST — Generate an agora response for a philosopher */
@@ -44,6 +49,34 @@ export async function POST(
 
     const questionType = thread.question_type ?? "advice";
     const recommendationsEnabled = thread.recommendations_enabled === 1;
+    let articleWarning: string | null = null;
+    let article:
+      | {
+          url: string;
+          title: string;
+          source: string;
+          excerpt: string;
+          content: string;
+        }
+      | null = null;
+
+    if (thread.article_url) {
+      const extraction = await extractArticle(thread.article_url);
+      if (extraction.success) {
+        article = {
+          url: thread.article_url,
+          title: extraction.title,
+          source: extraction.source,
+          excerpt: extraction.excerpt,
+          content: extraction.content,
+        };
+      } else {
+        articleWarning = extraction.error;
+        console.warn(
+          `Admin Agora: article extraction failed for ${thread.article_url}: ${extraction.error}`
+        );
+      }
+    }
     const existingRecs = recommendationsEnabled
       ? (db
           .prepare(
@@ -68,16 +101,15 @@ export async function POST(
       undefined,
       alreadyRecommended
     );
-    const sourceMaterial = `USER QUESTION:\n${thread.question}
-
-Asked by: ${thread.asked_by}
-
-CLASSIFICATION:
-- Question type: ${questionType}
-- Recommendations appropriate: ${recommendationsEnabled ? "yes" : "no"}
-- Recommendation hint: none
-
-Respond to this person's situation through your philosophical framework.`;
+    const sourceMaterial = buildAgoraResponseSourceMaterial({
+      question: thread.question,
+      askedBy: thread.asked_by,
+      questionType,
+      recommendationsAppropriate: recommendationsEnabled,
+      recommendationHint: null,
+      alreadyRecommended,
+      article,
+    });
 
     const outcome = await generateContent(
       philosopher_id,
@@ -118,7 +150,12 @@ Respond to this person's situation through your philosophical framework.`;
     }
 
     return NextResponse.json(
-      { generated: outcome.data, log_entry: logEntry, raw_output: outcome.rawOutput },
+      {
+        generated: outcome.data,
+        log_entry: logEntry,
+        raw_output: outcome.rawOutput,
+        articleWarning: articleWarning ?? undefined,
+      },
       { status: 201 }
     );
   } catch (error) {

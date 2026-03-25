@@ -522,6 +522,14 @@ function buildAgoraThreadDetail(
     createdAt: t.created_at,
     questionType: t.question_type ?? "advice",
     recommendationsEnabled: t.recommendations_enabled === 1,
+    article: t.article_url
+      ? {
+          url: t.article_url,
+          title: t.article_title ?? null,
+          source: t.article_source ?? null,
+          excerpt: t.article_excerpt ?? null,
+        }
+      : null,
     philosophers: philRows.map((r) => r.philosopher_id),
     responses,
     synthesis,

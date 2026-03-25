@@ -25,6 +25,10 @@ export async function GET(
           status: string;
           question_type?: string;
           recommendations_enabled?: number;
+          article_url?: string | null;
+          article_title?: string | null;
+          article_source?: string | null;
+          article_excerpt?: string | null;
           created_at: string;
         }
       | undefined;
@@ -86,6 +90,14 @@ export async function GET(
         ...thread,
         question_type: thread.question_type ?? "advice",
         recommendations_enabled: thread.recommendations_enabled ?? 0,
+        article: thread.article_url
+          ? {
+              url: thread.article_url,
+              title: thread.article_title ?? null,
+              source: thread.article_source ?? null,
+              excerpt: thread.article_excerpt ?? null,
+            }
+          : null,
       },
       philosophers,
       responses,

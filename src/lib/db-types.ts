@@ -91,6 +91,10 @@ export interface AgoraThreadRow {
   ip_address?: string | null;
   question_type?: AgoraQuestionType;
   recommendations_enabled?: number;
+  article_url?: string | null;
+  article_title?: string | null;
+  article_source?: string | null;
+  article_excerpt?: string | null;
   created_at: string;
 }
 

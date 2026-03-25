@@ -24,6 +24,7 @@ interface FeaturedThread {
   question: string;
   asked_by: string;
   question_type: "advice" | "conceptual" | "debate";
+  article_source: string | null;
   created_at: string;
   philosophers: {
     id: string;
@@ -81,6 +82,14 @@ function FeaturedThreadCard({ thread }: { thread: FeaturedThread }) {
               {getQuestionTypeLabel(thread.question_type)}
             </span>
           </div>
+          {thread.article_source && (
+            <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.14em] text-ink-faint">
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M2 4h12M2 8h8M2 12h10" strokeLinecap="round" />
+              </svg>
+              {thread.article_source}
+            </div>
+          )}
           <div className="mt-2 text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">
             {thread.asked_by} <span className="mx-2 text-border">/</span>
             {timeAgo(thread.created_at)}
@@ -103,6 +112,7 @@ export function AgoraPageClient({
   const [step, setStep] = useState<"question" | "philosophers">("question");
   const [question, setQuestion] = useState("");
   const [askedBy, setAskedBy] = useState("");
+  const [articleUrl, setArticleUrl] = useState("");
   const [editingName, setEditingName] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -172,6 +182,12 @@ export function AgoraPageClient({
     setFormError(null);
 
     try {
+      const trimmedArticleUrl = articleUrl.trim();
+      if (trimmedArticleUrl && !/^https?:\/\/\S+/i.test(trimmedArticleUrl)) {
+        setFormError("Article links must start with http:// or https://");
+        return;
+      }
+
       const res = await fetch("/api/agora/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -179,6 +195,7 @@ export function AgoraPageClient({
           question: trimmedQuestion,
           asked_by: askedBy.trim() || undefined,
           philosopher_ids: selectedIds,
+          article_url: trimmedArticleUrl || undefined,
         }),
       });
 
@@ -195,6 +212,12 @@ export function AgoraPageClient({
       }
 
       const data = await res.json();
+      if (typeof window !== "undefined" && data.articleWarning) {
+        sessionStorage.setItem(
+          `agora-article-warning:${data.threadId}`,
+          data.articleWarning
+        );
+      }
       router.push(`/agora/${data.threadId}`);
     } catch {
       setFormError("Failed to submit. Please check your connection and try again.");
@@ -295,6 +318,24 @@ export function AgoraPageClient({
                           {charCount}/500
                         </div>
                       </div>
+
+                      <div className="mt-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-ink-faint">
+                            <path d="M6.5 11.5L4 14c-1.1 1.1-3 1.1-4 0s-1.1-3 0-4l2.5-2.5M9.5 4.5L12 2c1.1-1.1 3-1.1 4 0s1.1 3 0 4l-2.5 2.5M5.5 10.5l5-5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          <span className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">
+                            Share an article (optional)
+                          </span>
+                        </div>
+                        <input
+                          type="url"
+                          value={articleUrl}
+                          onChange={(event) => setArticleUrl(event.target.value)}
+                          placeholder="https://example.com/article..."
+                          className="w-full bg-white/60 border border-border-light/80 rounded-xl px-4 py-2.5 text-[14px] font-body text-ink placeholder:text-ink-lighter/50 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold/40 transition-colors"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -305,6 +346,7 @@ export function AgoraPageClient({
                     <ul className="space-y-2.5 text-[13px] text-ink-light leading-[1.68]">
                       <li>Choose a question with tension, ambiguity, or a real decision inside it.</li>
                       <li>You can invite between two and four philosophers into the conversation.</li>
+                      <li>You can also share an article URL for the philosophers to respond to.</li>
                       <li>The result is not consensus. It is a structured disagreement followed by editorial synthesis.</li>
                     </ul>
 
@@ -411,6 +453,14 @@ export function AgoraPageClient({
                     <p className="font-serif text-[17px] leading-[1.52] text-ink mb-5 text-balance">
                       &ldquo;{questionPreview || "Your question will appear here."}&rdquo;
                     </p>
+                    {articleUrl.trim() && (
+                      <p className="text-[11px] font-mono text-ink-faint mt-[-10px] mb-5 flex items-center gap-1.5">
+                        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <path d="M6.5 11.5L4 14c-1.1 1.1-3 1.1-4 0s-1.1-3 0-4l2.5-2.5M9.5 4.5L12 2c1.1-1.1 3-1.1 4 0s1.1 3 0 4l-2.5 2.5M5.5 10.5l5-5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        Article attached
+                      </p>
+                    )}
 
                     <div className="pt-4 border-t border-border-light/70">
                       <div className="text-[10px] font-mono tracking-[0.18em] uppercase text-ink-faint mb-3">
