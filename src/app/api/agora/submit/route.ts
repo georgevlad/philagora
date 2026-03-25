@@ -11,6 +11,7 @@ import {
   normalizeArticleUrl,
   type ExtractedArticle,
 } from "@/lib/article-extractor";
+import { getIdentityFromHeaders } from "@/lib/auth";
 import { getSynthesisTemplateForType, getAgoraResponseTemplate } from "@/lib/content-templates";
 import { getDb } from "@/lib/db";
 import {
@@ -111,28 +112,35 @@ export async function POST(request: NextRequest) {
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
       ?? "unknown";
 
-    const ipCount = db
-      .prepare(
-        "SELECT COUNT(*) as count FROM agora_threads WHERE ip_address = ? AND created_at >= date('now')"
-      )
-      .get(clientIp) as CountRow;
+    // ── Rate limit ────────────────────────────────────────────────────
+    const identity = await getIdentityFromHeaders(request);
+    const isOwner =
+      identity.type === "user" && identity.email === "george.vlad.utcn@gmail.com";
 
-    if (ipCount.count >= 3) {
-      return NextResponse.json(
-        { error: "The philosophers are resting. Check back tomorrow." },
-        { status: 429 }
-      );
-    }
+    if (!isOwner) {
+      const ipCount = db
+        .prepare(
+          "SELECT COUNT(*) as count FROM agora_threads WHERE ip_address = ? AND created_at >= date('now')"
+        )
+        .get(clientIp) as CountRow;
 
-    const todayCount = db
-      .prepare("SELECT COUNT(*) as count FROM agora_threads WHERE created_at >= date('now')")
-      .get() as CountRow;
+      if (ipCount.count >= 3) {
+        return NextResponse.json(
+          { error: "The philosophers are resting. Check back tomorrow." },
+          { status: 429 }
+        );
+      }
 
-    if (todayCount.count >= 10) {
-      return NextResponse.json(
-        { error: "The philosophers are resting. Check back tomorrow." },
-        { status: 429 }
-      );
+      const todayCount = db
+        .prepare("SELECT COUNT(*) as count FROM agora_threads WHERE created_at >= date('now')")
+        .get() as CountRow;
+
+      if (todayCount.count >= 10) {
+        return NextResponse.json(
+          { error: "The philosophers are resting. Check back tomorrow." },
+          { status: 429 }
+        );
+      }
     }
 
     const normalizedArticleUrl = normalizeArticleUrl(rawArticleUrl);
