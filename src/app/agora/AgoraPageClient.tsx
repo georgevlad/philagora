@@ -82,6 +82,13 @@ const PHILOSOPHER_QUOTES: Record<string, string> = {
   cicero: "The safety of the people shall be the highest law",
 };
 
+const EXAMPLE_QUESTIONS = [
+  "Why do we feel nostalgic for times that weren't even that good?",
+  "Should we forgive people who haven't asked for forgiveness?",
+  "Is it okay to enjoy bad art?",
+  "Is it moral to have children knowing the state of the world?",
+] as const;
+
 function FeaturedThreadCard({ thread }: { thread: FeaturedThread }) {
   return (
     <Link href={`/agora/${thread.id}`}>
@@ -548,6 +555,26 @@ export function AgoraPageClient({
                         style={{ minHeight: "152px" }}
                       />
 
+                      {question.trim() === "" && (
+                        <div className="mt-4">
+                          <div className="text-[10px] font-mono tracking-[0.16em] uppercase text-ink-faint">
+                            Or try one of these
+                          </div>
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {EXAMPLE_QUESTIONS.map((exampleQuestion) => (
+                              <button
+                                key={exampleQuestion}
+                                type="button"
+                                onClick={() => setQuestion(exampleQuestion)}
+                                className="px-3.5 py-2 rounded-xl border border-border-light/80 bg-white/50 text-[13px] font-body text-ink-light italic leading-snug text-left hover:border-gold/40 hover:bg-white/80 transition-colors duration-200 cursor-pointer"
+                              >
+                                {exampleQuestion}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="mt-6 flex items-center justify-between gap-4 flex-wrap">
                         <div className="font-serif italic text-[24px] text-ink-light">
                           {!editingName ? (
@@ -583,22 +610,24 @@ export function AgoraPageClient({
                         </div>
                       </div>
 
-                      <div className="mt-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-ink-faint">
-                            <path d="M6.5 11.5L4 14c-1.1 1.1-3 1.1-4 0s-1.1-3 0-4l2.5-2.5M9.5 4.5L12 2c1.1-1.1 3-1.1 4 0s1.1 3 0 4l-2.5 2.5M5.5 10.5l5-5" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                          <span className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">
-                            Share an article (optional)
-                          </span>
+                      <div className="mt-5 pt-5 border-t border-border-light/60">
+                        <div className="rounded-xl border border-border-light/80 bg-white/30 px-4 py-3.5">
+                          <div className="flex items-center gap-2 mb-2.5">
+                            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gold">
+                              <path d="M6.5 11.5L4 14c-1.1 1.1-3 1.1-4 0s-1.1-3 0-4l2.5-2.5M9.5 4.5L12 2c1.1-1.1 3-1.1 4 0s1.1 3 0 4l-2.5 2.5M5.5 10.5l5-5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            <span className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-light">
+                              Or share an article for them to react to
+                            </span>
+                          </div>
+                          <input
+                            type="url"
+                            value={articleUrl}
+                            onChange={(event) => setArticleUrl(event.target.value)}
+                            placeholder="Paste a link to a news story, essay, or opinion piece..."
+                            className="w-full bg-white/60 border border-border-light/80 rounded-lg px-3.5 py-2.5 text-[14px] font-body text-ink placeholder:text-ink-lighter/50 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold/40 transition-colors"
+                          />
                         </div>
-                        <input
-                          type="url"
-                          value={articleUrl}
-                          onChange={(event) => setArticleUrl(event.target.value)}
-                          placeholder="https://example.com/article..."
-                          className="w-full bg-white/60 border border-border-light/80 rounded-xl px-4 py-2.5 text-[14px] font-body text-ink placeholder:text-ink-lighter/50 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold/40 transition-colors"
-                        />
 
                         {session?.user && (
                           <div className="mt-4 flex items-center gap-3">
@@ -627,21 +656,44 @@ export function AgoraPageClient({
                   </div>
 
                   <aside className="justify-self-end w-full max-w-[320px] rounded-[22px] border border-border-light/80 bg-[linear-gradient(180deg,rgba(238,230,216,0.5),rgba(248,243,234,0.92))] px-5 py-5 shadow-[0_10px_24px_rgba(42,36,31,0.03)]">
-                    <div className="text-[10px] font-mono tracking-[0.2em] uppercase text-gold mb-3">
-                      Before you ask
+                    <div className="text-[10px] font-mono tracking-[0.2em] uppercase text-gold mb-4">
+                      How it works
                     </div>
-                    <ul className="space-y-2.5 text-[13px] text-ink-light leading-[1.68]">
-                      <li>Choose a question with tension, ambiguity, or a real decision inside it.</li>
-                      <li>You can invite between two and four philosophers into the conversation.</li>
-                      <li>You can also share an article URL for the philosophers to respond to.</li>
-                      <li>The result is not consensus. It is a structured disagreement followed by editorial synthesis.</li>
-                    </ul>
+                    <div className="space-y-4">
+                      <div className="flex gap-3 items-start">
+                        <div className="w-6 h-6 rounded-full bg-gold/12 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-[11px] font-mono font-medium text-gold">1</span>
+                        </div>
+                        <div>
+                          <div className="text-[13px] font-body font-medium text-ink leading-snug">Write your question</div>
+                          <p className="text-[12px] text-ink-lighter leading-[1.55] mt-0.5">Something with tension, a dilemma, or a real decision inside it.</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3 items-start">
+                        <div className="w-6 h-6 rounded-full bg-gold/12 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-[11px] font-mono font-medium text-gold">2</span>
+                        </div>
+                        <div>
+                          <div className="text-[13px] font-body font-medium text-ink leading-snug">Pick 2-4 thinkers</div>
+                          <p className="text-[12px] text-ink-lighter leading-[1.55] mt-0.5">We&apos;ll suggest voices likely to disagree on your question.</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3 items-start">
+                        <div className="w-6 h-6 rounded-full bg-gold/12 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-[11px] font-mono font-medium text-gold">3</span>
+                        </div>
+                        <div>
+                          <div className="text-[13px] font-body font-medium text-ink leading-snug">Watch them debate</div>
+                          <p className="text-[12px] text-ink-lighter leading-[1.55] mt-0.5">Each responds independently, then an editorial synthesis finds the tensions.</p>
+                        </div>
+                      </div>
+                    </div>
 
                     <div className="mt-5 pt-4 border-t border-border-light/70">
                       <button
                         onClick={handleContinue}
                         disabled={!canContinue}
-                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[16px] bg-athenian text-white font-body text-sm tracking-wide hover:bg-athenian-light disabled:opacity-45 disabled:cursor-not-allowed transition-colors"
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-[16px] bg-athenian text-white font-body text-[15px] font-medium tracking-wide shadow-[0_4px_12px_rgba(35,57,46,0.25)] hover:bg-athenian-light hover:shadow-[0_6px_16px_rgba(35,57,46,0.3)] disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed transition-all duration-200"
                       >
                         Choose the philosophers
                         <span aria-hidden="true">-&gt;</span>
@@ -847,7 +899,7 @@ export function AgoraPageClient({
                       <button
                         onClick={handleSubmit}
                         disabled={!isValid || submitting}
-                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[16px] bg-athenian text-white font-body text-sm tracking-wide hover:bg-athenian-light disabled:opacity-45 disabled:cursor-not-allowed transition-colors"
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-[16px] bg-athenian text-white font-body text-[15px] font-medium tracking-wide shadow-[0_4px_12px_rgba(35,57,46,0.25)] hover:bg-athenian-light hover:shadow-[0_6px_16px_rgba(35,57,46,0.3)] disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed transition-all duration-200"
                       >
                         {submitting ? "Summoning the dialogue..." : "Hear their thoughts"}
                       </button>
