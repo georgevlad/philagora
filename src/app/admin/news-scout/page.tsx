@@ -171,7 +171,6 @@ const LENGTH_STRATEGY_OPTIONS: Array<{
   { value: "varied", label: "Varied" },
   { value: "short", label: "Short" },
   { value: "medium", label: "Medium" },
-  { value: "long", label: "Long" },
 ];
 
 export default function NewsScoutPage() {
