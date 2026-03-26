@@ -55,7 +55,13 @@ export type ContentTypeKey =
   | "agora_synthesis";
 
 const LENGTH_MAPS: Partial<Record<ContentTypeKey, Record<TargetLength, string>>> = {
-  news_reaction: STANDARD_LENGTHS,
+  news_reaction: {
+    short: "STRICT LENGTH: 40-70 words. Maximum 3 sentences. One take, grounded in one detail, done.",
+    medium:
+      "Length: 70-110 words. 3-4 tight sentences. A developed take — but still a remark, not an essay. No preamble, no summarizing conclusion.",
+    long:
+      "Length: 70-110 words. 3-4 tight sentences. A developed take — but still a remark, not an essay. No preamble, no summarizing conclusion.",
+  },
   quip: {
     short: "STRICT: Maximum 1 sentence, under 20 words.",
     medium: "STRICT: Maximum 1-2 sentences, under 25 words total.",
@@ -80,7 +86,8 @@ export function getLengthGuidance(
   const map = LENGTH_MAPS[templateKey];
   if (!map) return STANDARD_LENGTHS.medium;
   const resolvedLength =
-    targetLength ?? (templateKey === "everyday_reaction" ? "short" : "medium");
+    targetLength ??
+    (templateKey === "everyday_reaction" || templateKey === "news_reaction" ? "short" : "medium");
   return map[resolvedLength];
 }
 
