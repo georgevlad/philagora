@@ -292,6 +292,15 @@ function ExaminedLifeHeader({ source }: { source: string }) {
   );
 }
 
+function ArtCommentaryHeader() {
+  return (
+    <div className="mb-3 flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-ink-lighter">
+      <span aria-hidden="true">🖼️</span>
+      <span>Art Commentary</span>
+    </div>
+  );
+}
+
 function HistoricalEventTitle({ title, color }: { title: string; color: string }) {
   return (
     <blockquote
@@ -304,6 +313,25 @@ function HistoricalEventTitle({ title, color }: { title: string; color: string }
     >
       {title}
     </blockquote>
+  );
+}
+
+function ArtworkCaption({ title, artist, color }: { title: string; artist: string; color: string }) {
+  return (
+    <div
+      className="mb-4 rounded-r-xl px-4 py-3"
+      style={{
+        borderLeft: `3px solid ${color}`,
+        background: `linear-gradient(90deg, ${color}12, rgba(248,243,234,0.45))`,
+      }}
+    >
+      <p className="font-serif text-[18px] sm:text-[19px] leading-[1.4] text-ink font-medium">
+        {title}
+      </p>
+      <p className="mt-1 text-[11px] font-mono uppercase tracking-[0.16em] text-ink-lighter">
+        {artist}
+      </p>
+    </div>
   );
 }
 
@@ -368,6 +396,7 @@ export function PostCard({
   const isPopular = post.likes >= 50;
   const isHistoricalEvent = post.sourceType === "historical_event";
   const isEveryday = post.sourceType === "everyday";
+  const isArtCommentary = post.sourceType === "art_commentary";
   const shouldShowThesis = !isQuip || post.thesis.trim() !== post.content.trim();
   const postHref = `/post/${post.id}`;
   const recommendationLabel = recommendationBadge(post);
@@ -411,6 +440,21 @@ export function PostCard({
               />
             )}
 
+            {isArtCommentary && post.citation?.imageUrl && (
+              <div className="-mx-5 -mt-5 mb-4 overflow-hidden rounded-t-2xl sm:-mx-6 sm:-mt-5">
+                <div className="relative aspect-[4/3] w-full bg-parchment-dark/30">
+                  <Image
+                    src={post.citation.imageUrl}
+                    alt={post.citation?.title || "Artwork"}
+                    fill
+                    className="object-contain"
+                    sizes="(max-width: 640px) 100vw, 640px"
+                    unoptimized
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center gap-2 mb-2 relative z-10">
               <Link href={`/philosophers/${post.philosopherId}`}>
                 <PhilosopherAvatar philosopherId={post.philosopherId} name={post.philosopherName} color={color} initials={post.philosopherInitials} />
@@ -445,13 +489,29 @@ export function PostCard({
               </div>
             )}
 
+            {isArtCommentary && (
+              <div className="relative z-10">
+                <ArtCommentaryHeader />
+              </div>
+            )}
+
             {(isHistoricalEvent || isEveryday) && post.citation?.title && (
               <div className="relative z-10 w-full max-w-lg">
                 <HistoricalEventTitle title={post.citation.title} color={color} />
               </div>
             )}
 
-            {post.citation && !isHistoricalEvent && !isEveryday && (
+            {isArtCommentary && post.citation?.title && (
+              <div className="relative z-10 w-full max-w-lg">
+                <ArtworkCaption
+                  title={post.citation.title}
+                  artist={post.citation.source || ""}
+                  color={color}
+                />
+              </div>
+            )}
+
+            {post.citation && !isHistoricalEvent && !isEveryday && !isArtCommentary && (
               <div className="w-full mb-4">
                 <CitationBlock citation={post.citation} color={color} accent={accent} />
               </div>
@@ -495,6 +555,21 @@ export function PostCard({
                 </div>
               )}
 
+              {isArtCommentary && post.citation?.imageUrl && (
+                <div className="mb-3 -mr-1 overflow-hidden rounded-xl">
+                  <div className="relative aspect-[4/3] w-full bg-parchment-dark/30">
+                    <Image
+                      src={post.citation.imageUrl}
+                      alt={post.citation?.title || "Artwork"}
+                      fill
+                      className="object-contain"
+                      sizes="(max-width: 640px) 100vw, 540px"
+                      unoptimized
+                    />
+                  </div>
+                </div>
+              )}
+
               {!isCrossReply && (
                 <div className="flex items-center gap-2 flex-wrap mb-2">
                   <Link
@@ -527,11 +602,23 @@ export function PostCard({
                 <ExaminedLifeHeader source={post.citation.source} />
               )}
 
+              {isArtCommentary && (
+                <ArtCommentaryHeader />
+              )}
+
               {(isHistoricalEvent || isEveryday) && post.citation?.title && (
                 <HistoricalEventTitle title={post.citation.title} color={color} />
               )}
 
-              {post.citation && !isHistoricalEvent && !isEveryday && (
+              {isArtCommentary && post.citation?.title && (
+                <ArtworkCaption
+                  title={post.citation.title}
+                  artist={post.citation.source || ""}
+                  color={color}
+                />
+              )}
+
+              {post.citation && !isHistoricalEvent && !isEveryday && !isArtCommentary && (
                 <div className="mb-3 -mt-1">
                   <CitationBlock citation={post.citation} color={color} accent={accent} />
                 </div>

@@ -3,7 +3,7 @@ import type { FeedPost } from "@/lib/types";
 export const FEED_CONTENT_TABS = [
   { key: "all", label: "All" },
   { key: "reactions", label: "Reactions" },
-  { key: "history", label: "Today in History" },
+  { key: "reflections", label: "Reflections" },
   { key: "replies", label: "Replies" },
   { key: "recommends", label: "Recommends" },
 ] as const;
@@ -17,7 +17,7 @@ export type FeedItem =
 export function normalizeFeedContentType(value?: string | null): FeedContentType {
   if (
     value === "reactions" ||
-    value === "history" ||
+    value === "reflections" ||
     value === "replies" ||
     value === "recommends"
   ) {
@@ -42,9 +42,9 @@ export function buildFeedContentTypeConditions(
     ];
   }
 
-  if (normalized === "history") {
+  if (normalized === "reflections") {
     return [
-      `${tableAlias}.source_type = 'historical_event'`,
+      `${tableAlias}.source_type IN ('reflection', 'historical_event', 'art_commentary', 'everyday')`,
       `(${replyTo} IS NULL OR ${replyTo} = '')`,
     ];
   }
@@ -82,7 +82,9 @@ export function classifyPostFormat(post: {
   stance: string;
 }): string {
   if (post.replyTo) return "Cross-Reply";
-  if (post.sourceType === "reflection") return "Reflection";
+  if (post.sourceType === "reflection" || post.sourceType === "art_commentary") {
+    return "Reflection";
+  }
   if (post.sourceType === "historical_event") return "Historical";
   if (post.sourceType === "everyday") return "Everyday";
   if (post.stance === "quips" || post.stance === "mocks") return "Quip";

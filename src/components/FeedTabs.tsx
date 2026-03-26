@@ -48,7 +48,6 @@ export function FeedTabs({ mobileIntegrated = false }: { mobileIntegrated?: bool
       <div className="flex items-center px-2 py-2 sm:gap-1 sm:px-4 sm:py-2.5">
         {FEED_CONTENT_TABS.map((tab) => {
           const isActive = activeType === tab.key;
-          const label = mobileIntegrated && tab.key === "history" ? "History" : tab.label;
 
           return (
             <button
@@ -68,7 +67,7 @@ export function FeedTabs({ mobileIntegrated = false }: { mobileIntegrated?: bool
                 }
               `}
             >
-              {label}
+              {tab.label}
             </button>
           );
         })}

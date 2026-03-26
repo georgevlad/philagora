@@ -40,6 +40,13 @@ const EVERYDAY_LENGTHS: Record<TargetLength, string> = {
   long: "Length: 120-180 words. A fuller take - but still conversational, not essayistic.",
 };
 
+const ART_COMMENTARY_LENGTHS: Record<TargetLength, string> = {
+  short:
+    "STRICT LENGTH: 50-80 words. Maximum 3 sentences. One piercing philosophical observation about this work — not art criticism, philosophy.",
+  medium: "Length: 80-150 words. A developed philosophical reaction to this work.",
+  long: "Length: 150-250 words. A deeper philosophical meditation on this work. Multiple paragraphs allowed.",
+};
+
 export type ContentTypeKey =
   | "news_reaction"
   | "quip"
@@ -48,6 +55,7 @@ export type ContentTypeKey =
   | "historical_reaction"
   | "everyday_reaction"
   | "cultural_recommendation"
+  | "art_commentary"
   | "debate_opening"
   | "debate_rebuttal"
   | "agora_response"
@@ -72,6 +80,7 @@ const LENGTH_MAPS: Partial<Record<ContentTypeKey, Record<TargetLength, string>>>
   everyday_reaction: EVERYDAY_LENGTHS,
   timeless_reflection: REFLECTION_LENGTHS,
   cultural_recommendation: RECOMMENDATION_LENGTHS,
+  art_commentary: ART_COMMENTARY_LENGTHS,
 };
 
 /**
@@ -106,6 +115,9 @@ export function resolveContentTypeKey(
     }
     if (uiLabel === "Cultural Recommendation" || uiLabel === "cultural_recommendation") {
       return "cultural_recommendation";
+    }
+    if (uiLabel === "Art Commentary" || uiLabel === "art_commentary") {
+      return "art_commentary";
     }
     if (uiLabel === "Quip") return "quip";
     return "news_reaction";
@@ -351,6 +363,35 @@ RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
   "tag": "Recommends",
   "recommendation_title": "Exact title of the recommended work",
   "recommendation_medium": "film | music | book | tv | podcast | other"
+}
+`.trim(),
+  },
+
+  art_commentary: {
+    key: "art_commentary",
+    instructions: `
+You are encountering an artwork. The prompt below will be formatted as: Artwork: "Title" by Artist.
+
+React to this work through your philosophical framework. What does it reveal about the human condition? What truth does it expose or conceal? How does it connect to your deepest concerns as a thinker?
+
+CRITICAL CONSTRAINTS:
+- You are a PHILOSOPHER, not an art critic. Do not describe composition, technique, brushwork, or art-historical context.
+- React to the MEANING, not the medium. Your reader can see the image — tell them what they're failing to see.
+- Your take should surprise someone who only knows the standard reading of this work.
+- Do not open with "This painting..." or "This work..." — open with your philosophical claim.
+- Ground your reaction in your own philosophical vocabulary and framework, not generic aesthetics.
+
+PROMPT:
+{SOURCE_MATERIAL}
+
+{LENGTH_GUIDANCE}
+
+Respond ONLY with a JSON object:
+{
+  "content": "Your philosophical reaction to the artwork",
+  "thesis": "A single-sentence crystallization of your philosophical claim about this work (max 140 chars)",
+  "stance": "one of: challenges, defends, reframes, questions, warns, observes, diagnoses, provokes, laments",
+  "tag": "A 1-3 word topic tag (e.g., 'Beauty & Terror', 'The Gaze', 'Mortality', 'Power & Submission')"
 }
 `.trim(),
   },

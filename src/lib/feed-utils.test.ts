@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { makePost, makeReaction } from "@/lib/__tests__/helpers";
-import { sharesSameArticle } from "@/lib/feed-utils";
+import {
+  buildFeedContentTypeConditions,
+  classifyPostFormat,
+  sharesSameArticle,
+} from "@/lib/feed-utils";
 
 describe("sharesSameArticle", () => {
   it("returns true when both posts share the same citation URL", () => {
@@ -53,5 +57,28 @@ describe("sharesSameArticle", () => {
     });
 
     expect(sharesSameArticle(a, b)).toBe(false);
+  });
+});
+
+describe("classifyPostFormat", () => {
+  it("treats art commentary posts as reflections for feed pacing", () => {
+    expect(
+      classifyPostFormat({
+        sourceType: "art_commentary",
+        stance: "observes",
+      })
+    ).toBe("Reflection");
+  });
+});
+
+describe("buildFeedContentTypeConditions", () => {
+  it("reflections tab includes reflection, historical_event, art_commentary, and everyday source types", () => {
+    const conditions = buildFeedContentTypeConditions("reflections");
+
+    expect(conditions).toHaveLength(2);
+    expect(conditions[0]).toContain(
+      "IN ('reflection', 'historical_event', 'art_commentary', 'everyday')"
+    );
+    expect(conditions[1]).toContain("reply_to");
   });
 });

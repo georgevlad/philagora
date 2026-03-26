@@ -61,6 +61,7 @@ export const CONTENT_TYPE_LABELS: Record<string, string> = {
   quip: "Quip",
   reflection: "Reflection",
   recommendation: "Cultural Recommendation",
+  art_commentary: "Art Commentary",
   debate_opening: "Debate Opening",
   debate_rebuttal: "Debate Rebuttal",
   agora_response: "Agora Response",

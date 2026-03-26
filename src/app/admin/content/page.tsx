@@ -49,6 +49,7 @@ const CONTENT_TYPE_OPTIONS = [
   { label: "Quip", value: "post", description: "A cutting one-liner reaction to a headline" },
   { label: "Timeless Reflection", value: "reflection", description: "A timeless philosophical reflection" },
   { label: "Cultural Recommendation", value: "recommendation", description: "Recommend a film, book, album, or other cultural work" },
+  { label: "Art Commentary", value: "post", description: "Philosophical reaction to a classical painting or sculpture" },
   { label: "Cross-Philosopher Reply", value: "post", description: "Reply to another philosopher's post" },
   { label: "Debate Opening", value: "debate_opening", description: "Opening statement for a debate" },
   { label: "Debate Rebuttal", value: "debate_rebuttal", description: "Rebuttal in an ongoing debate" },
@@ -250,10 +251,12 @@ function ContentGenerationPageInner() {
     setCitationTitle("");
     setCitationSource("");
     setCitationUrl("");
+    setCitationImageUrl("");
   }, [selectedContentTypeIndex]);
 
   // ── Auto-detect URL in source material ────────────────────────────
   const selectedContentOption = CONTENT_TYPE_OPTIONS[selectedContentTypeIndex];
+  const isArtCommentary = selectedContentOption.label === "Art Commentary";
   const supportsCitation =
     selectedContentOption.label === "News Reaction" ||
     selectedContentOption.label === "Quip";
@@ -280,13 +283,27 @@ function ContentGenerationPageInner() {
       setErrorMessage("Please select a philosopher.");
       return;
     }
-    if (!userInput.trim()) {
+    if (isArtCommentary && (!citationTitle.trim() || !citationSource.trim())) {
+      setErrorMessage("Please provide the artwork title and artist name.");
+      return;
+    }
+    if (!isArtCommentary && !userInput.trim()) {
       setErrorMessage("Please provide source material or a question.");
       return;
     }
 
     setSubmitting(true);
     try {
+      const trimmedCitationTitle = citationTitle.trim();
+      const trimmedCitationSource = citationSource.trim();
+      let resolvedUserInput = userInput.trim();
+      if (isArtCommentary && trimmedCitationTitle && trimmedCitationSource) {
+        resolvedUserInput = `Artwork: "${trimmedCitationTitle}" by ${trimmedCitationSource}`;
+        if (userInput.trim()) {
+          resolvedUserInput += `\n\nAdditional context: ${userInput.trim()}`;
+        }
+      }
+
       const res = await fetch("/api/admin/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -294,7 +311,7 @@ function ContentGenerationPageInner() {
           philosopher_id: selectedPhilosopherId,
           content_type: selectedContentOption.value,
           content_label: selectedContentOption.label,
-          user_input: userInput.trim(),
+          user_input: resolvedUserInput,
         }),
       });
 
@@ -352,12 +369,13 @@ function ContentGenerationPageInner() {
           thesis: data.thesis ?? "",
           stance: data.stance ?? "observes",
           tag: data.tag ?? "",
+          source_type: isArtCommentary ? "art_commentary" : undefined,
           recommendation_title: data.recommendation_title || undefined,
           recommendation_medium: data.recommendation_medium || undefined,
           citation_title: citationTitle || undefined,
           citation_source: citationSource || undefined,
           citation_url: citationUrl || undefined,
-          citation_image_url: citationImageUrl || undefined,
+          citation_image_url: isArtCommentary ? (citationUrl || undefined) : (citationImageUrl || undefined),
         }),
       });
 
@@ -518,7 +536,11 @@ function ContentGenerationPageInner() {
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 rows={5}
-                placeholder="Paste an article URL, title, key quotes, or a user question for the Agora..."
+                placeholder={
+                  isArtCommentary
+                    ? "Optional: additional context about the artwork, its history, or what angle you want..."
+                    : "Paste an article URL, title, key quotes, or a user question for the Agora..."
+                }
                 className="w-full rounded-lg border border-border bg-parchment px-4 py-3 text-sm text-ink font-body placeholder:text-ink-lighter/60 focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors resize-y"
               />
             </div>
@@ -571,6 +593,59 @@ function ContentGenerationPageInner() {
                     value={citationUrl}
                     onChange={(e) => setCitationUrl(e.target.value)}
                     placeholder="https://..."
+                    className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body placeholder:text-ink-lighter/60 focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+                  />
+                </div>
+              </div>
+            )}
+
+            {isArtCommentary && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label
+                    htmlFor="citation-title"
+                    className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"
+                  >
+                    Artwork Title
+                  </label>
+                  <input
+                    id="citation-title"
+                    type="text"
+                    value={citationTitle}
+                    onChange={(e) => setCitationTitle(e.target.value)}
+                    placeholder="e.g. The Scream (1893)"
+                    className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body placeholder:text-ink-lighter/60 focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="citation-source"
+                    className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"
+                  >
+                    Artist
+                  </label>
+                  <input
+                    id="citation-source"
+                    type="text"
+                    value={citationSource}
+                    onChange={(e) => setCitationSource(e.target.value)}
+                    placeholder="e.g. Edvard Munch"
+                    className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body placeholder:text-ink-lighter/60 focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="citation-url"
+                    className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"
+                  >
+                    Image URL
+                  </label>
+                  <input
+                    id="citation-url"
+                    type="text"
+                    value={citationUrl}
+                    onChange={(e) => setCitationUrl(e.target.value)}
+                    placeholder="https://upload.wikimedia.org/..."
                     className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body placeholder:text-ink-lighter/60 focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
                   />
                 </div>
