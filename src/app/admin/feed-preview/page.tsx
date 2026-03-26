@@ -52,7 +52,7 @@ interface Segment {
 
 const FORMAT_COLORS: Record<string, string> = {
   "News Reaction": "#4A7C6F",
-  Quip: "#B08A49",
+  Glint: "#B08A49",
   "Cross-Reply": "#7A3E3A",
   Reflection: "#6B7280",
   Historical: "#92400E",

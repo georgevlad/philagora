@@ -119,7 +119,7 @@ export function resolveContentTypeKey(
     if (uiLabel === "Art Commentary" || uiLabel === "art_commentary") {
       return "art_commentary";
     }
-    if (uiLabel === "Quip") return "quip";
+    if (uiLabel === "Glint") return "quip";
     return "news_reaction";
   }
   if (dbContentType === "reflection") return "timeless_reflection";
@@ -287,7 +287,7 @@ RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
   quip: {
     key: "quip",
     instructions: `
-TASK: React to the following headline with a single cutting observation. This is a QUIP - not an analysis.
+TASK: React to the following headline with a single cutting observation. This is a GLINT - not an analysis.
 
 RULES:
 - MAXIMUM 1-2 sentences. Aim for under 25 words. Brevity is everything.
@@ -301,9 +301,9 @@ RULES:
 RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
 {
   "content": "Your one-liner reaction",
-  "thesis": "Same as content for quips - just repeat the line",
+  "thesis": "Same as content for glints - just repeat the line",
   "stance": "quips | mocks | provokes | observes",
-  "tag": "Quip"
+  "tag": "Glint"
 }
 `.trim(),
   },

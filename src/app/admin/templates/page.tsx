@@ -52,7 +52,7 @@ interface HouseRulesResponse {
 
 const TEMPLATE_ITEMS: Array<{ key: TemplateKey; label: string }> = [
   { key: "news_reaction", label: "News Reaction" },
-  { key: "quip", label: "Quip" },
+  { key: "quip", label: "Glint" },
   { key: "timeless_reflection", label: "Timeless Reflection" },
   { key: "cross_philosopher_reply", label: "Cross-Philosopher Reply" },
   { key: "historical_reaction", label: "Historical Reaction" },

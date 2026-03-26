@@ -46,7 +46,7 @@ interface GenerationPreview {
 
 const CONTENT_TYPE_OPTIONS = [
   { label: "News Reaction", value: "post", description: "React to a current news article" },
-  { label: "Quip", value: "post", description: "A cutting one-liner reaction to a headline" },
+  { label: "Glint", value: "post", description: "A cutting one-liner reaction to a headline" },
   { label: "Timeless Reflection", value: "reflection", description: "A timeless philosophical reflection" },
   { label: "Cultural Recommendation", value: "recommendation", description: "Recommend a film, book, album, or other cultural work" },
   { label: "Art Commentary", value: "post", description: "Philosophical reaction to a classical painting or sculpture" },
@@ -259,7 +259,7 @@ function ContentGenerationPageInner() {
   const isArtCommentary = selectedContentOption.label === "Art Commentary";
   const supportsCitation =
     selectedContentOption.label === "News Reaction" ||
-    selectedContentOption.label === "Quip";
+    selectedContentOption.label === "Glint";
   useEffect(() => {
     if (!supportsCitation) return;
     const trimmed = userInput.trim();

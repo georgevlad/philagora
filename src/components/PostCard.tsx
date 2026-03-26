@@ -392,7 +392,7 @@ export function PostCard({
   const accent = philosopherAccentStyles(color);
   const isCrossReply = post.tag === "Cross-Philosopher Reply";
   const isAphorism = post.tag === "Practical Wisdom" || post.tag === "Timeless Wisdom";
-  const isQuip = post.tag === "Quip";
+  const isQuip = post.tag === "Glint";
   const isPopular = post.likes >= 50;
   const isHistoricalEvent = post.sourceType === "historical_event";
   const isEveryday = post.sourceType === "everyday";

@@ -497,7 +497,7 @@ export default function DailyContentPage() {
             </div>
             <div>
               <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
-                Quips
+                Glints
               </label>
               <input
                 type="number"
@@ -598,7 +598,7 @@ export default function DailyContentPage() {
                 About {estimatedTotal} post{estimatedTotal === 1 ? "" : "s"}
               </p>
               <p className="text-sm text-ink-lighter mt-1">
-                {expectedNewsReactions} news reactions + {expectedCrossReplies} cross-replies + {config.quips} quips + {config.timeless_reflections} reflections + {config.cultural_recommendations} recommendations using about {estimatedTotal} generation calls.
+                {expectedNewsReactions} news reactions + {expectedCrossReplies} cross-replies + {config.quips} glints + {config.timeless_reflections} reflections + {config.cultural_recommendations} recommendations using about {estimatedTotal} generation calls.
               </p>
               {Object.keys(selectedClusters).length > 0 && (
                 <p className="text-sm text-ink-lighter mt-1">
@@ -663,7 +663,7 @@ export default function DailyContentPage() {
             <div className="px-6 py-5 border-b border-border grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4 bg-parchment/50">
               <SummaryTile label="News reactions" value={summary.news_reactions} />
               <SummaryTile label="Cross replies" value={summary.cross_replies} />
-              <SummaryTile label="Quips" value={summary.quips} />
+              <SummaryTile label="Glints" value={summary.quips} />
               <SummaryTile label="Timeless reflections" value={summary.timeless_reflections} />
               <SummaryTile label="Recommendations" value={summary.cultural_recommendations} />
               <SummaryTile label="Philosophers used" value={summary.philosophers_used.length} />
@@ -694,8 +694,8 @@ export default function DailyContentPage() {
               onDelete={handleDeleteItem}
             />
             <ReviewGroup
-              title="Quips"
-              description="Short, cutting quote-tweet reactions pulled from the same article set."
+              title="Glints"
+              description="Short, cutting headline reactions pulled from the same article set."
               items={quipItems}
               busyItemId={busyItemId}
               selectedDraftIds={selectedDraftIds}

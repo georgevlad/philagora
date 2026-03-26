@@ -64,6 +64,11 @@ const MIGRATIONS: Migration[] = [
     name: "agora_thread_follow_up_linking",
     migrate: (db) => migrateAgoraThreadFollowUpLinking(db),
   },
+  {
+    version: 9,
+    name: "rename_quip_post_tags_to_glint",
+    migrate: (db) => migrateRenameQuipPostTagsToGlint(db),
+  },
   // ── Future migrations go here ──
   // {
   //   version: 2,
@@ -674,6 +679,10 @@ function migrateBackfillReflectionSourceType(db: Database.Database): void {
        AND citation_url IS NULL
        AND historical_event_id IS NULL`
   ).run();
+}
+
+function migrateRenameQuipPostTagsToGlint(db: Database.Database): void {
+  db.prepare("UPDATE posts SET tag = 'Glint' WHERE tag = 'Quip'").run();
 }
 
 // ── Test-only exports ──────────────────────────────────────────

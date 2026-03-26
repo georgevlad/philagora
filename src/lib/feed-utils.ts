@@ -87,7 +87,7 @@ export function classifyPostFormat(post: {
   }
   if (post.sourceType === "historical_event") return "Historical";
   if (post.sourceType === "everyday") return "Everyday";
-  if (post.stance === "quips" || post.stance === "mocks") return "Quip";
+  if (post.stance === "quips" || post.stance === "mocks") return "Glint";
   return "News Reaction";
 }
 

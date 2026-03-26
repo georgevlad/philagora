@@ -9,7 +9,7 @@ import {
 
 const TEMPLATE_LABELS: Record<ContentTypeKey, string> = {
   news_reaction: "News Reaction",
-  quip: "Quip",
+  quip: "Glint",
   timeless_reflection: "Timeless Reflection",
   cross_philosopher_reply: "Cross-Philosopher Reply",
   historical_reaction: "Historical Reaction",

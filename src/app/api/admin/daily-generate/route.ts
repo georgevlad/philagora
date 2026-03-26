@@ -956,7 +956,7 @@ function defaultTagForType(type: DailyItemType): string {
     case "timeless_reflection":
       return "Timeless Wisdom";
     case "quip":
-      return "Quip";
+      return "Glint";
     case "cultural_recommendation":
       return "Recommends";
     default:
