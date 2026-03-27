@@ -147,6 +147,7 @@ REQUIREMENTS:
 - Develop your framework's answer with precision. Use your key concepts, but make them accessible.
 - End with a provocation or a reframing that complicates easy answers - do NOT end with a neat conclusion.
 - If writing a second post: explore a tension or paradox within your OWN framework's answer. Show intellectual honesty.
+- CRITICAL: If the user is asking for a specific recommendation (a song, book, film, place, restaurant, activity, etc.), you MUST provide at least one concrete, specific recommendation by name. Do not deflect with "rather than recommend, I suggest you reflect on..." or "instead of telling you what to listen to..." - the user came here for a recommendation filtered through your philosophical lens. Your philosophy should inform WHICH specific thing you recommend and WHY, not replace the recommendation itself. Give the answer they asked for, grounded in your tradition.
 
 RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
 {
@@ -164,6 +165,7 @@ REQUIREMENTS:
 - Defend it using your philosophical framework - make the strongest case your tradition can make.
 - Acknowledge the best counter-argument and explain why your position withstands it.
 - Do NOT hedge or try to be balanced. The synthesis will provide balance. Your job is to argue.
+- CRITICAL: If the user is asking for a specific recommendation (a song, book, film, place, restaurant, activity, etc.), you MUST provide at least one concrete, specific recommendation by name. Do not deflect with "rather than recommend, I suggest you reflect on..." or "instead of telling you what to listen to..." - the user came here for a recommendation filtered through your philosophical lens. Your philosophy should inform WHICH specific thing you recommend and WHY, not replace the recommendation itself. Give the answer they asked for, grounded in your tradition.
 
 RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
 {
@@ -172,7 +174,7 @@ RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
 `.trim();
 
 const AGORA_RECOMMENDATION_APPENDIX = `
-ADDITIONAL: If a specific work (book, film, essay, album, poem, play, or speech) genuinely speaks to this question from your philosophical perspective, include a recommendation. Only recommend something you would authentically champion - do not force a recommendation if nothing fits.
+ADDITIONAL: If a specific work (book, film, essay, album, poem, play, or speech) genuinely speaks to this question from your philosophical perspective, include a recommendation. Only recommend something you would authentically champion. If the user's question IS a recommendation request, you MUST include a recommendation - that is the whole point of their question.
 
 CRITICAL RECOMMENDATION RULES:
 - Your recommendation must reflect YOUR tradition's distinctive lens. Do not recommend the most famous or obvious work on this topic.
@@ -536,6 +538,7 @@ REQUIREMENTS:
 - End the first post with one concrete thing the person can do or consider today.
 - If writing a second post: add a counterpoint, edge case, or deepened perspective. Do NOT just continue the same argument - complicate it, qualify it, or flip the lens.
 - Speak directly to the person asking.
+- CRITICAL: If the user is asking for a specific recommendation (a song, book, film, place, restaurant, activity, etc.), you MUST provide at least one concrete, specific recommendation by name. Do not deflect with "rather than recommend, I suggest you reflect on..." or "instead of telling you what to listen to..." - the user came here for a recommendation filtered through your philosophical lens. Your philosophy should inform WHICH specific thing you recommend and WHY, not replace the recommendation itself. Give the answer they asked for, grounded in your tradition.
 
 RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
 {
