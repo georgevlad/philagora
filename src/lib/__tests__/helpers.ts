@@ -49,6 +49,7 @@ export function makePost(overrides: FeedPostOverrides = {}): FeedPost {
     replyTargetPhilosopherName: overrides.replyTargetPhilosopherName,
     replyTargetPhilosopherColor: overrides.replyTargetPhilosopherColor,
     replyTargetPhilosopherInitials: overrides.replyTargetPhilosopherInitials,
+    replyTargetThesis: overrides.replyTargetThesis,
   };
 }
 

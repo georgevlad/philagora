@@ -24,6 +24,7 @@ interface PreviewPost extends FeedPost {
 type PreviewPostRow = PostRow & {
   historical_event_context?: string | null;
   historical_event_display_date?: string | null;
+  reply_target_thesis?: string | null;
 };
 
 const FEED_PREVIEW_QUERY = `
@@ -37,6 +38,7 @@ const FEED_PREVIEW_QUERY = `
     rph.name      AS reply_target_philosopher_name,
     rph.color     AS reply_target_philosopher_color,
     rph.initials  AS reply_target_philosopher_initials,
+    rp.thesis     AS reply_target_thesis,
     he.thumbnail_filename AS historical_event_thumbnail,
     he.context AS historical_event_context,
     he.display_date AS historical_event_display_date
@@ -89,6 +91,7 @@ function mapPreviewPost(row: PreviewPostRow): PreviewPost {
     replyTargetPhilosopherName: row.reply_target_philosopher_name ?? undefined,
     replyTargetPhilosopherColor: row.reply_target_philosopher_color ?? undefined,
     replyTargetPhilosopherInitials: row.reply_target_philosopher_initials ?? undefined,
+    replyTargetThesis: row.reply_target_thesis ?? undefined,
     createdAt: row.created_at,
   };
 }

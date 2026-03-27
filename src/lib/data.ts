@@ -34,6 +34,7 @@ type FeedPostRow = PostRow & {
   historical_event_display_date?: string | null;
   is_bookmarked?: number | null;
   is_liked?: number | null;
+  reply_target_thesis?: string | null;
 };
 
 // ── Raw DB row types (snake_case) ──────────────────────────
@@ -101,6 +102,7 @@ function mapFeedPost(row: FeedPostRow): FeedPost {
     replyTargetPhilosopherName: row.reply_target_philosopher_name ?? undefined,
     replyTargetPhilosopherColor: row.reply_target_philosopher_color ?? undefined,
     replyTargetPhilosopherInitials: row.reply_target_philosopher_initials ?? undefined,
+    replyTargetThesis: row.reply_target_thesis ?? undefined,
   };
 }
 
@@ -117,6 +119,7 @@ const FEED_POST_QUERY = `
     rph.name      AS reply_target_philosopher_name,
     rph.color     AS reply_target_philosopher_color,
     rph.initials  AS reply_target_philosopher_initials,
+    rp.thesis     AS reply_target_thesis,
     he.thumbnail_filename AS historical_event_thumbnail,
     he.context AS historical_event_context,
     he.display_date AS historical_event_display_date
@@ -144,6 +147,7 @@ function buildFeedPostQuery(userId?: string): {
           rph.name      AS reply_target_philosopher_name,
           rph.color     AS reply_target_philosopher_color,
           rph.initials  AS reply_target_philosopher_initials,
+          rp.thesis     AS reply_target_thesis,
           he.thumbnail_filename AS historical_event_thumbnail,
           he.context AS historical_event_context,
           he.display_date AS historical_event_display_date,

@@ -95,6 +95,7 @@ export interface FeedPost extends Post {
   replyTargetPhilosopherName?: string;
   replyTargetPhilosopherColor?: string;
   replyTargetPhilosopherInitials?: string;
+  replyTargetThesis?: string;
 }
 
 export interface HistoricalEventPostUsage {

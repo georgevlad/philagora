@@ -166,6 +166,19 @@ function CrossReplyHeader({ post }: { post: FeedPost }) {
           <span className="font-serif font-semibold text-[14px] text-ink">{post.replyTargetPhilosopherName}</span>
         </div>
       </div>
+      {post.replyTargetThesis && (
+        <div
+          className="mt-3 pl-4 py-2 text-[13px] font-serif italic text-ink-light leading-relaxed"
+          style={{
+            borderLeft: `2px solid ${post.replyTargetPhilosopherColor ?? "var(--color-border-light)"}`,
+          }}
+        >
+          <span className="line-clamp-2">"{post.replyTargetThesis}"</span>
+          <span className="block mt-1 text-[11px] font-body not-italic text-ink-faint">
+            — {post.replyTargetPhilosopherName}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
