@@ -124,15 +124,17 @@ export async function POST(request: NextRequest) {
       identity.type === "user" && identity.email === "george.vlad.utcn@gmail.com";
 
     if (!isOwner) {
+      const userId = identity.type === "user" ? identity.id : null;
       const todayKey = getTodayKey();
       const clientIp = getClientIp(request);
 
       cleanupExpiredSuggestionCounts(todayKey);
 
-      const key = `${todayKey}:${clientIp}`;
+      const key = userId ? `${todayKey}:user:${userId}` : `${todayKey}:${clientIp}`;
+      const suggestLimit = userId ? 20 : DAILY_SUGGEST_LIMIT;
       const count = suggestionAttempts.get(key) ?? 0;
 
-      if (count >= DAILY_SUGGEST_LIMIT) {
+      if (count >= suggestLimit) {
         return NextResponse.json(
           { error: "The philosophers are resting. Check back tomorrow." },
           { status: 429 }

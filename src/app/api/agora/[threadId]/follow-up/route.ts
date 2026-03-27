@@ -113,17 +113,32 @@ export async function POST(
       ?? "unknown";
 
     if (!isOwner) {
-      const ipCount = db
-        .prepare(
-          "SELECT COUNT(*) as count FROM agora_threads WHERE ip_address = ? AND created_at >= date('now')"
-        )
-        .get(clientIp) as CountRow;
+      if (userId) {
+        const userCount = db
+          .prepare(
+            "SELECT COUNT(*) as count FROM agora_threads WHERE user_id = ? AND created_at >= date('now')"
+          )
+          .get(userId) as CountRow;
 
-      if (ipCount.count >= 3) {
-        return NextResponse.json(
-          { error: "The philosophers are resting. Check back tomorrow." },
-          { status: 429 }
-        );
+        if (userCount.count >= 5) {
+          return NextResponse.json(
+            { error: "You've reached your daily question limit. Check back tomorrow." },
+            { status: 429 }
+          );
+        }
+      } else {
+        const ipCount = db
+          .prepare(
+            "SELECT COUNT(*) as count FROM agora_threads WHERE ip_address = ? AND created_at >= date('now')"
+          )
+          .get(clientIp) as CountRow;
+
+        if (ipCount.count >= 3) {
+          return NextResponse.json(
+            { error: "The philosophers are resting. Check back tomorrow." },
+            { status: 429 }
+          );
+        }
       }
     }
 
