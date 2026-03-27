@@ -547,6 +547,107 @@ export function AgoraPageClient({
                 <div className="grid lg:grid-cols-[minmax(0,1.55fr)_320px] gap-6 lg:gap-7 items-start">
                   <div>
                     <div className="rounded-[24px] border border-gold/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.26),rgba(248,243,234,0.58))] px-6 py-5 min-h-[272px] shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
+                      {/* ── Visibility mode selector: Two Doors ── */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                        {/* Public door — always available */}
+                        <button
+                          type="button"
+                          onClick={() => setVisibility("public")}
+                          className={`text-left rounded-2xl border px-4 py-3.5 transition-all duration-200 ${
+                            visibility === "public"
+                              ? "border-ink/60 bg-white/50 shadow-[0_0_0_1px_rgba(42,36,31,0.15)]"
+                              : "border-border-light/80 bg-white/30 hover:bg-white/45"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <svg
+                              width="15"
+                              height="15"
+                              viewBox="0 0 16 16"
+                              fill="none"
+                              stroke={visibility === "public" ? "#2A241F" : "#8A8073"}
+                              strokeWidth="1.3"
+                              className="shrink-0"
+                            >
+                              <circle cx="8" cy="8" r="6" />
+                              <circle cx="8" cy="6" r="2" />
+                              <path d="M4.5 14c0-2 1.5-3.5 3.5-3.5s3.5 1.5 3.5 3.5" strokeLinecap="round" />
+                            </svg>
+                            <span className="text-[13px] font-body font-medium text-ink">
+                              Ask in the forum
+                            </span>
+                          </div>
+                          <p className="text-[12px] font-body text-ink-lighter leading-snug">
+                            Your question and the responses join the public archive.
+                          </p>
+                        </button>
+
+                        {/* Private door — active for logged-in users, upsell for visitors */}
+                        {isLoggedIn ? (
+                          <button
+                            type="button"
+                            onClick={() => setVisibility("private")}
+                            className={`text-left rounded-2xl border px-4 py-3.5 transition-all duration-200 ${
+                              visibility === "private"
+                                ? "border-ink/60 bg-white/50 shadow-[0_0_0_1px_rgba(42,36,31,0.15)]"
+                                : "border-border-light/80 bg-white/30 hover:bg-white/45"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <svg
+                                width="15"
+                                height="15"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke={visibility === "private" ? "#2A241F" : "#8A8073"}
+                                strokeWidth="1.3"
+                                className="shrink-0"
+                              >
+                                <rect x="3.5" y="7" width="9" height="6.5" rx="1.5" />
+                                <path d="M5.5 7V5.5a2.5 2.5 0 015 0V7" strokeLinecap="round" />
+                              </svg>
+                              <span className="text-[13px] font-body font-medium text-ink">
+                                Private counsel
+                              </span>
+                            </div>
+                            <p className="text-[12px] font-body text-ink-lighter leading-snug">
+                              Just you and the philosophers. No one else sees it.
+                            </p>
+                          </button>
+                        ) : (
+                          <div className="text-left rounded-2xl border border-border-light/80 bg-white/20 px-4 py-3.5 opacity-65">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <svg
+                                width="15"
+                                height="15"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke="#8A8073"
+                                strokeWidth="1.3"
+                                className="shrink-0"
+                              >
+                                <rect x="3.5" y="7" width="9" height="6.5" rx="1.5" />
+                                <path d="M5.5 7V5.5a2.5 2.5 0 015 0V7" strokeLinecap="round" />
+                              </svg>
+                              <span className="text-[13px] font-body font-medium text-ink-lighter">
+                                Private counsel
+                              </span>
+                            </div>
+                            <p className="text-[12px] font-body text-ink-lighter leading-snug">
+                              Just you and the philosophers. No one else sees it.
+                            </p>
+                            <div className="mt-2.5 pt-2.5 border-t border-border-light/60">
+                              <a
+                                href="/sign-in"
+                                className="text-[11px] font-body italic text-gold hover:text-gold/80 transition-colors"
+                              >
+                                Sign in to ask private questions -&gt;
+                              </a>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
                       <textarea
                         value={question}
                         onChange={(e) => setQuestion(e.target.value)}
@@ -644,29 +745,6 @@ export function AgoraPageClient({
                           placeholder="Paste a link to a news story, essay, or opinion piece..."
                           className="w-full bg-white/60 border border-border-light/80 rounded-lg px-3.5 py-2.5 text-[14px] font-body text-ink placeholder:text-ink-lighter/50 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold/40 transition-colors"
                         />
-
-                        {session?.user && (
-                          <div className="mt-4 flex items-center gap-3">
-                            <button
-                              type="button"
-                              onClick={() => setVisibility((current) => current === "public" ? "private" : "public")}
-                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                                visibility === "public" ? "bg-stoic" : "bg-ink-lighter/40"
-                              }`}
-                            >
-                              <span
-                                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                                  visibility === "public" ? "translate-x-6" : "translate-x-1"
-                                }`}
-                              />
-                            </button>
-                            <span className="text-[12px] font-body text-ink-light">
-                              {visibility === "public"
-                                ? "Public - appears in the archive"
-                                : "Private - only you can find this via your profile"}
-                            </span>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>
