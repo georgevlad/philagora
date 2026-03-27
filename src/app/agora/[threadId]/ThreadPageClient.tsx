@@ -533,13 +533,17 @@ export function ThreadPageClient({
           &ldquo;{data.thread.question}&rdquo;
         </blockquote>
         <p className="text-center mt-3">
-          <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-ink-faint">
-            Asked by
-          </span>
-          <span className="text-[13px] font-serif italic text-ink-lighter ml-2">
-            {data.thread.asked_by}
-          </span>
-          <span className="text-ink-faint mx-2">&middot;</span>
+          {data.thread.visibility !== "private" && (
+            <>
+              <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-ink-faint">
+                Asked by
+              </span>
+              <span className="text-[13px] font-serif italic text-ink-lighter ml-2">
+                {data.thread.asked_by}
+              </span>
+              <span className="text-ink-faint mx-2">&middot;</span>
+            </>
+          )}
           <span className="text-[11px] font-mono text-ink-lighter">
             {timeAgo(data.thread.created_at)}
           </span>

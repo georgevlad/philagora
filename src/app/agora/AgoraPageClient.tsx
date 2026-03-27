@@ -479,7 +479,10 @@ export function AgoraPageClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: trimmedQuestion,
-          asked_by: askedBy.trim() || undefined,
+          asked_by:
+            visibility === "private"
+              ? undefined
+              : askedBy.trim() || undefined,
           philosopher_ids: selectedIds,
           article_url: trimmedArticleUrl || undefined,
           visibility: session?.user ? visibility : undefined,
@@ -697,49 +700,55 @@ export function AgoraPageClient({
                         </div>
                       )}
 
-                      <div className="mt-6 flex items-center justify-between gap-4 flex-wrap">
-                        <div className="flex items-center gap-2.5">
-                          <span className="text-[10px] font-mono tracking-[0.16em] uppercase text-ink-faint">
-                            Posting as
-                          </span>
-                          {!editingName ? (
-                            <button
-                              onClick={() => {
-                                setEditingName(true);
-                                setTimeout(() => nameInputRef.current?.focus(), 0);
-                              }}
-                              className="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-transparent hover:border-border-light hover:bg-white/40 transition-all duration-200 cursor-text"
-                            >
-                              <span className="text-[15px] font-body font-medium text-ink">
-                                {askedBy.trim() || "Anonymous"}
-                              </span>
-                              <svg
-                                width="12"
-                                height="12"
-                                viewBox="0 0 16 16"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                className="text-ink-faint group-hover:text-gold transition-colors"
+                      <div
+                        className={`mt-6 flex items-center gap-4 flex-wrap ${
+                          visibility === "public" ? "justify-between" : "justify-end"
+                        }`}
+                      >
+                        {visibility === "public" && (
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-[10px] font-mono tracking-[0.16em] uppercase text-ink-faint">
+                              Posting as
+                            </span>
+                            {!editingName ? (
+                              <button
+                                onClick={() => {
+                                  setEditingName(true);
+                                  setTimeout(() => nameInputRef.current?.focus(), 0);
+                                }}
+                                className="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-transparent hover:border-border-light hover:bg-white/40 transition-all duration-200 cursor-text"
                               >
-                                <path d="M11.5 1.5L14.5 4.5L5 14H2V11L11.5 1.5Z" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            </button>
-                          ) : (
-                            <input
-                              ref={nameInputRef}
-                              type="text"
-                              value={askedBy}
-                              onChange={(e) => setAskedBy(e.target.value)}
-                              onBlur={() => setEditingName(false)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") setEditingName(false);
-                              }}
-                              placeholder="Anonymous"
-                              className="bg-white/50 border border-border-light rounded-lg px-2.5 py-1 text-[15px] font-body font-medium text-ink focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold/40 w-44 transition-colors"
-                            />
-                          )}
-                        </div>
+                                <span className="text-[15px] font-body font-medium text-ink">
+                                  {askedBy.trim() || "Anonymous"}
+                                </span>
+                                <svg
+                                  width="12"
+                                  height="12"
+                                  viewBox="0 0 16 16"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  className="text-ink-faint group-hover:text-gold transition-colors"
+                                >
+                                  <path d="M11.5 1.5L14.5 4.5L5 14H2V11L11.5 1.5Z" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </button>
+                            ) : (
+                              <input
+                                ref={nameInputRef}
+                                type="text"
+                                value={askedBy}
+                                onChange={(e) => setAskedBy(e.target.value)}
+                                onBlur={() => setEditingName(false)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") setEditingName(false);
+                                }}
+                                placeholder="Anonymous"
+                                className="bg-white/50 border border-border-light rounded-lg px-2.5 py-1 text-[15px] font-body font-medium text-ink focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold/40 w-44 transition-colors"
+                              />
+                            )}
+                          </div>
+                        )}
                         <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-ink-faint">
                           {charCount}/500
                         </div>
