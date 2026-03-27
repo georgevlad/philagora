@@ -77,9 +77,9 @@ function resolveSourceType(type: DailyItemType): string {
   switch (type) {
     case "news_reaction":
     case "cross_reply":
+    case "quip":
       return "news";
     case "timeless_reflection":
-    case "quip":
     case "cultural_recommendation":
       return "reflection";
     default:
