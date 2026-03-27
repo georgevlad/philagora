@@ -30,6 +30,8 @@ import type {
 } from "@/lib/types";
 
 type FeedPostRow = PostRow & {
+  historical_event_context?: string | null;
+  historical_event_display_date?: string | null;
   is_bookmarked?: number | null;
   is_liked?: number | null;
 };
@@ -81,6 +83,8 @@ function mapFeedPost(row: FeedPostRow): FeedPost {
     thumbnailUrl: row.historical_event_thumbnail
       ? `/api/thumbnails/${row.historical_event_thumbnail}`
       : undefined,
+    eventContext: row.historical_event_context ?? undefined,
+    eventDisplayDate: row.historical_event_display_date ?? undefined,
     likes: row.likes,
     replies: row.replies,
     bookmarks: row.bookmarks,
@@ -113,7 +117,9 @@ const FEED_POST_QUERY = `
     rph.name      AS reply_target_philosopher_name,
     rph.color     AS reply_target_philosopher_color,
     rph.initials  AS reply_target_philosopher_initials,
-    he.thumbnail_filename AS historical_event_thumbnail
+    he.thumbnail_filename AS historical_event_thumbnail,
+    he.context AS historical_event_context,
+    he.display_date AS historical_event_display_date
   FROM posts p
   JOIN philosophers ph ON p.philosopher_id = ph.id
   LEFT JOIN posts rp ON p.reply_to = rp.id
@@ -139,6 +145,8 @@ function buildFeedPostQuery(userId?: string): {
           rph.color     AS reply_target_philosopher_color,
           rph.initials  AS reply_target_philosopher_initials,
           he.thumbnail_filename AS historical_event_thumbnail,
+          he.context AS historical_event_context,
+          he.display_date AS historical_event_display_date,
           CASE WHEN ul.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_liked,
           CASE WHEN ub.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_bookmarked
         FROM posts p

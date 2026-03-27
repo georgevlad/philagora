@@ -21,6 +21,11 @@ interface PreviewPost extends FeedPost {
   createdAt: string;
 }
 
+type PreviewPostRow = PostRow & {
+  historical_event_context?: string | null;
+  historical_event_display_date?: string | null;
+};
+
 const FEED_PREVIEW_QUERY = `
   SELECT
     p.*,
@@ -32,7 +37,9 @@ const FEED_PREVIEW_QUERY = `
     rph.name      AS reply_target_philosopher_name,
     rph.color     AS reply_target_philosopher_color,
     rph.initials  AS reply_target_philosopher_initials,
-    he.thumbnail_filename AS historical_event_thumbnail
+    he.thumbnail_filename AS historical_event_thumbnail,
+    he.context AS historical_event_context,
+    he.display_date AS historical_event_display_date
   FROM posts p
   JOIN philosophers ph ON p.philosopher_id = ph.id
   LEFT JOIN posts rp ON p.reply_to = rp.id
@@ -53,7 +60,7 @@ function buildCitation(row: PostRow): PostCitation | undefined {
   };
 }
 
-function mapPreviewPost(row: PostRow): PreviewPost {
+function mapPreviewPost(row: PreviewPostRow): PreviewPost {
   return {
     id: row.id,
     philosopherId: row.philosopher_id,
@@ -67,6 +74,8 @@ function mapPreviewPost(row: PostRow): PreviewPost {
     thumbnailUrl: row.historical_event_thumbnail
       ? `/api/thumbnails/${row.historical_event_thumbnail}`
       : undefined,
+    eventContext: row.historical_event_context ?? undefined,
+    eventDisplayDate: row.historical_event_display_date ?? undefined,
     likes: row.likes,
     replies: row.replies,
     bookmarks: row.bookmarks,
@@ -156,7 +165,7 @@ function computeStats(posts: FeedPost[]): CompositionStats {
 export async function GET() {
   try {
     const db = getDb();
-    const rows = db.prepare(FEED_PREVIEW_QUERY).all() as PostRow[];
+    const rows = db.prepare(FEED_PREVIEW_QUERY).all() as PreviewPostRow[];
     const chronological = rows.map(mapPreviewPost);
     const interleaved = interleaveFeed([...chronological]);
     const chronologicalIndexMap = new Map<string, number>();

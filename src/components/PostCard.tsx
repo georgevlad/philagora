@@ -301,18 +301,135 @@ function ArtCommentaryHeader() {
   );
 }
 
-function HistoricalEventTitle({ title, color }: { title: string; color: string }) {
+function HistoricalEventTitle({
+  title,
+  color,
+  context,
+  displayDate,
+}: {
+  title: string;
+  color: string;
+  context?: string;
+  displayDate?: string;
+}) {
+  const [showContext, setShowContext] = useState(false);
+
   return (
-    <blockquote
-      className="mb-4 rounded-r-xl px-4 py-3 font-serif text-[18px] leading-[1.4] text-ink sm:text-[19px]"
-      style={{
-        borderLeft: `3px solid ${color}`,
-        background: `linear-gradient(90deg, ${color}12, rgba(248,243,234,0.45))`,
-        fontWeight: 500,
-      }}
+    <>
+      <blockquote
+        className="mb-4 rounded-r-xl px-4 py-3 font-serif text-[18px] leading-[1.4] text-ink sm:text-[19px]"
+        style={{
+          borderLeft: `3px solid ${color}`,
+          background: `linear-gradient(90deg, ${color}12, rgba(248,243,234,0.45))`,
+          fontWeight: 500,
+        }}
+      >
+        <span className="flex items-start gap-2">
+          <span className="flex-1">{title}</span>
+          {context && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowContext(true);
+              }}
+              className="mt-0.5 flex-shrink-0 text-ink-lighter transition-colors hover:text-terracotta"
+              aria-label="View historical context"
+              title="View historical context"
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <circle cx="9" cy="9" r="8" stroke="currentColor" strokeWidth="1.2" />
+                <text
+                  x="9"
+                  y="13"
+                  textAnchor="middle"
+                  fill="currentColor"
+                  fontSize="11"
+                  fontFamily="Georgia, serif"
+                  fontStyle="italic"
+                >
+                  i
+                </text>
+              </svg>
+            </button>
+          )}
+        </span>
+      </blockquote>
+
+      {showContext && context && (
+        <EventContextModal
+          title={title}
+          displayDate={displayDate}
+          context={context}
+          onClose={() => setShowContext(false)}
+        />
+      )}
+    </>
+  );
+}
+
+function EventContextModal({
+  title,
+  displayDate,
+  context,
+  onClose,
+}: {
+  title: string;
+  displayDate?: string;
+  context: string;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
     >
-      {title}
-    </blockquote>
+      <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm" />
+
+      <div
+        className="relative w-full max-w-lg rounded-2xl border border-border bg-parchment p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 text-ink-lighter transition-colors hover:text-ink"
+          aria-label="Close"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          >
+            <path d="M5 5l10 10M15 5L5 15" />
+          </svg>
+        </button>
+
+        <div className="mb-4 pr-8">
+          <p className="mb-2 text-[11px] font-mono uppercase tracking-[0.08em] text-ink-lighter">
+            Historical Context
+          </p>
+          <h3
+            className="font-serif text-xl font-semibold leading-snug text-ink"
+            style={{ fontFamily: "var(--font-playfair), Georgia, serif" }}
+          >
+            {title}
+          </h3>
+          {displayDate && (
+            <p className="mt-1 font-mono text-sm text-ink-light">{displayDate}</p>
+          )}
+        </div>
+
+        <div className="mb-4 h-px bg-border-light" />
+
+        <div className="max-h-[60vh] overflow-y-auto pr-2 text-[15px] leading-relaxed text-ink-light whitespace-pre-line">
+          {context}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -513,7 +630,12 @@ export function PostCard({
 
             {(isHistoricalEvent || isEveryday) && post.citation?.title && (
               <div className="relative z-10 w-full max-w-lg">
-                <HistoricalEventTitle title={post.citation.title} color={color} />
+                <HistoricalEventTitle
+                  title={post.citation.title}
+                  color={color}
+                  context={isHistoricalEvent ? post.eventContext : undefined}
+                  displayDate={isHistoricalEvent ? post.eventDisplayDate : undefined}
+                />
               </div>
             )}
 
@@ -608,7 +730,12 @@ export function PostCard({
               )}
 
               {(isHistoricalEvent || isEveryday) && post.citation?.title && (
-                <HistoricalEventTitle title={post.citation.title} color={color} />
+                <HistoricalEventTitle
+                  title={post.citation.title}
+                  color={color}
+                  context={isHistoricalEvent ? post.eventContext : undefined}
+                  displayDate={isHistoricalEvent ? post.eventDisplayDate : undefined}
+                />
               )}
 
               {post.citation && !isHistoricalEvent && !isEveryday && !isArtCommentary && (

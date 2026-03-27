@@ -71,6 +71,8 @@ export interface Post {
   sourceType?: string;
   historicalEventId?: string;
   thumbnailUrl?: string;
+  eventContext?: string;
+  eventDisplayDate?: string;
   recommendationTitle?: string;
   recommendationMedium?: string;
   likes: number;
