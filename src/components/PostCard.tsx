@@ -316,21 +316,42 @@ function HistoricalEventTitle({ title, color }: { title: string; color: string }
   );
 }
 
-function ArtworkCaption({ title, artist, color }: { title: string; artist: string; color: string }) {
+function ArtworkFramedImage({
+  imageUrl,
+  title,
+  artist,
+  sizes,
+  className,
+}: {
+  imageUrl: string;
+  title?: string;
+  artist?: string;
+  sizes: string;
+  className?: string;
+}) {
+  const placard = [title?.trim(), artist?.trim()].filter(Boolean).join(" · ");
+
   return (
-    <div
-      className="mb-4 rounded-r-xl px-4 py-3"
-      style={{
-        borderLeft: `3px solid ${color}`,
-        background: `linear-gradient(90deg, ${color}12, rgba(248,243,234,0.45))`,
-      }}
-    >
-      <p className="font-serif text-[18px] sm:text-[19px] leading-[1.4] text-ink font-medium">
-        {title}
-      </p>
-      <p className="mt-1 text-[11px] font-mono uppercase tracking-[0.16em] text-ink-lighter">
-        {artist}
-      </p>
+    <div className={className}>
+      <div className="overflow-hidden rounded-xl border border-border-light/80 bg-parchment-dark/20 p-2 sm:p-3">
+        <div className="relative aspect-[4/3] w-full rounded-lg bg-parchment-dark/30 shadow-[inset_0_0_0_1px_rgba(42,36,31,0.06)]">
+          <Image
+            src={imageUrl}
+            alt={title || "Artwork"}
+            fill
+            className="object-contain"
+            sizes={sizes}
+            unoptimized
+          />
+        </div>
+        {placard && (
+          <div className="pt-2.5 sm:pt-3">
+            <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-ink-faint">
+              {placard}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -441,18 +462,13 @@ export function PostCard({
             )}
 
             {isArtCommentary && post.citation?.imageUrl && (
-              <div className="-mx-5 -mt-5 mb-4 overflow-hidden rounded-t-2xl sm:-mx-6 sm:-mt-5">
-                <div className="relative aspect-[4/3] w-full bg-parchment-dark/30">
-                  <Image
-                    src={post.citation.imageUrl}
-                    alt={post.citation?.title || "Artwork"}
-                    fill
-                    className="object-contain"
-                    sizes="(max-width: 640px) 100vw, 640px"
-                    unoptimized
-                  />
-                </div>
-              </div>
+              <ArtworkFramedImage
+                imageUrl={post.citation.imageUrl}
+                title={post.citation.title}
+                artist={post.citation.source}
+                sizes="(max-width: 640px) 100vw, 640px"
+                className="-mx-5 -mt-5 mb-4 sm:-mx-6 sm:-mt-5"
+              />
             )}
 
             <div className="flex items-center gap-2 mb-2 relative z-10">
@@ -501,16 +517,6 @@ export function PostCard({
               </div>
             )}
 
-            {isArtCommentary && post.citation?.title && (
-              <div className="relative z-10 w-full max-w-lg">
-                <ArtworkCaption
-                  title={post.citation.title}
-                  artist={post.citation.source || ""}
-                  color={color}
-                />
-              </div>
-            )}
-
             {post.citation && !isHistoricalEvent && !isEveryday && !isArtCommentary && (
               <div className="w-full mb-4">
                 <CitationBlock citation={post.citation} color={color} accent={accent} />
@@ -556,18 +562,13 @@ export function PostCard({
               )}
 
               {isArtCommentary && post.citation?.imageUrl && (
-                <div className="mb-3 -mr-1 overflow-hidden rounded-xl">
-                  <div className="relative aspect-[4/3] w-full bg-parchment-dark/30">
-                    <Image
-                      src={post.citation.imageUrl}
-                      alt={post.citation?.title || "Artwork"}
-                      fill
-                      className="object-contain"
-                      sizes="(max-width: 640px) 100vw, 540px"
-                      unoptimized
-                    />
-                  </div>
-                </div>
+                <ArtworkFramedImage
+                  imageUrl={post.citation.imageUrl}
+                  title={post.citation.title}
+                  artist={post.citation.source}
+                  sizes="(max-width: 640px) 100vw, 540px"
+                  className="mb-3 -mr-1"
+                />
               )}
 
               {!isCrossReply && (
@@ -608,14 +609,6 @@ export function PostCard({
 
               {(isHistoricalEvent || isEveryday) && post.citation?.title && (
                 <HistoricalEventTitle title={post.citation.title} color={color} />
-              )}
-
-              {isArtCommentary && post.citation?.title && (
-                <ArtworkCaption
-                  title={post.citation.title}
-                  artist={post.citation.source || ""}
-                  color={color}
-                />
               )}
 
               {post.citation && !isHistoricalEvent && !isEveryday && !isArtCommentary && (
