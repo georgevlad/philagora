@@ -86,7 +86,6 @@ const EXAMPLE_QUESTIONS = [
   "Why do we feel nostalgic for times that weren't even that good?",
   "Should we forgive people who haven't asked for forgiveness?",
   "Is it okay to enjoy bad art?",
-  "Is it moral to have children knowing the state of the world?",
 ] as const;
 
 function FeaturedThreadCard({ thread }: { thread: FeaturedThread }) {
