@@ -249,6 +249,11 @@ export function AgoraPageClient({
   const [suggestError, setSuggestError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [quota, setQuota] = useState<{
+    used: number;
+    limit: number | null;
+    isLoggedIn: boolean;
+  } | null>(null);
   const [hoveredPhilosopher, setHoveredPhilosopher] = useState<string | null>(null);
   const suggestAbortRef = useRef<AbortController | null>(null);
   const suggestRequestIdRef = useRef(0);
@@ -288,6 +293,17 @@ export function AgoraPageClient({
       }
     }
     loadFeatured();
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/agora/quota")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) {
+          setQuota(data);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -999,6 +1015,31 @@ export function AgoraPageClient({
                       >
                         {submitting ? "Summoning the dialogue..." : "Hear their thoughts"}
                       </button>
+                      {quota && quota.limit !== null && (
+                        <p className="mt-3 text-center text-[11px] font-mono tracking-[0.08em] text-ink-faint">
+                          {quota.limit - quota.used <= 0 ? (
+                            "Daily limit reached"
+                          ) : (
+                            <>
+                              {quota.limit - quota.used} of {quota.limit} question
+                              {quota.limit === 1 ? "" : "s"} remaining today
+                              {!quota.isLoggedIn && (
+                                <span className="text-ink-faint/60">
+                                  {" "}
+                                  ·{" "}
+                                  <a
+                                    href="/sign-in"
+                                    className="text-athenian/70 hover:text-athenian transition-colors"
+                                  >
+                                    sign in
+                                  </a>{" "}
+                                  for more
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </p>
+                      )}
 
                       {formError && (
                         <div className="mt-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-800 text-left">
