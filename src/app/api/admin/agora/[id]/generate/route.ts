@@ -93,7 +93,7 @@ export async function POST(
         return [];
       }
 
-      return [`"${recommendation.title}" (${recommendation.medium}) - recommended by ${row.name}`];
+      return [`"${recommendation.title}"${recommendation.author ? ` by ${recommendation.author}` : ""} (${recommendation.medium}) - recommended by ${row.name}`];
     });
     const template = getAgoraResponseTemplate(
       questionType,

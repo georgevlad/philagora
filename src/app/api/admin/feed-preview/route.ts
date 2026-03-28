@@ -72,6 +72,9 @@ function mapPreviewPost(row: PreviewPostRow): PreviewPost {
     tag: row.tag || "",
     sourceType: isPostSourceType(row.source_type ?? "") ? row.source_type : "news",
     historicalEventId: row.historical_event_id ?? undefined,
+    recommendationTitle: row.recommendation_title ?? undefined,
+    recommendationAuthor: row.recommendation_author ?? undefined,
+    recommendationMedium: row.recommendation_medium ?? undefined,
     citation: buildCitation(row),
     thumbnailUrl: row.historical_event_thumbnail
       ? `/api/thumbnails/${row.historical_event_thumbnail}`

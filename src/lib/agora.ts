@@ -106,12 +106,13 @@ export function parseAgoraRecommendation(
   if (!parsed || typeof parsed !== "object") return undefined;
 
   const title = asString(parsed.title);
+  const author = asString(parsed.author);
   const medium = parsed.medium;
   const reason = asString(parsed.reason);
 
   if (!title || !isAgoraRecommendationMedium(medium) || !reason) return undefined;
 
-  return { title, medium, reason };
+  return { title, author, medium, reason };
 }
 
 export function buildAdviceSectionsJson(input: {
@@ -359,7 +360,7 @@ export function buildAgoraSynthesisSourceMaterial(args: {
       const parsed = parseAgoraRecommendation(recommendation.recommendation);
       if (!parsed) continue;
 
-      sourceMaterial += `${recommendation.philosopher_name} recommends: "${parsed.title}" (${parsed.medium}) - ${parsed.reason}\n`;
+      sourceMaterial += `${recommendation.philosopher_name} recommends: "${parsed.title}"${parsed.author ? ` by ${parsed.author}` : ""} (${parsed.medium}) - ${parsed.reason}\n`;
     }
   }
 
@@ -406,7 +407,7 @@ function buildAgoraFollowUpContextPrefix(args: {
 
       const recommendation = parseAgoraRecommendation(response.recommendation);
       if (recommendation) {
-        sourceMaterial += `Recommendation: "${recommendation.title}" (${recommendation.medium}) - ${recommendation.reason}\n\n`;
+        sourceMaterial += `Recommendation: "${recommendation.title}"${recommendation.author ? ` by ${recommendation.author}` : ""} (${recommendation.medium}) - ${recommendation.reason}\n\n`;
       }
     }
   }

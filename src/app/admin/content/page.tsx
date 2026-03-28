@@ -33,6 +33,7 @@ interface GeneratedData {
   tag?: string;
   posts?: string[];
   recommendation_title?: string;
+  recommendation_author?: string;
   recommendation_medium?: string;
 }
 
@@ -371,6 +372,7 @@ function ContentGenerationPageInner() {
           tag: data.tag ?? "",
           source_type: isArtCommentary ? "art_commentary" : undefined,
           recommendation_title: data.recommendation_title || undefined,
+          recommendation_author: data.recommendation_author || undefined,
           recommendation_medium: data.recommendation_medium || undefined,
           citation_title: citationTitle || undefined,
           citation_source: citationSource || undefined,
@@ -866,6 +868,7 @@ function ContentGenerationPageInner() {
                   <span>{recommendationIcon(preview.data.recommendation_medium)}</span>
                   <span>
                     {preview.data.recommendation_medium ?? "Recommendation"}: {preview.data.recommendation_title}
+                    {preview.data.recommendation_author ? ` by ${preview.data.recommendation_author}` : ""}
                   </span>
                 </div>
               )}

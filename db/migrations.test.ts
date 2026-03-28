@@ -154,7 +154,49 @@ describe("migration system", () => {
       expect(colNames).toContain("source_type");
       expect(colNames).toContain("historical_event_id");
       expect(colNames).toContain("recommendation_title");
+      expect(colNames).toContain("recommendation_author");
       expect(colNames).toContain("recommendation_medium");
+    });
+
+    it("adds recommendation_author to existing posts tables on version 9 databases", () => {
+      const legacyDb = new Database(":memory:");
+      legacyDb.exec(`
+        CREATE TABLE posts (
+          id TEXT PRIMARY KEY,
+          philosopher_id TEXT NOT NULL,
+          content TEXT NOT NULL,
+          thesis TEXT NOT NULL DEFAULT '',
+          stance TEXT NOT NULL,
+          tag TEXT NOT NULL DEFAULT '',
+          source_type TEXT NOT NULL DEFAULT 'news',
+          historical_event_id TEXT,
+          recommendation_title TEXT DEFAULT NULL,
+          recommendation_medium TEXT DEFAULT NULL,
+          citation_title TEXT,
+          citation_source TEXT,
+          citation_url TEXT,
+          citation_image_url TEXT,
+          reply_to TEXT,
+          likes INTEGER NOT NULL DEFAULT 0,
+          replies INTEGER NOT NULL DEFAULT 0,
+          bookmarks INTEGER NOT NULL DEFAULT 0,
+          status TEXT NOT NULL DEFAULT 'published',
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+      `);
+
+      ensureMetaTable(legacyDb);
+      setSchemaVersion(legacyDb, 9);
+
+      runMigrations(legacyDb);
+
+      const columns = legacyDb.prepare("PRAGMA table_info(posts)").all() as Array<{ name: string }>;
+      const colNames = columns.map((column) => column.name);
+
+      expect(colNames).toContain("recommendation_author");
+
+      legacyDb.close();
     });
 
     it("adds expected columns to agora tables", () => {

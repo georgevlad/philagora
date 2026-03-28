@@ -119,6 +119,7 @@ export function ReviewGroup({
                         </span>
                         <p className="text-sm font-serif font-semibold text-ink">
                           Recommends {item.recommendation_title}
+                          {item.recommendation_author ? ` by ${item.recommendation_author}` : ""}
                         </p>
                       </div>
                     )}

@@ -160,6 +160,7 @@ export async function POST(request: NextRequest) {
       source_type,
       historical_event_id,
       recommendation_title,
+      recommendation_author,
       recommendation_medium,
       citation_title,
       citation_source,
@@ -195,11 +196,11 @@ export async function POST(request: NextRequest) {
     db.prepare(
       `INSERT INTO posts (
         id, philosopher_id, content, thesis, stance, tag, source_type, historical_event_id,
-        recommendation_title, recommendation_medium,
+        recommendation_title, recommendation_author, recommendation_medium,
         citation_title, citation_source, citation_url, citation_image_url, reply_to,
         likes, replies, bookmarks, status, created_at, updated_at
       )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 'draft', datetime('now'), datetime('now'))`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 'draft', datetime('now'), datetime('now'))`
     ).run(
       postId,
       philosopher_id,
@@ -210,6 +211,7 @@ export async function POST(request: NextRequest) {
       source_type ?? "news",
       historical_event_id ?? null,
       recommendation_title ?? null,
+      recommendation_author ?? null,
       recommendation_medium ?? null,
       citation_title ?? null,
       citation_source ?? null,

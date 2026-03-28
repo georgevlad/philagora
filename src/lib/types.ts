@@ -32,6 +32,7 @@ export type AgoraRecommendationMedium =
 
 export interface AgoraRecommendation {
   title: string;
+  author?: string;
   medium: AgoraRecommendationMedium;
   reason: string;
 }
@@ -74,6 +75,7 @@ export interface Post {
   eventContext?: string;
   eventDisplayDate?: string;
   recommendationTitle?: string;
+  recommendationAuthor?: string;
   recommendationMedium?: string;
   likes: number;
   replies: number;

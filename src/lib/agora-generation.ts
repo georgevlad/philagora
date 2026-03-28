@@ -75,6 +75,7 @@ export async function runAgoraGeneration(
               posts?: unknown;
               recommendation?: {
                 title?: string;
+                author?: string;
                 medium?: string;
                 reason?: string;
               };
@@ -88,7 +89,7 @@ export async function runAgoraGeneration(
 
             if (data.recommendation?.title && data.recommendation?.medium) {
               alreadyRecommended.push(
-                `"${data.recommendation.title}" (${data.recommendation.medium})`
+                `"${data.recommendation.title}"${data.recommendation.author ? ` by ${data.recommendation.author}` : ""} (${data.recommendation.medium})`
               );
             }
 

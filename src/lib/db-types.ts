@@ -31,6 +31,7 @@ export interface PostRow {
   source_type?: string;
   historical_event_id?: string | null;
   recommendation_title?: string | null;
+  recommendation_author?: string | null;
   recommendation_medium?: string | null;
   citation_title: string | null;
   citation_source: string | null;
@@ -160,6 +161,7 @@ export interface StoredPostRow {
   stance: Stance;
   tag: string;
   recommendation_title?: string | null;
+  recommendation_author?: string | null;
   recommendation_medium?: string | null;
   citation_title: string | null;
   citation_source: string | null;

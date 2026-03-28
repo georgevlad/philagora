@@ -187,6 +187,7 @@ If recommending, add a "recommendation" field to your JSON response:
   "posts": ["..."],
   "recommendation": {
     "title": "Work title",
+    "author": "Creator name",
     "medium": "book|film|essay|album|poem|play|podcast|speech",
     "reason": "One sentence on why this work matters here (max 30 words)"
   }
@@ -364,6 +365,7 @@ RESPOND WITH VALID JSON ONLY - no markdown, no code fences, no extra text:
   "stance": "recommends | provokes | challenges | diagnoses | reframes",
   "tag": "Recommends",
   "recommendation_title": "Exact title of the recommended work",
+  "recommendation_author": "Creator name (author, director, artist, band, etc.)",
   "recommendation_medium": "film | music | book | tv | podcast | other"
 }
 `.trim(),

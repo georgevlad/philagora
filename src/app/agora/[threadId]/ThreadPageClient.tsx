@@ -210,6 +210,7 @@ function ResponseCard({
                 <div className="min-w-0">
                   <p className="font-serif text-[16px] text-ink leading-tight">
                     {response.recommendation.title}
+                    {response.recommendation.author ? ` by ${response.recommendation.author}` : ""}
                   </p>
                   <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-ink-faint mt-1">
                     {recommendationMediumLabel(response.recommendation.medium)}
@@ -740,6 +741,7 @@ export function ThreadPageClient({
                     <span className="font-medium text-ink">{item.philosopherName}</span>
                     {" "}recommends:{" "}
                     <span className="font-serif text-ink">{item.recommendation.title}</span>
+                    {item.recommendation.author ? ` by ${item.recommendation.author}` : ""}
                     {" "}({recommendationMediumLabel(item.recommendation.medium).toLowerCase()})
                   </div>
                 ))}

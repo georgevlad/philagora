@@ -508,7 +508,12 @@ function HistoricalEventThumbnail({
   );
 }
 
-function recommendationBadge(post: FeedPost) {
+type RecommendationBadgeData = {
+  label: string;
+  searchUrl: string;
+};
+
+function recommendationBadge(post: FeedPost): RecommendationBadgeData | null {
   if (!post.recommendationTitle) return null;
 
   const medium = (post.recommendationMedium ?? "other").toLowerCase();
@@ -523,7 +528,47 @@ function recommendationBadge(post: FeedPost) {
       ? "🎧"
       : "✨";
 
-  return `${icon} Recommends: ${post.recommendationTitle}${post.recommendationMedium ? ` (${post.recommendationMedium})` : ""}`;
+  let label = `${icon} Recommends: ${post.recommendationTitle}`;
+  if (post.recommendationAuthor) {
+    label += ` by ${post.recommendationAuthor}`;
+  }
+  if (post.recommendationMedium) {
+    label += ` (${post.recommendationMedium})`;
+  }
+
+  const searchParts = [post.recommendationTitle];
+  if (post.recommendationAuthor) searchParts.push(post.recommendationAuthor);
+  if (post.recommendationMedium) searchParts.push(post.recommendationMedium);
+
+  return {
+    label,
+    searchUrl: `https://www.google.com/search?q=${encodeURIComponent(searchParts.join(" "))}`,
+  };
+}
+
+function RecommendationBadgeLink({ recommendation }: { recommendation: RecommendationBadgeData }) {
+  return (
+    <a
+      href={recommendation.searchUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-mono tracking-wide text-emerald-800 transition-colors duration-200 hover:border-emerald-300 hover:bg-emerald-100 cursor-pointer"
+      onClick={(event) => event.stopPropagation()}
+    >
+      {recommendation.label}
+      <svg
+        width="10"
+        height="10"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        className="opacity-50"
+      >
+        <path d="M6 3h7v7M13 3L6 10" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </a>
+  );
 }
 
 export function PostCard({
@@ -668,6 +713,8 @@ export function PostCard({
 
             <PostContent content={post.content} color={color} isAphorism linkHref={postHref} forceExpanded={expanded} />
 
+            {recommendationLabel && <RecommendationBadgeLink recommendation={recommendationLabel} />}
+
             <div className="flex items-center justify-between gap-2 flex-wrap w-full mt-3 pt-3 border-t border-border-light/70">
               <TagBadge tag={post.tag} accent={accent} />
               <ActionButtons post={post} />
@@ -774,11 +821,7 @@ export function PostCard({
 
               <PostContent content={post.content} color={color} isQuip={isQuip} linkHref={postHref} forceExpanded={expanded} />
 
-              {recommendationLabel && (
-                <div className="mt-3 inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-mono tracking-wide text-emerald-800">
-                  {recommendationLabel}
-                </div>
-              )}
+              {recommendationLabel && <RecommendationBadgeLink recommendation={recommendationLabel} />}
 
               <div className="flex items-center justify-between gap-2 flex-wrap mt-3 pt-3 border-t border-border-light/70">
                 <TagBadge tag={post.tag} accent={accent} />

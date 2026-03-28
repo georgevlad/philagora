@@ -75,6 +75,11 @@ const MIGRATIONS: Migration[] = [
   //   name: "add_user_profiles",
   //   migrate: migrateAddUserProfiles,
   // },
+  {
+    version: 10,
+    name: "add_post_recommendation_author",
+    migrate: (db) => migrateAddPostRecommendationAuthor(db),
+  },
 ];
 
 const DEFAULT_NEWS_SOURCES: [string, string, string, string][] = [
@@ -368,9 +373,16 @@ function migratePostsSchema(db: Database.Database): void {
     tableInfo.sql.includes("mocks") &&
     tableInfo.sql.includes("recommends");
   const hasRecommendationTitle = columns.some((column) => column.name === "recommendation_title");
+  const hasRecommendationAuthor = columns.some((column) => column.name === "recommendation_author");
   const hasRecommendationMedium = columns.some((column) => column.name === "recommendation_medium");
 
-  if (hasArchivedStatus && hasExpandedStances && hasRecommendationTitle && hasRecommendationMedium) {
+  if (
+    hasArchivedStatus &&
+    hasExpandedStances &&
+    hasRecommendationTitle &&
+    hasRecommendationAuthor &&
+    hasRecommendationMedium
+  ) {
     return;
   }
 
@@ -388,6 +400,7 @@ function migratePostsSchema(db: Database.Database): void {
         source_type        TEXT NOT NULL DEFAULT 'news',
         historical_event_id TEXT REFERENCES historical_events(id),
         recommendation_title TEXT DEFAULT NULL,
+        recommendation_author TEXT DEFAULT NULL,
         recommendation_medium TEXT DEFAULT NULL,
         citation_title     TEXT,
         citation_source    TEXT,
@@ -406,7 +419,7 @@ function migratePostsSchema(db: Database.Database): void {
     db.exec(`
       INSERT INTO posts_new (
         id, philosopher_id, content, thesis, stance, tag,
-        source_type, historical_event_id, recommendation_title, recommendation_medium,
+        source_type, historical_event_id, recommendation_title, recommendation_author, recommendation_medium,
         citation_title, citation_source, citation_url, citation_image_url,
         reply_to, likes, replies, bookmarks, status, created_at, updated_at
       )
@@ -415,6 +428,7 @@ function migratePostsSchema(db: Database.Database): void {
         ${hasSourceType ? "COALESCE(source_type, 'news')" : "'news'"},
         ${hasHistoricalEventId ? "historical_event_id" : "NULL"},
         ${hasRecommendationTitle ? "recommendation_title" : "NULL"},
+        ${hasRecommendationAuthor ? "recommendation_author" : "NULL"},
         ${hasRecommendationMedium ? "recommendation_medium" : "NULL"},
         citation_title, citation_source, citation_url, citation_image_url,
         reply_to, likes, replies, bookmarks, status, created_at, updated_at
@@ -686,6 +700,20 @@ function migrateRenameQuipPostTagsToGlint(db: Database.Database): void {
 }
 
 // ── Test-only exports ──────────────────────────────────────────
+function migrateAddPostRecommendationAuthor(db: Database.Database): void {
+  const columns = db.prepare("PRAGMA table_info(posts)").all() as Array<{ name: string }>;
+  const hasRecommendationAuthor = columns.some((column) => column.name === "recommendation_author");
+  if (hasRecommendationAuthor) return;
+
+  try {
+    db.exec("ALTER TABLE posts ADD COLUMN recommendation_author TEXT DEFAULT NULL;");
+  } catch (err) {
+    if (!(err instanceof Error && err.message.includes("duplicate column"))) {
+      throw err;
+    }
+  }
+}
+
 // Used by db/migrations.test.ts to verify version tracking behavior
 
 function migrateAgoraThreadsFailedStatus(db: Database.Database): void {

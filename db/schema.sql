@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS posts (
   source_type        TEXT NOT NULL DEFAULT 'news',
   historical_event_id TEXT REFERENCES historical_events(id),
   recommendation_title TEXT DEFAULT NULL,
+  recommendation_author TEXT DEFAULT NULL,
   recommendation_medium TEXT DEFAULT NULL,
   citation_title     TEXT,
   citation_source    TEXT,

@@ -187,6 +187,7 @@ function FollowUpResponseCard({ response }: { response: AgResponseRow }) {
               <div>
                 <p className="font-serif text-[15px] text-ink">
                   {response.recommendation.title}
+                  {response.recommendation.author ? ` by ${response.recommendation.author}` : ""}
                 </p>
                 <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-ink-faint mt-1">
                   {recommendationMediumLabel(response.recommendation.medium)}
@@ -728,6 +729,7 @@ export default function AgoraWorkshopPage() {
                   <div>
                     <p className="font-serif text-[15px] text-ink">
                       {state.recommendation.title}
+                      {state.recommendation.author ? ` by ${state.recommendation.author}` : ""}
                     </p>
                     <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-ink-faint mt-1">
                       {recommendationMediumLabel(state.recommendation.medium)}

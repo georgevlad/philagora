@@ -114,6 +114,9 @@ export function seedPosts(
     stance?: string;
     tag?: string;
     source_type?: string;
+    recommendation_title?: string | null;
+    recommendation_author?: string | null;
+    recommendation_medium?: string | null;
     citation_title?: string | null;
     citation_source?: string | null;
     citation_url?: string | null;
@@ -128,9 +131,10 @@ export function seedPosts(
   const insert = db.prepare(`
     INSERT INTO posts (
       id, philosopher_id, content, thesis, stance, tag,
-      source_type, citation_title, citation_source, citation_url,
+      source_type, recommendation_title, recommendation_author, recommendation_medium,
+      citation_title, citation_source, citation_url,
       reply_to, status, likes, replies, bookmarks, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   for (const post of posts) {
@@ -142,6 +146,9 @@ export function seedPosts(
       post.stance ?? "challenges",
       post.tag ?? "",
       post.source_type ?? "news",
+      post.recommendation_title ?? null,
+      post.recommendation_author ?? null,
+      post.recommendation_medium ?? null,
       post.citation_title ?? null,
       post.citation_source ?? null,
       post.citation_url ?? null,

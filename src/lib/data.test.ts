@@ -64,6 +64,9 @@ const TEST_POSTS = [
     stance: "observes",
     tag: "philosophy",
     source_type: "reflection",
+    recommendation_title: "The Book of Disquiet",
+    recommendation_author: "Fernando Pessoa",
+    recommendation_medium: "book",
     status: "published",
     likes: 15,
     created_at: "2025-03-01 12:00:00",
@@ -237,6 +240,14 @@ describe("getPostById", () => {
     const post = getPostById("post-3");
 
     expect(post!.citation).toBeUndefined();
+  });
+
+  it("maps recommendation author when present", () => {
+    const post = getPostById("post-3");
+
+    expect(post!.recommendationTitle).toBe("The Book of Disquiet");
+    expect(post!.recommendationAuthor).toBe("Fernando Pessoa");
+    expect(post!.recommendationMedium).toBe("book");
   });
 
   it("resolves philosopher display fields", () => {

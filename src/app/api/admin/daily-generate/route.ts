@@ -50,6 +50,7 @@ interface GeneratedPostPayload {
   stance: Stance;
   tag: string;
   recommendation_title?: string;
+  recommendation_author?: string;
   recommendation_medium?: string;
 }
 
@@ -70,6 +71,7 @@ interface DailyGeneratedItem {
   reply_to_philosopher?: string;
   prompt_seed?: string;
   recommendation_title?: string;
+  recommendation_author?: string;
   recommendation_medium?: string;
 }
 
@@ -643,7 +645,7 @@ export async function PATCH(request: NextRequest) {
     const updatePost = db.prepare(
       `UPDATE posts
        SET content = ?, thesis = ?, stance = ?, tag = ?, recommendation_title = ?,
-           recommendation_medium = ?, citation_title = ?, citation_source = ?,
+           recommendation_author = ?, recommendation_medium = ?, citation_title = ?, citation_source = ?,
            citation_url = ?, citation_image_url = ?, source_type = ?, reply_to = ?, updated_at = datetime('now')
        WHERE id = ?`
     );
@@ -702,6 +704,7 @@ export async function PATCH(request: NextRequest) {
         normalized.stance,
         normalized.tag,
         normalized.recommendation_title ?? null,
+        normalized.recommendation_author ?? null,
         normalized.recommendation_medium ?? null,
         citation.title,
         citation.source,
@@ -738,6 +741,7 @@ export async function PATCH(request: NextRequest) {
         reply_to_philosopher: replyToPhilosopher,
         prompt_seed: promptSeed,
         recommendation_title: normalized.recommendation_title,
+        recommendation_author: normalized.recommendation_author,
         recommendation_medium: normalized.recommendation_medium,
       },
       deleted_reply_post_ids: deletedReplyPostIds,
@@ -855,11 +859,11 @@ async function generateDailyDraft(args: {
   const insertPost = db.prepare(
     `INSERT INTO posts (
       id, philosopher_id, content, thesis, stance, tag,
-      recommendation_title, recommendation_medium,
+      recommendation_title, recommendation_author, recommendation_medium,
       source_type,
       citation_title, citation_source, citation_url, citation_image_url,
       reply_to, likes, replies, bookmarks, status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 'draft', datetime('now'), datetime('now'))`
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 'draft', datetime('now'), datetime('now'))`
   );
   const logId = db.transaction(() => {
     const logResult = insertLog.run(
@@ -878,6 +882,7 @@ async function generateDailyDraft(args: {
       normalized.stance,
       normalized.tag,
       normalized.recommendation_title ?? null,
+      normalized.recommendation_author ?? null,
       normalized.recommendation_medium ?? null,
       resolveSourceType(args.type),
       args.citation?.title ?? null,
@@ -909,6 +914,7 @@ async function generateDailyDraft(args: {
       reply_to_philosopher: args.replyToPhilosopher,
       prompt_seed: args.promptSeed,
       recommendation_title: normalized.recommendation_title,
+      recommendation_author: normalized.recommendation_author,
       recommendation_medium: normalized.recommendation_medium,
     },
   };
@@ -937,6 +943,7 @@ function normalizeGeneratedPost(
       ),
       tag: tagCandidate || "Recommends",
       recommendation_title: normalizeOptionalString(data.recommendation_title),
+      recommendation_author: normalizeOptionalString(data.recommendation_author),
       recommendation_medium: normalizeOptionalString(data.recommendation_medium)?.toLowerCase(),
     };
   }
@@ -1218,6 +1225,7 @@ function getStoredPost(db: ReturnType<typeof getDb>, postId: string) {
          p.stance,
          p.tag,
          p.recommendation_title,
+         p.recommendation_author,
          p.recommendation_medium,
          p.citation_title,
          p.citation_source,

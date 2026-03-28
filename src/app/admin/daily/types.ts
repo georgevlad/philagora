@@ -96,6 +96,7 @@ export interface DailyGeneratedItem {
   reply_to_philosopher?: string;
   prompt_seed?: string;
   recommendation_title?: string;
+  recommendation_author?: string;
   recommendation_medium?: string;
 }
 

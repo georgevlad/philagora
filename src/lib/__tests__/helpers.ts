@@ -37,6 +37,7 @@ export function makePost(overrides: FeedPostOverrides = {}): FeedPost {
     replyTo: overrides.replyTo,
     historicalEventId: overrides.historicalEventId,
     recommendationTitle: overrides.recommendationTitle,
+    recommendationAuthor: overrides.recommendationAuthor,
     recommendationMedium: overrides.recommendationMedium,
     thumbnailUrl: overrides.thumbnailUrl,
     philosopherName:
