@@ -32,7 +32,7 @@ const TEMPERATURE = 0.8; // Tunable — higher = more creative variation
 
 /** Hard-cap tokens by target length to enforce brevity at the API level. */
 const LENGTH_MAX_TOKENS: Record<string, number> = {
-  short: 256,
+  short: 384,
   medium: 1024,
   long: 1536,
 };
