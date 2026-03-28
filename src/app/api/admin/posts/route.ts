@@ -70,7 +70,18 @@ export async function GET(request: NextRequest) {
     };
 
     const baseQuery = `
-      SELECT p.*, ph.name as philosopher_name, ph.color as philosopher_color, ph.initials as philosopher_initials
+      SELECT p.*,
+             ph.name as philosopher_name,
+             ph.color as philosopher_color,
+             ph.initials as philosopher_initials,
+             (SELECT gl.mood_register
+              FROM generation_log gl
+              WHERE gl.philosopher_id = p.philosopher_id
+                AND gl.mood_register IS NOT NULL
+                AND gl.created_at >= datetime(p.created_at, '-2 minutes')
+                AND gl.created_at <= datetime(p.created_at, '+2 minutes')
+              ORDER BY gl.created_at DESC
+              LIMIT 1) as mood_register
       FROM posts p
       JOIN philosophers ph ON p.philosopher_id = ph.id
     `;

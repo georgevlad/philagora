@@ -30,6 +30,7 @@ interface AdminPost {
   bookmarks: number;
   status: PostStatus;
   created_at: string;
+  mood_register: string | null;
 }
 
 interface AdminPostsListResponse {
@@ -645,6 +646,11 @@ function AdminPostsPageInner() {
                       >
                         {stanceCfg.label}
                       </span>
+                      {post.mood_register && (
+                        <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-[11px] font-mono italic tracking-wide text-purple-700">
+                          {post.mood_register}
+                        </span>
+                      )}
 
                       {post.reply_to && (
                         <span className="inline-flex items-center gap-1 text-[11px] font-mono text-ink-lighter">
