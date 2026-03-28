@@ -65,6 +65,11 @@ const TOPIC_CLUSTER_OPTIONS = Object.entries(TOPIC_CLUSTER_LABELS).map(
   ([value, config]) => ({ value, label: config.label })
 );
 
+const INPUT_CLASSES =
+  "w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors";
+const TEXTAREA_CLASSES = `${INPUT_CLASSES} resize-y leading-relaxed`;
+const HELPER_TEXT_CLASSES = "text-[11px] text-ink-lighter mt-0.5 leading-snug";
+
 function splitCommaSeparated(value: string): string[] {
   return value
     .split(",")
@@ -463,6 +468,12 @@ export default function MoodPalettesPage() {
                 <p className="text-sm text-ink">
                   Mood injection is <strong>{moodEnabled ? "enabled" : "disabled"}</strong>.
                 </p>
+                <p className={HELPER_TEXT_CLASSES}>
+                  When enabled, the generation pipeline appends an EMOTIONAL REGISTER line to the
+                  source material for supported content types. This nudges the philosopher&apos;s tone
+                  without overriding their voice. Disable at any time - existing published posts
+                  are not affected.
+                </p>
               </div>
               <button
                 type="button"
@@ -555,6 +566,14 @@ export default function MoodPalettesPage() {
         </button>
         {openSections.paletteEditor && (
           <div className="p-5 space-y-5">
+            <div className="rounded-lg border border-blue-100 bg-blue-50/50 px-4 py-3 text-sm leading-relaxed text-ink-light">
+              Each philosopher has a palette of emotional registers - characterological moods that
+              get injected into the generation prompt based on article metadata. Registers are
+              matched by tension type, stance, and topic cluster. The first matching register in
+              priority order (tension+stance -&gt; tension -&gt; stance+cluster -&gt; stance -&gt;
+              cluster -&gt; default) is used.
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4 items-end">
               <div>
                 <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
@@ -563,7 +582,7 @@ export default function MoodPalettesPage() {
                 <select
                   value={selectedPhilosopherId}
                   onChange={(event) => setSelectedPhilosopherId(event.target.value)}
-                  className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
+                  className={INPUT_CLASSES}
                 >
                   {philosophers.map((philosopher) => (
                     <option key={philosopher.id} value={philosopher.id}>
@@ -613,7 +632,25 @@ export default function MoodPalettesPage() {
                     key={`${selectedPhilosopherId}-${index}`}
                     className="rounded-lg border border-border-light bg-parchment/40 p-4 space-y-3"
                   >
-                    <div className="grid grid-cols-1 xl:grid-cols-[180px_1fr_1fr_1fr_1fr_auto] gap-3 items-end">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="inline-block h-2 w-2 rounded-full bg-purple-400" />
+                          <span className="font-serif text-sm font-semibold text-ink">
+                            {register.name || "New register"}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeRegister(index)}
+                        className="text-sm font-mono text-red-600 hover:text-red-700 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                       <div>
                         <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
                           Name
@@ -624,22 +661,29 @@ export default function MoodPalettesPage() {
                           onChange={(event) =>
                             updateRegister(index, "name", event.target.value)
                           }
-                          className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
+                          className={INPUT_CLASSES}
                         />
+                        <p className={HELPER_TEXT_CLASSES}>
+                          Short evocative label (e.g. &quot;cold fury&quot;, &quot;dry amusement&quot;)
+                        </p>
                       </div>
 
                       <div>
                         <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
                           Directive
                         </label>
-                        <input
-                          type="text"
+                        <textarea
                           value={register.directive}
                           onChange={(event) =>
                             updateRegister(index, "directive", event.target.value)
                           }
-                          className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
+                          rows={2}
+                          className={TEXTAREA_CLASSES}
                         />
+                        <p className={HELPER_TEXT_CLASSES}>
+                          Second-person instruction describing how the philosopher feels - not how
+                          they should write. Keep under 15 words.
+                        </p>
                       </div>
 
                       <div>
@@ -652,8 +696,13 @@ export default function MoodPalettesPage() {
                           onChange={(event) =>
                             updateRegister(index, "tensions", event.target.value)
                           }
-                          className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
+                          className={INPUT_CLASSES}
                         />
+                        <p className={HELPER_TEXT_CLASSES}>
+                          Comma-separated tension IDs from the scoring vocabulary (e.g.
+                          freedom_vs_order, truth_vs_power). Leave empty if this register isn&apos;t
+                          triggered by tensions.
+                        </p>
                       </div>
 
                       <div>
@@ -666,11 +715,15 @@ export default function MoodPalettesPage() {
                           onChange={(event) =>
                             updateRegister(index, "stances", event.target.value)
                           }
-                          className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
+                          className={INPUT_CLASSES}
                         />
+                        <p className={HELPER_TEXT_CLASSES}>
+                          Comma-separated stance values that trigger this register (e.g.
+                          challenges, reframes, diagnoses).
+                        </p>
                       </div>
 
-                      <div>
+                      <div className="col-span-full">
                         <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
                           Clusters
                         </label>
@@ -680,17 +733,26 @@ export default function MoodPalettesPage() {
                           onChange={(event) =>
                             updateRegister(index, "clusters", event.target.value)
                           }
-                          className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
+                          className={INPUT_CLASSES}
                         />
+                        <p className={HELPER_TEXT_CLASSES}>
+                          Comma-separated topic clusters (e.g. geopolitics, technology, science,
+                          economics, culture, environment, health, law_justice, society,
+                          domestic_politics). Leave empty if this register isn&apos;t triggered by
+                          topic.
+                        </p>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => removeRegister(index)}
-                        className="px-3 py-2 text-sm font-mono text-red-600 hover:text-red-700 transition-colors"
-                      >
-                        Remove
-                      </button>
+                      {register.name.trim() && register.directive.trim() && (
+                        <div className="col-span-full border-t border-border-light/60 pt-2">
+                          <p className="mb-1 text-[11px] font-mono uppercase tracking-wider text-ink-lighter">
+                            Preview
+                          </p>
+                          <div className="rounded-md bg-parchment-dark/30 px-3 py-2 text-sm font-mono text-ink-light">
+                            EMOTIONAL REGISTER: {register.name} &mdash; {register.directive}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
