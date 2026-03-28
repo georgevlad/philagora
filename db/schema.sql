@@ -201,6 +201,7 @@ CREATE TABLE IF NOT EXISTS generation_log (
   system_prompt_id INTEGER REFERENCES system_prompts(id),
   user_input       TEXT NOT NULL DEFAULT '',
   raw_output       TEXT NOT NULL DEFAULT '',
+  mood_register    TEXT DEFAULT NULL,
   status           TEXT NOT NULL DEFAULT 'generated' CHECK(status IN ('generated','approved','rejected','published','pending')),
   created_at       TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -292,6 +293,13 @@ CREATE TABLE IF NOT EXISTS scoring_config (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL,
   updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS mood_palettes (
+  philosopher_id TEXT PRIMARY KEY REFERENCES philosophers(id),
+  registers      TEXT NOT NULL DEFAULT '[]',
+  is_active      INTEGER NOT NULL DEFAULT 1,
+  updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS user_bookmarks (
   user_id    TEXT NOT NULL,

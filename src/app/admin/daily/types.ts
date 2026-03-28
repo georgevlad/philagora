@@ -98,6 +98,7 @@ export interface DailyGeneratedItem {
   recommendation_title?: string;
   recommendation_author?: string;
   recommendation_medium?: string;
+  mood_register?: string;
 }
 
 export interface ReviewItem extends DailyGeneratedItem {

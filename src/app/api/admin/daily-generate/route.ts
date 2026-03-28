@@ -6,6 +6,11 @@ import type {
   StoredPostRow,
 } from "@/lib/db-types";
 import { generateContent } from "@/lib/generation-service";
+import type { MoodResult } from "@/lib/mood-service";
+import {
+  resolveMoodForContentType,
+  resolveMoodForCrossReply,
+} from "@/lib/mood-service";
 import type { TargetLength } from "@/lib/content-templates";
 import type { Stance } from "@/lib/types";
 
@@ -73,6 +78,7 @@ interface DailyGeneratedItem {
   recommendation_title?: string;
   recommendation_author?: string;
   recommendation_medium?: string;
+  mood_register?: string;
 }
 
 function resolveSourceType(type: DailyItemType): string {
@@ -232,12 +238,13 @@ export async function POST(request: NextRequest) {
         if (!philosopher) continue;
 
         const length = resolveTargetLength(config.length_strategy);
-        const sourceMaterial = buildArticleSourceMaterial(article);
+        const articleSource = buildArticleSourceMaterialParts(article, philosopher.id);
         const item = await generateDailyDraft({
           philosopher,
           type: "news_reaction",
           dbContentType: "post",
-          sourceMaterial,
+          sourceMaterial: articleSource.sourceMaterial,
+          moodRegister: articleSource.moodResult?.register ?? null,
           targetLength: length,
           citation: {
             title: article.title,
@@ -293,13 +300,17 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      const sourceMaterial = buildCrossReplySourceMaterial(sourcePost);
+      const replySource = buildCrossReplySourceMaterialParts(
+        sourcePost,
+        respondingPhilosopher.id
+      );
       const length = resolveTargetLength(config.length_strategy);
       const item = await generateDailyDraft({
         philosopher: respondingPhilosopher,
         type: "cross_reply",
         dbContentType: "post",
-        sourceMaterial,
+        sourceMaterial: replySource.sourceMaterial,
+        moodRegister: replySource.moodResult?.register ?? null,
         targetLength: length,
         citation: {
           title: sourcePost.citation_title,
@@ -509,6 +520,7 @@ export async function PATCH(request: NextRequest) {
     let articleTitle: string | undefined;
     let replyToPhilosopher: string | undefined;
     let replyToPostId: string | undefined;
+    let moodRegister: string | null = null;
     let citation = {
       title: existingPost.citation_title,
       source: existingPost.citation_source,
@@ -530,7 +542,12 @@ export async function PATCH(request: NextRequest) {
         );
       }
 
-      sourceMaterial = buildArticleSourceMaterial(article);
+      const articleSource = buildArticleSourceMaterialParts(
+        article,
+        body.type === "news_reaction" ? philosopher.id : undefined
+      );
+      sourceMaterial = articleSource.sourceMaterial;
+      moodRegister = articleSource.moodResult?.register ?? null;
       articleCandidateId = article.id;
       articleTitle = article.title;
       citation = {
@@ -556,7 +573,12 @@ export async function PATCH(request: NextRequest) {
         );
       }
 
-      sourceMaterial = buildCrossReplySourceMaterial(sourcePost);
+      const replySource = buildCrossReplySourceMaterialParts(
+        sourcePost,
+        philosopher.id
+      );
+      sourceMaterial = replySource.sourceMaterial;
+      moodRegister = replySource.moodResult?.register ?? null;
       replyToPostId = sourcePost.id;
       replyToPhilosopher = sourcePost.philosopher_name;
       citation = {
@@ -639,8 +661,8 @@ export async function PATCH(request: NextRequest) {
     const deletedReplyPostIds: string[] = [];
     const deletedReplyLogIds: number[] = [];
     const insertLog = db.prepare(
-      `INSERT INTO generation_log (philosopher_id, content_type, system_prompt_id, user_input, raw_output, status)
-       VALUES (?, ?, ?, ?, ?, 'generated')`
+      `INSERT INTO generation_log (philosopher_id, content_type, system_prompt_id, user_input, raw_output, status, mood_register)
+       VALUES (?, ?, ?, ?, ?, 'generated', ?)`
     );
     const updatePost = db.prepare(
       `UPDATE posts
@@ -695,7 +717,8 @@ export async function PATCH(request: NextRequest) {
           : "post",
         outcome.systemPromptId,
         sourceMaterial,
-        JSON.stringify(outcome.data, null, 2)
+        JSON.stringify(outcome.data, null, 2),
+        moodRegister
       );
 
       updatePost.run(
@@ -743,6 +766,7 @@ export async function PATCH(request: NextRequest) {
         recommendation_title: normalized.recommendation_title,
         recommendation_author: normalized.recommendation_author,
         recommendation_medium: normalized.recommendation_medium,
+        mood_register: moodRegister ?? undefined,
       },
       deleted_reply_post_ids: deletedReplyPostIds,
       deleted_reply_log_ids: deletedReplyLogIds,
@@ -813,6 +837,7 @@ async function generateDailyDraft(args: {
   type: DailyItemType;
   dbContentType: "post" | "reflection" | "recommendation";
   sourceMaterial: string;
+  moodRegister?: string | null;
   targetLength: TargetLength;
   citation?: {
     title: string | null;
@@ -853,8 +878,8 @@ async function generateDailyDraft(args: {
   const db = getDb();
   const postId = `post-gen-${crypto.randomUUID()}`;
   const insertLog = db.prepare(
-    `INSERT INTO generation_log (philosopher_id, content_type, system_prompt_id, user_input, raw_output, status)
-     VALUES (?, ?, ?, ?, ?, 'generated')`
+    `INSERT INTO generation_log (philosopher_id, content_type, system_prompt_id, user_input, raw_output, status, mood_register)
+     VALUES (?, ?, ?, ?, ?, 'generated', ?)`
   );
   const insertPost = db.prepare(
     `INSERT INTO posts (
@@ -871,7 +896,8 @@ async function generateDailyDraft(args: {
       args.dbContentType,
       outcome.systemPromptId,
       args.sourceMaterial,
-      JSON.stringify(outcome.data, null, 2)
+      JSON.stringify(outcome.data, null, 2),
+      args.moodRegister ?? null
     );
 
     insertPost.run(
@@ -916,6 +942,7 @@ async function generateDailyDraft(args: {
       recommendation_title: normalized.recommendation_title,
       recommendation_author: normalized.recommendation_author,
       recommendation_medium: normalized.recommendation_medium,
+      mood_register: args.moodRegister ?? undefined,
     },
   };
 }
@@ -979,13 +1006,33 @@ function normalizeOptionalString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
-function buildArticleSourceMaterial(article: ArticleCandidateRow): string {
+function buildArticleSourceMaterial(
+  article: ArticleCandidateRow,
+  philosopherId?: string
+): string {
+  return buildArticleSourceMaterialParts(article, philosopherId).sourceMaterial;
+}
+
+function buildArticleSourceMaterialParts(
+  article: ArticleCandidateRow,
+  philosopherId?: string
+): { sourceMaterial: string; moodResult: MoodResult | null } {
   const suggestedStances = parseJson<Record<string, string>>(article.suggested_stances, {});
   const suggestedStanceText = Object.entries(suggestedStances)
     .map(([philosopherId, stance]) => `${philosopherId}: ${stance}`)
     .join(", ");
+  const tensions = parseJson<string[]>(article.primary_tensions, []);
+  const moodResult = philosopherId
+    ? resolveMoodForContentType({
+        philosopherId,
+        contentType: "news_reaction",
+        tensions,
+        stance: suggestedStances[philosopherId] ?? null,
+        topicCluster: article.topic_cluster,
+      })
+    : null;
 
-  return [
+  const sourceMaterial = [
     `ARTICLE TITLE: ${article.title}`,
     `SOURCE: ${article.source_name}`,
     `URL: ${article.url}`,
@@ -994,22 +1041,45 @@ function buildArticleSourceMaterial(article: ArticleCandidateRow): string {
       ? `PHILOSOPHICAL ENTRY POINT:\n${article.philosophical_entry_point}`
       : "",
     suggestedStanceText ? `SUGGESTED STANCES: ${suggestedStanceText}` : "",
+    moodResult?.line ?? "",
   ]
     .filter(Boolean)
     .join("\n\n");
+
+  return { sourceMaterial, moodResult };
 }
 
-function buildCrossReplySourceMaterial(post: StoredPostRow): string {
-  return [
+function buildCrossReplySourceMaterial(
+  post: StoredPostRow,
+  replyingPhilosopherId?: string
+): string {
+  return buildCrossReplySourceMaterialParts(post, replyingPhilosopherId).sourceMaterial;
+}
+
+function buildCrossReplySourceMaterialParts(
+  post: StoredPostRow,
+  replyingPhilosopherId?: string
+): { sourceMaterial: string; moodResult: MoodResult | null } {
+  const moodResult = replyingPhilosopherId
+    ? resolveMoodForCrossReply(replyingPhilosopherId, {
+        citation_url: post.citation_url,
+        stance: post.stance,
+      })
+    : null;
+
+  const sourceMaterial = [
     `PHILOSOPHER YOU ARE REPLYING TO: ${post.philosopher_name}`,
     `THEIR STANCE: ${post.stance}`,
     post.citation_title ? `TRIGGER ARTICLE: ${post.citation_title}` : "",
     post.citation_source ? `TRIGGER SOURCE: ${post.citation_source}` : "",
     post.thesis ? `THEIR THESIS:\n${post.thesis}` : "",
     `THEIR POST:\n${post.content}`,
+    moodResult?.line ?? "",
   ]
     .filter(Boolean)
     .join("\n\n");
+
+  return { sourceMaterial, moodResult };
 }
 
 function pickReactionPhilosophers(args: {

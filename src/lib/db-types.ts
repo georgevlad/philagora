@@ -146,10 +146,19 @@ export interface ArticleCandidateRow {
   score: number | null;
   suggested_philosophers: string;
   suggested_stances: string;
+  primary_tensions: string;
   philosophical_entry_point: string | null;
+  topic_cluster: string | null;
   image_url: string | null;
   status: string;
   source_name: string;
+}
+
+export interface MoodPaletteRow {
+  philosopher_id: string;
+  registers: string;
+  is_active: number;
+  updated_at: string;
 }
 
 export interface StoredPostRow {

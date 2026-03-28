@@ -6,6 +6,8 @@ import {
   DEFAULT_IMAGE_GENERATION_MODEL,
   DEFAULT_SCORING_MODEL,
   DEFAULT_SCORING_CONFIG_VALUES,
+  parseMoodContentTypes,
+  parseMoodEnabled,
   parseGenerationModel,
   parseImageGenerationModel,
   parseScoringModel,
@@ -56,6 +58,12 @@ function readConfig() {
     stance_guidance: parseStanceGuidance(
       byKey.get("stance_guidance") ?? DEFAULT_SCORING_CONFIG_VALUES.stance_guidance
     ),
+    mood_enabled: parseMoodEnabled(
+      byKey.get("mood_enabled") ?? DEFAULT_SCORING_CONFIG_VALUES.mood_enabled
+    ),
+    mood_content_types: parseMoodContentTypes(
+      byKey.get("mood_content_types") ?? DEFAULT_SCORING_CONFIG_VALUES.mood_content_types
+    ),
   };
 }
 
@@ -95,6 +103,14 @@ function normalizeValue(key: ScoringConfigKey, value: unknown) {
       : [];
 
     return parseTensionVocabulary(JSON.stringify(normalized));
+  }
+
+  if (key === "mood_enabled") {
+    return parseMoodEnabled(JSON.stringify(value));
+  }
+
+  if (key === "mood_content_types") {
+    return parseMoodContentTypes(JSON.stringify(value));
   }
 
   const typed = (value ?? {}) as Partial<StanceGuidanceConfig>;

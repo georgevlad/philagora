@@ -1,5 +1,6 @@
 import type Database from "better-sqlite3";
 import { DEFAULT_SCORING_CONFIG_VALUES } from "../src/lib/scoring-config";
+import { DEFAULT_MOOD_PALETTES } from "../src/lib/mood-data";
 
 // ── Migration Registry ─────────────────────────────────────────
 
@@ -79,6 +80,11 @@ const MIGRATIONS: Migration[] = [
     version: 10,
     name: "add_post_recommendation_author",
     migrate: (db) => migrateAddPostRecommendationAuthor(db),
+  },
+  {
+    version: 11,
+    name: "add_mood_variation_system",
+    migrate: (db) => migrateMoodVariationSystem(db),
   },
 ];
 
@@ -697,6 +703,71 @@ function migrateBackfillReflectionSourceType(db: Database.Database): void {
 
 function migrateRenameQuipPostTagsToGlint(db: Database.Database): void {
   db.prepare("UPDATE posts SET tag = 'Glint' WHERE tag = 'Quip'").run();
+}
+
+function migrateMoodVariationSystem(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS scoring_config (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS mood_palettes (
+      philosopher_id TEXT PRIMARY KEY REFERENCES philosophers(id),
+      registers      TEXT NOT NULL DEFAULT '[]',
+      is_active      INTEGER NOT NULL DEFAULT 1,
+      updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  const generationLogTable = db
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'generation_log'")
+    .get() as { name: string } | undefined;
+
+  if (generationLogTable) {
+    const generationLogColumns = db
+      .prepare("PRAGMA table_info(generation_log)")
+      .all() as Array<{ name: string }>;
+    const hasMoodRegister = generationLogColumns.some(
+      (column) => column.name === "mood_register"
+    );
+
+    if (!hasMoodRegister) {
+      db.exec("ALTER TABLE generation_log ADD COLUMN mood_register TEXT DEFAULT NULL");
+    }
+  }
+
+  const insertConfig = db.prepare(
+    `INSERT OR IGNORE INTO scoring_config (key, value)
+     VALUES (?, ?)`
+  );
+
+  insertConfig.run("mood_enabled", DEFAULT_SCORING_CONFIG_VALUES.mood_enabled);
+  insertConfig.run("mood_content_types", DEFAULT_SCORING_CONFIG_VALUES.mood_content_types);
+
+  const philosopherTable = db
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'philosophers'")
+    .get() as { name: string } | undefined;
+
+  if (philosopherTable) {
+    const insertPalette = db.prepare(`
+      INSERT OR IGNORE INTO mood_palettes (philosopher_id, registers, is_active, updated_at)
+      SELECT ?, ?, ?, datetime('now')
+      WHERE EXISTS (SELECT 1 FROM philosophers WHERE id = ?)
+    `);
+
+    for (const palette of DEFAULT_MOOD_PALETTES) {
+      insertPalette.run(
+        palette.philosopher_id,
+        JSON.stringify(palette.registers),
+        palette.is_active ? 1 : 0,
+        palette.philosopher_id
+      );
+    }
+  }
 }
 
 // ── Test-only exports ──────────────────────────────────────────

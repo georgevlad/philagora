@@ -95,6 +95,11 @@ export function ReviewGroup({
                       >
                         {stance.label}
                       </span>
+                      {item.mood_register && (
+                        <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2.5 py-1 text-[11px] font-mono italic tracking-wide text-purple-700">
+                          {item.mood_register}
+                        </span>
+                      )}
                     </div>
 
                     {item.type === "news_reaction" && item.article_title && (
@@ -169,3 +174,4 @@ export function ReviewGroup({
     </div>
   );
 }
+

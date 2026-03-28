@@ -137,6 +137,7 @@ describe("migration system", () => {
       expect(tableNames).toContain("news_sources");
       expect(tableNames).toContain("article_candidates");
       expect(tableNames).toContain("scoring_config");
+      expect(tableNames).toContain("mood_palettes");
       expect(tableNames).toContain("content_templates");
       expect(tableNames).toContain("house_rules");
       expect(tableNames).toContain("historical_events");
@@ -156,6 +157,58 @@ describe("migration system", () => {
       expect(colNames).toContain("recommendation_title");
       expect(colNames).toContain("recommendation_author");
       expect(colNames).toContain("recommendation_medium");
+    });
+
+    it("adds mood_register to generation_log and seeds mood config defaults", () => {
+      runMigrations(db, { bootstrapNewsSources: true });
+
+      const columns = db
+        .prepare("PRAGMA table_info(generation_log)")
+        .all() as Array<{ name: string }>;
+      const colNames = columns.map((column) => column.name);
+      const configRows = db
+        .prepare("SELECT key, value FROM scoring_config WHERE key IN ('mood_enabled', 'mood_content_types')")
+        .all() as Array<{ key: string; value: string }>;
+      const configByKey = new Map(configRows.map((row) => [row.key, row.value]));
+
+      expect(colNames).toContain("mood_register");
+      expect(configByKey.get("mood_enabled")).toBe("false");
+      expect(configByKey.get("mood_content_types")).toBe(
+        "[\"news_reaction\",\"cross_philosopher_reply\"]"
+      );
+    });
+
+    it("seeds default mood palettes only for philosophers present in the database", () => {
+      db.prepare(
+        `INSERT INTO philosophers (
+          id, name, tradition, color, initials, bio, era, key_works, core_principles,
+          followers, posts_count, debates_count
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        "nietzsche",
+        "Nietzsche",
+        "Existentialism",
+        "#000000",
+        "FN",
+        "Test bio",
+        "1844-1900",
+        "[]",
+        "[]",
+        0,
+        0,
+        0
+      );
+
+      runMigrations(db, { bootstrapNewsSources: true });
+
+      const paletteRows = db
+        .prepare("SELECT philosopher_id, registers, is_active FROM mood_palettes")
+        .all() as Array<{ philosopher_id: string; registers: string; is_active: number }>;
+
+      expect(paletteRows).toHaveLength(1);
+      expect(paletteRows[0].philosopher_id).toBe("nietzsche");
+      expect(paletteRows[0].is_active).toBe(1);
+      expect(JSON.parse(paletteRows[0].registers)).toHaveLength(5);
     });
 
     it("adds recommendation_author to existing posts tables on version 9 databases", () => {

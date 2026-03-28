@@ -1,4 +1,10 @@
 import { safeJsonParse } from "@/lib/json-utils";
+import {
+  DEFAULT_MOOD_CONTENT_TYPES,
+  DEFAULT_MOOD_ENABLED,
+  isMoodContentType,
+  type MoodEligibleContentType,
+} from "@/lib/mood-data";
 import type { Stance } from "@/lib/types";
 
 export type ScoringModelName =
@@ -20,7 +26,9 @@ export type ScoringConfigKey =
   | "image_generation_model"
   | "score_tiers"
   | "tension_vocabulary"
-  | "stance_guidance";
+  | "stance_guidance"
+  | "mood_enabled"
+  | "mood_content_types";
 export type ScoreTierKey = "reject" | "low" | "decent" | "good" | "excellent";
 
 export interface ScoreTierDefinition {
@@ -108,6 +116,8 @@ export const SCORING_CONFIG_KEYS: ScoringConfigKey[] = [
   "score_tiers",
   "tension_vocabulary",
   "stance_guidance",
+  "mood_enabled",
+  "mood_content_types",
 ];
 
 export const DEFAULT_SCORE_TIERS: ScoreTierMap = {
@@ -214,6 +224,8 @@ export const DEFAULT_SCORING_CONFIG_VALUES: Record<ScoringConfigKey, string> = {
   score_tiers: JSON.stringify(DEFAULT_SCORE_TIERS),
   tension_vocabulary: JSON.stringify(DEFAULT_TENSION_VOCABULARY),
   stance_guidance: JSON.stringify(DEFAULT_STANCE_GUIDANCE),
+  mood_enabled: JSON.stringify(DEFAULT_MOOD_ENABLED),
+  mood_content_types: JSON.stringify(DEFAULT_MOOD_CONTENT_TYPES),
 };
 
 export function parseScoringModel(raw: string | undefined): ScoringModelName {
@@ -309,4 +321,29 @@ export function parseStanceGuidance(raw: string | undefined): StanceGuidanceConf
       : DEFAULT_STANCE_GUIDANCE.deprioritize,
     guidance_text: parsed.guidance_text?.trim() || DEFAULT_STANCE_GUIDANCE.guidance_text,
   };
+}
+
+export function parseMoodEnabled(raw: string | undefined): boolean {
+  const parsed = safeJsonParse<boolean | string>(raw, DEFAULT_MOOD_ENABLED);
+
+  if (typeof parsed === "boolean") {
+    return parsed;
+  }
+
+  return parsed === "true";
+}
+
+export function parseMoodContentTypes(
+  raw: string | undefined
+): MoodEligibleContentType[] {
+  const parsed = safeJsonParse<unknown[]>(raw, DEFAULT_MOOD_CONTENT_TYPES);
+
+  if (!Array.isArray(parsed)) {
+    return DEFAULT_MOOD_CONTENT_TYPES;
+  }
+
+  return parsed.filter(
+    (value): value is MoodEligibleContentType =>
+      typeof value === "string" && isMoodContentType(value)
+  );
 }
