@@ -108,6 +108,22 @@ export async function POST(
       );
     }
 
+    // Only the thread owner (registered user) can submit a follow-up.
+    // Anonymous threads (no user_id) don't get follow-ups.
+    if (!parent.user_id) {
+      return NextResponse.json(
+        { error: "Follow-ups are available for registered users" },
+        { status: 403 }
+      );
+    }
+
+    if (identity.type !== "admin" && userId !== parent.user_id) {
+      return NextResponse.json(
+        { error: "Only the person who asked this question can follow up" },
+        { status: 403 }
+      );
+    }
+
     const clientIp =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
       ?? "unknown";

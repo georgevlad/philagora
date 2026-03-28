@@ -504,6 +504,11 @@ export function ThreadPageClient({
   const isFailed = data.thread.status === "failed";
   const isGenerating = !isThreadSettled(data.thread.status);
   const isFollowUpThread = Boolean(data.thread.follow_up_to);
+  const isThreadOwner = Boolean(
+    session?.user?.id
+    && data.thread.user_id
+    && session.user.id === data.thread.user_id
+  );
   const followUpIsGenerating = Boolean(
     data.followUp && !isThreadSettled(data.followUp.status)
   );
@@ -767,6 +772,7 @@ export function ThreadPageClient({
       {!isFailed
         && data.thread.status === "complete"
         && !isFollowUpThread
+        && isThreadOwner
         && (!data.followUp || followUpIsGenerating) && (
         <div className="px-5 py-6 border-t border-border-light">
           {!isFollowUpThread && !data.followUp && (
