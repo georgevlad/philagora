@@ -775,7 +775,7 @@ export function PostCard({
                 </div>
               )}
 
-              <PostConnectorLine post={post} />
+              {!(isCrossReply && post.replyTargetThesis) && <PostConnectorLine post={post} />}
 
               {isHistoricalEvent && post.citation?.source && (
                 <TodayInHistoryHeader source={post.citation.source} />
