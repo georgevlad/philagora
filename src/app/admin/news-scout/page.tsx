@@ -244,7 +244,7 @@ export default function NewsScoutPage() {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (categoryFilter !== "all") params.set("category", categoryFilter);
-      if (minScoreFilter) params.set("min_score", minScoreFilter);
+      if (minScoreFilter && statusFilter === "scored") params.set("min_score", minScoreFilter);
       params.set("limit", "50");
 
       const res = await fetch(`/api/admin/news-scout/candidates?${params}`);
