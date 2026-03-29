@@ -86,6 +86,12 @@ const MIGRATIONS: Migration[] = [
     name: "add_mood_variation_system",
     migrate: (db) => migrateMoodVariationSystem(db),
   },
+  {
+    version: 12,
+    name: "seed_expanded_rss_sources",
+    migrate: (db) => migrateSeedExpandedRssSources(db),
+  },
+  // —— Future migrations go here ——————————————————————————
 ];
 
 const DEFAULT_NEWS_SOURCES: [string, string, string, string][] = [
@@ -146,6 +152,60 @@ const DEFAULT_NEWS_SOURCE_LOGOS: Record<string, string> = {
   "bbc-sport": "https://www.google.com/s2/favicons?domain=bbc.co.uk&sz=64",
   "espn-top": "https://www.google.com/s2/favicons?domain=espn.com&sz=64",
   "ars-technica": "https://www.google.com/s2/favicons?domain=arstechnica.com&sz=64",
+};
+
+const EXPANDED_RSS_SOURCES: [string, string, string, string][] = [
+  // Science & Tech
+  ["quanta-magazine", "Quanta Magazine", "https://api.quantamagazine.org/feed/", "science"],
+  ["nautilus", "Nautilus", "https://nautil.us/feed/", "science"],
+  ["the-markup", "The Markup", "https://themarkup.org/feeds/rss.xml", "tech"],
+  ["carbon-brief", "Carbon Brief", "https://www.carbonbrief.org/feed", "science"],
+  ["algorithmwatch", "AlgorithmWatch", "https://algorithmwatch.org/en/feed", "tech"],
+  // Ideas & Philosophy
+  ["psyche", "Psyche", "https://psyche.co/feed.rss", "ideas"],
+  ["noema", "Noema Magazine", "https://www.noemamag.com/feed/", "ideas"],
+  // Culture & Arts
+  ["hyperallergic", "Hyperallergic", "https://hyperallergic.com/feed", "culture"],
+  ["literary-hub", "Literary Hub", "https://lithub.com/feed", "culture"],
+  // Opinion & Essays
+  ["boston-review", "Boston Review", "https://www.bostonreview.net/feed/", "opinion"],
+  ["new-statesman", "New Statesman", "https://www.newstatesman.com/feed", "opinion"],
+  // Global Perspectives
+  ["rest-of-world", "Rest of World", "https://restofworld.org/feed/latest/", "world"],
+  ["scmp-opinion", "SCMP Opinion", "https://www.scmp.com/rss/6/feed", "opinion"],
+  [
+    "the-hindu-opinion",
+    "The Hindu Opinion",
+    "https://www.thehindu.com/opinion/feeder/default.rss",
+    "opinion",
+  ],
+  [
+    "africa-is-a-country",
+    "Africa Is a Country",
+    "https://africasacountry.com/feed",
+    "culture",
+  ],
+  ["global-voices", "Global Voices", "https://globalvoices.org/feed/", "world"],
+];
+
+const EXPANDED_RSS_SOURCE_LOGOS: Record<string, string> = {
+  "quanta-magazine": "https://www.google.com/s2/favicons?domain=quantamagazine.org&sz=64",
+  nautilus: "https://www.google.com/s2/favicons?domain=nautil.us&sz=64",
+  "the-markup": "https://www.google.com/s2/favicons?domain=themarkup.org&sz=64",
+  "carbon-brief": "https://www.google.com/s2/favicons?domain=carbonbrief.org&sz=64",
+  "algorithmwatch": "https://www.google.com/s2/favicons?domain=algorithmwatch.org&sz=64",
+  psyche: "https://www.google.com/s2/favicons?domain=psyche.co&sz=64",
+  noema: "https://www.google.com/s2/favicons?domain=noemamag.com&sz=64",
+  hyperallergic: "https://www.google.com/s2/favicons?domain=hyperallergic.com&sz=64",
+  "literary-hub": "https://www.google.com/s2/favicons?domain=lithub.com&sz=64",
+  "boston-review": "https://www.google.com/s2/favicons?domain=bostonreview.net&sz=64",
+  "new-statesman": "https://www.google.com/s2/favicons?domain=newstatesman.com&sz=64",
+  "rest-of-world": "https://www.google.com/s2/favicons?domain=restofworld.org&sz=64",
+  "scmp-opinion": "https://www.google.com/s2/favicons?domain=scmp.com&sz=64",
+  "the-hindu-opinion": "https://www.google.com/s2/favicons?domain=thehindu.com&sz=64",
+  "africa-is-a-country":
+    "https://www.google.com/s2/favicons?domain=africasacountry.com&sz=64",
+  "global-voices": "https://www.google.com/s2/favicons?domain=globalvoices.org&sz=64",
 };
 
 const UPDATED_STANCE_GUIDANCE_VALUE = JSON.stringify({
@@ -339,6 +399,32 @@ function seedDefaultNewsSources(db: Database.Database): void {
   );
 
   for (const [id, logoUrl] of Object.entries(DEFAULT_NEWS_SOURCE_LOGOS)) {
+    updateLogo.run(logoUrl, id);
+  }
+}
+
+function migrateSeedExpandedRssSources(db: Database.Database): void {
+  const newsSourcesTable = db
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='news_sources'")
+    .get() as { name: string } | undefined;
+
+  if (!newsSourcesTable) return;
+
+  const insert = db.prepare(
+    "INSERT OR IGNORE INTO news_sources (id, name, feed_url, category) VALUES (?, ?, ?, ?)"
+  );
+
+  for (const row of EXPANDED_RSS_SOURCES) {
+    insert.run(...row);
+  }
+
+  ensureNewsSourceLogoColumn(db);
+
+  const updateLogo = db.prepare(
+    "UPDATE news_sources SET logo_url = COALESCE(logo_url, ?) WHERE id = ?"
+  );
+
+  for (const [id, logoUrl] of Object.entries(EXPANDED_RSS_SOURCE_LOGOS)) {
     updateLogo.run(logoUrl, id);
   }
 }

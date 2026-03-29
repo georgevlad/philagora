@@ -294,7 +294,7 @@ describe("migration system", () => {
       expect(count.c).toBeGreaterThan(0);
     });
 
-    it("does not seed news sources when bootstrapNewsSources is false on existing DB", () => {
+    it("skips legacy default source bootstrap but still applies later source migrations", () => {
       db.exec(`
         CREATE TABLE IF NOT EXISTS news_sources (
           id TEXT PRIMARY KEY,
@@ -309,9 +309,13 @@ describe("migration system", () => {
 
       runMigrations(db, { bootstrapNewsSources: false });
 
-      const count = db.prepare("SELECT COUNT(*) as c FROM news_sources").get() as { c: number };
+      const rows = db.prepare("SELECT id FROM news_sources ORDER BY id").all() as Array<{
+        id: string;
+      }>;
+      const ids = rows.map((row) => row.id);
 
-      expect(count.c).toBe(0);
+      expect(ids).not.toContain("bbc-world");
+      expect(ids).toContain("quanta-magazine");
     });
   });
 });
