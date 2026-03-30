@@ -31,6 +31,7 @@ export async function GET() {
          FROM agora_threads t
          WHERE t.status = 'complete'
            AND t.visibility = 'public'
+           AND t.hidden_from_feed = 0
            AND t.follow_up_to IS NULL
          ORDER BY t.created_at DESC
          LIMIT 10`

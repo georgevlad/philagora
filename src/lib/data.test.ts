@@ -670,6 +670,29 @@ describe("getRecentAgoraThreads", () => {
 
     expect(threads.map((thread) => thread.id)).toEqual(["agora-root-thread"]);
   });
+
+  it("excludes hidden_from_feed threads from recent public thread lists", () => {
+    seedAgoraThread({
+      id: "agora-hidden-complete",
+      question: "Is pineapple acceptable on pizza?",
+      status: "complete",
+      philosopherIds: ["camus", "plato"],
+    });
+    testDb
+      .prepare("UPDATE agora_threads SET hidden_from_feed = 1 WHERE id = ?")
+      .run("agora-hidden-complete");
+
+    seedAgoraThread({
+      id: "agora-visible-complete",
+      question: "What is the meaning of suffering?",
+      status: "complete",
+      philosopherIds: ["nietzsche", "kant"],
+    });
+
+    const threads = getRecentAgoraThreads(10);
+
+    expect(threads.map((thread) => thread.id)).toEqual(["agora-visible-complete"]);
+  });
 });
 
 describe("getUserAgoraThreads", () => {

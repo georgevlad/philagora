@@ -91,6 +91,11 @@ const MIGRATIONS: Migration[] = [
     name: "seed_expanded_rss_sources",
     migrate: (db) => migrateSeedExpandedRssSources(db),
   },
+  {
+    version: 13,
+    name: "agora_hidden_from_feed",
+    migrate: (db) => migrateAgoraHiddenFromFeed(db),
+  },
   // —— Future migrations go here ——————————————————————————
 ];
 
@@ -854,6 +859,23 @@ function migrateMoodVariationSystem(db: Database.Database): void {
       );
     }
   }
+}
+
+function migrateAgoraHiddenFromFeed(db: Database.Database): void {
+  const tableExists = db
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='agora_threads'")
+    .get() as { name: string } | undefined;
+
+  if (!tableExists) return;
+
+  const columns = db
+    .prepare("PRAGMA table_info(agora_threads)")
+    .all() as Array<{ name: string }>;
+  const hasHiddenFromFeed = columns.some((column) => column.name === "hidden_from_feed");
+
+  if (hasHiddenFromFeed) return;
+
+  db.exec("ALTER TABLE agora_threads ADD COLUMN hidden_from_feed INTEGER NOT NULL DEFAULT 0");
 }
 
 // ── Test-only exports ──────────────────────────────────────────

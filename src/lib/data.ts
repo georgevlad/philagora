@@ -468,6 +468,7 @@ export function getRecentAgoraThreads(limit = 5) {
        FROM agora_threads
        WHERE status = 'complete'
          AND visibility = 'public'
+         AND hidden_from_feed = 0
          AND follow_up_to IS NULL
        ORDER BY created_at DESC
        LIMIT ?`

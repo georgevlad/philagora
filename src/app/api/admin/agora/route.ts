@@ -27,6 +27,7 @@ interface ThreadRow {
   question_type?: AgoraQuestionType;
   recommendations_enabled?: number;
   visibility?: AgoraThreadVisibility;
+  hidden_from_feed?: number;
   article_url?: string | null;
   article_title?: string | null;
   article_source?: string | null;
@@ -263,6 +264,7 @@ export async function GET() {
     const threads = rows.map((row) => ({
       ...row,
       visibility: row.visibility ?? "public",
+      hidden_from_feed: row.hidden_from_feed === 1,
       philosopher_ids: parseGroupConcat(row.philosopher_ids),
       philosopher_names: parseGroupConcat(row.philosopher_names),
       article_source: row.article_source ?? null,
@@ -274,6 +276,54 @@ export async function GET() {
     console.error("Failed to fetch agora threads:", error);
     return NextResponse.json(
       { error: "Failed to fetch agora threads" },
+      { status: 500 }
+    );
+  }
+}
+
+/** PATCH — toggle whether a thread is hidden from public feed surfaces */
+export async function PATCH(request: NextRequest) {
+  try {
+    const db = getDb();
+    const body = await request.json();
+    const { id, hidden_from_feed } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "id is required" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof hidden_from_feed !== "boolean") {
+      return NextResponse.json(
+        { error: "hidden_from_feed must be a boolean" },
+        { status: 400 }
+      );
+    }
+
+    const existing = db
+      .prepare("SELECT id FROM agora_threads WHERE id = ?")
+      .get(id);
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Thread not found" },
+        { status: 404 }
+      );
+    }
+
+    db.prepare("UPDATE agora_threads SET hidden_from_feed = ? WHERE id = ?")
+      .run(hidden_from_feed ? 1 : 0, id);
+
+    revalidatePath("/");
+    revalidatePath("/agora");
+
+    return NextResponse.json({ id, hidden_from_feed });
+  } catch (error) {
+    console.error("Failed to update thread visibility:", error);
+    return NextResponse.json(
+      { error: "Failed to update thread" },
       { status: 500 }
     );
   }

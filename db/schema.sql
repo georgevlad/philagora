@@ -110,6 +110,7 @@ CREATE TABLE IF NOT EXISTS agora_threads (
                             CHECK(recommendations_enabled IN (0, 1)),
   visibility              TEXT NOT NULL DEFAULT 'public'
                             CHECK(visibility IN ('public', 'private')),
+  hidden_from_feed        INTEGER NOT NULL DEFAULT 0,
   user_id                 TEXT DEFAULT NULL,
   follow_up_to            TEXT DEFAULT NULL REFERENCES agora_threads(id),
   article_url             TEXT DEFAULT NULL,

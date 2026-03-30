@@ -252,6 +252,46 @@ describe("migration system", () => {
       legacyDb.close();
     });
 
+    it("adds hidden_from_feed to existing agora_threads tables on version 12 databases", () => {
+      const legacyDb = new Database(":memory:");
+      legacyDb.exec(`
+        CREATE TABLE agora_threads (
+          id TEXT PRIMARY KEY,
+          question TEXT NOT NULL,
+          asked_by TEXT NOT NULL DEFAULT 'Anonymous User',
+          status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','in_progress','complete','failed')),
+          ip_address TEXT,
+          question_type TEXT NOT NULL DEFAULT 'advice'
+            CHECK(question_type IN ('advice', 'conceptual', 'debate')),
+          recommendations_enabled INTEGER NOT NULL DEFAULT 0
+            CHECK(recommendations_enabled IN (0, 1)),
+          visibility TEXT NOT NULL DEFAULT 'public'
+            CHECK(visibility IN ('public', 'private')),
+          user_id TEXT DEFAULT NULL,
+          follow_up_to TEXT DEFAULT NULL REFERENCES agora_threads(id),
+          article_url TEXT DEFAULT NULL,
+          article_title TEXT DEFAULT NULL,
+          article_source TEXT DEFAULT NULL,
+          article_excerpt TEXT DEFAULT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+      `);
+
+      ensureMetaTable(legacyDb);
+      setSchemaVersion(legacyDb, 12);
+
+      runMigrations(legacyDb);
+
+      const columns = legacyDb
+        .prepare("PRAGMA table_info(agora_threads)")
+        .all() as Array<{ name: string }>;
+      const colNames = columns.map((column) => column.name);
+
+      expect(colNames).toContain("hidden_from_feed");
+
+      legacyDb.close();
+    });
+
     it("adds expected columns to agora tables", () => {
       runMigrations(db, { bootstrapNewsSources: true });
 
@@ -264,6 +304,7 @@ describe("migration system", () => {
       expect(threadColNames).toContain("question_type");
       expect(threadColNames).toContain("recommendations_enabled");
       expect(threadColNames).toContain("visibility");
+      expect(threadColNames).toContain("hidden_from_feed");
       expect(threadColNames).toContain("user_id");
       expect(threadColNames).toContain("follow_up_to");
       expect(threadColNames).toContain("article_url");

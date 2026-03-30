@@ -28,10 +28,26 @@ interface ThreadListItem {
   question_type: AgoraQuestionType;
   recommendations_enabled: number;
   visibility: AgoraThreadVisibility;
+  hidden_from_feed: boolean;
   article_source?: string | null;
   created_at: string;
   philosopher_names: string[];
   follow_up_status: AgoraThreadStatus | null;
+}
+
+interface ThreadListApiItem {
+  id: string;
+  question: string;
+  asked_by: string;
+  status: AgoraThreadStatus;
+  question_type?: AgoraQuestionType | null;
+  recommendations_enabled?: number | null;
+  visibility?: AgoraThreadVisibility | null;
+  hidden_from_feed?: boolean | number | null;
+  article_source?: string | null;
+  created_at: string;
+  philosopher_names?: string[] | null;
+  follow_up_status?: AgoraThreadStatus | null;
 }
 
 interface AdminAgoraArticle {
@@ -74,6 +90,26 @@ interface AdminThreadDetailPayload {
   responses: AgResponseRow[];
   synthesis: AdminAgoraSynthesisData | null;
   followUp: AdminFollowUpData | null;
+}
+
+function normalizeThreadListItem(thread: ThreadListApiItem): ThreadListItem {
+  return {
+    id: thread.id,
+    question: thread.question,
+    asked_by: thread.asked_by,
+    status: thread.status,
+    question_type: thread.question_type ?? "advice",
+    recommendations_enabled:
+      typeof thread.recommendations_enabled === "number"
+        ? thread.recommendations_enabled
+        : 0,
+    visibility: thread.visibility === "private" ? "private" : "public",
+    hidden_from_feed: Boolean(thread.hidden_from_feed),
+    article_source: thread.article_source ?? null,
+    created_at: thread.created_at,
+    philosopher_names: Array.isArray(thread.philosopher_names) ? thread.philosopher_names : [],
+    follow_up_status: thread.follow_up_status ?? null,
+  };
 }
 
 function recommendationMediumLabel(medium: string): string {
@@ -280,6 +316,7 @@ export default function AgoraWorkshopPage() {
   const [notice, setNotice] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [feedFilter, setFeedFilter] = useState<"all" | "visible" | "hidden">("all");
 
   // ── Wizard state ──────────────────────────────────────────────────────
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -311,6 +348,13 @@ export default function AgoraWorkshopPage() {
   const selectedPhilosophers = selectedIds
     .map((id) => philosophers.find((p) => p.id === id))
     .filter(Boolean) as Philosopher[];
+  const visibleThreadCount = existingThreads.filter((thread) => !thread.hidden_from_feed).length;
+  const hiddenThreadCount = existingThreads.length - visibleThreadCount;
+  const filteredThreads = existingThreads.filter((thread) => {
+    if (feedFilter === "visible") return !thread.hidden_from_feed;
+    if (feedFilter === "hidden") return thread.hidden_from_feed;
+    return true;
+  });
 
   // ── Fetch on mount ────────────────────────────────────────────────────
   useEffect(() => {
@@ -324,8 +368,53 @@ export default function AgoraWorkshopPage() {
   function fetchThreads() {
     fetch("/api/admin/agora")
       .then((r) => r.json())
-      .then((data) => setExistingThreads(Array.isArray(data) ? data : []))
+      .then((data) =>
+        setExistingThreads(
+          Array.isArray(data)
+            ? data.map((thread) => normalizeThreadListItem(thread as ThreadListApiItem))
+            : []
+        )
+      )
       .catch((e) => console.error("Failed to fetch agora threads:", e));
+  }
+
+  async function handleToggleHidden(thread: ThreadListItem) {
+    setError("");
+    setNotice("");
+
+    try {
+      const res = await fetch("/api/admin/agora", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: thread.id,
+          hidden_from_feed: !thread.hidden_from_feed,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update thread visibility");
+
+      const data = await res.json() as { hidden_from_feed?: boolean };
+      const nextHidden =
+        typeof data.hidden_from_feed === "boolean"
+          ? data.hidden_from_feed
+          : !thread.hidden_from_feed;
+
+      setExistingThreads((prev) =>
+        prev.map((item) =>
+          item.id === thread.id
+            ? { ...item, hidden_from_feed: nextHidden }
+            : item
+        )
+      );
+      setNotice(
+        nextHidden
+          ? "Thread hidden from public feed"
+          : "Thread restored to public feed"
+      );
+    } catch {
+      setError("Failed to update thread visibility");
+    }
   }
 
   async function handleDeleteThread(id: string) {
@@ -790,9 +879,28 @@ export default function AgoraWorkshopPage() {
       {/* Existing threads */}
       {existingThreads.length > 0 && (
         <div className="mb-8">
+          <div className="mb-3 flex items-center gap-1">
+            {(["all", "visible", "hidden"] as const).map((filterValue) => (
+              <button
+                key={filterValue}
+                onClick={() => setFeedFilter(filterValue)}
+                className={`rounded-full px-3 py-1 text-xs font-mono transition-colors ${
+                  feedFilter === filterValue
+                    ? "bg-ink text-parchment"
+                    : "text-ink-lighter hover:bg-parchment-dark/40"
+                }`}
+              >
+                {filterValue === "all"
+                  ? `All (${existingThreads.length})`
+                  : filterValue === "visible"
+                    ? `Visible (${visibleThreadCount})`
+                    : `Hidden (${hiddenThreadCount})`}
+              </button>
+            ))}
+          </div>
           <h2 className="font-serif text-lg font-bold text-ink mb-3">Existing Threads</h2>
           <div className="space-y-3">
-            {existingThreads.map((t) => (
+            {filteredThreads.map((t) => (
               <div
                 key={t.id}
                 className={`w-full bg-white border rounded-xl px-6 py-4 transition-colors ${
@@ -813,7 +921,16 @@ export default function AgoraWorkshopPage() {
                           </svg>
                         </span>
                       )}
-                      <span className="font-serif font-bold text-ink text-sm line-clamp-1">{t.question}</span>
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="line-clamp-1 font-serif text-sm font-bold text-ink">
+                          {t.question}
+                        </span>
+                        {t.hidden_from_feed && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-[0.1em] text-amber-700">
+                            hidden
+                          </span>
+                        )}
+                      </span>
                     </span>
                     <span className="text-xs text-ink-lighter block mt-0.5">
                       Asked by {t.asked_by} &middot; {t.philosopher_names.join(", ")}
@@ -836,6 +953,29 @@ export default function AgoraWorkshopPage() {
                     )}
                     <StatusPill status={t.status} />
                     <span className="text-xs text-ink-lighter font-mono">{formatDate(t.created_at)}</span>
+                    <button
+                      onClick={() => handleToggleHidden(t)}
+                      className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition-all duration-200 ${
+                        t.hidden_from_feed
+                          ? "border-amber-300 bg-amber-50 text-amber-600 hover:bg-amber-100"
+                          : "border-border-light text-ink-lighter hover:border-amber-300 hover:bg-amber-50 hover:text-amber-600"
+                      }`}
+                      title={t.hidden_from_feed ? "Restore to public feed" : "Hide from public feed"}
+                    >
+                      {t.hidden_from_feed ? (
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <path d="M2 2L14 14" strokeLinecap="round" />
+                          <path d="M6.5 6.5A2 2 0 009.5 9.5" />
+                          <path d="M3.5 5.5C2.3 6.5 1.5 8 1.5 8s2.5 4.5 6.5 4.5c1 0 1.9-.3 2.7-.7" strokeLinecap="round" />
+                          <path d="M10.5 10C11.9 9 13 7.8 14.5 8c0 0-2.5-4.5-6.5-4.5-.5 0-1 .1-1.5.2" strokeLinecap="round" />
+                        </svg>
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <ellipse cx="8" cy="8" rx="6.5" ry="4.5" />
+                          <circle cx="8" cy="8" r="2" />
+                        </svg>
+                      )}
+                    </button>
                     {confirmDeleteId === t.id ? (
                       <div className="flex items-center gap-2">
                         <button

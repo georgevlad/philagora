@@ -98,6 +98,7 @@ export interface AgoraThreadRow {
   question_type?: AgoraQuestionType;
   recommendations_enabled?: number;
   visibility?: AgoraThreadVisibility;
+  hidden_from_feed?: number;
   user_id?: string | null;
   follow_up_to?: string | null;
   article_url?: string | null;
