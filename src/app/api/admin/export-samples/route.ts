@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
        FROM posts
        WHERE philosopher_id = ? AND status = 'published'
        ORDER BY created_at DESC
-       LIMIT 2`
+       LIMIT 5`
     );
 
     const sections: string[] = [
