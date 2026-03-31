@@ -63,7 +63,7 @@ export function WelcomeCard() {
   }
 
   return (
-    <div className="relative px-3 pb-3 pt-1 sm:px-4 sm:py-3">
+    <div className="relative px-2 pb-2.5 pt-1 sm:px-4 sm:py-3">
       <button
         type="button"
         onClick={handleDismiss}
@@ -73,7 +73,7 @@ export function WelcomeCard() {
         &times;
       </button>
 
-      <section className="animate-fade-in-up visible rounded-xl border border-border-light border-l-4 border-l-athenian bg-parchment-tint px-5 py-5 shadow-[0_12px_28px_rgba(42,36,31,0.04)] sm:px-6">
+      <section className="animate-fade-in-up visible rounded-xl border border-border-light border-l-4 border-l-athenian bg-parchment-tint px-4 py-4 shadow-[0_12px_28px_rgba(42,36,31,0.04)] sm:px-6 sm:py-5">
         <h2 className="pr-8 font-display text-xl text-ink">Welcome to Philagora</h2>
         <p className="mt-3 max-w-2xl font-serif text-[15px] leading-relaxed text-ink-light">
           What would Nietzsche make of today&apos;s headlines? Or Camus? Here,

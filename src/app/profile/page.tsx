@@ -94,7 +94,7 @@ export default async function ProfilePage() {
   const initials = getInitials(user.name || user.email);
 
   return (
-    <div className="min-h-screen flex flex-col pt-24 lg:flex-row lg:pt-0">
+    <div className="min-h-screen flex flex-col pt-24 lg:flex-row lg:pt-0 overflow-x-hidden">
       <LeftSidebar philosophers={philosophers} />
       <MobileNav />
 

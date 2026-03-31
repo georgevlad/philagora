@@ -53,6 +53,11 @@ body {
   font-family: var(--font-dm-sans), system-ui, sans-serif;
 }
 
+html,
+body {
+  overflow-x: hidden;
+}
+
 ::selection {
   background: rgba(49, 78, 61, 0.18);
   color: var(--color-ink);
@@ -136,10 +141,16 @@ body {
 /* Reading-optimized prose - use on philosophical content blocks */
 .prose-reading {
   font-family: var(--font-lora), var(--font-playfair), Georgia, serif;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.7;
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
+}
+
+@media (min-width: 640px) {
+  .prose-reading {
+    font-size: 16px;
+  }
 }
 
 .prose-reading p + p {

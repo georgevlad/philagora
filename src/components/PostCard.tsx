@@ -601,7 +601,7 @@ export function PostCard({
   return (
     <article
       ref={ref}
-      className="animate-fade-in-up rounded-[22px] bg-[linear-gradient(180deg,rgba(248,243,234,0.96),rgba(244,239,230,0.92))] border border-border-light/90 mx-2.5 my-3 sm:mx-4 overflow-hidden shadow-[0_14px_34px_rgba(42,36,31,0.045)] hover:shadow-[0_18px_40px_rgba(42,36,31,0.06)] transition-shadow duration-200"
+      className="animate-fade-in-up rounded-[22px] bg-[linear-gradient(180deg,rgba(248,243,234,0.96),rgba(244,239,230,0.92))] border border-border-light/90 mx-2 my-2.5 overflow-hidden shadow-[0_14px_34px_rgba(42,36,31,0.045)] transition-shadow duration-200 hover:shadow-[0_18px_40px_rgba(42,36,31,0.06)] sm:mx-4 sm:my-3"
       style={{
         borderTop: `2px solid ${color}`,
         borderLeftWidth: isNew ? "3px" : isPopular ? "3px" : undefined,
@@ -609,7 +609,7 @@ export function PostCard({
         borderLeftStyle: isNew || isPopular ? "solid" : undefined,
       }}
     >
-      <div className="px-5 py-5 sm:px-6 sm:py-5">
+      <div className="px-4 py-4 sm:px-6 sm:py-5">
         {isCrossReply && <CrossReplyHeader post={post} />}
 
         {post.replyTo && !isCrossReply && (
@@ -704,7 +704,7 @@ export function PostCard({
             )}
 
             <Link href={postHref} className="block cursor-pointer">
-              <blockquote className="font-serif text-[22px] sm:text-[24px] leading-[1.38] text-ink mb-4 max-w-lg px-3 relative z-10 font-medium">
+              <blockquote className="font-serif text-[20px] leading-[1.38] text-ink mb-4 max-w-lg px-3 relative z-10 font-medium sm:text-[24px]">
                 &ldquo;{post.thesis}&rdquo;
               </blockquote>
             </Link>
@@ -807,7 +807,7 @@ export function PostCard({
               {shouldShowThesis && (
                 <Link href={postHref} className="block cursor-pointer">
                   <blockquote
-                    className="font-serif text-[20px] sm:text-[21px] leading-[1.4] text-ink mb-3 px-4 py-3 rounded-r-xl"
+                    className="font-serif text-[18px] leading-[1.4] text-ink mb-3 rounded-r-xl px-4 py-3 sm:text-[21px]"
                     style={{
                       borderLeft: `3px solid ${color}`,
                       background: `linear-gradient(90deg, ${color}0f, rgba(248,243,234,0.4))`,

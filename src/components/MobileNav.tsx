@@ -71,7 +71,7 @@ export function MobileNav({ topContent }: { topContent?: ReactNode }) {
 
       {/* Bottom nav on mobile */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-parchment/96 supports-[backdrop-filter]:backdrop-blur-md border-t border-border-light/90 shadow-[0_-6px_18px_rgba(42,36,31,0.05)]">
-        <div className="flex items-center justify-around py-2">
+        <div className="flex items-center justify-around py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           {items.map((item) => {
             const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             const itemClasses = `flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${

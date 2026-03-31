@@ -963,7 +963,7 @@ function PageWrapper({
   philosophers: Philosopher[];
 }) {
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0">
+    <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0 overflow-x-hidden">
       <LeftSidebar philosophers={philosophers} />
       <MobileNav />
       <main className="flex-1 min-w-0 lg:border-l border-border-light">
@@ -971,6 +971,7 @@ function PageWrapper({
           {children}
         </div>
         <Footer />
+        <div className="pb-20 lg:pb-0" />
       </main>
     </div>
   );

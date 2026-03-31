@@ -40,7 +40,7 @@ export default async function PhilosopherProfileDynamic({
   const philosophers = getAllPhilosophers();
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0">
+    <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0 overflow-x-hidden">
       <LeftSidebar philosophers={philosophers} />
       <MobileNav />
 
