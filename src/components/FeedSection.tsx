@@ -6,6 +6,7 @@ import { PostCard } from "@/components/PostCard";
 import { TensionCard } from "@/components/TensionCard";
 import { EditorialDivider } from "@/components/EditorialDivider";
 import { Spinner } from "@/components/Spinner";
+import { WelcomeCard } from "@/components/WelcomeCard";
 import { useNewPostIndicator } from "@/hooks/useNewPostIndicator";
 import {
   buildFeedItems,
@@ -306,6 +307,7 @@ export function FeedSection({
       {feedItems.length > 0 ? (
         <>
           <div className={loading ? "opacity-80 transition-opacity duration-200" : "transition-opacity duration-200"}>
+            <WelcomeCard />
             {feedItems.map((item, index) => {
               const revealDelay = getRevealDelay(index);
               const element = item.type === "post" ? (
