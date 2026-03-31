@@ -117,6 +117,21 @@ export function ReviewGroup({
                         {truncate(item.prompt_seed, 80)}
                       </p>
                     )}
+                    {item.type === "art_commentary" && item.prompt_seed && (
+                      <p className="text-xs font-mono uppercase tracking-[0.25em] text-ink-lighter mb-2">
+                        {truncate(item.prompt_seed, 80)}
+                      </p>
+                    )}
+                    {item.type === "everyday_scenario" && item.prompt_seed && (
+                      <div className="mb-3 flex items-center gap-2">
+                        <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-amber-800">
+                          Examined Life
+                        </span>
+                        <p className="text-xs text-ink-lighter italic">
+                          &ldquo;{truncate(item.prompt_seed, 60)}&rdquo;
+                        </p>
+                      </div>
+                    )}
                     {item.type === "cultural_recommendation" && item.recommendation_title && (
                       <div className="mb-3 flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-mono uppercase tracking-[0.2em] text-emerald-800">
@@ -174,4 +189,3 @@ export function ReviewGroup({
     </div>
   );
 }
-

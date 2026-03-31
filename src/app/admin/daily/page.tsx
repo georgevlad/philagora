@@ -131,7 +131,7 @@ export default function DailyContentPage() {
   }
 
   function updateNumberConfig(
-    key: "reactions_per_article" | "cross_replies" | "timeless_reflections" | "quips" | "cultural_recommendations",
+    key: "reactions_per_article" | "cross_replies" | "timeless_reflections" | "quips" | "cultural_recommendations" | "art_commentaries" | "everyday_scenarios",
     value: string
   ) {
     const parsed = Number.parseInt(value, 10);
@@ -174,7 +174,18 @@ export default function DailyContentPage() {
     expectedCrossReplies +
     config.quips +
     config.timeless_reflections +
-    config.cultural_recommendations;
+    config.cultural_recommendations +
+    config.art_commentaries +
+    config.everyday_scenarios;
+  const previewParts = [
+    expectedNewsReactions > 0 ? `${expectedNewsReactions} reactions` : null,
+    expectedCrossReplies > 0 ? `${expectedCrossReplies} replies` : null,
+    config.quips > 0 ? `${config.quips} glints` : null,
+    config.timeless_reflections > 0 ? `${config.timeless_reflections} reflections` : null,
+    config.cultural_recommendations > 0 ? `${config.cultural_recommendations} recommendations` : null,
+    config.art_commentaries > 0 ? `${config.art_commentaries} art` : null,
+    config.everyday_scenarios > 0 ? `${config.everyday_scenarios} scenarios` : null,
+  ].filter((part): part is string => Boolean(part));
   const selectedClusters = useMemo(() => {
     const selected = articles.filter((article) => selectedArticleIds.includes(article.id));
     const clusterCounts: Record<string, number> = {};
@@ -236,6 +247,8 @@ export default function DailyContentPage() {
   const quipItems = reviewItems.filter((item) => item.type === "quip");
   const timelessItems = reviewItems.filter((item) => item.type === "timeless_reflection");
   const recommendationItems = reviewItems.filter((item) => item.type === "cultural_recommendation");
+  const artCommentaryItems = reviewItems.filter((item) => item.type === "art_commentary");
+  const everydayItems = reviewItems.filter((item) => item.type === "everyday_scenario");
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
@@ -495,74 +508,114 @@ export default function DailyContentPage() {
         </div>
 
         <div className="px-6 py-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-5">
+          <div className="space-y-6">
             <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
-                Reactions per article
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={3}
-                value={config.reactions_per_article}
-                onChange={(event) => updateNumberConfig("reactions_per_article", event.target.value)}
-                className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-              />
+              <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-ink-lighter mb-3">
+                News-Driven
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                    Reactions per article
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={3}
+                    value={config.reactions_per_article}
+                    onChange={(event) => updateNumberConfig("reactions_per_article", event.target.value)}
+                    className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                    Cross-philosopher replies
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={3}
+                    value={config.cross_replies}
+                    onChange={(event) => updateNumberConfig("cross_replies", event.target.value)}
+                    className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                    Glints
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={4}
+                    value={config.quips}
+                    onChange={(event) => updateNumberConfig("quips", event.target.value)}
+                    className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+                  />
+                </div>
+              </div>
             </div>
+
             <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
-                Cross-philosopher replies
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={3}
-                value={config.cross_replies}
-                onChange={(event) => updateNumberConfig("cross_replies", event.target.value)}
-                className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
-                Timeless reflections
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={4}
-                value={config.timeless_reflections}
-                onChange={(event) => updateNumberConfig("timeless_reflections", event.target.value)}
-                className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
-                Glints
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={4}
-                value={config.quips}
-                onChange={(event) => updateNumberConfig("quips", event.target.value)}
-                className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
-                Cultural recommendations
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={4}
-                value={config.cultural_recommendations}
-                onChange={(event) => updateNumberConfig("cultural_recommendations", event.target.value)}
-                className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-              />
+              <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-ink-lighter mb-3">
+                Standalone
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                    Timeless reflections
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={4}
+                    value={config.timeless_reflections}
+                    onChange={(event) => updateNumberConfig("timeless_reflections", event.target.value)}
+                    className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                    Cultural recommendations
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={4}
+                    value={config.cultural_recommendations}
+                    onChange={(event) => updateNumberConfig("cultural_recommendations", event.target.value)}
+                    className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                    Art commentaries
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={4}
+                    value={config.art_commentaries}
+                    onChange={(event) => updateNumberConfig("art_commentaries", event.target.value)}
+                    className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                    Everyday scenarios
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={4}
+                    value={config.everyday_scenarios}
+                    onChange={(event) => updateNumberConfig("everyday_scenarios", event.target.value)}
+                    className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+                  />
+                </div>
+              </div>
             </div>
           </div>
-
           <div>
             <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
               Length strategy
@@ -638,7 +691,7 @@ export default function DailyContentPage() {
                 About {estimatedTotal} post{estimatedTotal === 1 ? "" : "s"}
               </p>
               <p className="text-sm text-ink-lighter mt-1">
-                {expectedNewsReactions} news reactions + {expectedCrossReplies} cross-replies + {config.quips} glints + {config.timeless_reflections} reflections + {config.cultural_recommendations} recommendations using about {estimatedTotal} generation calls.
+                {previewParts.length > 0 ? previewParts.join(" + ") : "No content selected yet"} using about {estimatedTotal} generation calls.
               </p>
               {Object.keys(selectedClusters).length > 0 && (
                 <p className="text-sm text-ink-lighter mt-1">
@@ -700,12 +753,14 @@ export default function DailyContentPage() {
           </div>
 
           {summary && (
-            <div className="px-6 py-5 border-b border-border grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4 bg-parchment/50">
+            <div className="px-6 py-5 border-b border-border grid grid-cols-1 md:grid-cols-2 xl:grid-cols-8 gap-4 bg-parchment/50">
               <SummaryTile label="News reactions" value={summary.news_reactions} />
               <SummaryTile label="Cross replies" value={summary.cross_replies} />
               <SummaryTile label="Glints" value={summary.quips} />
               <SummaryTile label="Timeless reflections" value={summary.timeless_reflections} />
               <SummaryTile label="Recommendations" value={summary.cultural_recommendations} />
+              <SummaryTile label="Art commentaries" value={summary.art_commentaries} />
+              <SummaryTile label="Examined Life" value={summary.everyday_scenarios} />
               <SummaryTile label="Philosophers used" value={summary.philosophers_used.length} />
             </div>
           )}
@@ -759,6 +814,28 @@ export default function DailyContentPage() {
               title="Cultural Recommendations"
               description="Prompt-led recommendations that route films, books, and albums through each philosopher&apos;s worldview."
               items={recommendationItems}
+              busyItemId={busyItemId}
+              selectedDraftIds={selectedDraftIds}
+              onToggleSelection={toggleDraftSelection}
+              onPublish={handlePublishItem}
+              onRegenerate={handleRegenerateItem}
+              onDelete={handleDeleteItem}
+            />
+            <ReviewGroup
+              title="Art Commentaries"
+              description="Philosopher-as-museum-visitor: philosophical reactions to classical artworks."
+              items={artCommentaryItems}
+              busyItemId={busyItemId}
+              selectedDraftIds={selectedDraftIds}
+              onToggleSelection={toggleDraftSelection}
+              onPublish={handlePublishItem}
+              onRegenerate={handleRegenerateItem}
+              onDelete={handleDeleteItem}
+            />
+            <ReviewGroup
+              title="Everyday Scenarios"
+              description="The Examined Life: philosophers react to mundane situations."
+              items={everydayItems}
               busyItemId={busyItemId}
               selectedDraftIds={selectedDraftIds}
               onToggleSelection={toggleDraftSelection}

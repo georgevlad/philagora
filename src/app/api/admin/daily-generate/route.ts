@@ -19,7 +19,9 @@ type DailyItemType =
   | "cross_reply"
   | "timeless_reflection"
   | "quip"
-  | "cultural_recommendation";
+  | "cultural_recommendation"
+  | "art_commentary"
+  | "everyday_scenario";
 type LengthStrategy = "varied" | TargetLength;
 
 interface DailyGenerateRequest {
@@ -30,6 +32,8 @@ interface DailyGenerateRequest {
     timeless_reflections: number;
     quips: number;
     cultural_recommendations: number;
+    art_commentaries?: number;
+    everyday_scenarios?: number;
     excluded_philosophers: string[];
     length_strategy: LengthStrategy;
   };
@@ -90,6 +94,10 @@ function resolveSourceType(type: DailyItemType): string {
     case "timeless_reflection":
     case "cultural_recommendation":
       return "reflection";
+    case "art_commentary":
+      return "art_commentary";
+    case "everyday_scenario":
+      return "everyday";
     default:
       return "news";
   }
@@ -189,6 +197,56 @@ const RECOMMENDATION_PROMPTS = [
   "Recommend a film that makes bureaucracy terrifying.",
 ];
 
+const ART_COMMENTARY_PROMPTS = [
+  "Artwork: \"The Starry Night\" by Vincent van Gogh",
+  "Artwork: \"Guernica\" by Pablo Picasso",
+  "Artwork: \"The Persistence of Memory\" by Salvador Dali",
+  "Artwork: \"Wanderer above the Sea of Fog\" by Caspar David Friedrich",
+  "Artwork: \"The Death of Socrates\" by Jacques-Louis David",
+  "Artwork: \"Nighthawks\" by Edward Hopper",
+  "Artwork: \"The Great Wave off Kanagawa\" by Katsushika Hokusai",
+  "Artwork: \"The School of Athens\" by Raphael",
+  "Artwork: \"Saturn Devouring His Son\" by Francisco Goya",
+  "Artwork: \"The Garden of Earthly Delights\" by Hieronymus Bosch",
+  "Artwork: \"Ophelia\" by John Everett Millais",
+  "Artwork: \"The Third of May 1808\" by Francisco Goya",
+  "Artwork: \"Christina's World\" by Andrew Wyeth",
+  "Artwork: \"The Kiss\" by Gustav Klimt",
+  "Artwork: \"The Tower of Babel\" by Pieter Bruegel the Elder",
+  "Artwork: \"Las Meninas\" by Diego Velazquez",
+  "Artwork: \"Liberty Leading the People\" by Eugene Delacroix",
+  "Artwork: \"The Birth of Venus\" by Sandro Botticelli",
+  "Artwork: \"A Sunday Afternoon on the Island of La Grande Jatte\" by Georges Seurat",
+  "Artwork: \"The Arnolfini Portrait\" by Jan van Eyck",
+  "Artwork: \"The Raft of the Medusa\" by Theodore Gericault",
+  "Artwork: \"American Gothic\" by Grant Wood",
+  "Artwork: \"Girl with a Pearl Earring\" by Johannes Vermeer",
+  "Artwork: \"The Thinker\" by Auguste Rodin",
+];
+
+const EVERYDAY_PROMPTS = [
+  "Your meeting could have been an email",
+  "You check your phone first thing in the morning before speaking to anyone",
+  "A stranger holds the door open and you feel obligated to rush",
+  "You rehearse a conversation in your head that never happens",
+  "You buy something you don't need because it was on sale",
+  "You apologize when someone else bumps into you",
+  "You scroll past bad news because you've already seen too much today",
+  "You say 'I'm fine' when you're not fine at all",
+  "You spend 20 minutes choosing what to watch and then watch nothing",
+  "You feel guilty for doing nothing on a Sunday",
+  "You compare your life to someone else's highlight reel online",
+  "You eat lunch at your desk while pretending to work",
+  "A friend cancels plans and you feel relieved",
+  "You keep a book on your shelf you'll never read to appear well-read",
+  "You write a text message, delete it, rewrite it, and send the first version",
+  "You arrive early and sit in your car instead of going inside",
+  "You feel anxious when your phone battery drops below 20%",
+  "You say 'let's catch up soon' knowing neither of you will follow through",
+  "You take a photo of your food before eating it",
+  "You feel oddly emotional hearing a song from ten years ago",
+];
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as DailyGenerateRequest;
@@ -198,7 +256,11 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getDb();
-    const config = body.config;
+    const config = {
+      ...body.config,
+      art_commentaries: body.config.art_commentaries ?? 0,
+      everyday_scenarios: body.config.everyday_scenarios ?? 0,
+    };
     const excludedIds = new Set(config.excluded_philosophers);
     const allPhilosophers = db
       .prepare("SELECT id, name, tradition, color, initials FROM philosophers ORDER BY name ASC")
@@ -467,6 +529,114 @@ export async function POST(request: NextRequest) {
       await sleep(500);
     }
 
+    // -- Art Commentaries -------------------------------------------------
+    const artCommentaryCount = config.art_commentaries ?? 0;
+    if (artCommentaryCount > 0) {
+      const recentArtPrompts = getRecentArtCommentaryPrompts(db);
+      const artCandidates = shuffle(
+        allPhilosophers.filter(
+          (philosopher) =>
+            !excludedIds.has(philosopher.id) && !usedPhilosopherIds.has(philosopher.id)
+        )
+      ).slice(0, artCommentaryCount);
+      const artPromptsUsedThisRun = new Set<string>();
+
+      for (const philosopher of artCandidates) {
+        const promptSeed = pickArtCommentaryPrompt({
+          recentPrompts: recentArtPrompts,
+          promptsUsedThisRun: artPromptsUsedThisRun,
+        });
+
+        if (!promptSeed) {
+          errors.push(`No art commentary prompt available for ${philosopher.name}.`);
+          continue;
+        }
+
+        const artworkMatch = promptSeed.match(/^Artwork:\s*"(.+?)"\s+by\s+(.+)$/);
+        const artworkTitle = artworkMatch?.[1] ?? promptSeed;
+        const artworkArtist = artworkMatch?.[2] ?? null;
+
+        const length = resolveTargetLength(config.length_strategy);
+        const item = await generateDailyDraft({
+          philosopher,
+          type: "art_commentary",
+          dbContentType: "art_commentary",
+          sourceMaterial: promptSeed,
+          targetLength: length,
+          promptSeed,
+          citation: {
+            title: artworkTitle,
+            source: artworkArtist,
+            url: null,
+            imageUrl: null,
+          },
+        });
+
+        if (!item.success) {
+          errors.push(`${philosopher.name} art commentary: ${item.error}`);
+          await sleep(500);
+          continue;
+        }
+
+        artPromptsUsedThisRun.add(promptSeed);
+        usedPhilosopherIds.add(philosopher.id);
+        generated.push(item.data);
+        await sleep(500);
+      }
+    }
+
+    // -- Everyday Scenarios -----------------------------------------------
+    const everydayCount = config.everyday_scenarios ?? 0;
+    if (everydayCount > 0) {
+      const recentEverydayPrompts = getRecentEverydayPrompts(db);
+      const everydayCandidates = shuffle(
+        allPhilosophers.filter(
+          (philosopher) =>
+            !excludedIds.has(philosopher.id) && !usedPhilosopherIds.has(philosopher.id)
+        )
+      ).slice(0, everydayCount);
+      const everydayPromptsUsedThisRun = new Set<string>();
+
+      for (const philosopher of everydayCandidates) {
+        const promptSeed = pickEverydayPrompt({
+          recentPrompts: recentEverydayPrompts,
+          promptsUsedThisRun: everydayPromptsUsedThisRun,
+        });
+
+        if (!promptSeed) {
+          errors.push(`No everyday scenario prompt available for ${philosopher.name}.`);
+          continue;
+        }
+
+        const length = resolveTargetLength(config.length_strategy);
+        const item = await generateDailyDraft({
+          philosopher,
+          type: "everyday_scenario",
+          dbContentType: "post",
+          sourceMaterial: promptSeed,
+          targetLength: length,
+          promptSeed,
+          citation: {
+            title: promptSeed,
+            source: "The Examined Life",
+            url: null,
+            imageUrl: null,
+          },
+        });
+
+        if (!item.success) {
+          errors.push(`${philosopher.name} everyday scenario: ${item.error}`);
+          await sleep(500);
+          continue;
+        }
+
+        everydayPromptsUsedThisRun.add(promptSeed);
+        usedPhilosopherIds.add(philosopher.id);
+        generated.push(item.data);
+        await sleep(500);
+      }
+    }
+
     return NextResponse.json({
       success: generated.length > 0,
       summary: buildSummary(generated, errors),
@@ -605,6 +775,53 @@ export async function PATCH(request: NextRequest) {
       promptSeed = nextPromptSeed;
       sourceMaterial = nextPromptSeed;
       citation = { title: null, source: null, url: null, imageUrl: null };
+    } else if (body.type === "art_commentary") {
+      const recentPrompts = getRecentArtCommentaryPrompts(db);
+      const nextPromptSeed = pickArtCommentaryPrompt({
+        recentPrompts,
+        promptsUsedThisRun: new Set<string>(),
+        currentPrompt: body.prompt_seed,
+      });
+
+      if (!nextPromptSeed) {
+        return NextResponse.json(
+          { error: "No alternate art commentary prompt is available right now." },
+          { status: 422 }
+        );
+      }
+
+      const artworkMatch = nextPromptSeed.match(/^Artwork:\s*"(.+?)"\s+by\s+(.+)$/);
+      promptSeed = nextPromptSeed;
+      sourceMaterial = nextPromptSeed;
+      citation = {
+        title: artworkMatch?.[1] ?? nextPromptSeed,
+        source: artworkMatch?.[2] ?? null,
+        url: null,
+        imageUrl: null,
+      };
+    } else if (body.type === "everyday_scenario") {
+      const recentPrompts = getRecentEverydayPrompts(db);
+      const nextPromptSeed = pickEverydayPrompt({
+        recentPrompts,
+        promptsUsedThisRun: new Set<string>(),
+        currentPrompt: body.prompt_seed,
+      });
+
+      if (!nextPromptSeed) {
+        return NextResponse.json(
+          { error: "No alternate everyday scenario prompt is available right now." },
+          { status: 422 }
+        );
+      }
+
+      promptSeed = nextPromptSeed;
+      sourceMaterial = nextPromptSeed;
+      citation = {
+        title: nextPromptSeed,
+        source: "The Examined Life",
+        url: null,
+        imageUrl: null,
+      };
     } else {
       const recentPrompts = getRecentRecommendationPrompts(db);
       const nextPromptSeed = pickRecommendationPrompt({
@@ -624,7 +841,6 @@ export async function PATCH(request: NextRequest) {
       sourceMaterial = nextPromptSeed;
       citation = { title: null, source: null, url: null, imageUrl: null };
     }
-
     const contentTypeKey =
       body.type === "quip"
         ? "quip"
@@ -634,8 +850,11 @@ export async function PATCH(request: NextRequest) {
         ? "cross_philosopher_reply"
         : body.type === "cultural_recommendation"
         ? "cultural_recommendation"
+        : body.type === "art_commentary"
+        ? "art_commentary"
+        : body.type === "everyday_scenario"
+        ? "everyday_reaction"
         : "timeless_reflection";
-
     const outcome = await generateContent(
       philosopher.id,
       contentTypeKey,
@@ -714,6 +933,8 @@ export async function PATCH(request: NextRequest) {
           ? "reflection"
           : body.type === "cultural_recommendation"
           ? "recommendation"
+          : body.type === "art_commentary"
+          ? "art_commentary"
           : "post",
         outcome.systemPromptId,
         sourceMaterial,
@@ -788,6 +1009,10 @@ function validateGenerateRequest(body: DailyGenerateRequest | null | undefined):
 
   const config = body.config;
   if (!config) return "config is required.";
+
+  const artCommentaries = config.art_commentaries ?? 0;
+  const everydayScenarios = config.everyday_scenarios ?? 0;
+
   if (!Number.isInteger(config.reactions_per_article) || config.reactions_per_article < 1) {
     return "reactions_per_article must be at least 1.";
   }
@@ -803,39 +1028,43 @@ function validateGenerateRequest(body: DailyGenerateRequest | null | undefined):
   if (!isIntegerInRange(config.cultural_recommendations, 0, 4)) {
     return "cultural_recommendations must be between 0 and 4.";
   }
+  if (!isIntegerInRange(artCommentaries, 0, 4)) {
+    return "art_commentaries must be between 0 and 4.";
+  }
+  if (!isIntegerInRange(everydayScenarios, 0, 4)) {
+    return "everyday_scenarios must be between 0 and 4.";
+  }
   if (!Array.isArray(config.excluded_philosophers)) {
     return "excluded_philosophers must be an array.";
   }
-  if (!["varied", "short", "medium", "long"].includes(config.length_strategy)) {
+  if (!['varied', 'short', 'medium', 'long'].includes(config.length_strategy)) {
     return "length_strategy must be varied, short, medium, or long.";
   }
 
   return null;
 }
-
 function validateRegenerateRequest(body: DailyRegenerateRequest | null | undefined): string | null {
   if (!body?.post_id) return "post_id is required.";
   if (!body.generation_log_id) return "generation_log_id is required.";
-  if (!["news_reaction", "cross_reply", "timeless_reflection", "quip", "cultural_recommendation"].includes(body.type)) {
-    return "type must be news_reaction, cross_reply, timeless_reflection, quip, or cultural_recommendation.";
+  if (!['news_reaction', 'cross_reply', 'timeless_reflection', 'quip', 'cultural_recommendation', 'art_commentary', 'everyday_scenario'].includes(body.type)) {
+    return "type must be news_reaction, cross_reply, timeless_reflection, quip, cultural_recommendation, art_commentary, or everyday_scenario.";
   }
-  if (!["short", "medium", "long"].includes(body.length)) {
+  if (!['short', 'medium', 'long'].includes(body.length)) {
     return "length must be short, medium, or long.";
   }
-  if ((body.type === "news_reaction" || body.type === "quip") && !body.article_candidate_id) {
+  if ((body.type === 'news_reaction' || body.type === 'quip') && !body.article_candidate_id) {
     return "article_candidate_id is required for news reaction or quip regeneration.";
   }
-  if (body.type === "cross_reply" && !body.reply_to_post_id) {
+  if (body.type === 'cross_reply' && !body.reply_to_post_id) {
     return "reply_to_post_id is required for cross-reply regeneration.";
   }
 
   return null;
 }
-
 async function generateDailyDraft(args: {
   philosopher: PhilosopherRow;
   type: DailyItemType;
-  dbContentType: "post" | "reflection" | "recommendation";
+  dbContentType: "post" | "reflection" | "recommendation" | "art_commentary";
   sourceMaterial: string;
   moodRegister?: string | null;
   targetLength: TargetLength;
@@ -861,6 +1090,10 @@ async function generateDailyDraft(args: {
       ? "cross_philosopher_reply"
       : args.type === "cultural_recommendation"
       ? "cultural_recommendation"
+      : args.type === "art_commentary"
+      ? "art_commentary"
+      : args.type === "everyday_scenario"
+      ? "everyday_reaction"
       : "timeless_reflection",
     args.sourceMaterial,
     args.targetLength
@@ -993,11 +1226,14 @@ function defaultTagForType(type: DailyItemType): string {
       return "Glint";
     case "cultural_recommendation":
       return "Recommends";
+    case "art_commentary":
+      return "Art Commentary";
+    case "everyday_scenario":
+      return "Examined Life";
     default:
       return "Ethical Analysis";
   }
 }
-
 function normalizeStance(value: string, fallback: Stance = "observes"): Stance {
   return VALID_STANCES.has(value as Stance) ? (value as Stance) : fallback;
 }
@@ -1254,12 +1490,13 @@ function buildSummary(generated: DailyGeneratedItem[], errors: string[]) {
     timeless_reflections: generated.filter((item) => item.type === "timeless_reflection").length,
     quips: generated.filter((item) => item.type === "quip").length,
     cultural_recommendations: generated.filter((item) => item.type === "cultural_recommendation").length,
+    art_commentaries: generated.filter((item) => item.type === "art_commentary").length,
+    everyday_scenarios: generated.filter((item) => item.type === "everyday_scenario").length,
     total_drafts: generated.length,
     philosophers_used: usedNames,
     errors,
   };
 }
-
 function getArticleCandidate(db: ReturnType<typeof getDb>, articleId: string) {
   return db
     .prepare(
@@ -1375,6 +1612,79 @@ function pickRecommendationPrompt(args: {
     (prompt) => !promptsUsedThisRun.has(prompt) && prompt !== currentPrompt
   );
   return pickRandom(fallback);
+}
+
+function getRecentArtCommentaryPrompts(db: ReturnType<typeof getDb>) {
+  const rows = db
+    .prepare(
+      `SELECT user_input
+       FROM generation_log
+       WHERE content_type = 'art_commentary'
+         AND created_at >= datetime('now', '-14 days')`
+    )
+    .all() as Array<{ user_input: string }>;
+
+  return new Set(rows.map((row) => row.user_input));
+}
+
+function pickArtCommentaryPrompt(args: {
+  recentPrompts: Set<string>;
+  promptsUsedThisRun: Set<string>;
+  currentPrompt?: string;
+}): string | null {
+  const freshPool = ART_COMMENTARY_PROMPTS.filter(
+    (prompt) =>
+      !args.recentPrompts.has(prompt) &&
+      !args.promptsUsedThisRun.has(prompt) &&
+      prompt !== args.currentPrompt
+  );
+  if (freshPool.length > 0) return pickRandom(freshPool);
+
+  const nonCurrentPool = ART_COMMENTARY_PROMPTS.filter(
+    (prompt) => prompt !== args.currentPrompt && !args.promptsUsedThisRun.has(prompt)
+  );
+  if (nonCurrentPool.length > 0) return pickRandom(nonCurrentPool);
+
+  const anyPool = ART_COMMENTARY_PROMPTS.filter(
+    (prompt) => !args.promptsUsedThisRun.has(prompt)
+  );
+  return pickRandom(anyPool);
+}
+
+function getRecentEverydayPrompts(db: ReturnType<typeof getDb>) {
+  const rows = db
+    .prepare(
+      `SELECT user_input
+       FROM generation_log
+       WHERE content_type = 'post'
+         AND created_at >= datetime('now', '-14 days')
+         AND user_input IN (${EVERYDAY_PROMPTS.map(() => '?').join(',')})`
+    )
+    .all(...EVERYDAY_PROMPTS) as Array<{ user_input: string }>;
+
+  return new Set(rows.map((row) => row.user_input));
+}
+
+function pickEverydayPrompt(args: {
+  recentPrompts: Set<string>;
+  promptsUsedThisRun: Set<string>;
+  currentPrompt?: string;
+}): string | null {
+  const freshPool = EVERYDAY_PROMPTS.filter(
+    (prompt) =>
+      !args.recentPrompts.has(prompt) &&
+      !args.promptsUsedThisRun.has(prompt) &&
+      prompt !== args.currentPrompt
+  );
+  if (freshPool.length > 0) return pickRandom(freshPool);
+
+  const nonCurrentPool = EVERYDAY_PROMPTS.filter(
+    (prompt) => prompt !== args.currentPrompt && !args.promptsUsedThisRun.has(prompt)
+  );
+  if (nonCurrentPool.length > 0) return pickRandom(nonCurrentPool);
+
+  const anyPool = EVERYDAY_PROMPTS.filter((prompt) => !args.promptsUsedThisRun.has(prompt));
+  return pickRandom(anyPool);
 }
 
 function parseJson<T>(raw: string | null | undefined, fallback: T): T {

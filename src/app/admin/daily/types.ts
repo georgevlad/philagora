@@ -8,7 +8,9 @@ export type DailyItemType =
   | "cross_reply"
   | "timeless_reflection"
   | "quip"
-  | "cultural_recommendation";
+  | "cultural_recommendation"
+  | "art_commentary"
+  | "everyday_scenario";
 export type LengthStrategy = "varied" | "short" | "medium" | "long";
 export type DraftStatus = "draft" | "published" | "deleted";
 
@@ -74,6 +76,8 @@ export interface DailySummary {
   timeless_reflections: number;
   quips: number;
   cultural_recommendations: number;
+  art_commentaries: number;
+  everyday_scenarios: number;
   total_drafts: number;
   philosophers_used: string[];
   errors: string[];
@@ -111,6 +115,8 @@ export const DEFAULT_CONFIG = {
   timeless_reflections: 2,
   quips: 0,
   cultural_recommendations: 0,
+  art_commentaries: 0,
+  everyday_scenarios: 0,
   excluded_philosophers: [] as string[],
   length_strategy: "varied" as LengthStrategy,
 };
@@ -157,7 +163,11 @@ export function publishPriority(type: DailyItemType) {
       return 2;
     case "cultural_recommendation":
       return 3;
-    default:
+    case "art_commentary":
       return 4;
+    case "everyday_scenario":
+      return 5;
+    default:
+      return 6;
   }
 }
