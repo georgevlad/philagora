@@ -52,7 +52,7 @@ function enrichCandidates(
 
 /**
  * GET — Return scored candidates with optional filters.
- * Query params: status (default 'scored'), category, min_score, limit (default 30)
+ * Query params: status (default 'scored'), category, min_score, limit (default 30), mode=diverse
  */
 export async function GET(request: NextRequest) {
   try {
@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || "scored";
     const category = searchParams.get("category");
     const minScore = searchParams.get("min_score");
+    const mode = searchParams.get("mode");
     const sort = searchParams.get("sort") === "newest" ? "newest" : "score";
     const pageSizeParam = searchParams.get("page_size");
     const pageParam = searchParams.get("page");
@@ -91,6 +92,59 @@ export async function GET(request: NextRequest) {
 
     const whereClause =
       conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+
+    if (mode === "diverse") {
+      const diverseConditions: string[] = [];
+      const diverseParams: (string | number)[] = [];
+
+      if (status && status !== "all") {
+        diverseConditions.push("ac.status = ?");
+        diverseParams.push(status);
+      }
+
+      if (category && category !== "all") {
+        diverseConditions.push("ns.category = ?");
+        diverseParams.push(category);
+      }
+
+      diverseConditions.push("ac.score >= ?");
+      diverseParams.push(50);
+
+      const diverseWhereClause = ` WHERE ${diverseConditions.join(" AND ")}`;
+      const rankedCandidates = db
+        .prepare(
+          `
+            SELECT *
+            FROM (
+              SELECT
+                ac.*,
+                ns.name as source_name,
+                ns.category as source_category,
+                ns.logo_url as source_logo_url,
+                ROW_NUMBER() OVER (
+                  PARTITION BY COALESCE(ac.topic_cluster, '__uncategorized')
+                  ORDER BY ac.score DESC, COALESCE(ac.pub_date, ac.fetched_at) DESC, ac.fetched_at DESC
+                ) as cluster_rank
+              FROM article_candidates ac
+              JOIN news_sources ns ON ac.source_id = ns.id
+              ${diverseWhereClause}
+            ) ranked
+            WHERE cluster_rank <= 3
+            ORDER BY
+              CASE WHEN topic_cluster IS NULL THEN 1 ELSE 0 END,
+              COALESCE(topic_cluster, '__uncategorized'),
+              score DESC,
+              COALESCE(pub_date, fetched_at) DESC,
+              fetched_at DESC
+            LIMIT 20
+          `
+        )
+        .all(...diverseParams) as Array<ArticleCandidate & { cluster_rank: number }>;
+      const candidates = rankedCandidates.map(({ cluster_rank: _clusterRank, ...candidate }) => candidate);
+
+      return NextResponse.json(enrichCandidates(db, candidates));
+    }
+
     const orderClause =
       sort === "newest"
         ? " ORDER BY COALESCE(ac.pub_date, ac.fetched_at) DESC, ac.fetched_at DESC, ac.score DESC"

@@ -12,6 +12,7 @@ import {
   type RawCandidateArticle,
   type ReviewItem,
 } from "./types";
+import { pickDiverseArticles } from "./utils";
 
 export function useDailyGeneration({
   selectedArticleIds,
@@ -54,21 +55,25 @@ export function useDailyGeneration({
   async function loadCandidates(autoSelectTop = false) {
     setLoadingArticles(true);
     try {
-      const response = await fetch("/api/admin/news-scout/candidates?status=scored&min_score=60&limit=10");
+      const response = await fetch("/api/admin/news-scout/candidates?status=scored&mode=diverse");
       if (!response.ok) throw new Error("Failed to load scored articles.");
 
       const data = (await response.json()) as RawCandidateArticle[];
       const normalized = data.map(normalizeCandidate);
+      const defaultSelection = pickDiverseArticles(
+        [...normalized].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)),
+        3
+      );
       setArticles(normalized);
       setSelectedArticleIds((current) => {
         if (autoSelectTop || current.length === 0) {
-          return normalized.slice(0, 3).map((article) => article.id);
+          return defaultSelection;
         }
 
         const validSelection = current.filter((id) => normalized.some((article) => article.id === id));
         return validSelection.length > 0
           ? validSelection
-          : normalized.slice(0, 3).map((article) => article.id);
+          : defaultSelection;
       });
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load articles.");

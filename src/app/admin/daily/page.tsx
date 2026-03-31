@@ -18,6 +18,7 @@ import {
   type ReviewItem,
 } from "./types";
 import { ReviewGroup, SummaryTile } from "./ReviewGroup";
+import { getTopicClusterKey, pickDiverseArticles } from "./utils";
 import { useDailyGeneration } from "./useDailyGeneration";
 import { useReviewActions } from "./useReviewActions";
 
@@ -80,7 +81,7 @@ export default function DailyContentPage() {
       try {
         const [philosopherRes, candidateRes, usageRes] = await Promise.all([
           fetch("/api/admin/philosophers"),
-          fetch("/api/admin/news-scout/candidates?status=scored&min_score=60&limit=10"),
+          fetch("/api/admin/news-scout/candidates?status=scored&mode=diverse"),
           fetch("/api/admin/philosopher-usage"),
         ]);
 
@@ -98,7 +99,12 @@ export default function DailyContentPage() {
         setPhilosophers(philosopherData);
         setArticles(normalizedCandidates);
         setPhilosopherUsage(usageData?.usage ?? {});
-        setSelectedArticleIds(normalizedCandidates.slice(0, 3).map((article) => article.id));
+        setSelectedArticleIds(
+          pickDiverseArticles(
+            [...normalizedCandidates].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)),
+            3
+          )
+        );
       } catch (loadError) {
         if (!cancelled) {
           setError(loadError instanceof Error ? loadError.message : "Failed to load setup data.");
@@ -191,6 +197,35 @@ export default function DailyContentPage() {
         label: TOPIC_CLUSTER_LABELS[cluster]?.label ?? cluster,
       }));
   }, [selectedClusters]);
+  const groupedArticles = useMemo(() => {
+    const groups: Array<{
+      cluster: string;
+      label: string;
+      color: string;
+      articles: CandidateArticle[];
+    }> = [];
+    const clusterMap = new Map<string, CandidateArticle[]>();
+
+    for (const article of articles) {
+      const cluster = getTopicClusterKey(article.topic_cluster);
+      if (!clusterMap.has(cluster)) {
+        clusterMap.set(cluster, []);
+      }
+      clusterMap.get(cluster)?.push(article);
+    }
+
+    for (const [cluster, clusterArticles] of clusterMap) {
+      const config = TOPIC_CLUSTER_LABELS[cluster];
+      groups.push({
+        cluster,
+        label: config?.label ?? "Other",
+        color: config?.color ?? "bg-stone-100 text-stone-700 border-stone-200",
+        articles: clusterArticles,
+      });
+    }
+
+    return groups;
+  }, [articles]);
   const activePhilosophers = useMemo(
     () => philosophers.filter((philosopher) => philosopher.is_active !== 0),
     [philosophers]
@@ -337,99 +372,104 @@ export default function DailyContentPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {articles.map((article) => {
-                const selected = selectedArticleIds.includes(article.id);
-                return (
-                  <label
-                    key={article.id}
-                    className={`block rounded-xl border px-5 py-4 cursor-pointer transition-colors ${
-                      selected
-                        ? "border-terracotta bg-terracotta/5 ring-1 ring-terracotta/20"
-                        : "border-border bg-white hover:bg-parchment-dark/20"
-                    }`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => toggleArticle(article.id)}
-                        className="mt-1 h-4 w-4 rounded border-border text-terracotta focus:ring-terracotta"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap mb-2">
-                          <span className="inline-flex items-center px-2.5 py-1 text-[11px] font-mono tracking-wider uppercase rounded-full bg-parchment-dark text-ink-lighter">
-                            Score {article.score ?? "-"}
-                          </span>
-                          <span className="text-xs text-ink-lighter">{article.source_name}</span>
-                          {article.topic_cluster && TOPIC_CLUSTER_LABELS[article.topic_cluster] && (
-                            <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-medium border ${TOPIC_CLUSTER_LABELS[article.topic_cluster].color}`}
-                            >
-                              {TOPIC_CLUSTER_LABELS[article.topic_cluster].label}
-                            </span>
-                          )}
-                          {article.published_posts.length > 0 && (
-                            <span className="text-xs text-ink-lighter">
-                              {article.published_posts.length} related post{article.published_posts.length === 1 ? "" : "s"}
-                            </span>
-                          )}
-                        </div>
-                        <h3 className="font-serif text-lg font-bold text-ink leading-snug">{article.title}</h3>
-                        {article.philosophical_entry_point && (
-                          <p className="mt-2 text-sm text-ink leading-relaxed">
-                            {article.philosophical_entry_point}
-                          </p>
-                        )}
-                        {article.suggested_philosophers.length > 0 && (
-                          <div className="mt-3 flex flex-wrap items-center gap-2">
-                            {article.suggested_philosophers.map((philosopherId) => {
-                              const philosopher = philosophers.find((entry) => entry.id === philosopherId);
-                              if (!philosopher) return null;
-                              const usage = philosopherUsage[philosopher.id];
-                              const count = usage?.posts_7d ?? 0;
-                              const daysSince = usage?.days_since_last;
-                              const isOverused = count >= 5;
-                              const isIdle = daysSince === null || daysSince >= 14;
-
-                              return (
-                                <span
-                                  key={philosopher.id}
-                                  className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 border border-border-light bg-parchment text-xs text-ink"
-                                  title={
-                                    daysSince === null
-                                      ? `${philosopher.name}: never posted`
-                                      : `${philosopher.name}: ${count} posts this week, last used ${daysSince}d ago`
-                                  }
-                                >
-                                  <span
-                                    className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-serif font-bold text-white"
-                                    style={{ backgroundColor: philosopher.color }}
-                                  >
-                                    {philosopher.initials}
-                                  </span>
-                                  {philosopher.name}
-                                  {(isOverused || isIdle) && (
-                                    <span
-                                      className={`ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-mono font-bold ${
-                                        isOverused
-                                          ? "bg-red-100 text-red-700"
-                                          : "bg-amber-100 text-amber-700"
-                                      }`}
-                                      title={isOverused ? "Heavy usage this week" : "Idle - has not posted recently"}
-                                    >
-                                      {isOverused ? count : "!"}
-                                    </span>
-                                  )}
+              {groupedArticles.map((group, groupIndex) => (
+                <div key={group.cluster} className="space-y-3">
+                  <div className={`flex items-center gap-2 mb-2 ${groupIndex === 0 ? "" : "pt-2"}`}>
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-mono font-medium border ${group.color}`}>
+                      {group.label}
+                    </span>
+                    <span className="text-xs text-ink-lighter">
+                      {group.articles.length} article{group.articles.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  {group.articles.map((article) => {
+                    const selected = selectedArticleIds.includes(article.id);
+                    return (
+                      <label
+                        key={article.id}
+                        className={`block rounded-xl border px-5 py-4 cursor-pointer transition-colors ${
+                          selected
+                            ? "border-terracotta bg-terracotta/5 ring-1 ring-terracotta/20"
+                            : "border-border bg-white hover:bg-parchment-dark/20"
+                        }`}
+                      >
+                        <div className="flex items-start gap-4">
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => toggleArticle(article.id)}
+                            className="mt-1 h-4 w-4 rounded border-border text-terracotta focus:ring-terracotta"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap mb-2">
+                              <span className="inline-flex items-center px-2.5 py-1 text-[11px] font-mono tracking-wider uppercase rounded-full bg-parchment-dark text-ink-lighter">
+                                Score {article.score ?? "-"}
+                              </span>
+                              <span className="text-xs text-ink-lighter">{article.source_name}</span>
+                              {article.published_posts.length > 0 && (
+                                <span className="text-xs text-ink-lighter">
+                                  {article.published_posts.length} related post{article.published_posts.length === 1 ? "" : "s"}
                                 </span>
-                              );
-                            })}
+                              )}
+                            </div>
+                            <h3 className="font-serif text-lg font-bold text-ink leading-snug">{article.title}</h3>
+                            {article.philosophical_entry_point && (
+                              <p className="mt-2 text-sm text-ink leading-relaxed">
+                                {article.philosophical_entry_point}
+                              </p>
+                            )}
+                            {article.suggested_philosophers.length > 0 && (
+                              <div className="mt-3 flex flex-wrap items-center gap-2">
+                                {article.suggested_philosophers.map((philosopherId) => {
+                                  const philosopher = philosophers.find((entry) => entry.id === philosopherId);
+                                  if (!philosopher) return null;
+                                  const usage = philosopherUsage[philosopher.id];
+                                  const count = usage?.posts_7d ?? 0;
+                                  const daysSince = usage?.days_since_last;
+                                  const isOverused = count >= 5;
+                                  const isIdle = daysSince === null || daysSince >= 14;
+
+                                  return (
+                                    <span
+                                      key={philosopher.id}
+                                      className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 border border-border-light bg-parchment text-xs text-ink"
+                                      title={
+                                        daysSince === null
+                                          ? `${philosopher.name}: never posted`
+                                          : `${philosopher.name}: ${count} posts this week, last used ${daysSince}d ago`
+                                      }
+                                    >
+                                      <span
+                                        className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-serif font-bold text-white"
+                                        style={{ backgroundColor: philosopher.color }}
+                                      >
+                                        {philosopher.initials}
+                                      </span>
+                                      {philosopher.name}
+                                      {(isOverused || isIdle) && (
+                                        <span
+                                          className={`ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-mono font-bold ${
+                                            isOverused
+                                              ? "bg-red-100 text-red-700"
+                                              : "bg-amber-100 text-amber-700"
+                                          }`}
+                                          title={isOverused ? "Heavy usage this week" : "Idle - has not posted recently"}
+                                        >
+                                          {isOverused ? count : "!"}
+                                        </span>
+                                      )}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  </label>
-                );
-              })}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           )}
 
