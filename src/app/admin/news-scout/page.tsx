@@ -30,6 +30,14 @@ interface CandidateWithUsage extends ArticleCandidate {
   }>;
 }
 
+interface CandidatePageResponse {
+  items: CandidateWithUsage[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 interface PhilosopherMeta {
   name: string;
   initials: string;
@@ -127,6 +135,11 @@ const MIN_SCORES = [
 ];
 
 const STATUS_TABS = ["scored", "approved", "dismissed", "all"] as const;
+const NEWS_SCOUT_PAGE_SIZE = 50;
+const SORT_OPTIONS = [
+  { label: "Top score", value: "score" },
+  { label: "Newest first", value: "newest" },
+] as const;
 
 const STANCE_SHORT_LABELS: Record<Stance, string> = {
   challenges: "chall",
@@ -173,6 +186,45 @@ const LENGTH_STRATEGY_OPTIONS: Array<{
   { value: "medium", label: "Medium" },
 ];
 
+function buildPaginationItems(
+  currentPage: number,
+  totalPages: number
+): Array<number | "ellipsis"> {
+  if (totalPages <= 1) return [1];
+
+  const visiblePages = new Set<number>([1, totalPages]);
+  for (const page of [currentPage - 1, currentPage, currentPage + 1]) {
+    if (page > 1 && page < totalPages) {
+      visiblePages.add(page);
+    }
+  }
+
+  if (currentPage <= 3) {
+    visiblePages.add(2);
+    visiblePages.add(3);
+  }
+
+  if (currentPage >= totalPages - 2) {
+    visiblePages.add(totalPages - 1);
+    visiblePages.add(totalPages - 2);
+  }
+
+  const sortedPages = Array.from(visiblePages)
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((left, right) => left - right);
+  const items: Array<number | "ellipsis"> = [];
+
+  for (const page of sortedPages) {
+    const lastItem = items[items.length - 1];
+    if (typeof lastItem === "number" && page - lastItem > 1) {
+      items.push("ellipsis");
+    }
+    items.push(page);
+  }
+
+  return items;
+}
+
 export default function NewsScoutPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [candidates, setCandidates] = useState<CandidateWithUsage[]>([]);
@@ -192,6 +244,15 @@ export default function NewsScoutPage() {
   const [statusFilter, setStatusFilter] = useState("scored");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [minScoreFilter, setMinScoreFilter] = useState("60");
+  const [sortOrder, setSortOrder] =
+    useState<(typeof SORT_OPTIONS)[number]["value"]>("score");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [candidatePagination, setCandidatePagination] = useState({
+    total: 0,
+    page: 1,
+    pageSize: NEWS_SCOUT_PAGE_SIZE,
+    totalPages: 1,
+  });
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -228,6 +289,7 @@ export default function NewsScoutPage() {
   const [genInProgress, setGenInProgress] = useState(false);
 
   const hasInitialized = useRef(false);
+  const hasCompletedInitialCandidateLoad = useRef(false);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -244,16 +306,38 @@ export default function NewsScoutPage() {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (categoryFilter !== "all") params.set("category", categoryFilter);
-      if (minScoreFilter && statusFilter === "scored") params.set("min_score", minScoreFilter);
-      params.set("limit", "50");
+      if (minScoreFilter && statusFilter === "scored") {
+        params.set("min_score", minScoreFilter);
+      }
+      params.set("sort", sortOrder);
+      params.set("page", String(currentPage));
+      params.set("page_size", String(NEWS_SCOUT_PAGE_SIZE));
 
       const res = await fetch(`/api/admin/news-scout/candidates?${params}`);
-      const data = await res.json();
-      setCandidates(data);
+      const data = (await res.json()) as
+        | CandidatePageResponse
+        | { error?: string };
+      if (!res.ok || !("items" in data)) {
+        throw new Error(
+          "error" in data ? data.error || "Failed to fetch candidates" : "Failed to fetch candidates"
+        );
+      }
+
+      setCandidates(data.items);
+      setCandidatePagination({
+        total: data.total,
+        page: data.page,
+        pageSize: data.pageSize,
+        totalPages: data.totalPages,
+      });
+      if (data.page !== currentPage) {
+        setCurrentPage(data.page);
+      }
+      setError(null);
     } catch {
       setError("Failed to fetch candidates");
     }
-  }, [categoryFilter, minScoreFilter, statusFilter]);
+  }, [categoryFilter, currentPage, minScoreFilter, sortOrder, statusFilter]);
 
   const fetchOverviewCandidates = useCallback(async () => {
     try {
@@ -313,6 +397,10 @@ export default function NewsScoutPage() {
 
   useEffect(() => {
     if (!hasInitialized.current) return;
+    if (!hasCompletedInitialCandidateLoad.current) {
+      hasCompletedInitialCandidateLoad.current = true;
+      return;
+    }
 
     setListLoading(true);
     fetchCandidates().finally(() => setListLoading(false));
@@ -634,6 +722,18 @@ export default function NewsScoutPage() {
   const allSelectedOnPage =
     candidates.length > 0 &&
     candidates.every((candidate) => selectedCandidateIds.includes(candidate.id));
+  const visibleRangeStart =
+    candidatePagination.total === 0
+      ? 0
+      : (candidatePagination.page - 1) * candidatePagination.pageSize + 1;
+  const visibleRangeEnd =
+    candidatePagination.total === 0
+      ? 0
+      : visibleRangeStart + Math.max(candidates.length - 1, 0);
+  const paginationItems = buildPaginationItems(
+    candidatePagination.page,
+    candidatePagination.totalPages
+  );
 
   if (loading) {
     return (
@@ -932,7 +1032,10 @@ export default function NewsScoutPage() {
               {STATUS_TABS.map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => setStatusFilter(tab)}
+                  onClick={() => {
+                    setStatusFilter(tab);
+                    setCurrentPage(1);
+                  }}
                   className={`rounded-lg px-5 py-2.5 text-sm font-body capitalize transition-colors ${
                     statusFilter === tab
                       ? "bg-terracotta/10 font-medium text-terracotta ring-1 ring-terracotta/30"
@@ -947,7 +1050,10 @@ export default function NewsScoutPage() {
             <div className="flex flex-wrap gap-3">
               <select
                 value={categoryFilter}
-                onChange={(event) => setCategoryFilter(event.target.value)}
+                onChange={(event) => {
+                  setCategoryFilter(event.target.value);
+                  setCurrentPage(1);
+                }}
                 className="rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm font-body text-ink transition-colors focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/40"
               >
                 {CATEGORIES.map((category) => (
@@ -961,10 +1067,30 @@ export default function NewsScoutPage() {
 
               <select
                 value={minScoreFilter}
-                onChange={(event) => setMinScoreFilter(event.target.value)}
+                onChange={(event) => {
+                  setMinScoreFilter(event.target.value);
+                  setCurrentPage(1);
+                }}
                 className="rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm font-body text-ink transition-colors focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/40"
               >
                 {MIN_SCORES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={sortOrder}
+                onChange={(event) => {
+                  setSortOrder(
+                    event.target.value as (typeof SORT_OPTIONS)[number]["value"]
+                  );
+                  setCurrentPage(1);
+                }}
+                className="rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm font-body text-ink transition-colors focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+              >
+                {SORT_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -978,6 +1104,71 @@ export default function NewsScoutPage() {
                 </span>
               )}
             </div>
+
+            {candidatePagination.total > 0 && (
+              <div className="flex flex-col gap-3 border-t border-border pt-4 md:flex-row md:items-center md:justify-between">
+                <div className="text-xs font-mono text-ink-lighter">
+                  Showing {visibleRangeStart}-{visibleRangeEnd} of{" "}
+                  {candidatePagination.total} results
+                </div>
+
+                {candidatePagination.totalPages > 1 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() =>
+                        setCurrentPage((page) => Math.max(page - 1, 1))
+                      }
+                      disabled={candidatePagination.page <= 1 || listLoading}
+                      className="rounded-lg border border-border px-3 py-1.5 text-xs font-mono text-ink-lighter transition-colors hover:bg-parchment-dark/50 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Prev
+                    </button>
+
+                    {paginationItems.map((item, index) =>
+                      item === "ellipsis" ? (
+                        <span
+                          key={`ellipsis-${index}`}
+                          className="px-1 text-xs font-mono text-ink-lighter"
+                        >
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={item}
+                          onClick={() => setCurrentPage(item)}
+                          aria-current={
+                            candidatePagination.page === item ? "page" : undefined
+                          }
+                          disabled={listLoading}
+                          className={`min-w-9 rounded-lg px-3 py-1.5 text-xs font-mono transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                            candidatePagination.page === item
+                              ? "bg-terracotta text-white"
+                              : "border border-border text-ink-lighter hover:bg-parchment-dark/50 hover:text-ink"
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      )
+                    )}
+
+                    <button
+                      onClick={() =>
+                        setCurrentPage((page) =>
+                          Math.min(page + 1, candidatePagination.totalPages)
+                        )
+                      }
+                      disabled={
+                        candidatePagination.page >= candidatePagination.totalPages ||
+                        listLoading
+                      }
+                      className="rounded-lg border border-border px-3 py-1.5 text-xs font-mono text-ink-lighter transition-colors hover:bg-parchment-dark/50 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -988,7 +1179,7 @@ export default function NewsScoutPage() {
                 (candidate) => (candidate.published_posts?.length || 0) > 0
               ).length
             }{" "}
-            of {candidates.length} approved articles have posts
+            of {candidates.length} approved articles shown on this page have posts
           </div>
         )}
 

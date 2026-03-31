@@ -2,6 +2,54 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import type { ArticleCandidate } from "@/lib/news-scout-service";
 
+type CandidateWithUsage = ArticleCandidate & {
+  published_posts: Array<{
+    philosopher_id: string;
+    status: string;
+    post_id: string;
+  }>;
+};
+
+function enrichCandidates(
+  db: ReturnType<typeof getDb>,
+  candidates: ArticleCandidate[]
+): CandidateWithUsage[] {
+  const urls = Array.from(
+    new Set(candidates.map((candidate) => candidate.url).filter(Boolean))
+  );
+  const usageMap: Record<
+    string,
+    Array<{ philosopher_id: string; status: string; post_id: string }>
+  > = {};
+
+  if (urls.length > 0) {
+    const placeholders = urls.map(() => "?").join(",");
+    const posts = db
+      .prepare(
+        `SELECT citation_url, philosopher_id, status, id as post_id
+         FROM posts
+         WHERE citation_url IN (${placeholders})
+           AND status IN ('draft', 'approved', 'published')`
+      )
+      .all(...urls) as Array<{
+      citation_url: string;
+      philosopher_id: string;
+      status: string;
+      post_id: string;
+    }>;
+
+    for (const post of posts) {
+      if (!usageMap[post.citation_url]) usageMap[post.citation_url] = [];
+      usageMap[post.citation_url].push(post);
+    }
+  }
+
+  return candidates.map((candidate) => ({
+    ...candidate,
+    published_posts: usageMap[candidate.url] || [],
+  }));
+}
+
 /**
  * GET — Return scored candidates with optional filters.
  * Query params: status (default 'scored'), category, min_score, limit (default 30)
@@ -14,9 +62,11 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || "scored";
     const category = searchParams.get("category");
     const minScore = searchParams.get("min_score");
-    const limit = parseInt(searchParams.get("limit") || "30", 10);
+    const sort = searchParams.get("sort") === "newest" ? "newest" : "score";
+    const pageSizeParam = searchParams.get("page_size");
+    const pageParam = searchParams.get("page");
 
-    let query = `
+    const baseQuery = `
       SELECT ac.*, ns.name as source_name, ns.category as source_category, ns.logo_url as source_logo_url
       FROM article_candidates ac
       JOIN news_sources ns ON ac.source_id = ns.id
@@ -39,50 +89,58 @@ export async function GET(request: NextRequest) {
       params.push(parseInt(minScore, 10));
     }
 
-    if (conditions.length > 0) {
-      query += " WHERE " + conditions.join(" AND ");
+    const whereClause =
+      conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+    const orderClause =
+      sort === "newest"
+        ? " ORDER BY COALESCE(ac.pub_date, ac.fetched_at) DESC, ac.fetched_at DESC, ac.score DESC"
+        : " ORDER BY ac.score DESC, COALESCE(ac.pub_date, ac.fetched_at) DESC, ac.fetched_at DESC";
+    const parsedPageSize = pageSizeParam
+      ? Number.parseInt(pageSizeParam, 10)
+      : Number.NaN;
+    const pageSize = Number.isFinite(parsedPageSize)
+      ? Math.max(1, Math.min(parsedPageSize, 100))
+      : null;
+
+    if (pageSize !== null) {
+      const parsedPage = pageParam ? Number.parseInt(pageParam, 10) : 1;
+      const requestedPage = Number.isFinite(parsedPage)
+        ? Math.max(1, parsedPage)
+        : 1;
+      const total = (
+        db
+          .prepare(
+            `SELECT COUNT(*) as count
+             FROM article_candidates ac
+             JOIN news_sources ns ON ac.source_id = ns.id${whereClause}`
+          )
+          .get(...params) as { count: number }
+      ).count;
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      const page = Math.min(requestedPage, totalPages);
+      const offset = (page - 1) * pageSize;
+      const candidates = db
+        .prepare(`${baseQuery}${whereClause}${orderClause} LIMIT ? OFFSET ?`)
+        .all(...params, pageSize, offset) as ArticleCandidate[];
+
+      return NextResponse.json({
+        items: enrichCandidates(db, candidates),
+        total,
+        page,
+        pageSize,
+        totalPages,
+      });
     }
 
-    query += " ORDER BY ac.score DESC, ac.fetched_at DESC LIMIT ?";
-    params.push(limit);
+    const parsedLimit = Number.parseInt(searchParams.get("limit") || "30", 10);
+    const limit = Number.isFinite(parsedLimit)
+      ? Math.max(1, Math.min(parsedLimit, 200))
+      : 30;
+    const candidates = db
+      .prepare(`${baseQuery}${whereClause}${orderClause} LIMIT ?`)
+      .all(...params, limit) as ArticleCandidate[];
 
-    const candidates = db.prepare(query).all(...params) as ArticleCandidate[];
-
-    // Batch-fetch post usage data for returned candidates
-    const urls = candidates.map((c) => c.url).filter(Boolean);
-    const usageMap: Record<
-      string,
-      Array<{ philosopher_id: string; status: string; post_id: string }>
-    > = {};
-
-    if (urls.length > 0) {
-      const placeholders = urls.map(() => "?").join(",");
-      const posts = db
-        .prepare(
-          `SELECT citation_url, philosopher_id, status, id as post_id
-           FROM posts
-           WHERE citation_url IN (${placeholders})
-             AND status IN ('draft', 'approved', 'published')`
-        )
-        .all(...urls) as Array<{
-        citation_url: string;
-        philosopher_id: string;
-        status: string;
-        post_id: string;
-      }>;
-
-      for (const post of posts) {
-        if (!usageMap[post.citation_url]) usageMap[post.citation_url] = [];
-        usageMap[post.citation_url].push(post);
-      }
-    }
-
-    const enriched = candidates.map((c) => ({
-      ...c,
-      published_posts: usageMap[c.url] || [],
-    }));
-
-    return NextResponse.json(enriched);
+    return NextResponse.json(enrichCandidates(db, candidates));
   } catch (error) {
     console.error("Failed to fetch candidates:", error);
     return NextResponse.json(
