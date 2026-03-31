@@ -198,7 +198,7 @@ CREATE TABLE IF NOT EXISTS house_rules (
 CREATE TABLE IF NOT EXISTS generation_log (
   id               INTEGER PRIMARY KEY AUTOINCREMENT,
   philosopher_id   TEXT REFERENCES philosophers(id),
-  content_type     TEXT NOT NULL CHECK(content_type IN ('post','debate_opening','debate_rebuttal','agora_response','reflection','recommendation','synthesis')),
+  content_type     TEXT NOT NULL CHECK(content_type IN ('post','debate_opening','debate_rebuttal','agora_response','reflection','recommendation','synthesis','art_commentary')),
   system_prompt_id INTEGER REFERENCES system_prompts(id),
   user_input       TEXT NOT NULL DEFAULT '',
   raw_output       TEXT NOT NULL DEFAULT '',

@@ -2,7 +2,7 @@ import type Database from "better-sqlite3";
 import { DEFAULT_SCORING_CONFIG_VALUES } from "../src/lib/scoring-config";
 import { DEFAULT_MOOD_PALETTES } from "../src/lib/mood-data";
 
-// ── Migration Registry ─────────────────────────────────────────
+// Migration Registry
 
 interface Migration {
   version: number;
@@ -70,7 +70,7 @@ const MIGRATIONS: Migration[] = [
     name: "rename_quip_post_tags_to_glint",
     migrate: (db) => migrateRenameQuipPostTagsToGlint(db),
   },
-  // ── Future migrations go here ──
+  // Future migrations go here
   // {
   //   version: 2,
   //   name: "add_user_profiles",
@@ -96,7 +96,12 @@ const MIGRATIONS: Migration[] = [
     name: "agora_hidden_from_feed",
     migrate: (db) => migrateAgoraHiddenFromFeed(db),
   },
-  // —— Future migrations go here ——————————————————————————
+  {
+    version: 14,
+    name: "generation_log_add_art_commentary_content_type",
+    migrate: (db) => migrateGenerationLogAddArtCommentary(db),
+  },
+  // Future migrations go here
 ];
 
 const DEFAULT_NEWS_SOURCES: [string, string, string, string][] = [
@@ -224,7 +229,7 @@ const UPDATED_STANCE_GUIDANCE_VALUE = JSON.stringify({
     "CRITICAL: Each suggested philosopher MUST have a DIFFERENT stance. Never assign the same stance to 2+ philosophers on the same article.\n\nStance hierarchy (prefer top, avoid bottom):\n1. 'challenges' + 'defends' \u2014 genuine opposition, highest value\n2. 'reframes' \u2014 shifts the question itself, high value when authentic\n3. 'questions' \u2014 Socratic interrogation, moderate value\n4. 'warns' \u2014 use ONLY when a philosopher's framework genuinely predicts danger, not as a safe default\n5. 'observes' \u2014 LAST RESORT. A philosopher who merely 'observes' adds little friction. If you find yourself assigning 'observes', ask: could this philosopher 'reframe' or 'question' instead? Almost always yes.\n\nMaximum ONE 'observes' per article. Maximum ONE 'warns' per article. If an article can't generate at least one 'challenges' or 'defends', it probably deserves a lower score.",
 });
 
-// ── Version Tracking ───────────────────────────────────────────
+// Version Tracking
 
 function ensureMetaTable(db: Database.Database): void {
   db.exec(`
@@ -878,7 +883,65 @@ function migrateAgoraHiddenFromFeed(db: Database.Database): void {
   db.exec("ALTER TABLE agora_threads ADD COLUMN hidden_from_feed INTEGER NOT NULL DEFAULT 0");
 }
 
-// ── Test-only exports ──────────────────────────────────────────
+
+function migrateGenerationLogAddArtCommentary(db: Database.Database): void {
+  const tableInfo = db
+    .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='generation_log'")
+    .get() as { sql: string } | undefined;
+
+  if (!tableInfo) return;
+  if (tableInfo.sql.includes("art_commentary")) return;
+
+  db.exec("PRAGMA foreign_keys = OFF;");
+
+  db.transaction(() => {
+    const columns = db
+      .prepare("PRAGMA table_info(generation_log)")
+      .all() as Array<{ name: string }>;
+    const hasMoodRegister = columns.some((column) => column.name === "mood_register");
+
+    const columnList = [
+      "id",
+      "philosopher_id",
+      "content_type",
+      "system_prompt_id",
+      "user_input",
+      "raw_output",
+      hasMoodRegister ? "mood_register" : null,
+      "status",
+      "created_at",
+    ]
+      .filter((column): column is string => Boolean(column))
+      .join(", ");
+
+    const moodRegisterColumn = hasMoodRegister
+      ? "mood_register    TEXT DEFAULT NULL,"
+      : "";
+
+    db.exec(`
+      CREATE TABLE generation_log_new (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        philosopher_id   TEXT REFERENCES philosophers(id),
+        content_type     TEXT NOT NULL CHECK(content_type IN ('post','debate_opening','debate_rebuttal','agora_response','reflection','recommendation','synthesis','art_commentary')),
+        system_prompt_id INTEGER REFERENCES system_prompts(id),
+        user_input       TEXT NOT NULL DEFAULT '',
+        raw_output       TEXT NOT NULL DEFAULT '',
+        ${moodRegisterColumn}
+        status           TEXT NOT NULL DEFAULT 'generated' CHECK(status IN ('generated','approved','rejected','published','pending')),
+        created_at       TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+
+    db.exec(`INSERT INTO generation_log_new (${columnList}) SELECT ${columnList} FROM generation_log;`);
+    db.exec("DROP TABLE generation_log;");
+    db.exec("ALTER TABLE generation_log_new RENAME TO generation_log;");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_generation_log_philosopher ON generation_log(philosopher_id);");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_generation_log_status ON generation_log(status);");
+  })();
+
+  db.exec("PRAGMA foreign_keys = ON;");
+}
+// Test-only exports
 function migrateAddPostRecommendationAuthor(db: Database.Database): void {
   const columns = db.prepare("PRAGMA table_info(posts)").all() as Array<{ name: string }>;
   const hasRecommendationAuthor = columns.some((column) => column.name === "recommendation_author");
