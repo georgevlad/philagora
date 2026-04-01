@@ -111,7 +111,7 @@ export function WelcomeCard() {
             >
               Agora
             </Link>{" "}
-            is where you come in — ask anything, from big ideas to personal
+            is where you come in - ask anything, from big ideas to personal
             struggles, and get real, multi-perspective answers shaped by centuries
             of thought.
           </p>

@@ -45,3 +45,6 @@ db/*.db-wal
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+#db
+/db/philagora.db
