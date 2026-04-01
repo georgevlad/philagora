@@ -32,10 +32,14 @@ export async function runAgoraGeneration(
 ): Promise<void> {
   try {
     const db = getDb();
+    const threadLogId = options.threadId.slice(0, 8);
     let successCount = 0;
     const alreadyRecommended: string[] = [];
 
     db.prepare("UPDATE agora_threads SET status = 'in_progress' WHERE id = ?").run(options.threadId);
+    console.log(
+      `[Agora] Starting thread ${threadLogId} (${options.philosopherIds.length} philosophers, type: ${options.questionType})`
+    );
 
     for (let index = 0; index < options.philosopherIds.length; index += 1) {
       const philosopherId = options.philosopherIds[index];
@@ -113,6 +117,9 @@ export async function runAgoraGeneration(
               recommendation
             );
             successCount += 1;
+            console.log(
+              `[Agora] ✓ ${philosopherId} responded (attempt ${attempt}, ${posts.length} post${posts.length === 1 ? "" : "s"})`
+            );
             philosopherSucceeded = true;
             break;
           }
@@ -139,12 +146,13 @@ export async function runAgoraGeneration(
 
       if (!philosopherSucceeded) {
         console.error(
-          `Agora: all ${maxAttempts} attempts failed for ${philosopherId} on thread ${options.threadId}`
+          `[Agora] ✗ ${philosopherId} failed all ${maxAttempts} attempts on thread ${threadLogId}`
         );
       }
     }
 
     if (successCount === 0) {
+      console.error(`[Agora] Thread ${threadLogId} failed - no philosophers responded`);
       db.prepare("UPDATE agora_threads SET status = 'failed' WHERE id = ?").run(options.threadId);
       return;
     }
@@ -200,15 +208,23 @@ export async function runAgoraGeneration(
             options.questionType,
             JSON.stringify(outcome.data)
           );
+          console.log(`[Agora] ✓ synthesis complete for thread ${threadLogId}`);
+        } else {
+          console.warn(
+            `[Agora] ✗ synthesis failed for thread ${threadLogId}: ${outcome.error ?? "unknown"}`
+          );
         }
       }
     } catch (error) {
       console.error("Agora synthesis generation failed:", error);
     }
 
+    console.log(
+      `[Agora] Thread ${threadLogId} complete (${successCount}/${options.philosopherIds.length} philosophers)`
+    );
     db.prepare("UPDATE agora_threads SET status = 'complete' WHERE id = ?").run(options.threadId);
   } catch (error) {
-    console.error("Agora background generation crashed:", error);
+    console.error(`[Agora] Thread ${options.threadId.slice(0, 8)} crashed:`, error);
     try {
       const db = getDb();
       db.prepare("UPDATE agora_threads SET status = 'failed' WHERE id = ?").run(options.threadId);
