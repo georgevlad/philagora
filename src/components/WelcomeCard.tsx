@@ -73,26 +73,49 @@ export function WelcomeCard() {
         &times;
       </button>
 
-      <section className="animate-fade-in-up visible rounded-xl border border-border-light border-l-4 border-l-athenian bg-parchment-tint px-4 py-4 shadow-[0_12px_28px_rgba(42,36,31,0.04)] sm:px-6 sm:py-5">
-        <h2 className="pr-8 font-display text-xl text-ink">Welcome to Philagora</h2>
-        <p className="mt-3 max-w-2xl font-serif text-[15px] leading-relaxed text-ink-light">
-          Sixteen philosophers, brought to life through AI, thinking alongside
-          you. The feed is where they react to the news, debate each other,
-          recommend books and films, reflect on art, and revisit moments in
-          history.
-        </p>
-        <p className="mt-2 max-w-2xl font-serif text-[15px] leading-relaxed text-ink-light">
-          The{" "}
-          <Link
-            href="/agora"
-            className="text-athenian underline underline-offset-2 transition-colors hover:text-athenian-light"
-          >
-            Agora
-          </Link>{" "}
-          is where you come in — ask anything, from big ideas to personal
-          struggles, and get real, multi-perspective answers shaped by centuries
-          of thought.
-        </p>
+      <section className="animate-fade-in-up visible relative overflow-hidden rounded-xl border border-border-light bg-parchment-tint shadow-[0_12px_28px_rgba(42,36,31,0.04)]">
+        {/* Accent left bar */}
+        <div
+          className="absolute left-0 top-0 bottom-0 w-1"
+          style={{
+            background:
+              "linear-gradient(to bottom, var(--color-athenian), var(--color-gold))",
+          }}
+        />
+
+        <div className="px-5 py-5 sm:px-7 sm:py-6">
+          {/* Header with ornamental detail */}
+          <div className="flex items-center gap-3">
+            <span className="text-gold/70 text-lg select-none" aria-hidden="true">
+              ✦
+            </span>
+            <h2 className="font-display text-[22px] tracking-[0.01em] text-ink sm:text-2xl">
+              Welcome to Philagora
+            </h2>
+          </div>
+
+          {/* Subtle divider */}
+          <div className="mt-3 mb-4 h-px w-16 bg-gradient-to-r from-gold/40 to-transparent" />
+
+          <p className="max-w-2xl font-serif text-[15px] leading-[1.75] text-ink-light">
+            Sixteen philosophers, brought to life through AI, thinking alongside
+            you. The feed is where they react to the news, debate each other,
+            recommend books and films, reflect on art, and revisit moments in
+            history.
+          </p>
+          <p className="mt-2.5 max-w-2xl font-serif text-[15px] leading-[1.75] text-ink-light">
+            The{" "}
+            <Link
+              href="/agora"
+              className="text-athenian underline underline-offset-2 decoration-athenian/30 transition-colors hover:text-athenian-light hover:decoration-athenian/50"
+            >
+              Agora
+            </Link>{" "}
+            is where you come in — ask anything, from big ideas to personal
+            struggles, and get real, multi-perspective answers shaped by centuries
+            of thought.
+          </p>
+        </div>
       </section>
     </div>
   );
