@@ -610,14 +610,19 @@ export function ThreadPageClient({
 
         {/* Generating indicator */}
         {isGenerating && (
-          <div className="flex items-center gap-2 mt-3">
-            <span className="relative flex h-2.5 w-2.5">
+          <div className="flex items-start gap-2 mt-3">
+            <span className="relative flex h-2.5 w-2.5 mt-0.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-terracotta/60" />
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-terracotta" />
             </span>
-            <span className="text-xs font-mono text-terracotta">
-              Philosophers are considering your question...
-            </span>
+            <div>
+              <span className="text-xs font-mono text-terracotta">
+                The philosophers are deliberating...
+              </span>
+              <p className="text-[11px] font-body text-ink-faint mt-0.5">
+                Each thinker responds in turn — this usually takes a minute or two.
+              </p>
+            </div>
           </div>
         )}
 
@@ -828,6 +833,9 @@ export function ThreadPageClient({
                     <p className="text-sm font-body italic text-ink-light">
                       The philosophers are considering your follow-up...
                     </p>
+                    <p className="text-[11px] font-body text-ink-faint mt-1">
+                      This usually takes a minute or two. You can leave this page and come back.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -871,6 +879,9 @@ export function ThreadPageClient({
               <div className="w-6 h-6 border-2 border-gold/30 border-t-gold rounded-full animate-spin mx-auto mb-3" />
               <p className="text-sm font-body italic text-ink-lighter">
                 The philosophers are considering your follow-up...
+              </p>
+              <p className="text-[11px] font-body text-ink-faint mt-1">
+                This usually takes a minute or two.
               </p>
             </div>
           )}

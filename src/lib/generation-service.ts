@@ -279,10 +279,17 @@ ${instructions}`;
     maxTokens = 192;
   }
 
+  // Agora responses need more headroom, especially follow-ups which include
+  // full parent context (all previous responses + synthesis + article)
+  if (contentTypeKey === "agora_response") {
+    maxTokens = 2048;
+  }
+
   let rawOutput = "";
+  let response: Awaited<ReturnType<typeof createMessage>> | null = null;
 
   try {
-    const response = await createMessage(
+    response = await createMessage(
       client,
       {
         model: generationModel,
@@ -309,6 +316,16 @@ ${instructions}`;
       success: false,
       error: `Anthropic API error: ${message}`,
       rawOutput: rawOutput || String(err),
+      systemPromptId: activePrompt.id,
+    };
+  }
+
+  // 7b. Detect output truncation - the model hit max_tokens before finishing
+  if (response && response.stop_reason === "max_tokens") {
+    return {
+      success: false,
+      error: `Response truncated (hit ${maxTokens} token output limit). The model did not finish generating valid JSON.`,
+      rawOutput,
       systemPromptId: activePrompt.id,
     };
   }

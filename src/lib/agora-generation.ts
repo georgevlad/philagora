@@ -116,7 +116,9 @@ export async function runAgoraGeneration(
           }
 
           if (attempt < maxAttempts) {
-            console.warn(`Agora: retrying ${philosopherId} (attempt ${attempt} failed)`);
+            console.warn(
+              `Agora: retrying ${philosopherId} (attempt ${attempt} failed: ${outcome.error ?? "unknown"})`
+            );
             continue;
           }
         } catch (error) {
