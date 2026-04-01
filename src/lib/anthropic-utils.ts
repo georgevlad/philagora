@@ -100,16 +100,111 @@ function repairJson(raw: string): string {
 
 export function parseJsonValueResponse(rawOutput: string): unknown {
   let cleaned = rawOutput.trim();
+
+  // Strategy 1: Strip markdown fences (existing behavior)
   if (cleaned.startsWith("```")) {
     cleaned = cleaned.replace(/^```(?:json)?\s*/, "").replace(/```\s*$/, "");
   }
+
+  // Strategy 2: Direct parse
   try {
     return JSON.parse(cleaned);
   } catch {
-    // Attempt repair on common LLM JSON malformations
-    const repaired = repairJson(cleaned);
-    return JSON.parse(repaired); // throws if repair also fails
+    // continue to next strategy
   }
+
+  // Strategy 3: Repair common malformations then parse
+  try {
+    return JSON.parse(repairJson(cleaned));
+  } catch {
+    // continue to next strategy
+  }
+
+  // Strategy 4: Extract JSON from markdown fences anywhere in the response
+  const fenceMatch = rawOutput.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
+  if (fenceMatch) {
+    try {
+      return JSON.parse(fenceMatch[1].trim());
+    } catch {
+      try {
+        return JSON.parse(repairJson(fenceMatch[1].trim()));
+      } catch {
+        // continue to next strategy
+      }
+    }
+  }
+
+  // Strategy 5: Find the first top-level { ... } or [ ... ] in the response
+  // This handles preamble text before the JSON object.
+  const firstBrace = rawOutput.indexOf("{");
+  const firstBracket = rawOutput.indexOf("[");
+  const startChar =
+    firstBrace >= 0 && (firstBracket < 0 || firstBrace < firstBracket) ? "{" : "[";
+  const startIndex = startChar === "{" ? firstBrace : firstBracket;
+
+  if (startIndex >= 0) {
+    const closeChar = startChar === "{" ? "}" : "]";
+    let depth = 0;
+    let inString = false;
+    let escapeNext = false;
+    let endIndex = -1;
+
+    for (let index = startIndex; index < rawOutput.length; index += 1) {
+      const ch = rawOutput[index];
+
+      if (escapeNext) {
+        escapeNext = false;
+        continue;
+      }
+
+      if (ch === "\\") {
+        escapeNext = true;
+        continue;
+      }
+
+      if (ch === "\"") {
+        inString = !inString;
+        continue;
+      }
+
+      if (inString) {
+        continue;
+      }
+
+      if (ch === startChar) {
+        depth += 1;
+      }
+
+      if (ch === closeChar) {
+        depth -= 1;
+        if (depth === 0) {
+          endIndex = index;
+          break;
+        }
+      }
+    }
+
+    if (endIndex > startIndex) {
+      const jsonCandidate = rawOutput.slice(startIndex, endIndex + 1);
+      try {
+        return JSON.parse(jsonCandidate);
+      } catch {
+        try {
+          return JSON.parse(repairJson(jsonCandidate));
+        } catch {
+          // continue to throw below
+        }
+      }
+    }
+  }
+
+  // All strategies failed - throw with a descriptive message
+  const preview = rawOutput.length > 300
+    ? `${rawOutput.slice(0, 150)} ... ${rawOutput.slice(-150)}`
+    : rawOutput;
+  throw new SyntaxError(
+    `Could not extract valid JSON from model output. Preview: ${preview}`
+  );
 }
 
 export function parseJsonResponse(rawOutput: string): Record<string, unknown> {

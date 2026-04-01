@@ -49,6 +49,7 @@ export async function runAgoraGeneration(
         alreadyRecommended: [...alreadyRecommended],
       });
       const maxAttempts = 2;
+      let philosopherSucceeded = false;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         try {
@@ -112,12 +113,15 @@ export async function runAgoraGeneration(
               recommendation
             );
             successCount += 1;
+            philosopherSucceeded = true;
             break;
           }
 
           if (attempt < maxAttempts) {
+            const rawPreview = (outcome.rawOutput || "").slice(0, 200);
             console.warn(
               `Agora: retrying ${philosopherId} (attempt ${attempt} failed: ${outcome.error ?? "unknown"})`
+              + (rawPreview ? ` | raw preview: ${rawPreview}` : "")
             );
             continue;
           }
@@ -131,6 +135,12 @@ export async function runAgoraGeneration(
             break;
           }
         }
+      }
+
+      if (!philosopherSucceeded) {
+        console.error(
+          `Agora: all ${maxAttempts} attempts failed for ${philosopherId} on thread ${options.threadId}`
+        );
       }
     }
 
