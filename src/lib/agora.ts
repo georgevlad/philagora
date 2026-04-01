@@ -342,7 +342,7 @@ export function buildAgoraSynthesisSourceMaterial(args: {
   sourceMaterial += "=== PHILOSOPHER RESPONSES ===\n\n";
 
   for (const response of args.responses) {
-    const posts = JSON.parse(response.posts) as string[];
+    const posts = safeJsonParse<string[]>(response.posts, []);
     sourceMaterial += `### ${response.philosopher_name} (${response.philosopher_tradition}):\n`;
     posts.forEach((post, index) => {
       if (posts.length > 1) {
