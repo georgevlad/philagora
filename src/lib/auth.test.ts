@@ -22,6 +22,7 @@ vi.mock("@/lib/better-auth", () => ({
 import {
   getIdentityFromHeaders,
   getIdentityFromRequest,
+  hasUnlimitedAgoraAccess,
   isAdmin,
   isAuthenticated,
   requireAdmin,
@@ -210,5 +211,34 @@ describe("identity predicates", () => {
 
   it("isAuthenticated returns false for anonymous", () => {
     expect(isAuthenticated({ type: "anonymous" })).toBe(false);
+  });
+
+  it("hasUnlimitedAgoraAccess returns true for allowlisted Agora testers", () => {
+    expect(
+      hasUnlimitedAgoraAccess({
+        type: "user",
+        id: "123",
+        email: "George.Vlad.UTCN@gmail.com",
+      })
+    ).toBe(true);
+    expect(
+      hasUnlimitedAgoraAccess({
+        type: "user",
+        id: "456",
+        email: "daniel.rus@bitstone.com",
+      })
+    ).toBe(true);
+  });
+
+  it("hasUnlimitedAgoraAccess returns false for non-allowlisted identities", () => {
+    expect(
+      hasUnlimitedAgoraAccess({
+        type: "user",
+        id: "123",
+        email: "someone@example.com",
+      })
+    ).toBe(false);
+    expect(hasUnlimitedAgoraAccess({ type: "admin" })).toBe(false);
+    expect(hasUnlimitedAgoraAccess({ type: "anonymous" })).toBe(false);
   });
 });

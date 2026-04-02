@@ -9,7 +9,7 @@ import {
   getAnthropicClient,
   parseJsonResponse,
 } from "@/lib/anthropic-utils";
-import { getIdentityFromHeaders } from "@/lib/auth";
+import { getIdentityFromHeaders, hasUnlimitedAgoraAccess } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import {
   classifyAgoraQuestion,
@@ -120,10 +120,9 @@ export async function POST(request: NextRequest) {
     }
 
     const identity = await getIdentityFromHeaders(request);
-    const isOwner =
-      identity.type === "user" && identity.email === "george.vlad.utcn@gmail.com";
+    const hasUnlimitedAccess = hasUnlimitedAgoraAccess(identity);
 
-    if (!isOwner) {
+    if (!hasUnlimitedAccess) {
       const userId = identity.type === "user" ? identity.id : null;
       const todayKey = getTodayKey();
       const clientIp = getClientIp(request);

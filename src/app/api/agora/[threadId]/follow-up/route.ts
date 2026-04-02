@@ -8,7 +8,7 @@ import {
   type AgoraFollowUpContextResponseRow,
 } from "@/lib/agora";
 import { runAgoraGeneration } from "@/lib/agora-generation";
-import { getIdentityFromHeaders } from "@/lib/auth";
+import { getIdentityFromHeaders, hasUnlimitedAgoraAccess } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import type { AgoraQuestionType, AgoraThreadVisibility } from "@/lib/types";
 
@@ -60,8 +60,7 @@ export async function POST(
     const sanitizedQuestion = sanitizeAgoraQuestion(followUpQuestion);
     const identity = await getIdentityFromHeaders(request);
     const userId = identity.type === "user" ? identity.id : null;
-    const isOwner =
-      identity.type === "user" && identity.email === "george.vlad.utcn@gmail.com";
+    const hasUnlimitedAccess = hasUnlimitedAgoraAccess(identity);
 
     const parent = db.prepare(
       `SELECT id, question, asked_by, status, question_type, recommendations_enabled,
@@ -128,7 +127,7 @@ export async function POST(
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
       ?? "unknown";
 
-    if (!isOwner) {
+    if (!hasUnlimitedAccess) {
       if (userId) {
         const userCount = db
           .prepare(

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getIdentityFromHeaders } from "@/lib/auth";
+import { getIdentityFromHeaders, hasUnlimitedAgoraAccess } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 
 interface CountRow {
@@ -11,10 +11,9 @@ export async function GET(request: NextRequest) {
     const db = getDb();
     const identity = await getIdentityFromHeaders(request);
     const userId = identity.type === "user" ? identity.id : null;
-    const isOwner =
-      identity.type === "user" && identity.email === "george.vlad.utcn@gmail.com";
+    const hasUnlimitedAccess = hasUnlimitedAgoraAccess(identity);
 
-    if (isOwner) {
+    if (hasUnlimitedAccess) {
       return NextResponse.json({ used: 0, limit: null, isLoggedIn: true });
     }
 

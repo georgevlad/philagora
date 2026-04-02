@@ -14,7 +14,7 @@ import {
   normalizeArticleUrl,
   type ExtractedArticle,
 } from "@/lib/article-extractor";
-import { getIdentityFromHeaders } from "@/lib/auth";
+import { getIdentityFromHeaders, hasUnlimitedAgoraAccess } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import {
   classifyAgoraQuestion,
@@ -112,10 +112,9 @@ export async function POST(request: NextRequest) {
     const identity = await getIdentityFromHeaders(request);
     const userId = identity.type === "user" ? identity.id : null;
     const visibility = identity.type === "user" ? requestedVisibility : "public";
-    const isOwner =
-      identity.type === "user" && identity.email === "george.vlad.utcn@gmail.com";
+    const hasUnlimitedAccess = hasUnlimitedAgoraAccess(identity);
 
-    if (!isOwner) {
+    if (!hasUnlimitedAccess) {
       // Per-user or per-IP limit
       if (userId) {
         const userCount = db

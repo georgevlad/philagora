@@ -32,6 +32,11 @@ export type RequestIdentity =
   | { type: "user"; id: string; email: string }
   | { type: "anonymous" };
 
+const AGORA_UNLIMITED_ACCESS_EMAILS = new Set([
+  "george.vlad.utcn@gmail.com",
+  "daniel.rus@bitstone.com",
+]);
+
 /**
  * Resolve identity from a NextRequest.
  * This stays synchronous so admin-only guards can keep their current API.
@@ -128,4 +133,11 @@ export function isAuthenticated(
   identity: RequestIdentity
 ): identity is { type: "admin" } | { type: "user"; id: string; email: string } {
   return identity.type !== "anonymous";
+}
+
+export function hasUnlimitedAgoraAccess(identity: RequestIdentity): boolean {
+  return (
+    identity.type === "user"
+    && AGORA_UNLIMITED_ACCESS_EMAILS.has(identity.email.trim().toLowerCase())
+  );
 }
