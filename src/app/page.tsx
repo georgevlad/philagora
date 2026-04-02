@@ -17,7 +17,7 @@ export default async function HomePage() {
   const philosophers = getAllPhilosophers();
 
   return (
-    <div className="min-h-screen flex flex-col pt-[89px] lg:flex-row lg:pt-0 overflow-x-hidden">
+    <div className="min-h-screen flex flex-col pt-[80px] lg:flex-row lg:pt-0 overflow-x-hidden">
       <LeftSidebar philosophers={philosophers} />
       <MobileNav topContent={<FeedTabs mobileIntegrated />} />
 

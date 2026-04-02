@@ -288,14 +288,14 @@ export function FeedSection({
 
   if (loading && posts.length === 0) {
     return (
-      <div className="pb-20 sm:py-3 lg:pb-0">
+      <div className="pb-20 pt-0 sm:pt-3 sm:pb-3 lg:pb-0">
         <FeedSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="pb-20 sm:py-3 lg:pb-0">
+    <div className="pb-20 pt-0 sm:pt-3 sm:pb-3 lg:pb-0">
       {loading && posts.length > 0 && (
         <div className="px-4 pb-2">
           <div className="h-1 overflow-hidden rounded-full bg-border-light/70">

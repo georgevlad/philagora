@@ -63,7 +63,7 @@ export function WelcomeCard() {
   }
 
   return (
-    <div className="relative px-2 pb-2.5 pt-1 sm:px-4 sm:py-3">
+    <div className="relative px-2 pb-2.5 pt-0 sm:px-4 sm:py-3">
       <button
         type="button"
         onClick={handleDismiss}
