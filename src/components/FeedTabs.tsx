@@ -41,7 +41,7 @@ export function FeedTabs({ mobileIntegrated = false }: { mobileIntegrated?: bool
     <div
       className={`${
         mobileIntegrated
-          ? "border-b border-border-light/90"
+          ? "bg-parchment border-b border-border-light/90"
           : "sticky top-[61px] lg:top-0 z-10 bg-parchment/92 supports-[backdrop-filter]:backdrop-blur-md border-b border-border-light/90 shadow-[0_6px_16px_rgba(42,36,31,0.035)]"
       } transition-opacity duration-200 ${isPending ? "opacity-85" : ""}`}
     >

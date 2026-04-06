@@ -31,7 +31,7 @@ export function MobileNav({ topContent }: { topContent?: ReactNode }) {
   return (
     <>
       {/* Top bar on mobile */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-parchment/92 supports-[backdrop-filter]:backdrop-blur-md shadow-[0_6px_18px_rgba(42,36,31,0.05)]">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-parchment shadow-[0_6px_18px_rgba(42,36,31,0.05)]">
         <div className={`px-4 ${topContent ? "py-2" : "py-2.5 border-b border-border-light/90"}`}>
           <div className="flex items-center justify-between gap-3">
             <Link href="/" className="min-w-0 text-ink">
@@ -70,7 +70,7 @@ export function MobileNav({ topContent }: { topContent?: ReactNode }) {
       </div>
 
       {/* Bottom nav on mobile */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-parchment/96 supports-[backdrop-filter]:backdrop-blur-md border-t border-border-light/90 shadow-[0_-6px_18px_rgba(42,36,31,0.05)]">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-parchment border-t border-border-light/90 shadow-[0_-6px_18px_rgba(42,36,31,0.05)]">
         <div className="flex items-center justify-around py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           {items.map((item) => {
             const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);

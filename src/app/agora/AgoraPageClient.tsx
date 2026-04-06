@@ -526,7 +526,7 @@ export function AgoraPageClient({
   const showSuggestedPhilosophers = !suggesting && !suggestError && suggestions.length > 0;
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0 overflow-x-hidden">
+    <div className="min-h-screen flex flex-col lg:flex-row pt-16 lg:pt-0 overflow-x-hidden">
       <LeftSidebar philosophers={philosophers} />
       <MobileNav />
 
@@ -705,7 +705,7 @@ export function AgoraPageClient({
                         }`}
                       >
                         {visibility === "public" && (
-                          <div className="flex items-center gap-2.5">
+                          <div className="flex min-w-0 items-center gap-2.5">
                             <span className="text-[10px] font-mono tracking-[0.16em] uppercase text-ink-faint">
                               Posting as
                             </span>
@@ -715,9 +715,9 @@ export function AgoraPageClient({
                                   setEditingName(true);
                                   setTimeout(() => nameInputRef.current?.focus(), 0);
                                 }}
-                                className="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-transparent hover:border-border-light hover:bg-white/40 transition-all duration-200 cursor-text"
+                                className="group inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-lg border border-transparent px-2.5 py-1 transition-all duration-200 hover:border-border-light hover:bg-white/40 cursor-text"
                               >
-                                <span className="text-[15px] font-body font-medium text-ink">
+                                <span className="max-w-[11rem] overflow-hidden text-ellipsis whitespace-nowrap text-[15px] font-body font-medium text-ink sm:max-w-[16rem]">
                                   {askedBy.trim() || "Anonymous"}
                                 </span>
                                 <svg
@@ -727,7 +727,7 @@ export function AgoraPageClient({
                                   fill="none"
                                   stroke="currentColor"
                                   strokeWidth="1.5"
-                                  className="text-ink-faint group-hover:text-gold transition-colors"
+                                  className="shrink-0 text-ink-faint transition-colors group-hover:text-gold"
                                 >
                                   <path d="M11.5 1.5L14.5 4.5L5 14H2V11L11.5 1.5Z" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
@@ -814,7 +814,6 @@ export function AgoraPageClient({
                         className="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-[16px] bg-athenian text-white font-body text-[15px] font-medium tracking-wide shadow-[0_4px_12px_rgba(35,57,46,0.25)] hover:bg-athenian-light hover:shadow-[0_6px_16px_rgba(35,57,46,0.3)] disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed transition-all duration-200"
                       >
                         Choose the philosophers
-                        <span aria-hidden="true">-&gt;</span>
                       </button>
                       <p className="mt-3 text-[10px] font-mono uppercase tracking-[0.16em] text-ink-faint text-center leading-[1.6]">
                         {hasArticleUrl
