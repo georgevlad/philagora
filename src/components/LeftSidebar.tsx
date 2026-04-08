@@ -263,30 +263,36 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
       </Link>
 
       {/* Following - scrollable */}
-      <div className="flex-1 min-h-0 px-2">
+      <div className="flex min-h-0 flex-1 flex-col px-2">
         <div className="flex items-center gap-3 mb-3">
           <h3 className="text-[9px] font-mono tracking-[0.28em] uppercase text-ink-faint shrink-0">
             Following
           </h3>
           <div className="flex-1 h-px bg-gradient-to-r from-border-light/20 via-border-light to-border-light/20" />
         </div>
-        <div className="h-full overflow-y-auto space-y-1 pr-1">
-          {resolvedPhilosophers.map((p) => (
-            <Link
-              key={p.id}
-              href={`/philosophers/${p.id}`}
-              className="flex items-center gap-2.5 py-2 px-2 rounded-lg group hover:bg-parchment-tint/70 transition-colors duration-200"
-            >
-              <PhilosopherAvatar philosopherId={p.id} name={p.name} color={p.color} initials={p.initials} size="sm" />
-              <span
-                className="text-sm text-ink-light transition-colors duration-200 truncate font-serif"
-                onMouseEnter={(e) => (e.currentTarget.style.color = p.color)}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "")}
+        <div className="relative min-h-0 flex-1">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10 bg-gradient-to-t from-parchment-dark/95 via-parchment-dark/78 to-transparent"
+          />
+          <div className="sidebar-scrollbar h-full overflow-y-auto space-y-1 pr-1 pb-6">
+            {resolvedPhilosophers.map((p) => (
+              <Link
+                key={p.id}
+                href={`/philosophers/${p.id}`}
+                className="flex items-center gap-2.5 py-2 px-2 rounded-lg group hover:bg-parchment-tint/70 transition-colors duration-200"
               >
-                {p.name}
-              </span>
-            </Link>
-          ))}
+                <PhilosopherAvatar philosopherId={p.id} name={p.name} color={p.color} initials={p.initials} size="sm" />
+                <span
+                  className="text-sm text-ink-light transition-colors duration-200 truncate font-serif"
+                  onMouseEnter={(e) => (e.currentTarget.style.color = p.color)}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "")}
+                >
+                  {p.name}
+                </span>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </aside>

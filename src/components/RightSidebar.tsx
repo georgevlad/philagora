@@ -5,12 +5,12 @@ import { PhilosopherAvatar } from "./PhilosopherAvatar";
 
 export function RightSidebar() {
   const philosophersMap = getPhilosophersMap();
-  const debates = getAllDebates();
-  const agoraThreads = getRecentAgoraThreads(5);
+  const debates = getAllDebates().slice(0, 2);
+  const agoraThreads = getRecentAgoraThreads(3);
 
   return (
     <aside className="hidden xl:block w-72 shrink-0 self-stretch border-l border-border-light/80 bg-parchment-dark/28 shadow-[inset_1px_0_0_rgba(255,255,255,0.35)]">
-      <div className="sticky top-0 h-screen overflow-y-auto py-6 px-4">
+      <div className="sticky top-0 py-6 px-4">
         {/* Active Debates */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-3 px-1">
@@ -74,6 +74,12 @@ export function RightSidebar() {
               );
             })}
           </div>
+          <Link
+            href="/debates"
+            className="mt-3 flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-mono tracking-wide text-ink-lighter hover:text-athenian transition-colors duration-200"
+          >
+            See all debates &rarr;
+          </Link>
         </div>
 
         {/* From The Agora */}
@@ -132,7 +138,7 @@ export function RightSidebar() {
               href="/agora"
               className="mt-3 flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-mono tracking-wide text-ink-lighter hover:text-athenian transition-colors duration-200"
             >
-              Ask the philosophers &rarr;
+              Explore the Agora &rarr;
             </Link>
           </div>
         )}
