@@ -78,7 +78,7 @@ export function RightSidebar() {
             href="/debates"
             className="mt-3 flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-mono tracking-wide text-ink-lighter hover:text-athenian transition-colors duration-200"
           >
-            See all debates &rarr;
+            See all debates
           </Link>
         </div>
 
@@ -138,7 +138,7 @@ export function RightSidebar() {
               href="/agora"
               className="mt-3 flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-mono tracking-wide text-ink-lighter hover:text-athenian transition-colors duration-200"
             >
-              Explore the Agora &rarr;
+              Explore the Agora
             </Link>
           </div>
         )}

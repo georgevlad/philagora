@@ -811,7 +811,7 @@ export function ThreadPageClient({
                     disabled={followUpText.trim().length < 10 || followUpSubmitting}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-athenian text-white text-sm font-body hover:bg-athenian/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
-                    {followUpSubmitting ? "Submitting..." : "Ask follow-up →"}
+                    {followUpSubmitting ? "Submitting..." : "Ask follow-up"}
                   </button>
                 </div>
                 {followUpError && (
@@ -955,7 +955,7 @@ export function ThreadPageClient({
               href="/agora"
               className="inline-flex items-center gap-1.5 text-[12px] font-mono text-ink-lighter hover:text-athenian transition-colors"
             >
-              New conversation →
+              New conversation
             </Link>
           </div>
         </div>

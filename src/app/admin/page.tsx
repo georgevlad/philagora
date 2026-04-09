@@ -223,7 +223,7 @@ export default function AdminDashboard() {
             href="/admin/content"
             className="text-xs font-mono text-terracotta hover:text-terracotta-light transition-colors"
           >
-            View all &rarr;
+            View all
           </Link>
         </div>
 

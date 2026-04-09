@@ -455,7 +455,7 @@ function ContentGenerationPageInner() {
           href="/admin/generation-settings"
           className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-[0.18em] text-terracotta hover:text-terracotta-light transition-colors"
         >
-          AI Model Settings &rarr;
+          AI Model Settings
         </Link>
       </div>
 
@@ -687,7 +687,7 @@ function ContentGenerationPageInner() {
                       href="/admin/prompts"
                       className="text-terracotta hover:underline"
                     >
-                      Set up a system prompt first &rarr;
+                      Set up a system prompt first
                     </Link>
                   </span>
                 )}
@@ -707,7 +707,7 @@ function ContentGenerationPageInner() {
                   href="/admin/posts"
                   className="underline font-medium hover:text-green-900"
                 >
-                  Go to Posts &rarr;
+                  Go to Posts
                 </Link>
               </div>
             )}

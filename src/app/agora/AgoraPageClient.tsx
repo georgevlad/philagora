@@ -1071,7 +1071,7 @@ export function AgoraPageClient({
                     href="/profile"
                     className="text-[11px] font-mono text-athenian transition-colors hover:text-athenian/80"
                   >
-                    View all &rarr;
+                    View all
                   </Link>
                 )}
               </div>
