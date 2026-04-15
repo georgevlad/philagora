@@ -128,6 +128,34 @@ export function interleaveFeed(posts: FeedPost[]): FeedPost[] {
     });
   }
 
+  const freshArticles = new Set<string>();
+  const articleTimestamps = new Map<string, number[]>();
+
+  for (const unit of units) {
+    if (!unit.articleKey) {
+      continue;
+    }
+
+    const timestamps = articleTimestamps.get(unit.articleKey) || [];
+    for (const post of unit.posts) {
+      timestamps.push(new Date(post.createdAt).getTime());
+    }
+    articleTimestamps.set(unit.articleKey, timestamps);
+  }
+
+  const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+  for (const [key, timestamps] of articleTimestamps) {
+    if (timestamps.length < 2) {
+      continue;
+    }
+
+    const min = Math.min(...timestamps);
+    const max = Math.max(...timestamps);
+    if (max - min <= FOUR_HOURS_MS) {
+      freshArticles.add(key);
+    }
+  }
+
   const WINDOW_SIZE = Math.min(units.length, 16);
   const result: FeedUnit[] = [];
   const remaining = [...units];
@@ -149,10 +177,12 @@ export function interleaveFeed(posts: FeedPost[]): FeedPost[] {
       score -= Math.max(0, candidate.originalIndex - result.length) * 0.15;
 
       // Heavy penalty for repeating the same cited article or everyday scenario.
-      if (candidate.articleKey) {
+      if (candidate.articleKey && !candidate.isReply) {
+        const isFresh = freshArticles.has(candidate.articleKey);
+        const penalty = isFresh ? 40 : 200;
         for (const recent of result.slice(-6)) {
           if (recent.articleKey === candidate.articleKey) {
-            score -= 200;
+            score -= penalty;
           }
         }
       }
@@ -216,9 +246,9 @@ export function interleaveFeed(posts: FeedPost[]): FeedPost[] {
           if (placedParentIndex !== undefined) {
             const distanceFromParent = result.length - placedParentIndex;
             if (distanceFromParent <= 2) {
-              score += 35;
+              score += 60;
             } else if (distanceFromParent <= 4) {
-              score += 18;
+              score += 30;
             } else if (distanceFromParent >= 8) {
               score -= 12;
             }

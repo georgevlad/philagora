@@ -164,6 +164,45 @@ describe("interleaveFeed", () => {
         expect(sameArticleCount).toBeLessThanOrEqual(3);
       }
     });
+
+    it("keeps fresh same-article reactions closer together than stale ones", () => {
+      const now = new Date("2026-04-10T12:00:00Z");
+      const oneHourLater = new Date("2026-04-10T13:00:00Z");
+      const freshPosts = [
+        makeReaction("nietzsche", "https://fresh.com", "challenges", {
+          createdAt: now.toISOString(),
+          timestamp: now.toISOString(),
+        }),
+        makeReaction("camus", "https://fresh.com", "reframes", {
+          createdAt: oneHourLater.toISOString(),
+          timestamp: oneHourLater.toISOString(),
+        }),
+        makeReaction("plato", "https://a.com", "defends", {
+          createdAt: now.toISOString(),
+          timestamp: now.toISOString(),
+        }),
+        makeReaction("kant", "https://b.com", "questions", {
+          createdAt: now.toISOString(),
+          timestamp: now.toISOString(),
+        }),
+        makeReaction("seneca", "https://c.com", "observes", {
+          createdAt: now.toISOString(),
+          timestamp: now.toISOString(),
+        }),
+        makeReaction("marcus-aurelius", "https://d.com", "warns", {
+          createdAt: now.toISOString(),
+          timestamp: now.toISOString(),
+        }),
+      ];
+
+      const result = interleaveFeed(freshPosts);
+      const freshPositions = result
+        .map((post, index) => (post.citation?.url === "https://fresh.com" ? index : -1))
+        .filter((index) => index >= 0);
+
+      expect(freshPositions).toHaveLength(2);
+      expect(freshPositions[1] - freshPositions[0]).toBeLessThanOrEqual(3);
+    });
   });
 
   describe("philosopher diversity", () => {
@@ -270,7 +309,30 @@ describe("interleaveFeed", () => {
 
       expect(parentPos).toBeGreaterThanOrEqual(0);
       expect(replyPos).toBeGreaterThanOrEqual(0);
-      expect(Math.abs(replyPos - parentPos)).toBeLessThanOrEqual(4);
+      expect(Math.abs(replyPos - parentPos)).toBeLessThanOrEqual(3);
+    });
+
+    it("places replies adjacent to their parent even when they share the same article", () => {
+      const parent = makeReaction("nietzsche", "https://hot.com", "challenges");
+      const reply = makeReply("camus", parent.id, {
+        citation: { title: "Article at https://hot.com", source: "Test", url: "https://hot.com" },
+        stance: "reframes",
+      });
+      const posts = [
+        parent,
+        makeReaction("plato", "https://b.com", "defends"),
+        makeReaction("kant", "https://c.com", "questions"),
+        reply,
+        makeReaction("seneca", "https://d.com", "observes"),
+        makeReaction("marcus-aurelius", "https://e.com", "warns"),
+      ];
+
+      const result = interleaveFeed(posts);
+      const ids = result.map((post) => post.id);
+      const parentPos = ids.indexOf(parent.id);
+      const replyPos = ids.indexOf(reply.id);
+
+      expect(Math.abs(replyPos - parentPos)).toBeLessThanOrEqual(2);
     });
   });
 
