@@ -157,7 +157,7 @@ export function SchoolsPageClient({
 
       <main className="flex-1 min-w-0 lg:border-l border-border-light">
         <div className="max-w-[700px] mx-auto">
-          <div className="px-5 pt-8 pb-6 border-b border-border-light">
+          <div className="px-5 pt-5 pb-6 sm:pt-7 lg:pt-8 border-b border-border-light">
             <h1 className="font-serif text-2xl lg:text-3xl font-bold text-ink leading-tight mb-3">
               Schools of Thought
             </h1>

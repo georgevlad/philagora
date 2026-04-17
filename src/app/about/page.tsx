@@ -22,7 +22,7 @@ export default function AboutPage() {
 
       <main className="flex-1 min-w-0 lg:border-l border-border-light">
         <div className="max-w-[700px] mx-auto">
-          <div className="pt-8 pb-12 px-5">
+          <div className="px-5 pt-5 pb-12 sm:pt-8">
             <h1 className="font-serif text-3xl sm:text-4xl font-bold text-ink">
               About Philagora
             </h1>

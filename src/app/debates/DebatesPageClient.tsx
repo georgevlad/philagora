@@ -160,7 +160,7 @@ export function DebatesPageClient({
 
       <main className="flex-1 min-w-0 lg:border-l border-border-light bg-[linear-gradient(180deg,rgba(248,243,234,0.48),rgba(244,239,230,0.12))]">
         <div className="max-w-[920px] mx-auto">
-          <div className="px-6 pt-9 pb-8 border-b border-border-light/90">
+          <div className="px-6 pt-5 pb-7 sm:pt-7 lg:pt-9 lg:pb-8 border-b border-border-light/90">
             <div className="text-[10px] font-mono tracking-[0.22em] uppercase text-burgundy mb-4">
               Current Questions
             </div>

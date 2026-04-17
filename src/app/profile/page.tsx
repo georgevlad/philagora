@@ -118,12 +118,12 @@ export default async function ProfilePage() {
   const initials = getInitials(user.name || user.email);
 
   return (
-    <div className="min-h-screen flex flex-col pt-24 lg:flex-row lg:pt-0 overflow-x-hidden">
+    <div className="min-h-screen flex flex-col pt-14 lg:flex-row lg:pt-0 overflow-x-hidden">
       <LeftSidebar philosophers={philosophers} />
       <MobileNav />
 
       <main className="flex-1 min-w-0 bg-[linear-gradient(180deg,rgba(248,243,234,0.5),rgba(244,239,230,0.12))] lg:border-r lg:border-l border-border-light">
-        <div className="mx-auto max-w-[700px] px-4 py-8 sm:py-12">
+        <div className="mx-auto max-w-[700px] px-4 pt-5 pb-8 sm:py-12">
           <div className="mb-10 flex items-center gap-5">
             {user.image ? (
               <img

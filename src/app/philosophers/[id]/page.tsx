@@ -47,7 +47,7 @@ export default async function PhilosopherProfileDynamic({
       <main className="flex-1 min-w-0 lg:border-l border-border-light">
         <div className="max-w-[700px] mx-auto">
           {/* Back link */}
-          <div className="px-5 pt-6">
+          <div className="px-5 pt-4 sm:pt-6">
             <Link
               href="/"
               className="inline-flex items-center gap-1.5 text-sm text-ink-lighter hover:text-athenian transition-colors duration-200"
@@ -58,7 +58,7 @@ export default async function PhilosopherProfileDynamic({
           </div>
 
           {/* Profile header */}
-          <div className="px-4 sm:px-5 pt-6 pb-6 border-b border-border-light">
+          <div className="px-4 pt-5 pb-6 sm:px-5 sm:pt-6 border-b border-border-light">
             <div className="flex items-start gap-3 sm:gap-5">
               <PhilosopherAvatar
                 philosopherId={id}

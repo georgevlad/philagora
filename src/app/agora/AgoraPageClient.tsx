@@ -526,12 +526,12 @@ export function AgoraPageClient({
   const showSuggestedPhilosophers = !suggesting && !suggestError && suggestions.length > 0;
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row pt-16 lg:pt-0 overflow-x-hidden">
+    <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0 overflow-x-hidden">
       <LeftSidebar philosophers={philosophers} />
       <MobileNav />
 
       <main className="flex-1 min-w-0 lg:border-l border-border-light bg-[linear-gradient(180deg,rgba(248,243,234,0.5),rgba(244,239,230,0.12))]">
-        <div className="max-w-[980px] mx-auto px-6 py-9 pb-20 lg:pb-10">
+        <div className="max-w-[980px] mx-auto px-6 pt-5 pb-20 sm:pt-7 lg:py-9 lg:pb-10">
           <div className="max-w-[760px] mb-8">
             <div className="text-[10px] font-mono tracking-[0.22em] uppercase text-gold mb-4">
               Public forum

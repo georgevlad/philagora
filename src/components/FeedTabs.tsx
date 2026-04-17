@@ -45,7 +45,7 @@ export function FeedTabs({ mobileIntegrated = false }: { mobileIntegrated?: bool
           : "sticky top-[61px] lg:top-0 z-10 bg-parchment/92 supports-[backdrop-filter]:backdrop-blur-md border-b border-border-light/90 shadow-[0_6px_16px_rgba(42,36,31,0.035)]"
       } transition-opacity duration-200 ${isPending ? "opacity-85" : ""}`}
     >
-      <div className="flex items-center px-2 py-2 sm:gap-1 sm:px-4 sm:py-2.5">
+      <div className="flex items-center px-2 py-1.5 sm:gap-1 sm:px-4 sm:py-2.5">
         {FEED_CONTENT_TABS.map((tab) => {
           const isActive = activeType === tab.key;
 
