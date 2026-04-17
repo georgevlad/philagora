@@ -70,6 +70,30 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function QuestionBadges({
+  hasFollowUp,
+  isPrivate,
+  status,
+  className = "",
+}: {
+  hasFollowUp: boolean;
+  isPrivate: boolean;
+  status: string;
+  className?: string;
+}) {
+  if (!hasFollowUp && !isPrivate && status === "complete") {
+    return null;
+  }
+
+  return (
+    <div className={className}>
+      {hasFollowUp && <FollowUpBadge />}
+      {isPrivate && <VisibilityBadge />}
+      <StatusBadge status={status} />
+    </div>
+  );
+}
+
 export default async function ProfilePage() {
   const identity = await getIdentityFromCookies();
 
@@ -145,43 +169,56 @@ export default async function ProfilePage() {
             </div>
             {userQuestions.length > 0 ? (
               <div className="space-y-3">
-                {userQuestions.map((thread) => (
-                  <Link
-                    key={thread.id}
-                    href={`/agora/${thread.id}`}
-                    className="group block rounded-2xl border border-border-light/80 bg-[linear-gradient(180deg,rgba(248,243,234,0.95),rgba(242,236,226,0.82))] px-5 py-4 transition-all duration-200 hover:border-border hover:bg-parchment-tint/85 hover:shadow-[0_10px_24px_rgba(42,36,31,0.05)]"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="font-serif text-[19px] leading-[1.35] text-ink transition-colors group-hover:text-athenian">
+                {userQuestions.map((thread) => {
+                  return (
+                    <Link
+                      key={thread.id}
+                      href={`/agora/${thread.id}`}
+                      className="group block rounded-2xl border border-border-light/80 bg-[linear-gradient(180deg,rgba(248,243,234,0.95),rgba(242,236,226,0.82))] px-4 py-3.5 transition-all duration-200 hover:border-border hover:bg-parchment-tint/85 hover:shadow-[0_10px_24px_rgba(42,36,31,0.05)] md:px-5 md:py-4"
+                    >
+                      <p className="font-serif text-[15px] leading-[1.45] text-ink transition-colors line-clamp-3 group-hover:text-athenian md:text-base">
                         &ldquo;{thread.question}&rdquo;
                       </p>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {thread.has_follow_up && <FollowUpBadge />}
-                        {thread.visibility === "private" && <VisibilityBadge />}
-                        <StatusBadge status={thread.status} />
-                      </div>
-                    </div>
 
-                    <div className="mt-4 flex items-center justify-between gap-4">
-                      <div className="flex -space-x-2">
-                        {thread.philosophers.slice(0, 4).map((philosopher) => (
-                          <div key={philosopher.id} className="rounded-full ring-2 ring-card">
-                            <PhilosopherAvatar
-                              philosopherId={philosopher.id}
-                              name={philosopher.name}
-                              color={philosopher.color}
-                              initials={philosopher.initials}
-                              size="sm"
-                            />
+                      <div className="mt-2 mb-2.5 min-h-[20px] md:hidden">
+                        <QuestionBadges
+                          hasFollowUp={thread.has_follow_up}
+                          isPrivate={thread.visibility === "private"}
+                          status={thread.status}
+                          className="flex flex-wrap items-center gap-1.5"
+                        />
+                      </div>
+
+                      <div className="flex min-h-[22px] items-center justify-between gap-4 md:mt-3">
+                        <div className="flex -space-x-2">
+                          {thread.philosophers.slice(0, 4).map((philosopher) => (
+                            <div key={philosopher.id} className="rounded-full ring-2 ring-card md:scale-110">
+                              <PhilosopherAvatar
+                                philosopherId={philosopher.id}
+                                name={philosopher.name}
+                                color={philosopher.color}
+                                initials={philosopher.initials}
+                                size="xs"
+                              />
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex min-h-[20px] shrink-0 items-center gap-2">
+                          <div className="text-[11px] font-mono uppercase tracking-[0.14em] text-ink-faint">
+                            {timeAgo(thread.created_at)}
                           </div>
-                        ))}
+                          <QuestionBadges
+                            hasFollowUp={thread.has_follow_up}
+                            isPrivate={thread.visibility === "private"}
+                            status={thread.status}
+                            className="hidden items-center gap-1.5 md:flex"
+                          />
+                        </div>
                       </div>
-                      <div className="text-[11px] font-mono uppercase tracking-[0.14em] text-ink-faint">
-                        {timeAgo(thread.created_at)}
-                      </div>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  );
+                })}
               </div>
             ) : (
               <div className="rounded-2xl border border-border-light/80 bg-parchment-dark/20 px-6 py-8 text-center">
