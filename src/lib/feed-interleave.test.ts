@@ -175,6 +175,42 @@ describe("interleaveFeed", () => {
       const positions = hotCluster.map((post) => ids.indexOf(post.id));
       expect(positions[2] - positions[0]).toBe(2);
     });
+
+    it("places a recent single post near the top even when clusters exist", () => {
+      const now = new Date("2026-04-17T12:00:00Z");
+      const weekAgo = new Date("2026-04-10T12:00:00Z");
+
+      const newPost = makeReaction("camus", "https://brand-new.com", "reframes", {
+        createdAt: now.toISOString(),
+        timestamp: now.toISOString(),
+      });
+
+      const cluster1a = makeReaction("nietzsche", "https://old-article.com", "challenges", {
+        createdAt: weekAgo.toISOString(),
+        timestamp: weekAgo.toISOString(),
+      });
+      const cluster1b = makeReaction("plato", "https://old-article.com", "defends", {
+        createdAt: weekAgo.toISOString(),
+        timestamp: weekAgo.toISOString(),
+      });
+
+      const cluster2a = makeReaction("kant", "https://another-old.com", "questions", {
+        createdAt: weekAgo.toISOString(),
+        timestamp: weekAgo.toISOString(),
+      });
+      const cluster2b = makeReaction("seneca", "https://another-old.com", "observes", {
+        createdAt: weekAgo.toISOString(),
+        timestamp: weekAgo.toISOString(),
+      });
+
+      const posts = [newPost, cluster1a, cluster1b, cluster2a, cluster2b];
+
+      const result = interleaveFeed(posts);
+      const ids = result.map((post) => post.id);
+      const newPostPosition = ids.indexOf(newPost.id);
+
+      expect(newPostPosition).toBeLessThanOrEqual(2);
+    });
   });
 
   describe("philosopher diversity", () => {

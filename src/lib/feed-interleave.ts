@@ -171,6 +171,9 @@ export function interleaveFeed(posts: FeedPost[]): FeedPost[] {
     }
   }
 
+  // Restore chronological ordering so the scoring window sees recent content first.
+  units.sort((a, b) => a.originalIndex - b.originalIndex);
+
   const WINDOW_SIZE = Math.min(units.length, 16);
   const result: FeedUnit[] = [];
   const remaining = [...units];
