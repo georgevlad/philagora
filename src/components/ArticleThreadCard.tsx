@@ -42,7 +42,7 @@ export function ArticleThreadCard({ posts, delay = 0 }: ArticleThreadCardProps) 
       <div className="flex items-center gap-3 px-4 pt-3.5 sm:px-6">
         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-terracotta/20 to-transparent" />
         <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-terracotta/70">
-          {posts.length} perspectives
+          {new Set(posts.map((post) => post.philosopherId)).size} perspectives
         </span>
         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-terracotta/20 to-transparent" />
       </div>
