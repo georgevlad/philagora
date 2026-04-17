@@ -12,7 +12,7 @@ export type FeedContentType = (typeof FEED_CONTENT_TABS)[number]["key"];
 
 export type FeedItem =
   | { type: "post"; post: FeedPost; index: number }
-  | { type: "tension"; postA: FeedPost; postB: FeedPost };
+  | { type: "cluster"; clusterId: string; posts: FeedPost[] };
 
 export function normalizeFeedContentType(value?: string | null): FeedContentType {
   if (
@@ -93,26 +93,28 @@ export function classifyPostFormat(post: {
 
 export function buildFeedItems(posts: FeedPost[]): FeedItem[] {
   const items: FeedItem[] = [];
-  let lastTensionArticle: string | null = null;
+  let i = 0;
 
-  for (let i = 0; i < posts.length; i++) {
-    items.push({ type: "post", post: posts[i], index: i });
+  while (i < posts.length) {
+    const post = posts[i];
 
-    if (i < posts.length - 1) {
-      const current = posts[i];
-      const next = posts[i + 1];
-      const standalonePair = isStandaloneReaction(current) && isStandaloneReaction(next);
-      const sameArticle = sharesSameArticle(current, next);
-      const differentStance = current.stance !== next.stance;
-      const differentPhilosopher = current.philosopherId !== next.philosopherId;
-      const articleKey = current.citation?.url || current.citation?.title || null;
-      const notDuplicate = articleKey !== lastTensionArticle;
+    if (post._clusterId) {
+      const clusterId = post._clusterId;
+      const clusterPosts: FeedPost[] = [post];
 
-      if (standalonePair && sameArticle && differentStance && differentPhilosopher && notDuplicate) {
-        items.push({ type: "tension", postA: current, postB: next });
-        lastTensionArticle = articleKey;
+      let j = i + 1;
+      while (j < posts.length && posts[j]._clusterId === clusterId) {
+        clusterPosts.push(posts[j]);
+        j += 1;
       }
+
+      items.push({ type: "cluster", clusterId, posts: clusterPosts });
+      i = j;
+      continue;
     }
+
+    items.push({ type: "post", post, index: i });
+    i += 1;
   }
 
   return items;

@@ -98,6 +98,10 @@ export interface FeedPost extends Post {
   replyTargetPhilosopherColor?: string;
   replyTargetPhilosopherInitials?: string;
   replyTargetThesis?: string;
+  /** Cluster ID for article thread grouping. Null for standalone posts. */
+  _clusterId?: string | null;
+  /** Ordering position within a cluster (0-based). */
+  _clusterOrder?: number;
 }
 
 export interface HistoricalEventPostUsage {

@@ -66,8 +66,8 @@ describe("interleaveFeed", () => {
     });
   });
 
-  describe("same-article pairing", () => {
-    it("pairs two reactions to the same article by different philosophers with different stances", () => {
+  describe("article clustering", () => {
+    it("groups two reactions to the same article into a cluster", () => {
       const posts = [
         makeReaction("nietzsche", "https://shared.com", "challenges"),
         makeReaction("plato", "https://other.com", "defends"),
@@ -76,132 +76,104 @@ describe("interleaveFeed", () => {
       ];
 
       const result = interleaveFeed(posts);
-      const ids = result.map((post) => post.id);
       const sharedPosts = result.filter((post) => post.citation?.url === "https://shared.com");
 
+      expect(result).toHaveLength(4);
       expect(sharedPosts).toHaveLength(2);
+      expect(sharedPosts[0]._clusterId).toBeTruthy();
+      expect(sharedPosts[0]._clusterId).toBe(sharedPosts[1]._clusterId);
 
+      const ids = result.map((post) => post.id);
       const pos0 = ids.indexOf(sharedPosts[0].id);
       const pos1 = ids.indexOf(sharedPosts[1].id);
       expect(Math.abs(pos0 - pos1)).toBe(1);
     });
 
-    it("does not pair posts with the same stance (even if same article)", () => {
-      const posts = [
-        makeReaction("nietzsche", "https://shared.com", "challenges"),
-        makeReaction("camus", "https://shared.com", "challenges"),
-        makeReaction("plato", "https://b.com", "defends"),
-        makeReaction("kant", "https://c.com", "questions"),
-      ];
-
-      const result = interleaveFeed(posts);
-      const shared = result.filter((post) => post.citation?.url === "https://shared.com");
-
-      expect(shared).toHaveLength(2);
-
-      const ids = result.map((post) => post.id);
-      const pos0 = ids.indexOf(shared[0].id);
-      const pos1 = ids.indexOf(shared[1].id);
-      expect(Math.abs(pos0 - pos1)).toBeGreaterThan(1);
-    });
-
-    it("does not pair posts by the same philosopher", () => {
-      const posts = [
-        makeReaction("nietzsche", "https://shared.com", "challenges"),
-        makeReaction("nietzsche", "https://shared.com", "reframes"),
-        makeReaction("plato", "https://b.com", "defends"),
-        makeReaction("kant", "https://c.com", "questions"),
-      ];
-
-      const result = interleaveFeed(posts);
-
-      expect(result).toHaveLength(4);
-    });
-
-    it("does not pair reply posts", () => {
+    it("includes cross-replies in the same cluster as their parent article", () => {
       const parent = makeReaction("nietzsche", "https://shared.com", "challenges");
+      const reaction2 = makeReaction("camus", "https://shared.com", "reframes");
+      const reply = makeReply("plato", parent.id, {
+        citation: { title: "Article at https://shared.com", source: "Test", url: "https://shared.com" },
+        stance: "questions",
+      });
+
       const posts = [
         parent,
-        makeReply("camus", parent.id, {
-          citation: { title: "Article at https://shared.com", source: "Test", url: "https://shared.com" },
-          stance: "reframes",
-        }),
-        makeReaction("plato", "https://b.com", "defends"),
-        makeReaction("kant", "https://c.com", "questions"),
+        makeReaction("kant", "https://other.com", "defends"),
+        reaction2,
+        reply,
+        makeReaction("seneca", "https://another.com", "observes"),
       ];
 
       const result = interleaveFeed(posts);
+      const clustered = result.filter((post) => post._clusterId === "https://shared.com");
 
-      expect(result).toHaveLength(4);
+      expect(clustered).toHaveLength(3);
+
+      const standalones = clustered.filter((post) => !post.replyTo);
+      const replies = clustered.filter((post) => post.replyTo);
+      const firstReplyPos = result.indexOf(replies[0]);
+      const lastStandalonePos = result.indexOf(standalones[standalones.length - 1]);
+      expect(firstReplyPos).toBeGreaterThan(lastStandalonePos);
     });
-  });
 
-  describe("article clustering prevention", () => {
-    it("separates posts about the same article when there are 3+", () => {
+    it("does not cluster single-post articles", () => {
       const posts = [
-        makeReaction("nietzsche", "https://hot-topic.com", "challenges"),
-        makeReaction("camus", "https://hot-topic.com", "reframes"),
-        makeReaction("plato", "https://hot-topic.com", "defends"),
-        makeReaction("kant", "https://filler1.com", "questions"),
-        makeReaction("seneca", "https://filler2.com", "observes"),
-        makeReaction("marcus-aurelius", "https://filler3.com", "warns"),
+        makeReaction("nietzsche", "https://a.com", "challenges"),
+        makeReaction("camus", "https://b.com", "reframes"),
+        makeReaction("plato", "https://c.com", "defends"),
       ];
 
       const result = interleaveFeed(posts);
-      const hotTopicPositions = result
-        .map((post, index) => (post.citation?.url === "https://hot-topic.com" ? index : -1))
-        .filter((index) => index >= 0);
 
-      expect(hotTopicPositions).toHaveLength(3);
-
-      for (let i = 0; i < result.length; i += 1) {
-        const windowEnd = Math.min(i + 5, result.length);
-        const windowSlice = result.slice(i, windowEnd);
-        const sameArticleCount = windowSlice.filter(
-          (post) => post.citation?.url === "https://hot-topic.com"
-        ).length;
-
-        expect(sameArticleCount).toBeLessThanOrEqual(3);
+      for (const post of result) {
+        expect(post._clusterId).toBeFalsy();
       }
     });
 
-    it("keeps fresh same-article reactions closer together than stale ones", () => {
-      const now = new Date("2026-04-10T12:00:00Z");
-      const oneHourLater = new Date("2026-04-10T13:00:00Z");
-      const freshPosts = [
-        makeReaction("nietzsche", "https://fresh.com", "challenges", {
-          createdAt: now.toISOString(),
-          timestamp: now.toISOString(),
-        }),
-        makeReaction("camus", "https://fresh.com", "reframes", {
-          createdAt: oneHourLater.toISOString(),
-          timestamp: oneHourLater.toISOString(),
-        }),
-        makeReaction("plato", "https://a.com", "defends", {
-          createdAt: now.toISOString(),
-          timestamp: now.toISOString(),
-        }),
-        makeReaction("kant", "https://b.com", "questions", {
-          createdAt: now.toISOString(),
-          timestamp: now.toISOString(),
-        }),
-        makeReaction("seneca", "https://c.com", "observes", {
-          createdAt: now.toISOString(),
-          timestamp: now.toISOString(),
-        }),
-        makeReaction("marcus-aurelius", "https://d.com", "warns", {
-          createdAt: now.toISOString(),
-          timestamp: now.toISOString(),
-        }),
+    it("does not cluster non-news source types", () => {
+      const reflection1 = makePost({
+        philosopherId: "nietzsche",
+        sourceType: "reflection",
+        stance: "observes",
+        citation: { title: "Same Title", source: "Same Source", url: "https://same.com" },
+      });
+      const reflection2 = makePost({
+        philosopherId: "camus",
+        sourceType: "reflection",
+        stance: "questions",
+        citation: { title: "Same Title", source: "Same Source", url: "https://same.com" },
+      });
+
+      const posts = [
+        reflection1,
+        reflection2,
+        makeReaction("plato", "https://other.com", "defends"),
       ];
 
-      const result = interleaveFeed(freshPosts);
-      const freshPositions = result
-        .map((post, index) => (post.citation?.url === "https://fresh.com" ? index : -1))
-        .filter((index) => index >= 0);
+      const result = interleaveFeed(posts);
 
-      expect(freshPositions).toHaveLength(2);
-      expect(freshPositions[1] - freshPositions[0]).toBeLessThanOrEqual(3);
+      expect(result.filter((post) => post._clusterId).length).toBe(0);
+    });
+
+    it("groups 3+ reactions about the same article into one cluster", () => {
+      const posts = [
+        makeReaction("nietzsche", "https://hot.com", "challenges"),
+        makeReaction("camus", "https://hot.com", "reframes"),
+        makeReaction("plato", "https://hot.com", "defends"),
+        makeReaction("kant", "https://a.com", "questions"),
+        makeReaction("seneca", "https://b.com", "observes"),
+        makeReaction("marcus-aurelius", "https://c.com", "warns"),
+      ];
+
+      const result = interleaveFeed(posts);
+      const hotCluster = result.filter((post) => post._clusterId === "https://hot.com");
+
+      expect(hotCluster).toHaveLength(3);
+
+      const ids = result.map((post) => post.id);
+      const positions = hotCluster.map((post) => ids.indexOf(post.id));
+      expect(positions[2] - positions[0]).toBe(2);
     });
   });
 
@@ -290,7 +262,29 @@ describe("interleaveFeed", () => {
   });
 
   describe("reply proximity", () => {
-    it("places replies near their parent post", () => {
+    it("places replies in the same cluster as their parent when they share an article", () => {
+      const parent = makeReaction("nietzsche", "https://a.com", "challenges");
+      const reply = makeReply("camus", parent.id, {
+        citation: { title: "Article at https://a.com", source: "Test", url: "https://a.com" },
+        stance: "reframes",
+      });
+      const posts = [
+        parent,
+        makeReaction("plato", "https://b.com", "defends"),
+        makeReaction("kant", "https://c.com", "questions"),
+        reply,
+        makeReaction("seneca", "https://d.com", "observes"),
+      ];
+
+      const result = interleaveFeed(posts);
+      const parentResult = result.find((post) => post.id === parent.id)!;
+      const replyResult = result.find((post) => post.id === reply.id)!;
+
+      expect(parentResult._clusterId).toBeTruthy();
+      expect(parentResult._clusterId).toBe(replyResult._clusterId);
+    });
+
+    it("keeps orphan replies (no matching parent article) reasonably close", () => {
       const parent = makeReaction("nietzsche", "https://a.com", "challenges");
       const reply = makeReply("camus", parent.id, { stance: "reframes" });
       const posts = [
@@ -307,32 +301,7 @@ describe("interleaveFeed", () => {
       const parentPos = ids.indexOf(parent.id);
       const replyPos = ids.indexOf(reply.id);
 
-      expect(parentPos).toBeGreaterThanOrEqual(0);
-      expect(replyPos).toBeGreaterThanOrEqual(0);
-      expect(Math.abs(replyPos - parentPos)).toBeLessThanOrEqual(3);
-    });
-
-    it("places replies adjacent to their parent even when they share the same article", () => {
-      const parent = makeReaction("nietzsche", "https://hot.com", "challenges");
-      const reply = makeReply("camus", parent.id, {
-        citation: { title: "Article at https://hot.com", source: "Test", url: "https://hot.com" },
-        stance: "reframes",
-      });
-      const posts = [
-        parent,
-        makeReaction("plato", "https://b.com", "defends"),
-        makeReaction("kant", "https://c.com", "questions"),
-        reply,
-        makeReaction("seneca", "https://d.com", "observes"),
-        makeReaction("marcus-aurelius", "https://e.com", "warns"),
-      ];
-
-      const result = interleaveFeed(posts);
-      const ids = result.map((post) => post.id);
-      const parentPos = ids.indexOf(parent.id);
-      const replyPos = ids.indexOf(reply.id);
-
-      expect(Math.abs(replyPos - parentPos)).toBeLessThanOrEqual(2);
+      expect(Math.abs(replyPos - parentPos)).toBeLessThanOrEqual(4);
     });
   });
 

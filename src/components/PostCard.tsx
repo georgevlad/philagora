@@ -576,11 +576,13 @@ export function PostCard({
   delay = 0,
   expanded = false,
   isNew = false,
+  compact = false,
 }: {
   post: FeedPost;
   delay?: number;
   expanded?: boolean;
   isNew?: boolean;
+  compact?: boolean;
 }) {
   const ref = useScrollReveal<HTMLElement>(delay);
 
@@ -597,6 +599,236 @@ export function PostCard({
   const postHref = `/post/${post.id}`;
   const recommendationLabel = recommendationBadge(post);
   const relativeTimestamp = timeAgo(post.createdAt);
+  const content = (
+    <div className={compact ? "px-4 py-3 sm:px-5 sm:py-3.5" : "px-4 py-4 sm:px-6 sm:py-5"}>
+      {isCrossReply && <CrossReplyHeader post={post} />}
+
+      {post.replyTo && !isCrossReply && (
+        <div className="flex items-center gap-2 ml-12 mb-3 text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">
+          <ReplyArrowIcon size={14} />
+          In conversation
+        </div>
+      )}
+
+      {isAphorism ? (
+        <div className="flex flex-col items-center text-center relative">
+          <div
+            className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 font-serif select-none pointer-events-none"
+            style={{ fontSize: "120px", color: accent.bgSubtle, lineHeight: 1 }}
+            aria-hidden="true"
+          >
+            &ldquo;
+          </div>
+
+          {isHistoricalEvent && post.thumbnailUrl && (
+            <HistoricalEventThumbnail
+              thumbnailUrl={post.thumbnailUrl}
+              title={post.citation?.title || "Historical event"}
+            />
+          )}
+
+          {isArtCommentary && post.citation?.imageUrl && (
+            <ArtworkFramedImage
+              imageUrl={post.citation.imageUrl}
+              title={post.citation.title}
+              artist={post.citation.source}
+              sizes="(max-width: 640px) 100vw, 640px"
+              className="-mx-5 -mt-5 mb-4 sm:-mx-6 sm:-mt-5"
+            />
+          )}
+
+          <div className="flex items-center gap-2 mb-2 relative z-10">
+            <Link href={`/philosophers/${post.philosopherId}`}>
+              <PhilosopherAvatar philosopherId={post.philosopherId} name={post.philosopherName} color={color} initials={post.philosopherInitials} />
+            </Link>
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+              <Link
+                href={`/philosophers/${post.philosopherId}`}
+                className="font-serif font-semibold text-[17px] text-ink hover:text-athenian transition-colors duration-200 link-underline"
+              >
+                {post.philosopherName}
+              </Link>
+              <span className="text-xs text-ink-lighter">&middot;</span>
+              <span className="text-xs text-ink-lighter">{relativeTimestamp}</span>
+              {isPopular && <PopularBadge />}
+            </div>
+          </div>
+
+          {!compact && (
+            <PostConnectorLine
+              post={post}
+              className="relative z-10 w-full max-w-lg text-center"
+            />
+          )}
+
+          {isHistoricalEvent && post.citation?.source && (
+            <div className="relative z-10">
+              <TodayInHistoryHeader source={post.citation.source} />
+            </div>
+          )}
+
+          {isEveryday && post.citation?.source && (
+            <div className="relative z-10">
+              <ExaminedLifeHeader source={post.citation.source} />
+            </div>
+          )}
+
+          {isArtCommentary && (
+            <div className="relative z-10">
+              <ArtCommentaryHeader />
+            </div>
+          )}
+
+          {(isHistoricalEvent || isEveryday) && post.citation?.title && (
+            <div className="relative z-10 w-full max-w-lg">
+              <HistoricalEventTitle
+                title={post.citation.title}
+                color={color}
+                context={isHistoricalEvent ? post.eventContext : undefined}
+                displayDate={isHistoricalEvent ? post.eventDisplayDate : undefined}
+              />
+            </div>
+          )}
+
+          {post.citation && !compact && !isHistoricalEvent && !isEveryday && !isArtCommentary && (
+            <div className="w-full mb-4">
+              <CitationBlock citation={post.citation} color={color} accent={accent} />
+            </div>
+          )}
+
+          <Link href={postHref} className="block cursor-pointer">
+            <blockquote className="font-serif text-[20px] leading-[1.38] text-ink mb-4 max-w-lg px-3 relative z-10 font-medium sm:text-[24px]">
+              &ldquo;{post.thesis}&rdquo;
+            </blockquote>
+          </Link>
+
+          <div className="w-14 mx-auto mb-5" style={{ height: "1px", backgroundColor: accent.borderMedium }} />
+
+          <PostContent content={post.content} color={color} isAphorism linkHref={postHref} forceExpanded={expanded} />
+
+          {recommendationLabel && <RecommendationBadgeLink recommendation={recommendationLabel} />}
+
+          <div className="flex items-center justify-between gap-2 flex-wrap w-full mt-3 pt-3 border-t border-border-light/70">
+            <TagBadge tag={post.tag} accent={accent} />
+            <ActionButtons post={post} />
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-4">
+          {!isCrossReply && (
+            <Link href={`/philosophers/${post.philosopherId}`}>
+              <PhilosopherAvatar philosopherId={post.philosopherId} name={post.philosopherName} color={color} initials={post.philosopherInitials} />
+            </Link>
+          )}
+
+          <div className="flex-1 min-w-0">
+            {isHistoricalEvent && post.thumbnailUrl && (
+              <div className="mb-3 -mr-1 overflow-hidden rounded-xl">
+                <div className="relative aspect-[16/9] w-full bg-parchment-dark/30">
+                  <Image
+                    src={post.thumbnailUrl}
+                    alt={post.citation?.title || "Historical event"}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 100vw, 540px"
+                  />
+                </div>
+              </div>
+            )}
+
+            {isArtCommentary && post.citation?.imageUrl && (
+              <ArtworkFramedImage
+                imageUrl={post.citation.imageUrl}
+                title={post.citation.title}
+                artist={post.citation.source}
+                sizes="(max-width: 640px) 100vw, 540px"
+                className="mb-3 -mr-1"
+              />
+            )}
+
+            {!isCrossReply && (
+              <div className="flex items-center gap-2 flex-wrap mb-2">
+                <Link
+                  href={`/philosophers/${post.philosopherId}`}
+                  className="font-serif font-semibold text-[17px] text-ink hover:text-athenian transition-colors duration-200 link-underline"
+                >
+                  {post.philosopherName}
+                </Link>
+                <span className="text-xs text-ink-lighter">&middot;</span>
+                <span className="text-xs text-ink-lighter">{relativeTimestamp}</span>
+                {isPopular && <PopularBadge />}
+              </div>
+            )}
+
+            {isCrossReply && (
+              <div className="flex items-center gap-2 flex-wrap mb-2">
+                {isPopular && <PopularBadge />}
+                {isPopular && <span className="text-xs text-ink-lighter">&middot;</span>}
+                <span className="text-xs text-ink-lighter">{relativeTimestamp}</span>
+              </div>
+            )}
+
+            {!compact && !(isCrossReply && post.replyTargetThesis) && <PostConnectorLine post={post} />}
+
+            {isHistoricalEvent && post.citation?.source && (
+              <TodayInHistoryHeader source={post.citation.source} />
+            )}
+
+            {isEveryday && post.citation?.source && (
+              <ExaminedLifeHeader source={post.citation.source} />
+            )}
+
+            {isArtCommentary && (
+              <ArtCommentaryHeader />
+            )}
+
+            {(isHistoricalEvent || isEveryday) && post.citation?.title && (
+              <HistoricalEventTitle
+                title={post.citation.title}
+                color={color}
+                context={isHistoricalEvent ? post.eventContext : undefined}
+                displayDate={isHistoricalEvent ? post.eventDisplayDate : undefined}
+              />
+            )}
+
+            {post.citation && !compact && !isHistoricalEvent && !isEveryday && !isArtCommentary && (
+              <div className="mb-3 -mt-1">
+                <CitationBlock citation={post.citation} color={color} accent={accent} />
+              </div>
+            )}
+
+            {shouldShowThesis && (
+              <Link href={postHref} className="block cursor-pointer">
+                <blockquote
+                  className="font-serif text-[18px] leading-[1.4] text-ink mb-3 rounded-r-xl px-4 py-3 sm:text-[21px]"
+                  style={{
+                    borderLeft: `3px solid ${color}`,
+                    background: `linear-gradient(90deg, ${color}0f, rgba(248,243,234,0.4))`,
+                    fontWeight: 500,
+                  }}
+                >
+                  {post.thesis}
+                </blockquote>
+              </Link>
+            )}
+
+            <PostContent content={post.content} color={color} isQuip={isQuip} linkHref={postHref} forceExpanded={expanded} />
+
+            {recommendationLabel && <RecommendationBadgeLink recommendation={recommendationLabel} />}
+
+            <div className="flex items-center justify-between gap-2 flex-wrap mt-3 pt-3 border-t border-border-light/70">
+              <TagBadge tag={post.tag} accent={accent} />
+              <ActionButtons post={post} />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  if (compact) {
+    return <div className="border-b border-border-light/60 last:border-b-0">{content}</div>;
+  }
 
   return (
     <article
@@ -609,228 +841,7 @@ export function PostCard({
         borderLeftStyle: isNew || isPopular ? "solid" : undefined,
       }}
     >
-      <div className="px-4 py-4 sm:px-6 sm:py-5">
-        {isCrossReply && <CrossReplyHeader post={post} />}
-
-        {post.replyTo && !isCrossReply && (
-          <div className="flex items-center gap-2 ml-12 mb-3 text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">
-            <ReplyArrowIcon size={14} />
-            In conversation
-          </div>
-        )}
-
-        {isAphorism ? (
-          <div className="flex flex-col items-center text-center relative">
-            <div
-              className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 font-serif select-none pointer-events-none"
-              style={{ fontSize: "120px", color: accent.bgSubtle, lineHeight: 1 }}
-              aria-hidden="true"
-            >
-              &ldquo;
-            </div>
-
-            {isHistoricalEvent && post.thumbnailUrl && (
-              <HistoricalEventThumbnail
-                thumbnailUrl={post.thumbnailUrl}
-                title={post.citation?.title || "Historical event"}
-              />
-            )}
-
-            {isArtCommentary && post.citation?.imageUrl && (
-              <ArtworkFramedImage
-                imageUrl={post.citation.imageUrl}
-                title={post.citation.title}
-                artist={post.citation.source}
-                sizes="(max-width: 640px) 100vw, 640px"
-                className="-mx-5 -mt-5 mb-4 sm:-mx-6 sm:-mt-5"
-              />
-            )}
-
-            <div className="flex items-center gap-2 mb-2 relative z-10">
-              <Link href={`/philosophers/${post.philosopherId}`}>
-                <PhilosopherAvatar philosopherId={post.philosopherId} name={post.philosopherName} color={color} initials={post.philosopherInitials} />
-              </Link>
-              <div className="flex items-center gap-2 flex-wrap justify-center">
-                <Link
-                  href={`/philosophers/${post.philosopherId}`}
-                  className="font-serif font-semibold text-[17px] text-ink hover:text-athenian transition-colors duration-200 link-underline"
-                >
-                  {post.philosopherName}
-                </Link>
-                <span className="text-xs text-ink-lighter">&middot;</span>
-                <span className="text-xs text-ink-lighter">{relativeTimestamp}</span>
-                {isPopular && <PopularBadge />}
-              </div>
-            </div>
-
-            <PostConnectorLine
-              post={post}
-              className="relative z-10 w-full max-w-lg text-center"
-            />
-
-            {isHistoricalEvent && post.citation?.source && (
-              <div className="relative z-10">
-                <TodayInHistoryHeader source={post.citation.source} />
-              </div>
-            )}
-
-            {isEveryday && post.citation?.source && (
-              <div className="relative z-10">
-                <ExaminedLifeHeader source={post.citation.source} />
-              </div>
-            )}
-
-            {isArtCommentary && (
-              <div className="relative z-10">
-                <ArtCommentaryHeader />
-              </div>
-            )}
-
-            {(isHistoricalEvent || isEveryday) && post.citation?.title && (
-              <div className="relative z-10 w-full max-w-lg">
-                <HistoricalEventTitle
-                  title={post.citation.title}
-                  color={color}
-                  context={isHistoricalEvent ? post.eventContext : undefined}
-                  displayDate={isHistoricalEvent ? post.eventDisplayDate : undefined}
-                />
-              </div>
-            )}
-
-            {post.citation && !isHistoricalEvent && !isEveryday && !isArtCommentary && (
-              <div className="w-full mb-4">
-                <CitationBlock citation={post.citation} color={color} accent={accent} />
-              </div>
-            )}
-
-            <Link href={postHref} className="block cursor-pointer">
-              <blockquote className="font-serif text-[20px] leading-[1.38] text-ink mb-4 max-w-lg px-3 relative z-10 font-medium sm:text-[24px]">
-                &ldquo;{post.thesis}&rdquo;
-              </blockquote>
-            </Link>
-
-            <div className="w-14 mx-auto mb-5" style={{ height: "1px", backgroundColor: accent.borderMedium }} />
-
-            <PostContent content={post.content} color={color} isAphorism linkHref={postHref} forceExpanded={expanded} />
-
-            {recommendationLabel && <RecommendationBadgeLink recommendation={recommendationLabel} />}
-
-            <div className="flex items-center justify-between gap-2 flex-wrap w-full mt-3 pt-3 border-t border-border-light/70">
-              <TagBadge tag={post.tag} accent={accent} />
-              <ActionButtons post={post} />
-            </div>
-          </div>
-        ) : (
-          <div className="flex gap-4">
-            {!isCrossReply && (
-              <Link href={`/philosophers/${post.philosopherId}`}>
-                <PhilosopherAvatar philosopherId={post.philosopherId} name={post.philosopherName} color={color} initials={post.philosopherInitials} />
-              </Link>
-            )}
-
-            <div className="flex-1 min-w-0">
-              {isHistoricalEvent && post.thumbnailUrl && (
-                <div className="mb-3 -mr-1 overflow-hidden rounded-xl">
-                  <div className="relative aspect-[16/9] w-full bg-parchment-dark/30">
-                    <Image
-                      src={post.thumbnailUrl}
-                      alt={post.citation?.title || "Historical event"}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 640px) 100vw, 540px"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {isArtCommentary && post.citation?.imageUrl && (
-                <ArtworkFramedImage
-                  imageUrl={post.citation.imageUrl}
-                  title={post.citation.title}
-                  artist={post.citation.source}
-                  sizes="(max-width: 640px) 100vw, 540px"
-                  className="mb-3 -mr-1"
-                />
-              )}
-
-              {!isCrossReply && (
-                <div className="flex items-center gap-2 flex-wrap mb-2">
-                  <Link
-                    href={`/philosophers/${post.philosopherId}`}
-                    className="font-serif font-semibold text-[17px] text-ink hover:text-athenian transition-colors duration-200 link-underline"
-                  >
-                    {post.philosopherName}
-                  </Link>
-                  <span className="text-xs text-ink-lighter">&middot;</span>
-                  <span className="text-xs text-ink-lighter">{relativeTimestamp}</span>
-                  {isPopular && <PopularBadge />}
-                </div>
-              )}
-
-              {isCrossReply && (
-                <div className="flex items-center gap-2 flex-wrap mb-2">
-                  {isPopular && <PopularBadge />}
-                  {isPopular && <span className="text-xs text-ink-lighter">&middot;</span>}
-                  <span className="text-xs text-ink-lighter">{relativeTimestamp}</span>
-                </div>
-              )}
-
-              {!(isCrossReply && post.replyTargetThesis) && <PostConnectorLine post={post} />}
-
-              {isHistoricalEvent && post.citation?.source && (
-                <TodayInHistoryHeader source={post.citation.source} />
-              )}
-
-              {isEveryday && post.citation?.source && (
-                <ExaminedLifeHeader source={post.citation.source} />
-              )}
-
-              {isArtCommentary && (
-                <ArtCommentaryHeader />
-              )}
-
-              {(isHistoricalEvent || isEveryday) && post.citation?.title && (
-                <HistoricalEventTitle
-                  title={post.citation.title}
-                  color={color}
-                  context={isHistoricalEvent ? post.eventContext : undefined}
-                  displayDate={isHistoricalEvent ? post.eventDisplayDate : undefined}
-                />
-              )}
-
-              {post.citation && !isHistoricalEvent && !isEveryday && !isArtCommentary && (
-                <div className="mb-3 -mt-1">
-                  <CitationBlock citation={post.citation} color={color} accent={accent} />
-                </div>
-              )}
-
-              {shouldShowThesis && (
-                <Link href={postHref} className="block cursor-pointer">
-                  <blockquote
-                    className="font-serif text-[18px] leading-[1.4] text-ink mb-3 rounded-r-xl px-4 py-3 sm:text-[21px]"
-                    style={{
-                      borderLeft: `3px solid ${color}`,
-                      background: `linear-gradient(90deg, ${color}0f, rgba(248,243,234,0.4))`,
-                      fontWeight: 500,
-                    }}
-                  >
-                    {post.thesis}
-                  </blockquote>
-                </Link>
-              )}
-
-              <PostContent content={post.content} color={color} isQuip={isQuip} linkHref={postHref} forceExpanded={expanded} />
-
-              {recommendationLabel && <RecommendationBadgeLink recommendation={recommendationLabel} />}
-
-              <div className="flex items-center justify-between gap-2 flex-wrap mt-3 pt-3 border-t border-border-light/70">
-                <TagBadge tag={post.tag} accent={accent} />
-                <ActionButtons post={post} />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      {content}
     </article>
   );
 }

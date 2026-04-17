@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { ArticleThreadCard } from "@/components/ArticleThreadCard";
 import { PostCard } from "@/components/PostCard";
-import { TensionCard } from "@/components/TensionCard";
 import { EditorialDivider } from "@/components/EditorialDivider";
 import { Spinner } from "@/components/Spinner";
 import { WelcomeCard } from "@/components/WelcomeCard";
@@ -310,40 +310,26 @@ export function FeedSection({
             <WelcomeCard />
             {feedItems.map((item, index) => {
               const revealDelay = getRevealDelay(index);
-              const element = item.type === "post" ? (
+              const element = item.type === "cluster" ? (
+                <ArticleThreadCard
+                  key={`cluster-${item.clusterId}`}
+                  posts={item.posts}
+                  delay={revealDelay}
+                />
+              ) : (
                 <PostCard
                   key={item.post.id}
                   post={item.post}
                   delay={revealDelay}
                   isNew={isNewPost(item.post.timestamp)}
                 />
-              ) : (
-                <TensionCard
-                  key={`tension-${item.postA.id}-${item.postB.id}`}
-                  philosopherA={{
-                    name: item.postA.philosopherName,
-                    id: item.postA.philosopherId,
-                    color: item.postA.philosopherColor,
-                    initials: item.postA.philosopherInitials,
-                    stance: item.postA.stance,
-                  }}
-                  philosopherB={{
-                    name: item.postB.philosopherName,
-                    id: item.postB.philosopherId,
-                    color: item.postB.philosopherColor,
-                    initials: item.postB.philosopherInitials,
-                    stance: item.postB.stance,
-                  }}
-                  articleTitle={item.postA.citation?.title || ""}
-                  delay={revealDelay}
-                />
               );
 
               const postCount = feedItems
                 .slice(0, index + 1)
-                .filter((feedItem) => feedItem.type === "post").length;
+                .filter((feedItem) => feedItem.type === "post" || feedItem.type === "cluster").length;
               const showDivider =
-                item.type === "post" &&
+                (item.type === "post" || item.type === "cluster") &&
                 postCount > 0 &&
                 postCount % 5 === 0 &&
                 index < feedItems.length - 1;

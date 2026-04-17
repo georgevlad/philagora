@@ -1,4 +1,3 @@
-import { sharesSameArticle } from "@/lib/feed-utils";
 import type { FeedPost } from "@/lib/types";
 
 interface FeedUnit {
@@ -42,72 +41,88 @@ export function interleaveFeed(posts: FeedPost[]): FeedPost[] {
     return posts;
   }
 
-  const paired = new Set<number>();
-  const pairMap = new Map<number, number>();
+  // Phase A: Build article clusters.
+  const articleGroups = new Map<string, number[]>();
+  const postArticleKey = new Map<string, string>();
+  const postsById = new Map(posts.map((post) => [post.id, post]));
 
   for (let i = 0; i < posts.length; i += 1) {
-    if (paired.has(i)) {
+    const post = posts[i];
+    const articleKey = getArticleKey(post);
+    const isNewsType = !post.sourceType || post.sourceType === "news";
+
+    if (articleKey && isNewsType && !post.replyTo) {
+      const group = articleGroups.get(articleKey) ?? [];
+      group.push(i);
+      articleGroups.set(articleKey, group);
+      postArticleKey.set(post.id, articleKey);
+    }
+  }
+
+  for (let i = 0; i < posts.length; i += 1) {
+    const post = posts[i];
+    const isNewsType = !post.sourceType || post.sourceType === "news";
+
+    if (!post.replyTo || !isNewsType) {
       continue;
     }
 
-    const first = posts[i];
-    if (!getArticleKey(first) || first.replyTo) {
-      continue;
+    let articleKey = getArticleKey(post);
+
+    if (!articleKey) {
+      articleKey = postArticleKey.get(post.replyTo) ?? null;
     }
 
-    for (let j = i + 1; j < posts.length; j += 1) {
-      if (paired.has(j)) {
-        continue;
+    if (!articleKey) {
+      const parent = postsById.get(post.replyTo);
+      if (parent) {
+        articleKey = getArticleKey(parent);
       }
+    }
 
-      const second = posts[j];
-      if (!getArticleKey(second) || second.replyTo) {
-        continue;
+    if (articleKey && articleGroups.has(articleKey)) {
+      const group = articleGroups.get(articleKey)!;
+      if (!group.includes(i)) {
+        group.push(i);
       }
-
-      if (
-        sharesSameArticle(first, second) &&
-        first.philosopherId !== second.philosopherId &&
-        first.stance !== second.stance
-      ) {
-        paired.add(i);
-        paired.add(j);
-        pairMap.set(i, j);
-        pairMap.set(j, i);
-        break;
-      }
+      postArticleKey.set(post.id, articleKey);
     }
   }
 
   const units: FeedUnit[] = [];
   const usedIndices = new Set<number>();
 
-  for (let i = 0; i < posts.length; i += 1) {
-    if (usedIndices.has(i)) {
+  for (const [articleKey, indices] of articleGroups) {
+    if (indices.length < 2) {
       continue;
     }
 
-    const partnerIndex = pairMap.get(i);
+    const standaloneIndices = indices.filter((index) => !posts[index].replyTo).sort((a, b) => a - b);
+    const replyIndices = indices.filter((index) => posts[index].replyTo).sort((a, b) => a - b);
+    const orderedIndices = [...standaloneIndices, ...replyIndices];
+    const clusterPosts: FeedPost[] = [];
 
-    if (partnerIndex !== undefined && !usedIndices.has(partnerIndex)) {
-      const first = posts[i];
-      const second = posts[partnerIndex];
-      usedIndices.add(i);
-      usedIndices.add(partnerIndex);
+    for (const index of orderedIndices) {
+      clusterPosts.push(posts[index]);
+      usedIndices.add(index);
+    }
 
-      units.push({
-        posts: [first, second],
-        articleKey: getArticleKey(first),
-        philosopherIds: new Set([first.philosopherId, second.philosopherId]),
-        sourceType: first.sourceType || "news",
-        stances: new Set([first.stance, second.stance]),
-        tag: first.tag || second.tag || "",
-        isReply: false,
-        isQuipOrMock: false,
-        isReflection: false,
-        originalIndex: Math.min(i, partnerIndex),
-      });
+    units.push({
+      posts: clusterPosts,
+      articleKey,
+      philosopherIds: new Set(clusterPosts.map((post) => post.philosopherId)),
+      sourceType: "news",
+      stances: new Set(clusterPosts.map((post) => post.stance)),
+      tag: clusterPosts[0]?.tag || "",
+      isReply: false,
+      isQuipOrMock: false,
+      isReflection: false,
+      originalIndex: Math.min(...orderedIndices),
+    });
+  }
 
+  for (let i = 0; i < posts.length; i += 1) {
+    if (usedIndices.has(i)) {
       continue;
     }
 
@@ -288,39 +303,20 @@ export function interleaveFeed(posts: FeedPost[]): FeedPost[] {
     }
   }
 
-  // Belt-and-suspenders cleanup: keep any 5-unit window below 3 of the same article.
-  for (let i = 2; i < result.length; i += 1) {
-    const current = result[i];
-    if (!current.articleKey) {
-      continue;
-    }
+  // Phase C: Flatten with cluster annotations.
+  const flatPosts: FeedPost[] = [];
 
-    const windowStart = Math.max(0, i - 4);
-    let sameArticleCount = 0;
-    for (let j = windowStart; j < i; j += 1) {
-      if (result[j].articleKey === current.articleKey) {
-        sameArticleCount += 1;
-      }
-    }
+  for (const unit of result) {
+    const isCluster = unit.posts.length >= 2 && unit.articleKey;
 
-    if (sameArticleCount < 2) {
-      continue;
-    }
-
-    for (let k = i + 1; k < Math.min(i + 10, result.length); k += 1) {
-      if (result[k].articleKey === current.articleKey) {
-        continue;
-      }
-
-      [result[i], result[k]] = [result[k], result[i]];
-
-      if (!violatesSameArticleCap(result, i) && !violatesSameArticleCap(result, k)) {
-        break;
-      }
-
-      [result[i], result[k]] = [result[k], result[i]];
+    for (let i = 0; i < unit.posts.length; i += 1) {
+      flatPosts.push({
+        ...unit.posts[i],
+        _clusterId: isCluster ? unit.articleKey : null,
+        _clusterOrder: isCluster ? i : undefined,
+      });
     }
   }
 
-  return result.flatMap((unit) => unit.posts);
+  return flatPosts;
 }

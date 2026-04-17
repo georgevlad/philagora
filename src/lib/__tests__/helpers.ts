@@ -51,6 +51,8 @@ export function makePost(overrides: FeedPostOverrides = {}): FeedPost {
     replyTargetPhilosopherColor: overrides.replyTargetPhilosopherColor,
     replyTargetPhilosopherInitials: overrides.replyTargetPhilosopherInitials,
     replyTargetThesis: overrides.replyTargetThesis,
+    _clusterId: overrides._clusterId ?? undefined,
+    _clusterOrder: overrides._clusterOrder ?? undefined,
   };
 }
 
