@@ -6,8 +6,8 @@ interface ArticleSchemaInput {
   url: string;
   headline: string;
   description: string;
-  datePublished: string;
-  dateModified: string;
+  datePublished: Date | string;
+  dateModified: Date | string;
   imageUrl?: string;
 }
 
@@ -18,7 +18,7 @@ interface QAPageAnswerInput {
 interface QAPageSchemaInput {
   url: string;
   question: string;
-  askedDate: string;
+  askedDate: Date | string;
   answers: QAPageAnswerInput[];
 }
 
@@ -28,6 +28,15 @@ interface BreadcrumbItemInput {
 }
 
 const SCHEMA_CONTEXT = "https://schema.org";
+const OG_IMAGE_WIDTH = 1200;
+const OG_IMAGE_HEIGHT = 630;
+
+function toIsoOrUndefined(value: Date | string | null | undefined): string | undefined {
+  if (!value) return undefined;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date.toISOString();
+}
 
 function getOrganizationId() {
   return `${getSiteUrl()}/#organization`;
@@ -99,9 +108,16 @@ export function buildArticleSchema({
     mainEntityOfPage: absoluteUrl,
     headline,
     description,
-    datePublished,
-    dateModified,
-    image: imageUrl ? toSchemaUrl(imageUrl) : undefined,
+    datePublished: toIsoOrUndefined(datePublished),
+    dateModified: toIsoOrUndefined(dateModified),
+    image: imageUrl
+      ? {
+          "@type": "ImageObject",
+          url: toSchemaUrl(imageUrl),
+          width: OG_IMAGE_WIDTH,
+          height: OG_IMAGE_HEIGHT,
+        }
+      : undefined,
     author: buildOrganizationReference(),
     publisher: buildOrganizationReference(),
   };
@@ -126,7 +142,7 @@ export function buildQAPageSchema({
       "@type": "Question",
       name: question,
       text: question,
-      dateCreated: askedDate,
+      dateCreated: toIsoOrUndefined(askedDate),
       acceptedAnswer,
       suggestedAnswer: suggestedAnswer.length > 0 ? suggestedAnswer : undefined,
     },

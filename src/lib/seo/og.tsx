@@ -143,7 +143,7 @@ export function truncateOgText(value: string, maxLength: number): string {
     return normalized;
   }
 
-  return `${normalized.slice(0, maxLength - 1).replace(/\s+\S*$/, "")}…`;
+  return `${normalized.slice(0, maxLength - 1).replace(/\s+\S*$/, "")}\u2026`;
 }
 
 export function buildOgExcerpt(
@@ -248,6 +248,6 @@ export function RootOgCard() {
   );
 }
 
-export function createRootOgImageResponse() {
+export async function renderRootOg(): Promise<ImageResponse> {
   return createOgImageResponse(<RootOgCard />);
 }

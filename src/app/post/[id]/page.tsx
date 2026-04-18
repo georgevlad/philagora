@@ -5,7 +5,7 @@ import { PostCard } from "@/components/PostCard";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getIdentityFromCookies } from "@/lib/auth";
 import { getPostById } from "@/lib/data";
-import { truncateSeoText } from "@/lib/seo";
+import { toAbsoluteUrl, truncateSeoText } from "@/lib/seo";
 import {
   buildArticleSchema,
   buildBreadcrumbSchema,
@@ -61,6 +61,7 @@ export default async function PostPage({ params }: PageProps) {
 
   const title = `${post.philosopherName} on Philagora`;
   const description = truncateSeoText(post.thesis || post.content, 160);
+  const imageUrl = toAbsoluteUrl(`/post/${id}/opengraph-image`);
   const postJsonLd = [
     buildArticleSchema({
       url: `/post/${id}`,
@@ -68,7 +69,7 @@ export default async function PostPage({ params }: PageProps) {
       description,
       datePublished: post.createdAt,
       dateModified: post.createdAt,
-      imageUrl: post.thumbnailUrl,
+      imageUrl,
     }),
     buildBreadcrumbSchema([
       { name: "Philagora", url: "/" },

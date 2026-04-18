@@ -7,7 +7,7 @@ import {
   OG_SERIF_FONT,
   OG_SIZE,
   createOgImageResponse,
-  createRootOgImageResponse,
+  renderRootOg,
 } from "@/lib/seo/og";
 
 export const runtime = "nodejs";
@@ -20,94 +20,99 @@ interface Props {
 }
 
 export default async function DebateOpenGraphImage({ params }: Props) {
-  const { id } = await params;
-  const debate = getDebateById(id);
+  try {
+    const { id } = await params;
+    const debate = getDebateById(id);
 
-  if (!debate) {
-    return createRootOgImageResponse();
-  }
+    if (!debate) {
+      return renderRootOg();
+    }
 
-  const philosophersMap = getPhilosophersMap();
-  const names = debate.philosophers
-    .map((philosopherId) => philosophersMap[philosopherId]?.name)
-    .filter((name): name is string => Boolean(name));
+    const philosophersMap = getPhilosophersMap();
+    const names = debate.philosophers
+      .map((philosopherId) => philosophersMap[philosopherId]?.name)
+      .filter((name): name is string => Boolean(name));
 
-  return createOgImageResponse(
-    <div
-      style={{
-        display: "flex",
-        width: "100%",
-        height: "100%",
-        padding: "72px 88px 52px",
-        backgroundColor: COLORS.parchment,
-        color: COLORS.ink,
-      }}
-    >
+    return createOgImageResponse(
       <div
         style={{
           display: "flex",
-          flexDirection: "column",
           width: "100%",
           height: "100%",
-          justifyContent: "space-between",
-          alignItems: "center",
-          textAlign: "center",
+          padding: "72px 88px 52px",
+          backgroundColor: COLORS.parchment,
+          color: COLORS.ink,
         }}
       >
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            flex: 1,
             width: "100%",
+            height: "100%",
+            justifyContent: "space-between",
             alignItems: "center",
-            justifyContent: "center",
+            textAlign: "center",
           }}
         >
           <div
             style={{
-              fontFamily: OG_SERIF_FONT,
-              fontSize: 64,
-              lineHeight: 1.08,
-              maxWidth: 940,
+              display: "flex",
+              flexDirection: "column",
+              flex: 1,
+              width: "100%",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            {debate.title}
-          </div>
-
-          {names.length > 0 ? (
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                marginTop: 42,
-                fontFamily: OG_MONO_FONT,
-                fontSize: 28,
-                letterSpacing: 2,
-                textTransform: "uppercase",
-                color: COLORS.inkLight,
+                fontFamily: OG_SERIF_FONT,
+                fontSize: 64,
+                lineHeight: 1.08,
+                maxWidth: 940,
               }}
             >
-              <span>{names[0] ?? "Philagora"}</span>
-              <span
+              {debate.title}
+            </div>
+
+            {names.length > 0 ? (
+              <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  margin: "0 18px",
-                  color: COLORS.terracotta,
+                  marginTop: 42,
+                  fontFamily: OG_MONO_FONT,
+                  fontSize: 28,
+                  letterSpacing: 2,
+                  textTransform: "uppercase",
+                  color: COLORS.inkLight,
                 }}
               >
-                <span style={{ marginRight: 10 }}>•</span>
-                <span style={{ color: COLORS.inkLight }}>vs</span>
-                <span style={{ marginLeft: 10 }}>•</span>
-              </span>
-              <span>{names[1] ?? names[0]}</span>
-            </div>
-          ) : null}
-        </div>
+                <span>{names[0] ?? "Philagora"}</span>
+                <span
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    margin: "0 18px",
+                    color: COLORS.terracotta,
+                  }}
+                >
+                  <span style={{ marginRight: 10 }}>{"\u2022"}</span>
+                  <span style={{ color: COLORS.inkLight }}>vs</span>
+                  <span style={{ marginLeft: 10 }}>{"\u2022"}</span>
+                </span>
+                <span>{names[1] ?? names[0]}</span>
+              </div>
+            ) : null}
+          </div>
 
-        <FooterStrip label="A PHILAGORA DEBATE" textColor={COLORS.inkLight} />
+          <FooterStrip label="A PHILAGORA DEBATE" textColor={COLORS.inkLight} />
+        </div>
       </div>
-    </div>
-  );
+    );
+  } catch (error) {
+    console.error("[og] debates/[id] render failed, falling back to root OG:", error);
+    return renderRootOg();
+  }
 }

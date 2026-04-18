@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getPhilosophersMap, getAllPhilosophers, getDebateById } from "@/lib/data";
-import { truncateSeoText } from "@/lib/seo";
+import { toAbsoluteUrl, truncateSeoText } from "@/lib/seo";
 import {
   buildArticleSchema,
   buildBreadcrumbSchema,
@@ -76,6 +76,7 @@ export default async function DebatePage({
         .join(" and ") || "Philagora's philosophers"
     } debate: ${debate.openings[0]?.content || debate.triggerArticleTitle}`
   );
+  const imageUrl = toAbsoluteUrl(`/debates/${id}/opengraph-image`);
   const debateJsonLd = [
     buildArticleSchema({
       url: `/debates/${id}`,
@@ -83,6 +84,7 @@ export default async function DebatePage({
       description: debateDescription,
       datePublished: debate.debateDateRaw ?? debate.debateDate,
       dateModified: debate.debateDateRaw ?? debate.debateDate,
+      imageUrl,
     }),
     buildBreadcrumbSchema([
       { name: "Philagora", url: "/" },
