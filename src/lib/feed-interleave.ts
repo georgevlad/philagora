@@ -13,6 +13,29 @@ interface FeedUnit {
   originalIndex: number;
 }
 
+// Recency tiers - units are bucketed by max post age, then greedy-placed
+// independently within each tier. Tiers concatenate in order: fresh first.
+const TIER_1_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const TIER_2_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+// Anything older falls into tier 3.
+
+function getUnitTier(unit: FeedUnit, now: number): 1 | 2 | 3 {
+  // A cluster's tier is determined by its newest post. This keeps fresh
+  // replies to older threads near the top where the new activity lives.
+  let newestTimestamp = 0;
+  for (const post of unit.posts) {
+    const ts = new Date(post.createdAt).getTime();
+    if (ts > newestTimestamp) {
+      newestTimestamp = ts;
+    }
+  }
+
+  const age = now - newestTimestamp;
+  if (age <= TIER_1_MAX_AGE_MS) return 1;
+  if (age <= TIER_2_MAX_AGE_MS) return 2;
+  return 3;
+}
+
 function getArticleKey(post: FeedPost): string | null {
   if (!post.citation) return null;
   return post.citation.url || post.citation.title || null;
@@ -34,6 +57,142 @@ function violatesSameArticleCap(units: FeedUnit[], index: number): boolean {
   }
 
   return sameArticleCount > 2;
+}
+
+function placeUnitsGreedy(units: FeedUnit[], freshArticles: Set<string>): FeedUnit[] {
+  const WINDOW_SIZE = Math.min(units.length, 16);
+  const result: FeedUnit[] = [];
+  const remaining = [...units];
+  const placedPostPositions = new Map<string, number>();
+
+  while (remaining.length > 0) {
+    const windowEnd = Math.min(remaining.length, WINDOW_SIZE);
+    let bestIndex = 0;
+    let bestScore = Number.NEGATIVE_INFINITY;
+
+    for (let i = 0; i < windowEnd; i += 1) {
+      const candidate = remaining[i];
+      const lastUnit = result.at(-1) ?? null;
+      const lastTwoUnits = result.slice(-2);
+      const lastThreeUnits = result.slice(-3);
+      let score = 0;
+
+      score -= i * 1.5;
+      score -= Math.max(0, candidate.originalIndex - result.length) * 0.15;
+
+      // Heavy penalty for repeating the same cited article or everyday scenario.
+      if (candidate.articleKey && !candidate.isReply) {
+        const isFresh = freshArticles.has(candidate.articleKey);
+        const penalty = isFresh ? 40 : 200;
+        for (const recent of result.slice(-6)) {
+          if (recent.articleKey === candidate.articleKey) {
+            score -= penalty;
+          }
+        }
+      }
+
+      for (const recent of lastTwoUnits) {
+        for (const philosopherId of candidate.philosopherIds) {
+          if (recent.philosopherIds.has(philosopherId)) {
+            score -= 40;
+          }
+        }
+      }
+
+      for (const recent of result.slice(-5)) {
+        if (candidate.sourceType === recent.sourceType) {
+          score -= 35;
+        }
+      }
+
+      if (lastUnit) {
+        for (const stance of candidate.stances) {
+          if (lastUnit.stances.has(stance)) {
+            score -= 12;
+          }
+        }
+      }
+
+      if (candidate.tag) {
+        for (const recent of lastTwoUnits) {
+          if (recent.tag && recent.tag === candidate.tag) {
+            score -= 8;
+          }
+        }
+      }
+
+      if (candidate.isQuipOrMock) {
+        const recentNonQuips = lastThreeUnits.filter((unit) => !unit.isQuipOrMock);
+        if (recentNonQuips.length >= 3) {
+          score += 25;
+        }
+      }
+
+      if (candidate.isReflection) {
+        const recentNewsUnits = result
+          .slice(-4)
+          .filter((unit) => unit.sourceType === "news");
+        if (recentNewsUnits.length >= 3) {
+          score += 20;
+        }
+      }
+
+      if (candidate.isReply) {
+        const recentStandaloneUnits = lastThreeUnits.filter((unit) => !unit.isReply);
+        if (recentStandaloneUnits.length >= 3) {
+          score += 15;
+        }
+
+        const replyTargetId = candidate.posts[0]?.replyTo;
+        if (replyTargetId) {
+          const placedParentIndex = placedPostPositions.get(replyTargetId);
+
+          if (placedParentIndex !== undefined) {
+            const distanceFromParent = result.length - placedParentIndex;
+            if (distanceFromParent <= 2) {
+              score += 60;
+            } else if (distanceFromParent <= 4) {
+              score += 30;
+            } else if (distanceFromParent >= 8) {
+              score -= 12;
+            }
+          } else {
+            const parentRemainingIndex = remaining.findIndex((unit) =>
+              unit.posts.some((post) => post.id === replyTargetId)
+            );
+
+            if (parentRemainingIndex >= 0 && parentRemainingIndex < windowEnd) {
+              score -= 18;
+            } else if (parentRemainingIndex >= 0 && parentRemainingIndex < windowEnd + 4) {
+              score -= 8;
+            }
+          }
+        }
+      }
+
+      if (candidate.sourceType === "historical_event" || candidate.sourceType === "everyday") {
+        const recentNewsUnits = lastThreeUnits.filter((unit) => unit.sourceType === "news");
+        if (recentNewsUnits.length >= 2) {
+          score += 18;
+        }
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestIndex = i;
+      }
+    }
+
+    const [selectedUnit] = remaining.splice(bestIndex, 1);
+    result.push(selectedUnit);
+
+    const placedIndex = result.length - 1;
+    for (const post of selectedUnit.posts) {
+      placedPostPositions.set(post.id, placedIndex);
+    }
+  }
+
+  return result;
 }
 
 export function interleaveFeed(posts: FeedPost[]): FeedPost[] {
@@ -174,142 +333,36 @@ export function interleaveFeed(posts: FeedPost[]): FeedPost[] {
   // Restore chronological ordering so the scoring window sees recent content first.
   units.sort((a, b) => a.originalIndex - b.originalIndex);
 
-  const WINDOW_SIZE = Math.min(units.length, 16);
-  const result: FeedUnit[] = [];
-  const remaining = [...units];
-  const placedPostPositions = new Map<string, number>();
+  // Phase B: Bucket units into recency tiers, then greedy-place within each.
+  const now = Date.now();
+  const tier1: FeedUnit[] = [];
+  const tier2: FeedUnit[] = [];
+  const tier3: FeedUnit[] = [];
 
-  while (remaining.length > 0) {
-    const windowEnd = Math.min(remaining.length, WINDOW_SIZE);
-    let bestIndex = 0;
-    let bestScore = Number.NEGATIVE_INFINITY;
-
-    for (let i = 0; i < windowEnd; i += 1) {
-      const candidate = remaining[i];
-      const lastUnit = result.at(-1) ?? null;
-      const lastTwoUnits = result.slice(-2);
-      const lastThreeUnits = result.slice(-3);
-      let score = 0;
-
-      score -= i * 1.5;
-      score -= Math.max(0, candidate.originalIndex - result.length) * 0.15;
-
-      // Heavy penalty for repeating the same cited article or everyday scenario.
-      if (candidate.articleKey && !candidate.isReply) {
-        const isFresh = freshArticles.has(candidate.articleKey);
-        const penalty = isFresh ? 40 : 200;
-        for (const recent of result.slice(-6)) {
-          if (recent.articleKey === candidate.articleKey) {
-            score -= penalty;
-          }
-        }
-      }
-
-      for (const recent of lastTwoUnits) {
-        for (const philosopherId of candidate.philosopherIds) {
-          if (recent.philosopherIds.has(philosopherId)) {
-            score -= 40;
-          }
-        }
-      }
-
-      for (const recent of result.slice(-5)) {
-        if (candidate.sourceType === recent.sourceType) {
-          score -= 35;
-        }
-      }
-
-      if (lastUnit) {
-        for (const stance of candidate.stances) {
-          if (lastUnit.stances.has(stance)) {
-            score -= 12;
-          }
-        }
-      }
-
-      if (candidate.tag) {
-        for (const recent of lastTwoUnits) {
-          if (recent.tag && recent.tag === candidate.tag) {
-            score -= 8;
-          }
-        }
-      }
-
-      if (candidate.isQuipOrMock) {
-        const recentNonQuips = lastThreeUnits.filter((unit) => !unit.isQuipOrMock);
-        if (recentNonQuips.length >= 3) {
-          score += 25;
-        }
-      }
-
-      if (candidate.isReflection) {
-        const recentNewsUnits = result
-          .slice(-4)
-          .filter((unit) => unit.sourceType === "news");
-        if (recentNewsUnits.length >= 3) {
-          score += 20;
-        }
-      }
-
-      if (candidate.isReply) {
-        const recentStandaloneUnits = lastThreeUnits.filter((unit) => !unit.isReply);
-        if (recentStandaloneUnits.length >= 3) {
-          score += 15;
-        }
-
-        const replyTargetId = candidate.posts[0]?.replyTo;
-        if (replyTargetId) {
-          const placedParentIndex = placedPostPositions.get(replyTargetId);
-
-          if (placedParentIndex !== undefined) {
-            const distanceFromParent = result.length - placedParentIndex;
-            if (distanceFromParent <= 2) {
-              score += 60;
-            } else if (distanceFromParent <= 4) {
-              score += 30;
-            } else if (distanceFromParent >= 8) {
-              score -= 12;
-            }
-          } else {
-            const parentRemainingIndex = remaining.findIndex((unit) =>
-              unit.posts.some((post) => post.id === replyTargetId)
-            );
-
-            if (parentRemainingIndex >= 0 && parentRemainingIndex < windowEnd) {
-              score -= 18;
-            } else if (parentRemainingIndex >= 0 && parentRemainingIndex < windowEnd + 4) {
-              score -= 8;
-            }
-          }
-        }
-      }
-
-      if (candidate.sourceType === "historical_event" || candidate.sourceType === "everyday") {
-        const recentNewsUnits = lastThreeUnits.filter((unit) => unit.sourceType === "news");
-        if (recentNewsUnits.length >= 2) {
-          score += 18;
-        }
-      }
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestIndex = i;
-      }
-    }
-
-    const [selectedUnit] = remaining.splice(bestIndex, 1);
-    result.push(selectedUnit);
-
-    const placedIndex = result.length - 1;
-    for (const post of selectedUnit.posts) {
-      placedPostPositions.set(post.id, placedIndex);
+  for (const unit of units) {
+    const tier = getUnitTier(unit, now);
+    if (tier === 1) {
+      tier1.push(unit);
+    } else if (tier === 2) {
+      tier2.push(unit);
+    } else {
+      tier3.push(unit);
     }
   }
+
+  // Each tier is placed independently. The originalIndex values carry over
+  // from the input ordering (created_at DESC), so within each tier the
+  // secondary recency signal still nudges fresher units forward.
+  const placed = [
+    ...placeUnitsGreedy(tier1, freshArticles),
+    ...placeUnitsGreedy(tier2, freshArticles),
+    ...placeUnitsGreedy(tier3, freshArticles),
+  ];
 
   // Phase C: Flatten with cluster annotations.
   const flatPosts: FeedPost[] = [];
 
-  for (const unit of result) {
+  for (const unit of placed) {
     const isCluster = unit.posts.length >= 2 && unit.articleKey;
 
     for (let i = 0; i < unit.posts.length; i += 1) {

@@ -365,6 +365,148 @@ describe("interleaveFeed", () => {
     });
   });
 
+  describe("recency tiers", () => {
+    function msAgo(ms: number): string {
+      return new Date(Date.now() - ms).toISOString();
+    }
+
+    it("places a fresh post above an older post of the same source type", () => {
+      const oldReaction = makeReaction("plato", "https://a.com", "defends", {
+        createdAt: msAgo(10 * 24 * 60 * 60 * 1000),
+      });
+      const freshReaction = makeReaction("camus", "https://b.com", "reframes", {
+        createdAt: msAgo(5 * 60 * 1000),
+      });
+      const filler1 = makeReflection("seneca", {
+        createdAt: msAgo(15 * 24 * 60 * 60 * 1000),
+      });
+      const filler2 = makeQuip("nietzsche", {
+        createdAt: msAgo(12 * 24 * 60 * 60 * 1000),
+      });
+
+      const input = [freshReaction, oldReaction, filler1, filler2];
+      const result = interleaveFeed(input);
+
+      const freshIndex = result.findIndex((post) => post.id === freshReaction.id);
+      const oldIndex = result.findIndex((post) => post.id === oldReaction.id);
+      expect(freshIndex).toBeLessThan(oldIndex);
+    });
+
+    it("places all tier-1 posts before any tier-2 post", () => {
+      const tier1Posts = [
+        makeReaction("plato", "https://a.com", "defends", {
+          createdAt: msAgo(60 * 60 * 1000),
+        }),
+        makeReaction("camus", "https://b.com", "reframes", {
+          createdAt: msAgo(2 * 60 * 60 * 1000),
+        }),
+        makeReaction("kant", "https://c.com", "challenges", {
+          createdAt: msAgo(3 * 60 * 60 * 1000),
+        }),
+      ];
+      const tier2Posts = [
+        makeReflection("seneca", {
+          createdAt: msAgo(3 * 24 * 60 * 60 * 1000),
+        }),
+        makeReflection("arendt", {
+          createdAt: msAgo(4 * 24 * 60 * 60 * 1000),
+        }),
+      ];
+
+      const result = interleaveFeed([...tier1Posts, ...tier2Posts]);
+
+      const lastTier1Pos = Math.max(
+        ...tier1Posts.map((post) => result.findIndex((placed) => placed.id === post.id))
+      );
+      const firstTier2Pos = Math.min(
+        ...tier2Posts.map((post) => result.findIndex((placed) => placed.id === post.id))
+      );
+      expect(lastTier1Pos).toBeLessThan(firstTier2Pos);
+    });
+
+    it("places all tier-2 posts before any tier-3 post", () => {
+      const tier2Posts = [
+        makeReaction("plato", "https://a.com", "defends", {
+          createdAt: msAgo(2 * 24 * 60 * 60 * 1000),
+        }),
+        makeReaction("camus", "https://b.com", "reframes", {
+          createdAt: msAgo(5 * 24 * 60 * 60 * 1000),
+        }),
+      ];
+      const tier3Posts = [
+        makeReaction("kant", "https://c.com", "challenges", {
+          createdAt: msAgo(10 * 24 * 60 * 60 * 1000),
+        }),
+        makeReaction("nietzsche", "https://d.com", "questions", {
+          createdAt: msAgo(20 * 24 * 60 * 60 * 1000),
+        }),
+      ];
+
+      const result = interleaveFeed([...tier2Posts, ...tier3Posts]);
+
+      const lastTier2Pos = Math.max(
+        ...tier2Posts.map((post) => result.findIndex((placed) => placed.id === post.id))
+      );
+      const firstTier3Pos = Math.min(
+        ...tier3Posts.map((post) => result.findIndex((placed) => placed.id === post.id))
+      );
+      expect(lastTier2Pos).toBeLessThan(firstTier3Pos);
+    });
+
+    it("diversification still works within a tier", () => {
+      const posts = [
+        makeReaction("nietzsche", "https://a.com", "challenges", {
+          createdAt: msAgo(30 * 60 * 1000),
+        }),
+        makeReaction("nietzsche", "https://b.com", "mocks", {
+          createdAt: msAgo(45 * 60 * 1000),
+        }),
+        makeReaction("plato", "https://c.com", "defends", {
+          createdAt: msAgo(60 * 60 * 1000),
+        }),
+        makeReaction("camus", "https://d.com", "reframes", {
+          createdAt: msAgo(90 * 60 * 1000),
+        }),
+      ];
+      const result = interleaveFeed(posts);
+
+      const nietzscheIndices = result
+        .map((post, index) => ({ philosopherId: post.philosopherId, index }))
+        .filter((entry) => entry.philosopherId === "nietzsche")
+        .map((entry) => entry.index);
+
+      expect(nietzscheIndices).toHaveLength(2);
+      expect(nietzscheIndices[1] - nietzscheIndices[0]).toBeGreaterThanOrEqual(2);
+    });
+
+    it("cluster tier is determined by the newest post in the cluster", () => {
+      const oldOriginal = makeReaction("kant", "https://old-article.com", "defends", {
+        createdAt: msAgo(10 * 24 * 60 * 60 * 1000),
+      });
+      const freshReply = makeReply("cicero", oldOriginal.id, {
+        citation: {
+          title: "Article at https://old-article.com",
+          source: "Test Source",
+          url: "https://old-article.com",
+        },
+        stance: "reframes",
+        createdAt: msAgo(10 * 60 * 1000),
+      });
+      const unrelatedOld = makeReflection("seneca", {
+        createdAt: msAgo(5 * 24 * 60 * 60 * 1000),
+      });
+      const tier1Filler = makeReaction("plato", "https://fresh.com", "observes", {
+        createdAt: msAgo(60 * 60 * 1000),
+      });
+
+      const result = interleaveFeed([freshReply, tier1Filler, unrelatedOld, oldOriginal]);
+
+      const oldOriginalIndex = result.findIndex((post) => post.id === oldOriginal.id);
+      const unrelatedIndex = result.findIndex((post) => post.id === unrelatedOld.id);
+      expect(oldOriginalIndex).toBeLessThan(unrelatedIndex);
+    });
+  });
+
   describe("stress test", () => {
     it("handles a realistic 40-post feed without errors", () => {
       const philosophers = [
