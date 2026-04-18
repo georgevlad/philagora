@@ -206,7 +206,7 @@ function ResponseCard({
                 borderLeftWidth: "3px",
               }}
             >
-              <div className="flex items-center justify-between gap-3 mb-1.5">
+              <div className="mb-1.5 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <p className="font-serif text-[16px] text-ink leading-tight">
                     {response.recommendation.title}
@@ -217,7 +217,7 @@ function ResponseCard({
                   </p>
                 </div>
                 <span
-                  className="text-[10px] font-mono px-2 py-0.5 rounded-full"
+                  className="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full px-2.5 py-1 text-center text-[10px] font-mono leading-none"
                   style={{
                     backgroundColor: `${response.philosopher_color}12`,
                     color: response.philosopher_color,
