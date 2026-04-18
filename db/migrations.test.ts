@@ -159,6 +159,15 @@ describe("migration system", () => {
       expect(colNames).toContain("recommendation_medium");
     });
 
+    it("creates the posts status-created_at composite index", () => {
+      runMigrations(db, { bootstrapNewsSources: true });
+
+      const indexes = db.prepare("PRAGMA index_list(posts)").all() as Array<{ name: string }>;
+      const indexNames = indexes.map((index) => index.name);
+
+      expect(indexNames).toContain("idx_posts_status_created_at");
+    });
+
     it("adds mood_register to generation_log and seeds mood config defaults", () => {
       runMigrations(db, { bootstrapNewsSources: true });
 

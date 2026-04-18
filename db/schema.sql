@@ -55,6 +55,7 @@ CREATE INDEX IF NOT EXISTS idx_posts_tag ON posts(tag);
 CREATE INDEX IF NOT EXISTS idx_posts_reply_to ON posts(reply_to);
 CREATE INDEX IF NOT EXISTS idx_posts_source_type ON posts(source_type);
 CREATE INDEX IF NOT EXISTS idx_posts_historical_event_id ON posts(historical_event_id);
+CREATE INDEX IF NOT EXISTS idx_posts_status_created_at ON posts(status, created_at DESC);
 
 -- ── Debates ──────────────────────────────────────────────────────────
 

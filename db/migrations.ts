@@ -101,6 +101,11 @@ const MIGRATIONS: Migration[] = [
     name: "generation_log_add_art_commentary_content_type",
     migrate: (db) => migrateGenerationLogAddArtCommentary(db),
   },
+  {
+    version: 15,
+    name: "add_posts_status_created_at_index",
+    migrate: (db) => migrateAddPostsStatusCreatedAtIndex(db),
+  },
   // Future migrations go here
 ];
 
@@ -941,6 +946,17 @@ function migrateGenerationLogAddArtCommentary(db: Database.Database): void {
 
   db.exec("PRAGMA foreign_keys = ON;");
 }
+
+function migrateAddPostsStatusCreatedAtIndex(db: Database.Database): void {
+  const postsTable = db
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='posts'")
+    .get() as { name: string } | undefined;
+
+  if (!postsTable) return;
+
+  db.exec("CREATE INDEX IF NOT EXISTS idx_posts_status_created_at ON posts(status, created_at DESC);");
+}
+
 // Test-only exports
 function migrateAddPostRecommendationAuthor(db: Database.Database): void {
   const columns = db.prepare("PRAGMA table_info(posts)").all() as Array<{ name: string }>;
