@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { bustFeedCache } from "@/lib/feed-cache";
 import { generateContent } from "@/lib/generation-service";
 import type { TargetLength } from "@/lib/content-templates";
 import type { Stance } from "@/lib/types";
@@ -215,6 +216,8 @@ export async function POST(request: NextRequest) {
         await wait(500);
       }
     }
+
+    bustFeedCache();
 
     return NextResponse.json({
       success: true,

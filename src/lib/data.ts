@@ -1,5 +1,10 @@
 import { getAgoraSynthesisForThread, parseAgoraRecommendation } from "@/lib/agora";
 import { getDb } from "@/lib/db";
+import {
+  buildCacheKey,
+  getCachedAnonymousInterleave,
+  setCachedAnonymousInterleave,
+} from "@/lib/feed-cache";
 import { interleaveFeed } from "@/lib/feed-interleave";
 import { buildFeedContentTypeConditions } from "@/lib/feed-utils";
 import { isPostSourceType } from "@/lib/historical-events";
@@ -201,15 +206,90 @@ function queryPublishedPosts(options: {
   contentType?: string;
   philosopherId?: string;
   userId?: string;
+  cap?: number;
 } = {}): FeedPost[] {
   const db = getDb();
   const { where, params } = buildPublishedPostFilters(options);
   const { sql: baseQuery, extraParams } = buildFeedPostQuery(options.userId);
+  const cap = Math.max(1, options.cap ?? 300);
   const rows = db
-    .prepare(baseQuery + where + " ORDER BY p.created_at DESC")
-    .all(...extraParams, ...params) as FeedPostRow[];
+    .prepare(
+      // Safety ceiling for feed reads; this applies even when caching is disabled.
+      // Interleaving and page slicing still happen in JS within this window.
+      baseQuery + where + " ORDER BY p.created_at DESC LIMIT ?"
+    )
+    .all(...extraParams, ...params, cap) as FeedPostRow[];
 
   return rows.map(mapFeedPost);
+}
+
+function buildFeedPage(
+  interleavedPosts: FeedPost[],
+  offset: number,
+  limit: number
+): { posts: FeedPost[]; hasMore: boolean; nextOffset: number | null } {
+  const posts = interleavedPosts.slice(offset, offset + limit);
+  const hasMore = offset + limit < interleavedPosts.length;
+
+  return {
+    posts,
+    hasMore,
+    nextOffset: hasMore ? offset + posts.length : null,
+  };
+}
+
+function toAnonymousFeedPosts(posts: FeedPost[]): FeedPost[] {
+  return posts.map((post) => ({
+    ...post,
+    isLiked: undefined,
+    isBookmarked: undefined,
+  }));
+}
+
+function getUserFeedState(userId: string, postIds: string[]) {
+  if (postIds.length === 0) {
+    return {
+      likedPostIds: new Set<string>(),
+      bookmarkedPostIds: new Set<string>(),
+    };
+  }
+
+  const db = getDb();
+  const placeholders = postIds.map(() => "?").join(", ");
+  const likedRows = db
+    .prepare(
+      `SELECT post_id
+       FROM user_likes
+       WHERE user_id = ?
+         AND post_id IN (${placeholders})`
+    )
+    .all(userId, ...postIds) as Array<{ post_id: string }>;
+  const bookmarkedRows = db
+    .prepare(
+      `SELECT post_id
+       FROM user_bookmarks
+       WHERE user_id = ?
+         AND post_id IN (${placeholders})`
+    )
+    .all(userId, ...postIds) as Array<{ post_id: string }>;
+
+  return {
+    likedPostIds: new Set(likedRows.map((row) => row.post_id)),
+    bookmarkedPostIds: new Set(bookmarkedRows.map((row) => row.post_id)),
+  };
+}
+
+function overlayUserFeedState(posts: FeedPost[], userId: string): FeedPost[] {
+  const { likedPostIds, bookmarkedPostIds } = getUserFeedState(
+    userId,
+    posts.map((post) => post.id)
+  );
+
+  return posts.map((post) => ({
+    ...post,
+    isLiked: likedPostIds.has(post.id) ? true : undefined,
+    isBookmarked: bookmarkedPostIds.has(post.id) ? true : undefined,
+  }));
 }
 
 export function getFilteredPublishedPosts(
@@ -229,6 +309,37 @@ export function getInterleavedFeed(options: {
 }): { posts: FeedPost[]; hasMore: boolean; nextOffset: number | null } {
   const limit = Math.max(1, options.limit ?? 15);
   const offset = Math.max(0, options.offset ?? 0);
+  const cacheKey = buildCacheKey({
+    contentType: options.contentType,
+    philosopherId: options.philosopherId,
+  });
+
+  if (!options.userId) {
+    const cachedPosts = getCachedAnonymousInterleave(cacheKey);
+    if (cachedPosts) {
+      return buildFeedPage(cachedPosts, offset, limit);
+    }
+
+    const interleavedPosts = interleaveFeed(
+      queryPublishedPosts({
+        contentType: options.contentType,
+        philosopherId: options.philosopherId,
+      })
+    );
+    setCachedAnonymousInterleave(cacheKey, toAnonymousFeedPosts(interleavedPosts));
+
+    return buildFeedPage(interleavedPosts, offset, limit);
+  }
+
+  const cachedAnonymousPosts = getCachedAnonymousInterleave(cacheKey);
+  if (cachedAnonymousPosts) {
+    return buildFeedPage(
+      overlayUserFeedState(cachedAnonymousPosts, options.userId),
+      offset,
+      limit
+    );
+  }
+
   const interleavedPosts = interleaveFeed(
     queryPublishedPosts({
       contentType: options.contentType,
@@ -236,14 +347,9 @@ export function getInterleavedFeed(options: {
       userId: options.userId,
     })
   );
-  const posts = interleavedPosts.slice(offset, offset + limit);
-  const hasMore = offset + limit < interleavedPosts.length;
+  setCachedAnonymousInterleave(cacheKey, toAnonymousFeedPosts(interleavedPosts));
 
-  return {
-    posts,
-    hasMore,
-    nextOffset: hasMore ? offset + posts.length : null,
-  };
+  return buildFeedPage(interleavedPosts, offset, limit);
 }
 
 export function getPostsByPhilosopher(philosopherId: string, userId?: string): FeedPost[] {

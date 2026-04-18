@@ -5,6 +5,7 @@ import type {
   PhilosopherRow,
   StoredPostRow,
 } from "@/lib/db-types";
+import { bustFeedCache } from "@/lib/feed-cache";
 import { generateContent } from "@/lib/generation-service";
 import type { MoodResult } from "@/lib/mood-service";
 import {
@@ -637,6 +638,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    bustFeedCache();
+
     return NextResponse.json({
       success: generated.length > 0,
       summary: buildSummary(generated, errors),
@@ -965,6 +968,8 @@ export async function PATCH(request: NextRequest) {
     if ((body.type === "news_reaction" || body.type === "quip") && articleCandidateId) {
       db.prepare("UPDATE article_candidates SET status = 'used' WHERE id = ?").run(articleCandidateId);
     }
+
+    bustFeedCache();
 
     return NextResponse.json({
       success: true,

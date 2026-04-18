@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { bustFeedCache } from "@/lib/feed-cache";
 import { generateContent } from "@/lib/generation-service";
 import type { HistoricalEventRow } from "@/lib/db-types";
 import type { TargetLength } from "@/lib/content-templates";
@@ -165,6 +166,8 @@ export async function POST(
 
       return Number(logResult.lastInsertRowid);
     })();
+
+    bustFeedCache();
 
     return NextResponse.json(
       {

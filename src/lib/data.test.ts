@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDb, seedPhilosophers, seedPosts } from "./__tests__/test-db";
+import { bustFeedCache } from "@/lib/feed-cache";
 
 let testDb: Database.Database;
 
@@ -108,9 +109,11 @@ beforeEach(() => {
   testDb = createTestDb();
   seedPhilosophers(testDb);
   seedPosts(testDb, TEST_POSTS);
+  bustFeedCache();
 });
 
 afterEach(() => {
+  bustFeedCache();
   testDb.close();
 });
 
@@ -401,6 +404,27 @@ describe("getInterleavedFeed", () => {
 
     expect(bookmarkedPost?.isBookmarked).toBe(true);
     expect(unbookmarkedPost?.isBookmarked).toBeUndefined();
+  });
+
+  it("overlays likes and bookmarks on top of cached anonymous ordering", () => {
+    seedBookmark("user-1", "post-3", "2025-03-02 09:00:00");
+    seedLike("user-1", "post-4", "2025-03-02 10:00:00");
+
+    const anonymous = getInterleavedFeed({});
+    const cachedAnonymousPost = anonymous.posts.find((post) => post.id === "post-4");
+
+    expect(cachedAnonymousPost?.isLiked).toBeUndefined();
+    expect(cachedAnonymousPost?.isBookmarked).toBeUndefined();
+
+    const result = getInterleavedFeed({ userId: "user-1" });
+    const likedPost = result.posts.find((post) => post.id === "post-4");
+    const bookmarkedPost = result.posts.find((post) => post.id === "post-3");
+    const untouchedPost = result.posts.find((post) => post.id === "post-1");
+
+    expect(likedPost?.isLiked).toBe(true);
+    expect(bookmarkedPost?.isBookmarked).toBe(true);
+    expect(untouchedPost?.isLiked).toBeUndefined();
+    expect(untouchedPost?.isBookmarked).toBeUndefined();
   });
 });
 

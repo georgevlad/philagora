@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
+import { bustFeedCache } from "@/lib/feed-cache";
 import { isPostSourceType } from "@/lib/historical-events";
 import { POST_STATUSES, STANCE_CONFIG } from "@/lib/constants";
 import { buildFeedContentTypeConditions } from "@/lib/feed-utils";
@@ -237,6 +238,8 @@ export async function POST(request: NextRequest) {
       )
       .get(postId);
 
+    bustFeedCache();
+
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
     console.error("Failed to create post:", error);
@@ -279,7 +282,7 @@ export async function PATCH(request: NextRequest) {
       "UPDATE posts SET status = ?, updated_at = datetime('now') WHERE id = ?"
     ).run(status, id);
 
-    // Bust the cached feed so published/unpublished posts appear/disappear
+    bustFeedCache();
     revalidatePath("/");
 
     const updated = db.prepare("SELECT * FROM posts WHERE id = ?").get(id);
@@ -324,7 +327,7 @@ export async function DELETE(request: NextRequest) {
     // Delete the post
     db.prepare("DELETE FROM posts WHERE id = ?").run(id);
 
-    // Bust the feed cache
+    bustFeedCache();
     revalidatePath("/");
 
     return NextResponse.json({ deleted: id });

@@ -223,8 +223,16 @@ Seeded display names include `Carl Jung` and `Immanuel Kant`.
 - `ANTHROPIC_API_KEY`: required for AI generation and scoring
 - `ADMIN_PASSWORD`: required in production for admin protection
 - `DATABASE_PATH`: optional override for the SQLite file path; used for Railway volume setups
+- `FEED_CACHE_ENABLED`: optional kill switch for the in-memory public feed cache; defaults to enabled
 - `RUN_SEED`: optional flag for startup/bootstrapping flows
 - `NODE_ENV`: should be `production` on Railway
+
+### Feed cache toggle
+
+- Default: `true`
+- Set to `"false"` to disable the in-memory feed cache if caching is suspected of causing stale-read issues in production
+- Takes effect on service restart
+- Disabling the cache falls back to the uncached interleave path; the hard SQL `LIMIT 300` still applies
 
 Current model strings in code:
 

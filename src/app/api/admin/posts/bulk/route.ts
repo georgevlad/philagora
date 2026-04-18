@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { bustFeedCache } from "@/lib/feed-cache";
 import { POST_STATUSES } from "@/lib/constants";
 
 /**
@@ -25,6 +26,7 @@ export async function PATCH(request: NextRequest) {
       "UPDATE posts SET status = ?, updated_at = datetime('now') WHERE status = ?"
     ).run(to_status, from_status);
 
+    bustFeedCache();
     revalidatePath("/");
 
     return NextResponse.json({ updated: result.changes });
