@@ -3,6 +3,53 @@ import { NextRequest, NextResponse } from "next/server";
 import { getIdentityFromHeaders } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 
+// Lazy-init: getDb() opens the connection on first call; we don't want that to happen at module-load time.
+function makeBookmarkTransactions() {
+  const db = getDb();
+  const insertStmt = db.prepare(
+    "INSERT OR IGNORE INTO user_bookmarks (user_id, post_id) VALUES (?, ?)"
+  );
+  const incrementStmt = db.prepare(
+    "UPDATE posts SET bookmarks = bookmarks + 1 WHERE id = ?"
+  );
+  const deleteStmt = db.prepare(
+    "DELETE FROM user_bookmarks WHERE user_id = ? AND post_id = ?"
+  );
+  const decrementStmt = db.prepare(
+    "UPDATE posts SET bookmarks = MAX(0, bookmarks - 1) WHERE id = ?"
+  );
+
+  const addBookmark = db.transaction((userId: string, postId: string) => {
+    const result = insertStmt.run(userId, postId);
+    if (result.changes > 0) {
+      incrementStmt.run(postId);
+    }
+
+    return result.changes > 0;
+  });
+
+  const removeBookmark = db.transaction((userId: string, postId: string) => {
+    const result = deleteStmt.run(userId, postId);
+    if (result.changes > 0) {
+      decrementStmt.run(postId);
+    }
+
+    return result.changes > 0;
+  });
+
+  return { addBookmark, removeBookmark };
+}
+
+let _txn: ReturnType<typeof makeBookmarkTransactions> | null = null;
+
+function getBookmarkTransactions() {
+  if (!_txn) {
+    _txn = makeBookmarkTransactions();
+  }
+
+  return _txn;
+}
+
 function parsePostId(body: unknown): string | null {
   if (!body || typeof body !== "object") {
     return null;
@@ -39,6 +86,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const db = getDb();
+    const { addBookmark } = getBookmarkTransactions();
     const post = db
       .prepare("SELECT id FROM posts WHERE id = ? AND status = 'published'")
       .get(postId) as { id: string } | undefined;
@@ -47,13 +95,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    const result = db
-      .prepare("INSERT OR IGNORE INTO user_bookmarks (user_id, post_id) VALUES (?, ?)")
-      .run(identity.id, postId);
-
-    if (result.changes > 0) {
-      db.prepare("UPDATE posts SET bookmarks = bookmarks + 1 WHERE id = ?").run(postId);
-    }
+    const wasInserted = addBookmark(identity.id, postId);
+    void wasInserted;
 
     return NextResponse.json({ bookmarked: true });
   } catch (error) {
@@ -74,14 +117,9 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    const db = getDb();
-    const result = db
-      .prepare("DELETE FROM user_bookmarks WHERE user_id = ? AND post_id = ?")
-      .run(identity.id, postId);
-
-    if (result.changes > 0) {
-      db.prepare("UPDATE posts SET bookmarks = MAX(0, bookmarks - 1) WHERE id = ?").run(postId);
-    }
+    const { removeBookmark } = getBookmarkTransactions();
+    const wasRemoved = removeBookmark(identity.id, postId);
+    void wasRemoved;
 
     return NextResponse.json({ bookmarked: false });
   } catch (error) {
