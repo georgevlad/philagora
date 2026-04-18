@@ -42,7 +42,7 @@ export function PhilosopherAvatar({
   };
 
   const { classes, px, ring } = sizeConfig[size];
-  const avatarSrc = `/avatars/${philosopherId}.png`;
+  const avatarSrc = `/avatars/${philosopherId}.webp`;
 
   return (
     <div
