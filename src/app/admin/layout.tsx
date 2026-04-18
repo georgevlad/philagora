@@ -1,7 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getIdentityFromCookies, isAdmin } from "@/lib/auth";
 import { AdminLogoutButton } from "./AdminLogoutButton";
 import { AdminNav } from "./AdminNav";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function AdminLayout({
   children,

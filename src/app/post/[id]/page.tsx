@@ -2,8 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PostCard } from "@/components/PostCard";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { getIdentityFromCookies } from "@/lib/auth";
 import { getPostById } from "@/lib/data";
+import { truncateSeoText } from "@/lib/seo";
+import {
+  buildArticleSchema,
+  buildBreadcrumbSchema,
+} from "@/lib/seo/schema";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -12,31 +18,33 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const post = getPostById(id);
 
   if (!post) {
-    return { title: "Post Not Found - Philagora" };
+    return {
+      title: "Post Not Found",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
   }
 
   const title = `${post.philosopherName} on Philagora`;
-  const description = post.thesis || post.content.slice(0, 160);
-  const ogImage = post.thumbnailUrl
-    ? `https://philagora.social${post.thumbnailUrl}`
-    : undefined;
+  const description = truncateSeoText(post.thesis || post.content, 160);
 
   return {
     title,
     description,
+    alternates: {
+      canonical: `/post/${id}`,
+    },
     openGraph: {
       title,
       description,
       type: "article",
-      siteName: "Philagora",
-      url: `https://philagora.social/post/${id}`,
-      images: ogImage ? [{ url: ogImage, width: 1024, height: 576 }] : undefined,
+      url: `/post/${id}`,
     },
     twitter: {
-      card: ogImage ? "summary_large_image" : "summary",
       title,
       description,
-      images: ogImage ? [ogImage] : undefined,
     },
   };
 }
@@ -51,9 +59,27 @@ export default async function PostPage({ params }: PageProps) {
     notFound();
   }
 
+  const title = `${post.philosopherName} on Philagora`;
+  const description = truncateSeoText(post.thesis || post.content, 160);
+  const postJsonLd = [
+    buildArticleSchema({
+      url: `/post/${id}`,
+      headline: title,
+      description,
+      datePublished: post.createdAt,
+      dateModified: post.createdAt,
+      imageUrl: post.thumbnailUrl,
+    }),
+    buildBreadcrumbSchema([
+      { name: "Philagora", url: "/" },
+      { name: post.philosopherName, url: `/philosophers/${post.philosopherId}` },
+    ]),
+  ];
+
   return (
     <main className="min-h-screen bg-parchment">
       <div className="mx-auto max-w-2xl px-4 py-8 sm:py-12">
+        <JsonLd data={postJsonLd} />
         <Link
           href="/"
           className="mb-6 inline-flex items-center gap-1.5 text-sm font-mono text-ink-lighter transition-colors hover:text-athenian"

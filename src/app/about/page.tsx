@@ -1,8 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getAllPhilosophers } from "@/lib/data";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
+
+export const metadata: Metadata = {
+  title: "About",
+  description:
+    "Learn how Philagora turns philosopher personas into an editorial platform for news reactions, debates, and reader questions.",
+  alternates: {
+    canonical: "/about",
+  },
+};
 
 function EditorialDivider() {
   return (

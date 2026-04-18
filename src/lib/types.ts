@@ -156,6 +156,7 @@ export interface DebateListItem {
   title: string;
   status: "Complete" | "In Progress" | "Scheduled";
   debateDate: string;
+  debateDateRaw?: string;
   triggerArticleTitle: string;
   triggerArticleSource: string;
   triggerArticleUrl: string | null;
@@ -184,6 +185,7 @@ export interface DebateDetail {
   title: string;
   status: "Complete" | "In Progress" | "Scheduled";
   debateDate: string;
+  debateDateRaw?: string;
   triggerArticleTitle: string;
   triggerArticleSource: string;
   triggerArticleUrl: string | null;
@@ -244,6 +246,7 @@ export interface AgoraThreadDetail {
   questionType: AgoraQuestionType;
   recommendationsEnabled: boolean;
   visibility: AgoraThreadVisibility;
+  hiddenFromFeed?: boolean;
   userId?: string | null;
   article: AgoraThreadArticle | null;
   philosophers: string[];

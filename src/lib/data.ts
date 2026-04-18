@@ -365,6 +365,23 @@ export function getPostById(id: string, userId?: string): FeedPost | null {
   return row ? mapFeedPost(row) : null;
 }
 
+export function getAllPublicPostIds(): Array<{ id: string; updatedAt: string }> {
+  const db = getDb();
+  const { where, params } = buildPublishedPostFilters({});
+  const rows = db
+    .prepare(
+      `SELECT p.id, COALESCE(NULLIF(p.updated_at, ''), p.created_at) AS updated_at
+       FROM posts p${where}
+       ORDER BY p.created_at DESC`
+    )
+    .all(...params) as Array<{ id: string; updated_at: string }>;
+
+  return rows.map((row) => ({
+    id: row.id,
+    updatedAt: row.updated_at,
+  }));
+}
+
 export function getBookmarkedPosts(userId: string): FeedPost[] {
   const db = getDb();
   const { sql: baseQuery, extraParams } = buildFeedPostQuery(userId);
@@ -485,6 +502,7 @@ export function getAllDebates(): DebateListItem[] {
       title: d.title,
       status: formatDebateStatus(d.status),
       debateDate: formatDebateDate(d.debate_date),
+      debateDateRaw: d.debate_date,
       triggerArticleTitle: d.trigger_article_title,
       triggerArticleSource: d.trigger_article_source,
       triggerArticleUrl: d.trigger_article_url,
@@ -492,6 +510,18 @@ export function getAllDebates(): DebateListItem[] {
       openingPreviews,
     };
   });
+}
+
+export function getAllPublicDebateIds(): Array<{ id: string; updatedAt: string }> {
+  const db = getDb();
+  const rows = db
+    .prepare("SELECT id, debate_date FROM debates ORDER BY debate_date DESC")
+    .all() as Array<{ id: string; debate_date: string }>;
+
+  return rows.map((row) => ({
+    id: row.id,
+    updatedAt: row.debate_date,
+  }));
 }
 
 export function getDebateById(id: string): DebateDetail | null {
@@ -536,6 +566,7 @@ export function getDebateById(id: string): DebateDetail | null {
     title: d.title,
     status: formatDebateStatus(d.status),
     debateDate: formatDebateDate(d.debate_date),
+    debateDateRaw: d.debate_date,
     triggerArticleTitle: d.trigger_article_title,
     triggerArticleSource: d.trigger_article_source,
     triggerArticleUrl: d.trigger_article_url,
@@ -603,6 +634,26 @@ export function getRecentAgoraThreads(limit = 5) {
       initials: string;
       color: string;
     }>,
+  }));
+}
+
+export function getAllPublicAgoraThreadIds(): Array<{ id: string; updatedAt: string }> {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT id, created_at
+       FROM agora_threads
+       WHERE status = 'complete'
+         AND visibility = 'public'
+         AND hidden_from_feed = 0
+         AND follow_up_to IS NULL
+       ORDER BY created_at DESC`
+    )
+    .all() as Array<{ id: string; created_at: string }>;
+
+  return rows.map((row) => ({
+    id: row.id,
+    updatedAt: row.created_at,
   }));
 }
 
@@ -720,6 +771,7 @@ function buildAgoraThreadDetail(
     questionType: t.question_type ?? "advice",
     recommendationsEnabled: t.recommendations_enabled === 1,
     visibility: t.visibility === "private" ? "private" : "public",
+    hiddenFromFeed: t.hidden_from_feed === 1,
     userId: t.user_id ?? null,
     article: t.article_url
       ? {

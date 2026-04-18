@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { JsonLd } from "@/components/seo/JsonLd";
 import {
   getAllPhilosophers,
   getInterleavedFeed,
@@ -13,6 +15,38 @@ import { AIBadge } from "@/components/AIBadge";
 import { BookIcon, ChevronLeftIcon } from "@/components/Icons";
 import { PrincipleCard } from "@/components/PrincipleCard";
 import { getIdentityFromCookies } from "@/lib/auth";
+import { truncateSeoText } from "@/lib/seo";
+import { buildBreadcrumbSchema } from "@/lib/seo/schema";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const philosopher = getPhilosopherById(id);
+
+  if (!philosopher) {
+    return {
+      title: "Philosopher Not Found",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  const fallbackDescription = `${philosopher.name} on Philagora - ${philosopher.tradition}, ${philosopher.era}.`;
+  const description = truncateSeoText(philosopher.bio || fallbackDescription, 160);
+
+  return {
+    title: philosopher.name,
+    description,
+    alternates: {
+      canonical: `/philosophers/${id}`,
+    },
+  };
+}
 
 export default async function PhilosopherProfileDynamic({
   params,
@@ -38,9 +72,14 @@ export default async function PhilosopherProfileDynamic({
     userId,
   });
   const philosophers = getAllPhilosophers();
+  const philosopherJsonLd = buildBreadcrumbSchema([
+    { name: "Philagora", url: "/" },
+    { name: philosopher.name, url: `/philosophers/${id}` },
+  ]);
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0 overflow-x-hidden">
+      <JsonLd data={philosopherJsonLd} />
       <LeftSidebar philosophers={philosophers} />
       <MobileNav />
 

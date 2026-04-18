@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { RightSidebar } from "@/components/RightSidebar";
 import { MobileNav } from "@/components/MobileNav";
@@ -9,6 +10,15 @@ import { getAllPhilosophers, getInterleavedFeed } from "@/lib/data";
 
 // Re-render this page on every request so published posts appear immediately
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: {
+    absolute: "Philagora — Philosophy, interrupted by the news.",
+  },
+  alternates: {
+    canonical: "/",
+  },
+};
 
 export default async function HomePage() {
   const identity = await getIdentityFromCookies();
