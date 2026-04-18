@@ -22,6 +22,7 @@ import {
   parseStanceGuidance,
   parseTensionVocabulary,
 } from "@/lib/scoring-config";
+import { isSafePublicUrl } from "@/lib/url-safety";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -85,25 +86,53 @@ interface ScoreResponse {
 const SCORING_MODEL = DEFAULT_SCORING_MODEL;
 const SCORING_MAX_TOKENS = 1024;
 const SCORING_TEMPERATURE = 0.5;
+const MAX_FETCH_REDIRECT_HOPS = 3;
 
 /**
  * Fetch the og:image meta tag from an article's HTML page.
  * Used to enrich articles that lack an image from RSS.
  */
 export async function fetchOgImage(url: string): Promise<string | null> {
+  if (!(await isSafePublicUrl(url))) {
+    return null;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+    let currentUrl = url;
+    let redirectHops = 0;
+    let res: Response;
 
-    const res = await fetch(url, {
-      signal: controller.signal,
-      redirect: "follow",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; Philagora/1.0)",
-      },
-    });
+    while (true) {
+      res = await fetch(currentUrl, {
+        signal: controller.signal,
+        redirect: "manual",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; Philagora/1.0)",
+        },
+      });
 
-    clearTimeout(timeout);
+      const location = res.headers.get("location");
+      const isRedirect = res.status >= 300 && res.status < 400 && Boolean(location);
+
+      if (!isRedirect) {
+        break;
+      }
+
+      if (redirectHops >= MAX_FETCH_REDIRECT_HOPS) {
+        return null;
+      }
+
+      const nextUrl = new URL(location as string, currentUrl).toString();
+      if (!(await isSafePublicUrl(nextUrl))) {
+        return null;
+      }
+
+      currentUrl = nextUrl;
+      redirectHops += 1;
+    }
 
     if (!res.ok) return null;
 
@@ -132,9 +161,19 @@ export async function fetchOgImage(url: string): Promise<string | null> {
       imageUrl = "https:" + imageUrl;
     }
 
-    return imageUrl;
+    const resolvedImageUrl = new URL(imageUrl, currentUrl).toString();
+    const imageHost = new URL(resolvedImageUrl).hostname;
+    const articleHost = new URL(currentUrl).hostname;
+
+    if (imageHost !== articleHost && !(await isSafePublicUrl(resolvedImageUrl))) {
+      return null;
+    }
+
+    return resolvedImageUrl;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

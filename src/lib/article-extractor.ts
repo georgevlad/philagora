@@ -1,11 +1,13 @@
 import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
+import { isSafePublicUrl } from "@/lib/url-safety";
 
 const ARTICLE_FETCH_TIMEOUT_MS = 10_000;
 const MAX_ARTICLE_CONTENT_CHARS = 5_000;
 const ARTICLE_EXCERPT_CHARS = 200;
 const MIN_ARTICLE_TEXT_CHARS = 100;
 const ARTICLE_USER_AGENT = "Mozilla/5.0 (compatible; Philagora/1.0)";
+const MAX_FETCH_REDIRECT_HOPS = 3;
 
 export interface ExtractedArticle {
   success: true;
@@ -76,19 +78,59 @@ export async function extractArticle(url: string): Promise<ExtractionResult> {
     };
   }
 
+  if (!(await isSafePublicUrl(normalizedUrl))) {
+    return {
+      success: false,
+      error:
+        "We can't fetch that link. The philosophers will respond to your question without article context.",
+    };
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), ARTICLE_FETCH_TIMEOUT_MS);
   let dom: JSDOM | null = null;
 
   try {
-    const response = await fetch(normalizedUrl, {
-      signal: controller.signal,
-      redirect: "follow",
-      headers: {
-        "User-Agent": ARTICLE_USER_AGENT,
-        Accept: "text/html,application/xhtml+xml",
-      },
-    });
+    let currentUrl = normalizedUrl;
+    let redirectHops = 0;
+    let response: Response;
+
+    while (true) {
+      response = await fetch(currentUrl, {
+        signal: controller.signal,
+        redirect: "manual",
+        headers: {
+          "User-Agent": ARTICLE_USER_AGENT,
+          Accept: "text/html,application/xhtml+xml",
+        },
+      });
+
+      const location = response.headers.get("location");
+      const isRedirect = response.status >= 300 && response.status < 400 && Boolean(location);
+
+      if (!isRedirect) {
+        break;
+      }
+
+      if (redirectHops >= MAX_FETCH_REDIRECT_HOPS) {
+        return {
+          success: false,
+          error: "Too many redirects.",
+        };
+      }
+
+      const nextUrl = new URL(location as string, currentUrl).toString();
+      if (!(await isSafePublicUrl(nextUrl))) {
+        return {
+          success: false,
+          error:
+            "We can't fetch that link. The philosophers will respond to your question without article context.",
+        };
+      }
+
+      currentUrl = nextUrl;
+      redirectHops += 1;
+    }
 
     const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
 
@@ -117,7 +159,7 @@ export async function extractArticle(url: string): Promise<ExtractionResult> {
     }
 
     const html = await response.text();
-    dom = new JSDOM(html, { url: normalizedUrl });
+    dom = new JSDOM(html, { url: currentUrl });
     const article = new Readability(dom.window.document).parse();
 
     if (!article?.textContent) {
