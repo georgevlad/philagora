@@ -531,21 +531,21 @@ export function AgoraPageClient({
       <MobileNav />
 
       <main className="flex-1 min-w-0 lg:border-l border-border-light bg-[linear-gradient(180deg,rgba(248,243,234,0.5),rgba(244,239,230,0.12))]">
-        <div className="max-w-[980px] mx-auto px-6 pt-5 pb-20 sm:pt-7 lg:py-9 lg:pb-10">
-          <div className="max-w-[760px] mb-8">
-            <div className="text-[10px] font-mono tracking-[0.22em] uppercase text-gold mb-4">
+        <div className="max-w-[980px] mx-auto px-4 py-6 pb-20 sm:px-6 sm:py-9 lg:pb-10">
+          <div className="max-w-[760px] mb-6 sm:mb-8">
+            <div className="text-[10px] font-mono tracking-[0.22em] uppercase text-gold mb-2.5 sm:mb-4">
               Public forum
             </div>
-            <h1 className="font-serif text-[34px] lg:text-[40px] leading-[1.06] font-medium text-ink mb-3">
+            <h1 className="font-serif text-[27px] sm:text-[34px] lg:text-[40px] leading-[1.08] lg:leading-[1.06] font-medium text-ink mb-2 sm:mb-3">
               The Agora
             </h1>
-            <p className="text-[16px] text-ink-light leading-[1.62] max-w-[680px]">
+            <p className="text-[14.5px] sm:text-[16px] text-ink-light leading-[1.55] sm:leading-[1.62] max-w-[680px]">
               A place to bring difficult questions to history&apos;s greatest minds and receive a chorus of disagreement, counsel, and synthesis.
             </p>
           </div>
 
           <section className="rounded-[30px] border border-border-light/90 bg-[linear-gradient(180deg,rgba(248,243,234,0.96),rgba(238,230,216,0.82))] shadow-[0_18px_40px_rgba(42,36,31,0.045)] overflow-hidden mb-10">
-            <div className="px-6 pt-5 pb-4 border-b border-border-light/80 bg-[linear-gradient(90deg,rgba(176,138,73,0.06),rgba(248,243,234,0.25),rgba(176,138,73,0.03))]">
+            <div className="px-4 pt-3.5 pb-3 sm:px-6 sm:pt-5 sm:pb-4 border-b border-border-light/80 bg-[linear-gradient(90deg,rgba(176,138,73,0.06),rgba(248,243,234,0.25),rgba(176,138,73,0.03))]">
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div className="text-[10px] font-mono tracking-[0.22em] uppercase text-ink-faint">
                   Bring a question before the philosophers
@@ -561,10 +561,10 @@ export function AgoraPageClient({
             </div>
 
             {step === "question" ? (
-              <div className="px-6 py-7 lg:px-8 lg:py-8">
-                <div className="grid lg:grid-cols-[minmax(0,1.55fr)_320px] gap-6 lg:gap-7 items-start">
+              <div className="px-0 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
+                <div className="grid lg:grid-cols-[minmax(0,1.55fr)_320px] gap-5 sm:gap-6 lg:gap-7 items-start">
                   <div>
-                    <div className="rounded-[24px] border border-gold/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.26),rgba(248,243,234,0.58))] px-6 py-5 min-h-[272px] shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
+                    <div className="rounded-[20px] sm:rounded-[24px] border border-gold/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.26),rgba(248,243,234,0.58))] px-4 py-4 sm:px-6 sm:py-5 min-h-[220px] sm:min-h-[272px] shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
                       {/* ── Visibility mode selector: Two Doors ── */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                         {/* Public door — always available */}
@@ -675,8 +675,7 @@ export function AgoraPageClient({
                             : "What troubles your mind today? Pose your question to the philosophers..."
                         }
                         maxLength={500}
-                        className="w-full bg-transparent border-transparent text-[22px] lg:text-[26px] font-serif text-ink placeholder:italic placeholder:text-ink-lighter/55 focus:outline-none resize-none leading-[1.32]"
-                        style={{ minHeight: "152px" }}
+                        className="w-full min-h-[120px] sm:min-h-[152px] bg-transparent border-transparent text-[18px] sm:text-[22px] lg:text-[26px] font-serif text-ink placeholder:italic placeholder:text-ink-lighter/55 focus:outline-none resize-none leading-[1.35] sm:leading-[1.32]"
                       />
 
                       {question.trim() === "" && !hasArticleUrl && (
@@ -773,36 +772,38 @@ export function AgoraPageClient({
                     </div>
                   </div>
 
-                  <aside className="justify-self-end w-full max-w-[320px] rounded-[22px] border border-border-light/80 bg-[linear-gradient(180deg,rgba(238,230,216,0.5),rgba(248,243,234,0.92))] px-5 py-5 shadow-[0_10px_24px_rgba(42,36,31,0.03)]">
-                    <div className="text-[10px] font-mono tracking-[0.2em] uppercase text-gold mb-4">
-                      How it works
-                    </div>
-                    <div className="space-y-4">
-                      <div className="flex gap-3 items-start">
-                        <div className="w-6 h-6 rounded-full bg-gold/12 flex items-center justify-center shrink-0 mt-0.5">
-                          <span className="text-[11px] font-mono font-medium text-gold">1</span>
-                        </div>
-                        <div>
-                          <div className="text-[13px] font-body font-medium text-ink leading-snug">Write your question</div>
-                          <p className="text-[12px] text-ink-lighter leading-[1.55] mt-0.5">Something with tension, a dilemma, or a real decision inside it.</p>
-                        </div>
+                  <aside className="justify-self-end w-full lg:max-w-[320px] rounded-none lg:rounded-[22px] border-0 lg:border border-border-light/80 bg-transparent lg:bg-[linear-gradient(180deg,rgba(238,230,216,0.5),rgba(248,243,234,0.92))] px-0 lg:px-5 py-0 lg:py-5 pt-2 lg:pt-5 shadow-none lg:shadow-[0_10px_24px_rgba(42,36,31,0.03)]">
+                    <div className="hidden lg:block">
+                      <div className="text-[10px] font-mono tracking-[0.2em] uppercase text-gold mb-4">
+                        How it works
                       </div>
-                      <div className="flex gap-3 items-start">
-                        <div className="w-6 h-6 rounded-full bg-gold/12 flex items-center justify-center shrink-0 mt-0.5">
-                          <span className="text-[11px] font-mono font-medium text-gold">2</span>
+                      <div className="space-y-4">
+                        <div className="flex gap-3 items-start">
+                          <div className="w-6 h-6 rounded-full bg-gold/12 flex items-center justify-center shrink-0 mt-0.5">
+                            <span className="text-[11px] font-mono font-medium text-gold">1</span>
+                          </div>
+                          <div>
+                            <div className="text-[13px] font-body font-medium text-ink leading-snug">Write your question</div>
+                            <p className="text-[12px] text-ink-lighter leading-[1.55] mt-0.5">Something with tension, a dilemma, or a real decision inside it.</p>
+                          </div>
                         </div>
-                        <div>
-                          <div className="text-[13px] font-body font-medium text-ink leading-snug">Pick 2-4 thinkers</div>
-                          <p className="text-[12px] text-ink-lighter leading-[1.55] mt-0.5">We&apos;ll suggest voices likely to disagree on your question.</p>
+                        <div className="flex gap-3 items-start">
+                          <div className="w-6 h-6 rounded-full bg-gold/12 flex items-center justify-center shrink-0 mt-0.5">
+                            <span className="text-[11px] font-mono font-medium text-gold">2</span>
+                          </div>
+                          <div>
+                            <div className="text-[13px] font-body font-medium text-ink leading-snug">Pick 2-4 thinkers</div>
+                            <p className="text-[12px] text-ink-lighter leading-[1.55] mt-0.5">We&apos;ll suggest voices likely to disagree on your question.</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex gap-3 items-start">
-                        <div className="w-6 h-6 rounded-full bg-gold/12 flex items-center justify-center shrink-0 mt-0.5">
-                          <span className="text-[11px] font-mono font-medium text-gold">3</span>
-                        </div>
-                        <div>
-                          <div className="text-[13px] font-body font-medium text-ink leading-snug">Watch them debate</div>
-                          <p className="text-[12px] text-ink-lighter leading-[1.55] mt-0.5">Each responds independently, then an editorial synthesis finds the tensions.</p>
+                        <div className="flex gap-3 items-start">
+                          <div className="w-6 h-6 rounded-full bg-gold/12 flex items-center justify-center shrink-0 mt-0.5">
+                            <span className="text-[11px] font-mono font-medium text-gold">3</span>
+                          </div>
+                          <div>
+                            <div className="text-[13px] font-body font-medium text-ink leading-snug">Watch them debate</div>
+                            <p className="text-[12px] text-ink-lighter leading-[1.55] mt-0.5">Each responds independently, then an editorial synthesis finds the tensions.</p>
+                          </div>
                         </div>
                       </div>
                     </div>
