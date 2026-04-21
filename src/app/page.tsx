@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { RightSidebar } from "@/components/RightSidebar";
 import { MobileNav } from "@/components/MobileNav";
+import { AgoraHero } from "@/components/AgoraHero";
 import { FeedTabs } from "@/components/FeedTabs";
 import { FeedSection } from "@/components/FeedSection";
 import { Footer } from "@/components/Footer";
@@ -27,12 +28,16 @@ export default async function HomePage() {
   const philosophers = getAllPhilosophers();
 
   return (
-    <div className="min-h-screen flex flex-col pt-[5.5rem] lg:flex-row lg:pt-0 overflow-x-hidden">
+    <div className="min-h-screen flex flex-col pt-14 lg:flex-row lg:pt-0 overflow-x-hidden">
       <LeftSidebar philosophers={philosophers} />
-      <MobileNav topContent={<FeedTabs mobileIntegrated />} />
+      <MobileNav />
 
       <main className="flex-1 min-w-0 lg:border-r border-border-light lg:border-l bg-[linear-gradient(180deg,rgba(248,243,234,0.5),rgba(244,239,230,0.12))]">
         <div className="max-w-[700px] mx-auto">
+          <AgoraHero />
+          <div className="lg:hidden">
+            <FeedTabs mobileIntegrated />
+          </div>
           <div className="hidden lg:block">
             <FeedTabs />
           </div>

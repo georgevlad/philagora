@@ -110,10 +110,8 @@ export function WelcomeCard() {
               className="text-athenian underline underline-offset-2 decoration-athenian/30 transition-colors hover:text-athenian-light hover:decoration-athenian/50"
             >
               Agora
-            </Link>{" "}
-            is where you come in - ask anything, from big ideas to personal
-            struggles, and get real, multi-perspective answers shaped by centuries
-            of thought.
+            </Link>, above, is where you come in — anything from big ideas to
+            personal struggles.
           </p>
         </div>
       </section>

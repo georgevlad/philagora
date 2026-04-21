@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getQuestionTypeLabel } from "@/lib/agora";
 import { useSession } from "@/lib/auth-client";
 import type {
@@ -87,6 +87,53 @@ const EXAMPLE_QUESTIONS = [
   "Should we forgive people who haven't asked for forgiveness?",
   "Is it okay to enjoy bad art?",
 ] as const;
+
+function getEncodedSearchParam(paramsString: string, key: string): string | null {
+  const keyPrefix = `${key}=`;
+
+  for (const segment of paramsString.split("&")) {
+    if (segment.startsWith(keyPrefix)) {
+      return segment.slice(keyPrefix.length);
+    }
+  }
+
+  return null;
+}
+
+function decodeQuestionQueryValue(encodedValue: string): string {
+  const normalizedValue = encodedValue.replace(/\+/g, "%20");
+
+  try {
+    return decodeURIComponent(normalizedValue);
+  } catch {
+    return encodedValue.replace(/\+/g, " ");
+  }
+}
+
+function AgoraSearchPrefill({
+  onPrefill,
+}: {
+  onPrefill: (prefilledQuestion: string) => void;
+}) {
+  const searchParams = useSearchParams();
+  const encodedQuestionParam = getEncodedSearchParam(searchParams.toString(), "q");
+
+  useEffect(() => {
+    if (!encodedQuestionParam) {
+      return;
+    }
+
+    const prefilledQuestion = decodeQuestionQueryValue(encodedQuestionParam).trim();
+
+    if (prefilledQuestion.length === 0) {
+      return;
+    }
+
+    onPrefill(prefilledQuestion);
+  }, [encodedQuestionParam, onPrefill]);
+
+  return null;
+}
 
 function FeaturedThreadCard({ thread }: { thread: FeaturedThread }) {
   return (
@@ -261,6 +308,21 @@ export function AgoraPageClient({
   const [featuredThreads, setFeaturedThreads] = useState<FeaturedThread[]>([]);
   const [featuredLoading, setFeaturedLoading] = useState(true);
   const [myThreads, setMyThreads] = useState<MyThread[]>([]);
+
+  const applyQuestionPrefill = useCallback((prefilledQuestion: string) => {
+    suggestRequestIdRef.current += 1;
+    suggestAbortRef.current?.abort();
+    suggestAbortRef.current = null;
+
+    setSuggesting(false);
+    setSuggestError(false);
+    setSuggestions([]);
+    setClassification(null);
+    setSelectedIds([]);
+    setFormError(null);
+    setStep("question");
+    setQuestion(prefilledQuestion);
+  }, []);
 
   useEffect(() => {
     async function loadPhilosophers() {
@@ -529,6 +591,9 @@ export function AgoraPageClient({
     <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0 overflow-x-hidden">
       <LeftSidebar philosophers={philosophers} />
       <MobileNav />
+      <Suspense fallback={null}>
+        <AgoraSearchPrefill onPrefill={applyQuestionPrefill} />
+      </Suspense>
 
       <main className="flex-1 min-w-0 lg:border-l border-border-light bg-[linear-gradient(180deg,rgba(248,243,234,0.5),rgba(244,239,230,0.12))]">
         <div className="max-w-[980px] mx-auto px-4 py-6 pb-20 sm:px-6 sm:py-9 lg:pb-10">
