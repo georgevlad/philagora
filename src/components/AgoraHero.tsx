@@ -18,7 +18,6 @@ function buildAgoraUrl(question: string): string {
 export function AgoraHero() {
   const router = useRouter();
   const [question, setQuestion] = useState("");
-  const trimmedQuestion = question.trim();
 
   function navigateToAgora(nextQuestion: string) {
     const normalizedQuestion = nextQuestion.trim();
@@ -74,7 +73,7 @@ export function AgoraHero() {
               Ask your question in the Agora
             </label>
 
-            <div className="relative">
+            <div className="relative rounded-full border border-border/80 bg-[linear-gradient(180deg,rgba(251,247,240,0.98),rgba(247,241,231,0.98))] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] transition-[border-color,box-shadow] duration-200 focus-within:border-terracotta/80 focus-within:outline-none focus-within:ring-4 focus-within:ring-terracotta/20">
               <input
                 id="agora-hero-question"
                 type="text"
@@ -82,14 +81,13 @@ export function AgoraHero() {
                 onChange={(event) => setQuestion(event.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask your question…"
-                className="w-full rounded-[18px] border border-border-light/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.7),rgba(244,239,230,0.95))] px-4 py-4 pr-16 text-[15px] font-body text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.38)] transition-colors duration-200 placeholder:text-ink-lighter/70 focus:border-terracotta/45 focus:outline-none focus:ring-4 focus:ring-terracotta/10 sm:text-base"
+                className="w-full rounded-full border-0 bg-transparent px-4 py-4 pr-[3.9rem] text-[15px] font-serif not-italic text-ink transition-colors duration-200 placeholder:font-serif placeholder:italic placeholder:text-ink-faint focus:outline-none sm:text-base"
               />
 
               <button
                 type="submit"
                 aria-label="Go to the Agora with this question"
-                disabled={trimmedQuestion.length === 0}
-                className="absolute right-2 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border-light/80 bg-white/72 text-ink-lighter transition-all duration-200 hover:border-terracotta/25 hover:bg-white hover:text-terracotta disabled:cursor-default disabled:opacity-55"
+                className="group absolute right-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-terracotta text-parchment transition-all duration-200 hover:bg-terracotta-light"
               >
                 <svg
                   width="16"
@@ -98,6 +96,7 @@ export function AgoraHero() {
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="1.7"
+                  className="transition-transform duration-200 group-hover:translate-x-[2px]"
                 >
                   <path d="M3 8H13" strokeLinecap="round" />
                   <path d="M8.5 3.5L13 8L8.5 12.5" strokeLinecap="round" strokeLinejoin="round" />
