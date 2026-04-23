@@ -42,6 +42,7 @@ interface PhilosopherMeta {
   name: string;
   initials: string;
   color: string;
+  tradition: string;
 }
 
 interface ScoreDistributionBucket {
@@ -287,6 +288,16 @@ export default function NewsScoutPage() {
     null
   );
   const [genInProgress, setGenInProgress] = useState(false);
+  const [quipModalCandidate, setQuipModalCandidate] =
+    useState<CandidateWithUsage | null>(null);
+  const [quipModalPhilosopherId, setQuipModalPhilosopherId] = useState<
+    string | null
+  >(null);
+  const [quipGenerating, setQuipGenerating] = useState(false);
+  const [quipError, setQuipError] = useState<string | null>(null);
+  const [quipSuccessPostId, setQuipSuccessPostId] = useState<string | null>(
+    null
+  );
 
   const hasInitialized = useRef(false);
   const hasCompletedInitialCandidateLoad = useRef(false);
@@ -361,6 +372,7 @@ export default function NewsScoutPage() {
         name: string;
         initials: string;
         color: string;
+        tradition: string;
       }>;
 
       const lookup: Record<string, PhilosopherMeta> = {};
@@ -369,6 +381,7 @@ export default function NewsScoutPage() {
           name: philosopher.name,
           initials: philosopher.initials,
           color: philosopher.color,
+          tradition: philosopher.tradition,
         };
       }
       setPhilosopherMeta(lookup);
@@ -422,6 +435,13 @@ export default function NewsScoutPage() {
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setGeneratePanelCandidate(null);
+        if (!quipGenerating) {
+          setQuipModalCandidate(null);
+          setQuipModalPhilosopherId(null);
+          setQuipGenerating(false);
+          setQuipError(null);
+          setQuipSuccessPostId(null);
+        }
         setDangerMenuOpen(false);
         setCleanupConfirm(false);
         setClearAllConfirm(false);
@@ -430,7 +450,7 @@ export default function NewsScoutPage() {
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, []);
+  }, [quipGenerating]);
 
   const runPipeline = async (action: "fetch" | "score" | "fetch_and_score") => {
     setPipelineRunning(true);
@@ -598,6 +618,61 @@ export default function NewsScoutPage() {
     setGeneratePanelCandidate(null);
     setGenResults([]);
     setGenSummary(null);
+  }
+
+  function openQuipModal(candidate: CandidateWithUsage) {
+    setQuipModalCandidate(candidate);
+    setQuipModalPhilosopherId(null);
+    setQuipGenerating(false);
+    setQuipError(null);
+    setQuipSuccessPostId(null);
+  }
+
+  function closeQuipModal() {
+    if (quipGenerating) return;
+    setQuipModalCandidate(null);
+    setQuipModalPhilosopherId(null);
+    setQuipGenerating(false);
+    setQuipError(null);
+    setQuipSuccessPostId(null);
+  }
+
+  async function handleGenerateQuip() {
+    if (!quipModalCandidate || !quipModalPhilosopherId) return;
+
+    setQuipGenerating(true);
+    setQuipError(null);
+
+    try {
+      const response = await fetch("/api/admin/news-scout/generate-quip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          article_id: quipModalCandidate.id,
+          philosopher_id: quipModalPhilosopherId,
+        }),
+      });
+
+      const data = (await response.json()) as {
+        success?: boolean;
+        post_id?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to generate Glint draft");
+      }
+
+      setQuipSuccessPostId(data.post_id || "created");
+    } catch (generationError) {
+      setQuipError(
+        generationError instanceof Error
+          ? generationError.message
+          : "Failed to generate Glint draft"
+      );
+    } finally {
+      setQuipGenerating(false);
+    }
   }
 
   async function handleBulkGenerate(candidate: CandidateWithUsage) {
@@ -1311,6 +1386,12 @@ export default function NewsScoutPage() {
 
                         <div className="flex items-center gap-2 xl:justify-end">
                           <button
+                            onClick={() => openQuipModal(candidate)}
+                            className="rounded-full border border-terracotta/20 bg-terracotta/5 px-3.5 py-1.5 text-xs font-mono text-terracotta transition-colors hover:bg-terracotta/10 hover:text-terracotta-light"
+                          >
+                            Glint…
+                          </button>
+                          <button
                             onClick={() =>
                               updateCandidateStatus(candidate.id, "approved")
                             }
@@ -1632,6 +1713,12 @@ export default function NewsScoutPage() {
                           {candidate.status === "scored" && (
                             <>
                               <button
+                                onClick={() => openQuipModal(candidate)}
+                                className="rounded-full border border-terracotta/20 bg-terracotta/5 px-4 py-2 text-xs font-mono text-terracotta transition-colors hover:bg-terracotta/10 hover:text-terracotta-light"
+                              >
+                                Glint…
+                              </button>
+                              <button
                                 onClick={() =>
                                   updateCandidateStatus(candidate.id, "approved")
                                 }
@@ -1655,6 +1742,12 @@ export default function NewsScoutPage() {
                               <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
                                 Approved
                               </span>
+                              <button
+                                onClick={() => openQuipModal(candidate)}
+                                className="rounded-full border border-terracotta/20 bg-terracotta/5 px-3 py-1.5 text-xs font-mono text-terracotta transition-colors hover:bg-terracotta/10 hover:text-terracotta-light"
+                              >
+                                Glint…
+                              </button>
                               <button
                                 onClick={() => openGeneratePanel(candidate)}
                                 className="rounded-full border border-terracotta/20 bg-terracotta/5 px-3 py-1.5 text-xs font-mono text-terracotta transition-colors hover:bg-terracotta/10 hover:text-terracotta-light"
@@ -1765,6 +1858,170 @@ export default function NewsScoutPage() {
               >
                 Clear selection
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {quipModalCandidate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+          <button
+            type="button"
+            onClick={closeQuipModal}
+            disabled={quipGenerating}
+            className="absolute inset-0 bg-black/40 disabled:cursor-not-allowed"
+            aria-label="Close Glint modal"
+          />
+
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="glint-modal-title"
+            className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-parchment shadow-2xl"
+          >
+            <div className="border-b border-border bg-parchment-dark/40 px-5 py-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-ink-lighter">
+                    Glint Generator
+                  </p>
+                  <h2
+                    id="glint-modal-title"
+                    className="mt-2 line-clamp-2 font-serif text-lg font-bold text-ink"
+                    title={quipModalCandidate.title}
+                  >
+                    {quipModalCandidate.title}
+                  </h2>
+                  <p className="mt-1 text-xs font-mono text-ink-lighter">
+                    {quipModalCandidate.source_name}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeQuipModal}
+                  disabled={quipGenerating}
+                  className="rounded-full border border-border bg-white/70 px-3 py-1 text-sm font-mono text-ink-lighter transition-colors hover:bg-white hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  X
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto px-5 py-5">
+              {quipSuccessPostId ? (
+                <div className="rounded-xl border border-green-200 bg-green-50 px-5 py-5">
+                  <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-green-700">
+                    Draft Ready
+                  </p>
+                  <h3 className="mt-2 font-serif text-xl font-bold text-green-900">
+                    Glint draft created
+                  </h3>
+                  <p className="mt-2 text-sm font-body text-green-800">
+                    Draft {quipSuccessPostId} is waiting in the normal post
+                    review queue.
+                  </p>
+                  <div className="mt-5 flex flex-wrap items-center gap-3">
+                    <Link
+                      href="/admin/posts"
+                      className="inline-flex items-center justify-center rounded-lg bg-terracotta px-4 py-2 text-sm font-body font-medium text-white shadow-sm transition-colors hover:bg-terracotta-light"
+                    >
+                      Review draft
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={closeQuipModal}
+                      className="rounded-lg border border-border bg-white/70 px-4 py-2 text-sm font-body text-ink-light transition-colors hover:bg-white hover:text-ink"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <p className="mb-3 text-[11px] font-mono uppercase tracking-[0.2em] text-ink-lighter">
+                      Choose a philosopher
+                    </p>
+                    <div className="grid max-h-[360px] grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+                      {Object.entries(philosopherMeta).map(
+                        ([philosopherId, meta]) => {
+                          const isSelected =
+                            quipModalPhilosopherId === philosopherId;
+
+                          return (
+                            <button
+                              key={philosopherId}
+                              type="button"
+                              onClick={() =>
+                                setQuipModalPhilosopherId(philosopherId)
+                              }
+                              disabled={quipGenerating}
+                              className={`rounded-xl border px-3 py-3 text-left transition-all ${
+                                isSelected
+                                  ? "border-terracotta bg-white shadow-sm"
+                                  : "border-border bg-white/70 hover:bg-white"
+                              } ${
+                                quipGenerating
+                                  ? "cursor-not-allowed opacity-70"
+                                  : ""
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <span
+                                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-serif font-bold text-white"
+                                  style={{ backgroundColor: meta.color }}
+                                >
+                                  {meta.initials}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-sm font-body font-semibold text-ink">
+                                    {meta.name}
+                                  </p>
+                                  <p className="mt-0.5 truncate text-xs font-body text-ink-lighter">
+                                    {meta.tradition}
+                                  </p>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        }
+                      )}
+                    </div>
+                  </div>
+
+                  {quipError && (
+                    <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      {quipError}
+                    </div>
+                  )}
+
+                  <div className="mt-5 flex flex-col-reverse gap-3 border-t border-border pt-4 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={closeQuipModal}
+                      disabled={quipGenerating}
+                      className="rounded-lg border border-border bg-white/70 px-4 py-2 text-sm font-body text-ink-light transition-colors hover:bg-white hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleGenerateQuip}
+                      disabled={!quipModalPhilosopherId || quipGenerating}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-terracotta px-4 py-2 text-sm font-body font-medium text-white shadow-sm transition-colors hover:bg-terracotta-light disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {quipGenerating ? (
+                        <>
+                          <Spinner className="h-4 w-4 text-white" />
+                          Generating Glint...
+                        </>
+                      ) : (
+                        "Generate Glint"
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
