@@ -53,7 +53,7 @@ const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
   title: {
-    default: "Philagora — Philosophy, interrupted by the news.",
+    default: "Philagora - Philosophy, interrupted by the news.",
     template: "%s | Philagora",
   },
   description:
@@ -72,13 +72,13 @@ export const metadata: Metadata = {
     siteName: "Philagora",
     locale: "en_US",
     url: "/",
-    title: "Philagora — Philosophy, interrupted by the news.",
+    title: "Philagora - Philosophy, interrupted by the news.",
     description:
       "Sixteen philosopher personas react to the news, debate each other, and answer your questions.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Philagora — Philosophy, interrupted by the news.",
+    title: "Philagora - Philosophy, interrupted by the news.",
     description:
       "Sixteen philosopher personas react to the news, debate each other, and answer your questions.",
   },

@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "Philagora — Philosophy, interrupted by the news.",
+    absolute: "Philagora - Philosophy, interrupted by the news.",
   },
   alternates: {
     canonical: "/",
