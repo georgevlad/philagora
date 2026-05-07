@@ -1,15 +1,9 @@
 "use client";
 
 import type { FormEvent, KeyboardEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
-const AGORA_HERO_CHIPS = [
-  "What do I do with my anger?",
-  "How do I know what I actually want?",
-  "When is it right to lie?",
-  "Should I care about politics?",
-] as const;
+import { pickAgoraSuggestions, SHORT_PROMPTS } from "@/lib/agora-suggestions";
 
 function buildAgoraUrl(question: string): string {
   return `/agora?q=${encodeURIComponent(question)}`;
@@ -18,6 +12,17 @@ function buildAgoraUrl(question: string): string {
 export function AgoraHero() {
   const router = useRouter();
   const [question, setQuestion] = useState("");
+  const [chips, setChips] = useState<string[]>(() =>
+    SHORT_PROMPTS.slice(0, 4).map((s) => s.text)
+  );
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setChips(pickAgoraSuggestions(SHORT_PROMPTS, 4).map((s) => s.text));
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, []);
 
   function navigateToAgora(nextQuestion: string) {
     const normalizedQuestion = nextQuestion.trim();
@@ -105,7 +110,7 @@ export function AgoraHero() {
             </div>
 
             <div className="flex flex-wrap gap-2.5">
-              {AGORA_HERO_CHIPS.map((chip) => (
+              {chips.map((chip) => (
                 <button
                   key={chip}
                   type="button"

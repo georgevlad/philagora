@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getQuestionTypeLabel } from "@/lib/agora";
 import { useSession } from "@/lib/auth-client";
+import { pickAgoraSuggestions, REFLECTIVE_PROMPTS } from "@/lib/agora-suggestions";
 import type {
   AgoraQuestionType,
   Philosopher,
@@ -81,12 +82,6 @@ const PHILOSOPHER_QUOTES: Record<string, string> = {
   russell: "The good life is one inspired by love",
   cicero: "The safety of the people shall be the highest law",
 };
-
-const EXAMPLE_QUESTIONS = [
-  "Why do we feel nostalgic for times that weren't even that good?",
-  "Should we forgive people who haven't asked for forgiveness?",
-  "Is it okay to enjoy bad art?",
-] as const;
 
 function getEncodedSearchParam(paramsString: string, key: string): string | null {
   const keyPrefix = `${key}=`;
@@ -283,6 +278,9 @@ export function AgoraPageClient({
 
   const [step, setStep] = useState<"question" | "philosophers">("question");
   const [question, setQuestion] = useState("");
+  const [exampleQuestions, setExampleQuestions] = useState<string[]>(() =>
+    REFLECTIVE_PROMPTS.slice(0, 3).map((s) => s.text)
+  );
   const [askedBy, setAskedBy] = useState("");
   const [articleUrl, setArticleUrl] = useState("");
   const [visibility, setVisibility] = useState<AgoraThreadVisibility>("public");
@@ -354,6 +352,14 @@ export function AgoraPageClient({
       }
     }
     loadFeatured();
+  }, []);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setExampleQuestions(pickAgoraSuggestions(REFLECTIVE_PROMPTS, 3).map((s) => s.text));
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
   }, []);
 
   useEffect(() => {
@@ -749,7 +755,7 @@ export function AgoraPageClient({
                             Or try one of these
                           </div>
                           <div className="mt-4 flex flex-wrap gap-2">
-                            {EXAMPLE_QUESTIONS.map((exampleQuestion) => (
+                            {exampleQuestions.map((exampleQuestion) => (
                               <button
                                 key={exampleQuestion}
                                 type="button"
