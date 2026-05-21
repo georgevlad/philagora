@@ -60,9 +60,10 @@ export interface DebateRow {
   title: string;
   status: string;
   debate_date: string;
-  trigger_article_title: string;
-  trigger_article_source: string;
+  trigger_article_title: string | null;
+  trigger_article_source: string | null;
   trigger_article_url: string | null;
+  editorial_context: string | null;
   synthesis_tensions: string;
   synthesis_agreements: string;
   synthesis_questions: string;

@@ -5,9 +5,10 @@ import { generateContent } from "@/lib/generation-service";
 interface DebateRow {
   id: string;
   title: string;
-  trigger_article_title: string;
-  trigger_article_source: string;
+  trigger_article_title: string | null;
+  trigger_article_source: string | null;
   trigger_article_url: string | null;
+  editorial_context: string | null;
 }
 
 interface DebatePostRow {
@@ -47,7 +48,12 @@ export async function POST(
 
     // Fetch debate
     const debate = db
-      .prepare("SELECT id, title, trigger_article_title, trigger_article_source, trigger_article_url FROM debates WHERE id = ?")
+      .prepare(
+        `SELECT id, title, trigger_article_title, trigger_article_source,
+                trigger_article_url, editorial_context
+         FROM debates
+         WHERE id = ?`
+      )
       .get(id) as DebateRow | undefined;
 
     if (!debate) {
@@ -59,11 +65,28 @@ export async function POST(
 
     if (phase === "opening") {
       contentTypeKey = "debate_opening";
-      sourceMaterial = `DEBATE TOPIC: ${debate.title}\n\nTRIGGER ARTICLE:\nTitle: ${debate.trigger_article_title}\nSource: ${debate.trigger_article_source}`;
-      if (debate.trigger_article_url) {
-        sourceMaterial += `\nURL: ${debate.trigger_article_url}`;
+      sourceMaterial = `DEBATE TOPIC: ${debate.title}\n\n`;
+
+      const editorialContext = debate.editorial_context?.trim();
+      if (editorialContext) {
+        sourceMaterial += `EDITORIAL CONTEXT:\n${editorialContext}\n\n`;
       }
-      sourceMaterial += "\n\nPresent your opening position.";
+
+      const triggerArticleTitle = debate.trigger_article_title?.trim();
+      if (triggerArticleTitle) {
+        sourceMaterial += `TRIGGER ARTICLE:\nTitle: ${triggerArticleTitle}`;
+        const triggerArticleSource = debate.trigger_article_source?.trim();
+        if (triggerArticleSource) {
+          sourceMaterial += `\nSource: ${triggerArticleSource}`;
+        }
+        const triggerArticleUrl = debate.trigger_article_url?.trim();
+        if (triggerArticleUrl) {
+          sourceMaterial += `\nURL: ${triggerArticleUrl}`;
+        }
+        sourceMaterial += "\n\n";
+      }
+
+      sourceMaterial += "Present your opening position.";
     } else {
       // rebuttal
       contentTypeKey = "debate_rebuttal";

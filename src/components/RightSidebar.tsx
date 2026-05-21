@@ -21,7 +21,7 @@ export function RightSidebar() {
           </div>
           <div className="space-y-3">
             {debates.map((debate) => {
-              const triggerArticleTitle = debate.triggerArticleTitle.trim();
+              const triggerArticleTitle = debate.triggerArticleTitle?.trim() ?? "";
               const hasTriggerArticleTitle =
                 triggerArticleTitle.length > 0 &&
                 triggerArticleTitle !== "-" &&

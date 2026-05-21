@@ -106,6 +106,11 @@ const MIGRATIONS: Migration[] = [
     name: "add_posts_status_created_at_index",
     migrate: (db) => migrateAddPostsStatusCreatedAtIndex(db),
   },
+  {
+    version: 16,
+    name: "debates_editorial_context_and_optional_trigger",
+    migrate: (db) => migrateDebatesEditorialContextAndOptionalTrigger(db),
+  },
   // Future migrations go here
 ];
 
@@ -955,6 +960,104 @@ function migrateAddPostsStatusCreatedAtIndex(db: Database.Database): void {
   if (!postsTable) return;
 
   db.exec("CREATE INDEX IF NOT EXISTS idx_posts_status_created_at ON posts(status, created_at DESC);");
+}
+
+function migrateDebatesEditorialContextAndOptionalTrigger(db: Database.Database): void {
+  const tableInfo = db
+    .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='debates'")
+    .get() as { sql: string } | undefined;
+
+  if (!tableInfo) return;
+
+  const columns = db.prepare("PRAGMA table_info(debates)").all() as Array<{ name: string }>;
+  const columnNames = new Set(columns.map((column) => column.name));
+
+  if (!columnNames.has("editorial_context")) {
+    db.exec("ALTER TABLE debates ADD COLUMN editorial_context TEXT;");
+  }
+
+  const triggerTitleIsRequired = /\btrigger_article_title\s+TEXT\s+NOT\s+NULL\b/i.test(
+    tableInfo.sql
+  );
+  const triggerSourceIsRequired = /\btrigger_article_source\s+TEXT\s+NOT\s+NULL\b/i.test(
+    tableInfo.sql
+  );
+
+  if (!triggerTitleIsRequired && !triggerSourceIsRequired) return;
+
+  const indexes = db
+    .prepare("SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='debates' AND sql IS NOT NULL")
+    .all() as Array<{ sql: string }>;
+
+  try {
+    db.exec("PRAGMA foreign_keys = OFF;");
+
+    db.transaction(() => {
+      db.exec("DROP TABLE IF EXISTS debates_new;");
+      db.exec(`
+        CREATE TABLE debates_new (
+          id                          TEXT PRIMARY KEY,
+          title                       TEXT NOT NULL,
+          trigger_article_title       TEXT,
+          trigger_article_source      TEXT,
+          trigger_article_url         TEXT,
+          editorial_context           TEXT,
+          status                      TEXT NOT NULL DEFAULT 'scheduled' CHECK(status IN ('scheduled','in_progress','complete')),
+          debate_date                 TEXT NOT NULL,
+          synthesis_tensions          TEXT NOT NULL DEFAULT '[]',
+          synthesis_agreements        TEXT NOT NULL DEFAULT '[]',
+          synthesis_questions         TEXT NOT NULL DEFAULT '[]',
+          synthesis_summary_agree     TEXT NOT NULL DEFAULT '',
+          synthesis_summary_diverge   TEXT NOT NULL DEFAULT '',
+          synthesis_summary_unresolved TEXT NOT NULL DEFAULT ''
+        );
+      `);
+
+      db.exec(`
+        INSERT INTO debates_new (
+          id,
+          title,
+          trigger_article_title,
+          trigger_article_source,
+          trigger_article_url,
+          editorial_context,
+          status,
+          debate_date,
+          synthesis_tensions,
+          synthesis_agreements,
+          synthesis_questions,
+          synthesis_summary_agree,
+          synthesis_summary_diverge,
+          synthesis_summary_unresolved
+        )
+        SELECT
+          id,
+          title,
+          trigger_article_title,
+          trigger_article_source,
+          trigger_article_url,
+          editorial_context,
+          status,
+          debate_date,
+          synthesis_tensions,
+          synthesis_agreements,
+          synthesis_questions,
+          synthesis_summary_agree,
+          synthesis_summary_diverge,
+          synthesis_summary_unresolved
+        FROM debates;
+      `);
+
+      db.exec("DROP TABLE debates;");
+      db.exec("ALTER TABLE debates_new RENAME TO debates;");
+
+      for (const index of indexes) {
+        db.exec(index.sql);
+      }
+    })();
+  } finally {
+    db.exec("PRAGMA foreign_keys = ON;");
+  }
 }
 
 // Test-only exports

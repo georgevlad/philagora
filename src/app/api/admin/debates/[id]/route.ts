@@ -114,6 +114,14 @@ export async function PATCH(
       updates.push("synthesis_summary_unresolved = ?");
       values.push(body.synthesis_summary_unresolved);
     }
+    if (body.editorial_context !== undefined) {
+      updates.push("editorial_context = ?");
+      values.push(
+        typeof body.editorial_context === "string" && body.editorial_context.trim().length > 0
+          ? body.editorial_context.trim()
+          : null
+      );
+    }
 
     if (updates.length === 0) {
       return NextResponse.json(

@@ -35,7 +35,7 @@ export async function generateMetadata({
     participantNames.length >= 2
       ? `${participantNames[0]} and ${participantNames[1]}`
       : participantNames.join(", ") || "Philagora's philosophers";
-  const openingHook = debate.openings[0]?.content || debate.triggerArticleTitle;
+  const openingHook = debate.openings[0]?.content || debate.triggerArticleTitle || debate.title;
   const description = truncateSeoText(`${participantLabel} debate: ${openingHook}`);
 
   return {
@@ -74,7 +74,7 @@ export default async function DebatePage({
         .map((philosopherId) => philosophersMap[philosopherId]?.name)
         .filter((name): name is string => Boolean(name))
         .join(" and ") || "Philagora's philosophers"
-    } debate: ${debate.openings[0]?.content || debate.triggerArticleTitle}`
+    } debate: ${debate.openings[0]?.content || debate.triggerArticleTitle || debate.title}`
   );
   const imageUrl = toAbsoluteUrl(`/debates/${id}/opengraph-image`);
   const debateJsonLd = [

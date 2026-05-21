@@ -6,13 +6,21 @@ import { parseGroupConcat } from "@/lib/db-utils";
 interface DebateRow {
   id: string;
   title: string;
-  trigger_article_title: string;
-  trigger_article_source: string;
+  trigger_article_title: string | null;
+  trigger_article_source: string | null;
   trigger_article_url: string | null;
+  editorial_context: string | null;
   status: string;
   debate_date: string;
-  philosopher_ids: string;
-  philosopher_names: string;
+  philosopher_ids: string | null;
+  philosopher_names: string | null;
+}
+
+const MINIMAL_SOURCE_MATERIAL_WARNING =
+  "No editorial context or trigger article provided - generation will have minimal source material.";
+
+function optionalText(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
 /** POST — Create a new debate */
@@ -25,12 +33,19 @@ export async function POST(request: NextRequest) {
       trigger_article_title,
       trigger_article_source,
       trigger_article_url,
+      editorial_context,
       philosopher_ids,
     } = body;
 
-    if (!title || !trigger_article_title || !trigger_article_source) {
+    const cleanTitle = optionalText(title);
+    const cleanTriggerTitle = optionalText(trigger_article_title);
+    const cleanTriggerSource = optionalText(trigger_article_source);
+    const cleanTriggerUrl = optionalText(trigger_article_url);
+    const cleanEditorialContext = optionalText(editorial_context);
+
+    if (!cleanTitle) {
       return NextResponse.json(
-        { error: "title, trigger_article_title, and trigger_article_source are required" },
+        { error: "title is required" },
         { status: 400 }
       );
     }
@@ -42,18 +57,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const warnings =
+      !cleanEditorialContext && !cleanTriggerTitle ? [MINIMAL_SOURCE_MATERIAL_WARNING] : [];
+
     const debateId = `debate-${Date.now()}`;
 
     db.transaction(() => {
       db.prepare(
-        `INSERT INTO debates (id, title, trigger_article_title, trigger_article_source, trigger_article_url, status, debate_date)
-         VALUES (?, ?, ?, ?, ?, 'scheduled', datetime('now'))`
+        `INSERT INTO debates (
+          id, title, trigger_article_title, trigger_article_source, trigger_article_url,
+          editorial_context, status, debate_date
+        )
+         VALUES (?, ?, ?, ?, ?, ?, 'scheduled', datetime('now'))`
       ).run(
         debateId,
-        title,
-        trigger_article_title,
-        trigger_article_source,
-        trigger_article_url || null
+        cleanTitle,
+        cleanTriggerTitle,
+        cleanTriggerSource,
+        cleanTriggerUrl,
+        cleanEditorialContext
       );
 
       const insertPhilosopher = db.prepare(
@@ -78,7 +100,7 @@ export async function POST(request: NextRequest) {
       )
       .all(debateId);
 
-    return NextResponse.json({ debate, philosophers }, { status: 201 });
+    return NextResponse.json({ debate, philosophers, warnings }, { status: 201 });
   } catch (error) {
     console.error("Failed to create debate:", error);
     return NextResponse.json(

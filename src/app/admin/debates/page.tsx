@@ -58,6 +58,7 @@ export default function DebateWorkshopPage() {
   const [articleTitle, setArticleTitle] = useState("");
   const [articleSource, setArticleSource] = useState("");
   const [articleUrl, setArticleUrl] = useState("");
+  const [editorialContext, setEditorialContext] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
 
@@ -133,9 +134,10 @@ export default function DebateWorkshopPage() {
 
         setDebateId(id);
         setTitle(data.debate.title);
-        setArticleTitle(data.debate.trigger_article_title);
-        setArticleSource(data.debate.trigger_article_source);
+        setArticleTitle(data.debate.trigger_article_title || "");
+        setArticleSource(data.debate.trigger_article_source || "");
         setArticleUrl(data.debate.trigger_article_url || "");
+        setEditorialContext(data.debate.editorial_context || "");
 
         const philoIds = (data.philosophers as Philosopher[]).map((p) => p.id);
         setSelectedIds(philoIds);
@@ -226,8 +228,8 @@ export default function DebateWorkshopPage() {
   // ── Step 1: Create debate ─────────────────────────────────────────────
   async function handleCreateDebate() {
     setError("");
-    if (!title.trim() || !articleTitle.trim() || !articleSource.trim()) {
-      setError("Title, article title, and source are required.");
+    if (!title.trim()) {
+      setError("Title is required.");
       return;
     }
     if (selectedIds.length < 2) {
@@ -242,9 +244,10 @@ export default function DebateWorkshopPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
-          trigger_article_title: articleTitle.trim(),
-          trigger_article_source: articleSource.trim(),
+          trigger_article_title: articleTitle.trim() || undefined,
+          trigger_article_source: articleSource.trim() || undefined,
           trigger_article_url: articleUrl.trim() || undefined,
+          editorial_context: editorialContext.trim() || undefined,
           philosopher_ids: selectedIds,
         }),
       });
@@ -472,6 +475,10 @@ export default function DebateWorkshopPage() {
     selectedIds.length > 0 && selectedIds.every((id) => rebuttals[id]?.status === "approved");
   const openingsApprovedCount = selectedIds.filter((id) => openings[id]?.status === "approved").length;
   const rebuttalsApprovedCount = selectedIds.filter((id) => rebuttals[id]?.status === "approved").length;
+  const sourceMaterialWarning =
+    !editorialContext.trim() && !articleTitle.trim()
+      ? "You haven't provided an editorial context or a trigger article. Generation will have minimal source material - consider adding at least one."
+      : "";
 
   // ── Philosopher toggle ────────────────────────────────────────────────
   function togglePhilosopher(id: string) {
@@ -713,6 +720,45 @@ export default function DebateWorkshopPage() {
       )}
 
       {/* ── Step 1: Setup ──────────────────────────────────────────── */}
+      {debateId && (articleTitle.trim() || editorialContext.trim()) && (
+        <div className="mb-6 bg-white border border-border rounded-xl shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-border bg-parchment-dark/20">
+            <h2 className="font-serif text-base font-bold text-ink">Source Material</h2>
+            <p className="mt-1 text-xs text-ink-lighter">
+              Private context used for generation. Editorial context is not shown publicly.
+            </p>
+          </div>
+          <div className="px-6 py-5 space-y-4">
+            {articleTitle.trim() ? (
+              <div>
+                <h3 className="text-xs font-mono uppercase tracking-wider text-ink-lighter mb-1.5">
+                  Trigger source
+                </h3>
+                <p className="text-sm text-ink">
+                  {articleTitle}
+                  {articleSource.trim() ? (
+                    <span className="text-ink-lighter"> - {articleSource}</span>
+                  ) : null}
+                </p>
+              </div>
+            ) : null}
+            {editorialContext.trim() ? (
+              <div>
+                <h3 className="text-xs font-mono uppercase tracking-wider text-ink-lighter mb-1.5">
+                  Editorial context
+                </h3>
+                <textarea
+                  value={editorialContext}
+                  readOnly
+                  rows={6}
+                  className="w-full rounded-lg border border-border bg-parchment-dark/40 px-4 py-3 text-sm text-ink font-body leading-relaxed"
+                />
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
+
       {step === 1 && !debateId && (
         <div className="bg-white border border-border rounded-xl shadow-sm overflow-hidden">
           <div className="px-6 py-5 border-b border-border bg-parchment-dark/20">
@@ -733,44 +779,93 @@ export default function DebateWorkshopPage() {
               />
             </div>
 
-            {/* Article info */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
-                  Article Title
-                </label>
-                <input
-                  type="text"
-                  value={articleTitle}
-                  onChange={(e) => setArticleTitle(e.target.value)}
-                  placeholder="Title of the trigger article"
-                  className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-                />
+            {/* Trigger source */}
+            <div>
+              <div className="mb-3">
+                <h3 className="text-xs font-mono uppercase tracking-wider text-ink-lighter">
+                  Trigger source (optional)
+                </h3>
+                <p className="mt-1 text-xs text-ink-lighter">
+                  Optional. Pin this debate to a specific news article.
+                </p>
               </div>
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
-                  Source
-                </label>
-                <input
-                  type="text"
-                  value={articleSource}
-                  onChange={(e) => setArticleSource(e.target.value)}
-                  placeholder="e.g. The New York Times"
-                  className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                    Article Title
+                  </label>
+                  <input
+                    type="text"
+                    value={articleTitle}
+                    onChange={(e) => setArticleTitle(e.target.value)}
+                    placeholder="Title of the trigger article"
+                    className="w-full rounded-lg border border-border bg-parchment-dark/40 px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                    Source
+                  </label>
+                  <input
+                    type="text"
+                    value={articleSource}
+                    onChange={(e) => setArticleSource(e.target.value)}
+                    placeholder="e.g. The New York Times"
+                    className="w-full rounded-lg border border-border bg-parchment-dark/40 px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                    URL
+                  </label>
+                  <input
+                    type="url"
+                    value={articleUrl}
+                    onChange={(e) => setArticleUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="w-full rounded-lg border border-border bg-parchment-dark/40 px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
-                  URL <span className="normal-case text-ink-lighter/60">(optional)</span>
-                </label>
-                <input
-                  type="url"
-                  value={articleUrl}
-                  onChange={(e) => setArticleUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-                />
+            </div>
+
+            {/* Editorial context */}
+            <div>
+              <div className="mb-3">
+                <h3 className="text-xs font-mono uppercase tracking-wider text-ink-lighter">
+                  Editorial context (optional, private)
+                </h3>
+                <p className="mt-1 text-xs text-ink-lighter">
+                  Background, framing, key facts, named entities, philosophical tension to surface.
+                  Never shown publicly - fed only to generation.
+                </p>
               </div>
+              <textarea
+                value={editorialContext}
+                onChange={(e) => setEditorialContext(e.target.value)}
+                rows={8}
+                placeholder={`e.g.
+
+FRAMING QUESTION
+Should X happen given Y?
+
+KEY FACTS
+- Date: ...
+- Named parties: ...
+- Deadline / stakes: ...
+
+PHILOSOPHICAL TENSION
+The clash between A and B is...
+
+POSSIBLE PULL-QUOTE ANGLES
+- ...`}
+                className="min-h-[200px] w-full rounded-lg border border-border bg-parchment-dark/40 px-4 py-3 text-sm text-ink font-body leading-relaxed focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
+              />
+              {sourceMaterialWarning ? (
+                <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  {sourceMaterialWarning}
+                </p>
+              ) : null}
             </div>
 
             {/* Philosopher multi-select */}
@@ -816,7 +911,7 @@ export default function DebateWorkshopPage() {
             </p>
             <button
               onClick={handleCreateDebate}
-              disabled={creating || !title.trim() || !articleTitle.trim() || selectedIds.length < 2}
+              disabled={creating || !title.trim() || selectedIds.length < 2}
               className="inline-flex items-center gap-2 bg-terracotta hover:bg-terracotta-light disabled:opacity-50 disabled:cursor-not-allowed text-white font-body font-medium text-sm px-6 py-2.5 rounded-full shadow-sm hover:shadow transition-all"
             >
               {creating ? <><Spinner /> Creating...</> : "Create Debate"}

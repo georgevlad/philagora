@@ -62,9 +62,10 @@ CREATE INDEX IF NOT EXISTS idx_posts_status_created_at ON posts(status, created_
 CREATE TABLE IF NOT EXISTS debates (
   id                          TEXT PRIMARY KEY,
   title                       TEXT NOT NULL,
-  trigger_article_title       TEXT NOT NULL,
-  trigger_article_source      TEXT NOT NULL,
+  trigger_article_title       TEXT,
+  trigger_article_source      TEXT,
   trigger_article_url         TEXT,
+  editorial_context           TEXT,
   status                      TEXT NOT NULL DEFAULT 'scheduled' CHECK(status IN ('scheduled','in_progress','complete')),
   debate_date                 TEXT NOT NULL,
   synthesis_tensions          TEXT NOT NULL DEFAULT '[]',       -- JSON array of strings

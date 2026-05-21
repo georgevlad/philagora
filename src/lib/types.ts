@@ -157,8 +157,8 @@ export interface DebateListItem {
   status: "Complete" | "In Progress" | "Scheduled";
   debateDate: string;
   debateDateRaw?: string;
-  triggerArticleTitle: string;
-  triggerArticleSource: string;
+  triggerArticleTitle: string | null;
+  triggerArticleSource: string | null;
   triggerArticleUrl: string | null;
   philosophers: string[];
   openingPreviews: {
@@ -186,8 +186,8 @@ export interface DebateDetail {
   status: "Complete" | "In Progress" | "Scheduled";
   debateDate: string;
   debateDateRaw?: string;
-  triggerArticleTitle: string;
-  triggerArticleSource: string;
+  triggerArticleTitle: string | null;
+  triggerArticleSource: string | null;
   triggerArticleUrl: string | null;
   philosophers: string[];
   openings: DebatePost[];

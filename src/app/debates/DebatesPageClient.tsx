@@ -8,7 +8,6 @@ import { Footer } from "@/components/Footer";
 import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
 import { BookIcon } from "@/components/Icons";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
-import { isValidHttpUrl } from "@/lib/url-utils";
 
 function DebateListCard({
   debate,
@@ -23,7 +22,7 @@ function DebateListCard({
   const isInProgress = debate.status === "In Progress";
   const accent = isInProgress ? "var(--color-burgundy)" : "var(--color-athenian)";
   const softBg = isInProgress ? "rgba(122, 62, 58, 0.05)" : "rgba(49, 78, 61, 0.05)";
-  const hasTriggerArticle = isValidHttpUrl(debate.triggerArticleUrl);
+  const hasTriggerArticle = Boolean(debate.triggerArticleTitle);
 
   return (
     <Link href={`/debates/${debate.id}`}>
@@ -65,7 +64,10 @@ function DebateListCard({
                     Trigger article
                   </div>
                   <p className="text-[15px] leading-snug text-ink-light">
-                    {debate.triggerArticleTitle} <span className="text-ink-lighter">- {debate.triggerArticleSource}</span>
+                    {debate.triggerArticleTitle}
+                    {debate.triggerArticleSource ? (
+                      <span className="text-ink-lighter"> - {debate.triggerArticleSource}</span>
+                    ) : null}
                   </p>
                 </div>
               )}

@@ -168,6 +168,80 @@ describe("migration system", () => {
       expect(indexNames).toContain("idx_posts_status_created_at");
     });
 
+    it("adds editorial_context to debates", () => {
+      runMigrations(db, { bootstrapNewsSources: true });
+
+      const columns = db.prepare("PRAGMA table_info(debates)").all() as Array<{ name: string }>;
+      const colNames = columns.map((column) => column.name);
+
+      expect(colNames).toContain("editorial_context");
+    });
+
+    it("allows debates without trigger article title or source", () => {
+      runMigrations(db, { bootstrapNewsSources: true });
+
+      expect(() => {
+        db.prepare(
+          `INSERT INTO debates (
+            id, title, trigger_article_title, trigger_article_source, debate_date
+          ) VALUES (?, ?, ?, ?, ?)`
+        ).run("debate-null-trigger", "Evergreen debate", null, null, "2026-05-21T00:00:00.000Z");
+      }).not.toThrow();
+    });
+
+    it("keeps the debate editorial-context migration idempotent", () => {
+      runMigrations(db, { bootstrapNewsSources: true });
+      runMigrations(db, { bootstrapNewsSources: false });
+
+      const columns = db.prepare("PRAGMA table_info(debates)").all() as Array<{ name: string }>;
+      const editorialContextColumns = columns.filter(
+        (column) => column.name === "editorial_context"
+      );
+
+      expect(editorialContextColumns).toHaveLength(1);
+    });
+
+    it("relaxes trigger article constraints on a preexisting debates table", () => {
+      db.exec("PRAGMA foreign_keys = OFF;");
+      db.exec("DROP TABLE IF EXISTS debate_posts;");
+      db.exec("DROP TABLE IF EXISTS debate_philosophers;");
+      db.exec("DROP TABLE IF EXISTS debates;");
+      db.exec(`
+        CREATE TABLE debates (
+          id                          TEXT PRIMARY KEY,
+          title                       TEXT NOT NULL,
+          trigger_article_title       TEXT NOT NULL,
+          trigger_article_source      TEXT NOT NULL,
+          trigger_article_url         TEXT,
+          status                      TEXT NOT NULL DEFAULT 'scheduled' CHECK(status IN ('scheduled','in_progress','complete')),
+          debate_date                 TEXT NOT NULL,
+          synthesis_tensions          TEXT NOT NULL DEFAULT '[]',
+          synthesis_agreements        TEXT NOT NULL DEFAULT '[]',
+          synthesis_questions         TEXT NOT NULL DEFAULT '[]',
+          synthesis_summary_agree     TEXT NOT NULL DEFAULT '',
+          synthesis_summary_diverge   TEXT NOT NULL DEFAULT '',
+          synthesis_summary_unresolved TEXT NOT NULL DEFAULT ''
+        );
+      `);
+      db.exec("PRAGMA foreign_keys = ON;");
+      setSchemaVersion(db, 15);
+
+      runMigrations(db, { bootstrapNewsSources: false });
+
+      const tableInfo = db
+        .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='debates'")
+        .get() as { sql: string };
+      expect(tableInfo.sql).not.toMatch(/trigger_article_title\s+TEXT\s+NOT\s+NULL/i);
+      expect(tableInfo.sql).not.toMatch(/trigger_article_source\s+TEXT\s+NOT\s+NULL/i);
+      expect(() => {
+        db.prepare(
+          `INSERT INTO debates (
+            id, title, trigger_article_title, trigger_article_source, debate_date
+          ) VALUES (?, ?, ?, ?, ?)`
+        ).run("legacy-null-trigger", "Legacy debate", null, null, "2026-05-21T00:00:00.000Z");
+      }).not.toThrow();
+    });
+
     it("adds mood_register to generation_log and seeds mood config defaults", () => {
       runMigrations(db, { bootstrapNewsSources: true });
 

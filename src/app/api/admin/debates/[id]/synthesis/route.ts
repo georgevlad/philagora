@@ -5,8 +5,9 @@ import { generateSynthesis } from "@/lib/generation-service";
 interface DebateRow {
   id: string;
   title: string;
-  trigger_article_title: string;
-  trigger_article_source: string;
+  trigger_article_title: string | null;
+  trigger_article_source: string | null;
+  editorial_context: string | null;
 }
 
 interface DebatePostRow {
@@ -40,7 +41,11 @@ export async function POST(
     }
 
     const debate = db
-      .prepare("SELECT id, title, trigger_article_title, trigger_article_source FROM debates WHERE id = ?")
+      .prepare(
+        `SELECT id, title, trigger_article_title, trigger_article_source, editorial_context
+         FROM debates
+         WHERE id = ?`
+      )
       .get(debateId) as DebateRow | undefined;
 
     if (!debate) {
@@ -64,8 +69,20 @@ export async function POST(
       const rebuttals = posts.filter((p) => p.phase === "rebuttal");
 
       // Compose source material
-      let sourceMaterial = `DEBATE TOPIC: ${debate.title}\n`;
-      sourceMaterial += `TRIGGER ARTICLE: ${debate.trigger_article_title} (${debate.trigger_article_source})\n\n`;
+      let sourceMaterial = `DEBATE TOPIC: ${debate.title}\n\n`;
+
+      const editorialContext = debate.editorial_context?.trim();
+      if (editorialContext) {
+        sourceMaterial += `EDITORIAL CONTEXT:\n${editorialContext}\n\n`;
+      }
+
+      const triggerArticleTitle = debate.trigger_article_title?.trim();
+      if (triggerArticleTitle) {
+        const triggerArticleSource = debate.trigger_article_source?.trim();
+        sourceMaterial += triggerArticleSource
+          ? `TRIGGER ARTICLE: ${triggerArticleTitle} (${triggerArticleSource})\n\n`
+          : `TRIGGER ARTICLE: ${triggerArticleTitle}\n\n`;
+      }
 
       sourceMaterial += "=== OPENING STATEMENTS ===\n\n";
       for (const post of openings) {

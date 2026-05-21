@@ -170,7 +170,8 @@ export function DebatePageClient({
 }) {
   const isComplete = debate.status === "Complete";
   const isScheduled = debate.status === "Scheduled";
-  const hasTriggerArticle = isValidHttpUrl(debate.triggerArticleUrl);
+  const hasTriggerArticle = Boolean(debate.triggerArticleTitle);
+  const hasTriggerArticleUrl = isValidHttpUrl(debate.triggerArticleUrl);
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0 overflow-x-hidden">
@@ -209,7 +210,7 @@ export function DebatePageClient({
             </div>
 
             {/* Trigger article */}
-            {hasTriggerArticle ? (
+            {hasTriggerArticle && hasTriggerArticleUrl ? (
               <a
                 href={debate.triggerArticleUrl!}
                 target="_blank"
@@ -224,14 +225,34 @@ export function DebatePageClient({
                     {debate.triggerArticleTitle}
                   </span>
                 </span>
-                <span className="text-xs text-ink-lighter">
-                  &mdash; {debate.triggerArticleSource}
-                </span>
+                {debate.triggerArticleSource ? (
+                  <span className="text-xs text-ink-lighter">
+                    &mdash; {debate.triggerArticleSource}
+                  </span>
+                ) : null}
                 <ExternalLinkIcon
                   size={12}
                   className="ml-auto text-ink-lighter group-hover:text-athenian shrink-0 transition-colors"
                 />
               </a>
+            ) : hasTriggerArticle ? (
+              <div
+                className="flex items-center gap-2 px-3 py-2 rounded border border-border-light mb-4"
+                style={{ backgroundColor: "rgba(240, 235, 227, 0.7)" }}
+              >
+                <BookIcon size={14} className="text-ink-lighter shrink-0" />
+                <span className="text-xs text-ink-light">
+                  Triggered by:{" "}
+                  <span className="font-medium">
+                    {debate.triggerArticleTitle}
+                  </span>
+                </span>
+                {debate.triggerArticleSource ? (
+                  <span className="text-xs text-ink-lighter">
+                    &mdash; {debate.triggerArticleSource}
+                  </span>
+                ) : null}
+              </div>
             ) : null}
 
             {/* Participants */}

@@ -490,7 +490,7 @@ TASK: You are participating in a structured philosophical debate on Philagora. T
 STRUCTURE - follow these steps in order:
 1. OPENING HOOK: A bold claim or framing question that establishes the stakes. 1-2 sentences. Make the reader understand immediately why this matters.
 2. FRAMEWORK: Apply your philosophical lens to the topic. This is your core argument - what does your tradition reveal that others miss? Be specific and substantive.
-3. ANCHOR: Reference at least one specific aspect of the trigger article - a fact, a quote, a detail. Ground the abstraction.
+3. ANCHOR: Reference at least one specific detail from the source material - a fact, a named party, a date, a quoted phrase. Ground the abstraction.
 4. CHALLENGE: End by naming the tension another philosopher in this debate will have to address. Set up the clash.
 
 REQUIREMENTS:
