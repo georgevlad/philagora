@@ -9,12 +9,15 @@ import type { Stance } from "@/lib/types";
 
 export type ScoringModelName =
   | "claude-haiku-4-5-20251001"
-  | "claude-sonnet-4-5-20241022"
-  | "claude-sonnet-4-20250514";
+  | "claude-sonnet-4-5-20250929"
+  | "claude-sonnet-4-6";
 
 export type GenerationModelName =
   | ScoringModelName
-  | "claude-opus-4-20250514";
+  | "claude-opus-4-5-20251101"
+  | "claude-opus-4-6"
+  | "claude-opus-4-7"
+  | "claude-opus-4-8";
 
 export type ImageGenerationModelName =
   | "gemini-3.1-flash-image-preview";
@@ -54,7 +57,7 @@ export interface StanceGuidanceConfig {
 
 export const DEFAULT_SCORING_MODEL: ScoringModelName = "claude-haiku-4-5-20251001";
 export const DEFAULT_GENERATION_MODEL: GenerationModelName =
-  "claude-sonnet-4-20250514";
+  "claude-opus-4-8";
 export const DEFAULT_IMAGE_GENERATION_MODEL: ImageGenerationModelName =
   "gemini-3.1-flash-image-preview";
 
@@ -67,12 +70,12 @@ export const SCORING_MODEL_OPTIONS: Array<{
     label: "Haiku 4.5 (fast, cheapest)",
   },
   {
-    value: "claude-sonnet-4-5-20241022",
+    value: "claude-sonnet-4-5-20250929",
     label: "Sonnet 4.5 (balanced)",
   },
   {
-    value: "claude-sonnet-4-20250514",
-    label: "Sonnet 4 (best reasoning)",
+    value: "claude-sonnet-4-6",
+    label: "Sonnet 4.6 (current balanced)",
   },
 ];
 
@@ -85,16 +88,28 @@ export const GENERATION_MODEL_OPTIONS: Array<{
     label: "Haiku 4.5 (fastest, cheapest - lower quality)",
   },
   {
-    value: "claude-sonnet-4-5-20241022",
+    value: "claude-sonnet-4-5-20250929",
     label: "Sonnet 4.5 (fast, good quality)",
   },
   {
-    value: "claude-sonnet-4-20250514",
-    label: "Sonnet 4 (best reasoning, current default)",
+    value: "claude-sonnet-4-6",
+    label: "Sonnet 4.6 (current balanced)",
   },
   {
-    value: "claude-opus-4-20250514",
-    label: "Opus 4 (highest quality, slowest, most expensive)",
+    value: "claude-opus-4-5-20251101",
+    label: "Opus 4.5 (legacy high quality)",
+  },
+  {
+    value: "claude-opus-4-6",
+    label: "Opus 4.6 (legacy high quality)",
+  },
+  {
+    value: "claude-opus-4-7",
+    label: "Opus 4.7 (high quality)",
+  },
+  {
+    value: "claude-opus-4-8",
+    label: "Opus 4.8 (current highest quality)",
   },
 ];
 

@@ -5,10 +5,37 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { classifyError, logApiCall } from "@/lib/api-logger";
 
+const MODELS_WITHOUT_SAMPLING_PARAMS = new Set([
+  "claude-opus-4-7",
+  "claude-opus-4-8",
+]);
+
 export function getAnthropicClient(): Anthropic | null {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || apiKey === "placeholder_key_here") return null;
   return new Anthropic({ apiKey });
+}
+
+export function omitsSamplingParameters(model: string): boolean {
+  return (
+    MODELS_WITHOUT_SAMPLING_PARAMS.has(model) ||
+    /^claude-opus-4-(?:[7-9]|\d{2})$/.test(model)
+  );
+}
+
+export function normalizeMessageParams(
+  params: Anthropic.MessageCreateParamsNonStreaming
+): Anthropic.MessageCreateParamsNonStreaming {
+  if (!omitsSamplingParameters(params.model)) {
+    return params;
+  }
+
+  const normalizedParams = { ...params };
+  delete normalizedParams.temperature;
+  delete normalizedParams.top_p;
+  delete normalizedParams.top_k;
+
+  return normalizedParams;
 }
 
 /**
@@ -21,13 +48,14 @@ export async function createMessage(
   caller: string
 ): Promise<Anthropic.Message> {
   const start = Date.now();
+  const requestParams = normalizeMessageParams(params);
   const systemLength =
-    typeof params.system === "string"
-      ? params.system.length
-      : Array.isArray(params.system)
-        ? JSON.stringify(params.system).length
+    typeof requestParams.system === "string"
+      ? requestParams.system.length
+      : Array.isArray(requestParams.system)
+        ? JSON.stringify(requestParams.system).length
         : 0;
-  const userMessageLength = params.messages
+  const userMessageLength = requestParams.messages
     .map((message) =>
       typeof message.content === "string"
         ? message.content.length
@@ -36,7 +64,7 @@ export async function createMessage(
     .reduce((total, length) => total + length, 0);
 
   try {
-    const response = await client.messages.create(params);
+    const response = await client.messages.create(requestParams);
     const latencyMs = Date.now() - start;
     const rawText = response.content
       .filter((block): block is Anthropic.TextBlock => block.type === "text")
@@ -45,11 +73,11 @@ export async function createMessage(
 
     logApiCall({
       caller,
-      model: params.model,
+      model: requestParams.model,
       inputTokens: response.usage?.input_tokens,
       outputTokens: response.usage?.output_tokens,
-      maxTokensRequested: params.max_tokens,
-      temperature: params.temperature ?? null,
+      maxTokensRequested: requestParams.max_tokens,
+      temperature: requestParams.temperature ?? null,
       stopReason: response.stop_reason,
       latencyMs,
       success: true,
@@ -65,11 +93,11 @@ export async function createMessage(
 
     logApiCall({
       caller,
-      model: params.model,
+      model: requestParams.model,
       inputTokens: null,
       outputTokens: null,
-      maxTokensRequested: params.max_tokens,
-      temperature: params.temperature ?? null,
+      maxTokensRequested: requestParams.max_tokens,
+      temperature: requestParams.temperature ?? null,
       stopReason: null,
       latencyMs,
       success: false,

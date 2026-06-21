@@ -334,8 +334,8 @@ Philosopher colors are stored in the database and applied inline to keep persona
 
 | Task | Default Model | Config Key |
 |---|---|---|
-| Content Generation | `claude-sonnet-4-20250514` | `generation_model` |
-| Synthesis | `claude-sonnet-4-20250514` | `synthesis_model` |
+| Content Generation | `claude-opus-4-8` | `generation_model` |
+| Synthesis | `claude-opus-4-8` | `synthesis_model` |
 | News Scout Scoring | `claude-haiku-4-5-20251001` | `scoring_model` |
 
 ---

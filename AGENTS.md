@@ -236,7 +236,8 @@ Seeded display names include `Carl Jung` and `Immanuel Kant`.
 
 Current model strings in code:
 
-- generation: `claude-sonnet-4-20250514`
+- generation: `claude-opus-4-8`
+- synthesis: `claude-opus-4-8`
 - News Scout scoring: `claude-haiku-4-5-20251001`
 
 ## Common tasks

@@ -101,6 +101,40 @@ describe("migration system", () => {
       expect(getSchemaVersion(db)).toBe(MIGRATIONS.length);
     });
 
+    it("refreshes retired Anthropic model config values on version 16 databases", () => {
+      const legacyDb = new Database(":memory:");
+      legacyDb.exec(`
+        CREATE TABLE scoring_config (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL,
+          updated_at TEXT DEFAULT (datetime('now'))
+        );
+      `);
+
+      const insertConfig = legacyDb.prepare(
+        "INSERT INTO scoring_config (key, value) VALUES (?, ?)"
+      );
+      insertConfig.run("generation_model", '"claude-sonnet-4-20250514"');
+      insertConfig.run("synthesis_model", '"claude-opus-4-20250514"');
+      insertConfig.run("scoring_model", '"claude-sonnet-4-20250514"');
+
+      ensureMetaTable(legacyDb);
+      setSchemaVersion(legacyDb, 16);
+
+      runMigrations(legacyDb);
+
+      const rows = legacyDb
+        .prepare("SELECT key, value FROM scoring_config ORDER BY key")
+        .all() as Array<{ key: string; value: string }>;
+      const valuesByKey = new Map(rows.map((row) => [row.key, row.value]));
+
+      expect(valuesByKey.get("generation_model")).toBe('"claude-opus-4-8"');
+      expect(valuesByKey.get("synthesis_model")).toBe('"claude-opus-4-8"');
+      expect(valuesByKey.get("scoring_model")).toBe('"claude-haiku-4-5-20251001"');
+
+      legacyDb.close();
+    });
+
     it("is idempotent - running twice does not error", () => {
       runMigrations(db, { bootstrapNewsSources: true });
       const versionAfterFirst = getSchemaVersion(db);

@@ -111,6 +111,11 @@ const MIGRATIONS: Migration[] = [
     name: "debates_editorial_context_and_optional_trigger",
     migrate: (db) => migrateDebatesEditorialContextAndOptionalTrigger(db),
   },
+  {
+    version: 17,
+    name: "refresh_anthropic_model_defaults",
+    migrate: (db) => migrateRefreshAnthropicModelDefaults(db),
+  },
   // Future migrations go here
 ];
 
@@ -727,6 +732,54 @@ function migrateScoringConfig(db: Database.Database): void {
   }
 
   migrateScoringStanceGuidanceV2(db);
+}
+
+function migrateRefreshAnthropicModelDefaults(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS scoring_config (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
+  const insertConfig = db.prepare(
+    `INSERT OR IGNORE INTO scoring_config (key, value)
+     VALUES (?, ?)`
+  );
+
+  insertConfig.run("scoring_model", DEFAULT_SCORING_CONFIG_VALUES.scoring_model);
+  insertConfig.run("generation_model", DEFAULT_SCORING_CONFIG_VALUES.generation_model);
+  insertConfig.run("synthesis_model", DEFAULT_SCORING_CONFIG_VALUES.synthesis_model);
+
+  const retiredGenerationValues = [
+    '"claude-sonnet-4-20250514"',
+    '"claude-opus-4-20250514"',
+    '"claude-opus-4-1-20250805"',
+    '"claude-sonnet-4-5-20241022"',
+  ];
+  const retiredScoringValues = [
+    '"claude-sonnet-4-20250514"',
+    '"claude-opus-4-20250514"',
+    '"claude-opus-4-1-20250805"',
+    '"claude-sonnet-4-5-20241022"',
+  ];
+  const generationPlaceholders = retiredGenerationValues.map(() => "?").join(", ");
+  const scoringPlaceholders = retiredScoringValues.map(() => "?").join(", ");
+
+  db.prepare(
+    `UPDATE scoring_config
+     SET value = ?, updated_at = datetime('now')
+     WHERE key IN ('generation_model', 'synthesis_model')
+       AND value IN (${generationPlaceholders})`
+  ).run(DEFAULT_SCORING_CONFIG_VALUES.generation_model, ...retiredGenerationValues);
+
+  db.prepare(
+    `UPDATE scoring_config
+     SET value = ?, updated_at = datetime('now')
+     WHERE key = 'scoring_model'
+       AND value IN (${scoringPlaceholders})`
+  ).run(DEFAULT_SCORING_CONFIG_VALUES.scoring_model, ...retiredScoringValues);
 }
 
 function migrateHistoricalEventThumbnails(db: Database.Database): void {
