@@ -102,7 +102,7 @@ export function FeedSection({
   }, []);
 
   const loadMore = useCallback(async () => {
-    if (loadingMore || loadMoreError || !hasMore) {
+    if (loadingMore || !hasMore) {
       return;
     }
 
@@ -149,7 +149,7 @@ export function FeedSection({
         loadMoreRequestRef.current = null;
       }
     }
-  }, [contentType, hasMore, loadMoreError, loadingMore, offset, philosopherId]);
+  }, [contentType, hasMore, loadingMore, offset, philosopherId]);
 
   useEffect(() => {
     if (!sentinelRef.current || loadingMore || loadMoreError || !hasMore) {
@@ -209,8 +209,17 @@ export function FeedSection({
           </div>
 
           {loadMoreError && (
-            <div className="px-6 py-4 text-center">
+            <div className="px-6 py-4 text-center" role="status">
               <p className="font-body text-sm text-ink-lighter">{loadMoreError}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  void loadMore();
+                }}
+                className="mt-3 rounded-full border border-border-light bg-parchment-dark/45 px-4 py-2 font-body text-sm font-medium text-athenian transition-colors hover:border-border hover:bg-parchment-dark/75"
+              >
+                Try again
+              </button>
             </div>
           )}
 

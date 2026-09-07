@@ -228,13 +228,28 @@ function buildFeedPage(
   offset: number,
   limit: number
 ): { posts: FeedPost[]; hasMore: boolean; nextOffset: number | null } {
-  const posts = interleavedPosts.slice(offset, offset + limit);
-  const hasMore = offset + limit < interleavedPosts.length;
+  let endOffset = Math.min(offset + limit, interleavedPosts.length);
+  const boundaryClusterId = interleavedPosts[endOffset - 1]?._clusterId;
+
+  // A nominal page boundary may land in the middle of an article thread.
+  // Extend the page to include the whole cluster so the client never renders
+  // a partial thread that changes shape after the next request.
+  if (boundaryClusterId) {
+    while (
+      endOffset < interleavedPosts.length
+      && interleavedPosts[endOffset]?._clusterId === boundaryClusterId
+    ) {
+      endOffset += 1;
+    }
+  }
+
+  const posts = interleavedPosts.slice(offset, endOffset);
+  const hasMore = endOffset < interleavedPosts.length;
 
   return {
     posts,
     hasMore,
-    nextOffset: hasMore ? offset + posts.length : null,
+    nextOffset: hasMore ? endOffset : null,
   };
 }
 

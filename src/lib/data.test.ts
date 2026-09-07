@@ -392,17 +392,22 @@ describe("getInterleavedFeed", () => {
     expect(result.nextOffset).toBeNull();
   });
 
-  it("respects limit and offset", () => {
+  it("extends a page to avoid splitting an article cluster", () => {
     const page1 = getInterleavedFeed({ limit: 2, offset: 0 });
+    const clusterId = page1.posts[0]?._clusterId;
 
-    expect(page1.posts).toHaveLength(2);
+    expect(clusterId).toBeTruthy();
+    expect(page1.posts).toHaveLength(3);
+    expect(page1.posts.every((post) => post._clusterId === clusterId)).toBe(true);
     expect(page1.hasMore).toBe(true);
-    expect(page1.nextOffset).toBe(2);
+    expect(page1.nextOffset).toBe(3);
 
-    const page2 = getInterleavedFeed({ limit: 2, offset: 2 });
+    const page2 = getInterleavedFeed({ limit: 2, offset: page1.nextOffset! });
 
-    expect(page2.posts).toHaveLength(2);
+    expect(page2.posts).toHaveLength(1);
+    expect(page2.posts[0]?._clusterId).not.toBe(clusterId);
     expect(page2.hasMore).toBe(false);
+    expect(page2.nextOffset).toBeNull();
   });
 
   it("filters by philosopher ID", () => {
