@@ -1,3 +1,4 @@
+import { AgoraShell } from "@/components/agora/AgoraShell";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -6,14 +7,13 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { getIdentityFromCookies } from "@/lib/auth";
 import { getPostById } from "@/lib/data";
 import { toAbsoluteUrl, truncateSeoText } from "@/lib/seo";
-import {
-  buildArticleSchema,
-  buildBreadcrumbSchema,
-} from "@/lib/seo/schema";
+import { buildArticleSchema, buildBreadcrumbSchema } from "@/lib/seo/schema";
 
 type PageProps = { params: Promise<{ id: string }> };
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { id } = await params;
   const post = getPostById(id);
 
@@ -73,38 +73,32 @@ export default async function PostPage({ params }: PageProps) {
     }),
     buildBreadcrumbSchema([
       { name: "Philagora", url: "/" },
-      { name: post.philosopherName, url: `/philosophers/${post.philosopherId}` },
+      {
+        name: post.philosopherName,
+        url: `/philosophers/${post.philosopherId}`,
+      },
     ]),
   ];
 
   return (
-    <main className="min-h-screen bg-parchment">
-      <div className="mx-auto max-w-2xl px-4 py-8 sm:py-12">
+    <AgoraShell>
+      <main id="main" className="public-page public-reading">
         <JsonLd data={postJsonLd} />
-        <Link
-          href="/feed"
-          className="mb-6 inline-flex items-center gap-1.5 text-sm font-mono text-ink-lighter transition-colors hover:text-athenian"
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M10 4L6 8L10 12" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Back to feed
+        <Link href="/feed" className="agora-text-link">
+          ← Back to feed
         </Link>
-
         <PostCard post={post} expanded />
-
-        <div className="mt-8 flex justify-center">
-          <Link
-            href="/feed"
-            className="inline-flex items-center gap-1.5 text-sm font-mono text-ink-lighter transition-colors hover:text-athenian"
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M10 4L6 8L10 12" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Back to feed
-          </Link>
-        </div>
-      </div>
-    </main>
+        <p className="agora-notice">
+          An AI interpretation of {post.philosopherName}. This is not a
+          historical quotation.
+        </p>
+        <Link
+          href={`/philosophers/${post.philosopherId}`}
+          className="agora-text-link"
+        >
+          More from {post.philosopherName} →
+        </Link>
+      </main>
+    </AgoraShell>
   );
 }

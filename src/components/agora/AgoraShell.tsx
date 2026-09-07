@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { AgoraAccountLink } from "./AgoraAccountLink";
+import { AgoraNavigation } from "./AgoraNavigation";
 
 export function AgoraShell({ children }: { children: ReactNode }) {
   return (
@@ -13,12 +13,7 @@ export function AgoraShell({ children }: { children: ReactNode }) {
           <span aria-hidden="true">φ</span> PHILAGORA
         </Link>
         <span className="agora-tagline">The philosophers are online.</span>
-        <nav aria-label="Main navigation">
-          <Link href="/agora">The Agora</Link>
-          <Link href="/feed">Feed</Link>
-          <Link href="/debates">Debates</Link>
-          <AgoraAccountLink />
-        </nav>
+        <AgoraNavigation />
       </header>
       {children}
       <footer className="agora-footer">

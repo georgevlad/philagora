@@ -13,6 +13,7 @@ vi.mock("@/lib/db", () => ({
 
 import {
   getAllDebates,
+  getDebateById,
   getAllPhilosophers,
   getAgoraThreadById,
   getBookmarkedPosts,
@@ -856,5 +857,80 @@ describe("getUserAgoraThreads", () => {
     expect(byId["agora-user-private"]?.visibility).toBe("private");
     expect(byId["agora-user-public"]?.philosophers).toHaveLength(2);
     expect(byId["agora-user-private"]?.philosophers).toHaveLength(2);
+  });
+});
+
+describe("complete debate reading data", () => {
+  it("preserves every saved phase, ordering, reply targets and synthesis fields", () => {
+    seedDebate({
+      id: "full-debate",
+      title: "A question",
+      debateDate: "2026-01-01",
+      philosopherIds: ["camus", "nietzsche"],
+      openings: [{ philosopherId: "camus", content: "An opening" }],
+    });
+    const insert = testDb.prepare(
+      "INSERT INTO debate_posts (id,debate_id,philosopher_id,content,phase,reply_to,sort_order) VALUES (?,?,?,?,?,?,?)",
+    );
+    insert.run(
+      "cross-2",
+      "full-debate",
+      "nietzsche",
+      "Second cross-examination",
+      "cross-examination",
+      "cross-1",
+      3,
+    );
+    insert.run(
+      "cross-1",
+      "full-debate",
+      "camus",
+      "First cross-examination",
+      "cross-examination",
+      "full-debate-opening-0",
+      2,
+    );
+    insert.run(
+      "rebuttal",
+      "full-debate",
+      "nietzsche",
+      "A rebuttal",
+      "rebuttal",
+      "cross-1",
+      4,
+    );
+    insert.run(
+      "closing",
+      "full-debate",
+      "camus",
+      "Closing perspective",
+      "synthesis",
+      null,
+      5,
+    );
+    testDb
+      .prepare(
+        "UPDATE debates SET synthesis_tensions=?,synthesis_agreements=?,synthesis_questions=?,synthesis_summary_agree=? WHERE id=?",
+      )
+      .run(
+        '["Tension"]',
+        '["Agreement"]',
+        '["Question"]',
+        "Summary",
+        "full-debate",
+      );
+    const debate = getDebateById("full-debate")!;
+    expect(debate.openings.map((p) => p.content)).toEqual(["An opening"]);
+    expect(debate.crossExaminations?.map((p) => p.id)).toEqual([
+      "cross-1",
+      "cross-2",
+    ]);
+    expect(debate.crossExaminations?.[0].replyTo).toBe("full-debate-opening-0");
+    expect(debate.rebuttals[0].content).toBe("A rebuttal");
+    expect(debate.synthesisPosts?.[0].content).toBe("Closing perspective");
+    expect(debate.synthesisTensions).toEqual(["Tension"]);
+    expect(debate.synthesisAgreements).toEqual(["Agreement"]);
+    expect(debate.synthesisQuestions).toEqual(["Question"]);
+    expect(debate.synthesisSummaryAgree).toBe("Summary");
   });
 });

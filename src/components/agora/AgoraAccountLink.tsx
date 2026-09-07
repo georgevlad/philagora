@@ -8,6 +8,9 @@ export function AgoraAccountLink() {
   const pathname = usePathname();
   return (
     <Link
+      aria-current={
+        pathname === "/profile" || pathname === "/sign-in" ? "page" : undefined
+      }
       onClick={() => {
         if (!data?.user) {
           const draft = readAgoraDraft("agora:draft:guest");

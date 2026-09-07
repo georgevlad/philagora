@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getPhilosophersMap, getAllPhilosophers, getAllDebates } from "@/lib/data";
+import { getPhilosophersMap, getAllDebates } from "@/lib/data";
 import { DebatesPageClient } from "./DebatesPageClient";
 
 export const dynamic = "force-dynamic";
@@ -15,14 +15,10 @@ export const metadata: Metadata = {
 
 export default function DebatesListPage() {
   const philosophersMap = getPhilosophersMap();
-  const philosophers = getAllPhilosophers();
+
   const debates = getAllDebates();
 
   return (
-    <DebatesPageClient
-      philosophersMap={philosophersMap}
-      philosophers={philosophers}
-      debates={debates}
-    />
+    <DebatesPageClient philosophersMap={philosophersMap} debates={debates} />
   );
 }

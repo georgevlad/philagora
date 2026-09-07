@@ -15,7 +15,9 @@ export default function SignInPage() {
     const candidate =
       new URLSearchParams(window.location.search).get("returnTo") ?? "/";
     const callbackURL =
-      /^\/(?:agora(?:\/[a-zA-Z0-9-]+)?|feed|profile)?(?:#ask)?$/.test(candidate)
+      /^\/(?:agora(?:\/[a-zA-Z0-9-]+)?|feed|profile|post\/[a-zA-Z0-9-]+|philosophers\/[a-zA-Z0-9-]+|debates(?:\/[a-zA-Z0-9-]+)?|schools|about)?(?:\?type=(?:all|reactions|reflections|replies|recommends))?(?:#ask)?$/.test(
+        candidate,
+      )
         ? candidate
         : "/";
     try {
@@ -96,10 +98,7 @@ export default function SignInPage() {
           </div>
 
           <p className="mt-6 text-center">
-            <Link
-              href="/"
-              className="text-xs font-mono text-ink-lighter transition-colors hover:text-athenian"
-            >
+            <Link href="/" className="agora-text-link">
               &larr; Explore without signing in
             </Link>
           </p>

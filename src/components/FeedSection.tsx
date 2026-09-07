@@ -1,16 +1,11 @@
 "use client";
+import { EmptyState } from "./public/PageState";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArticleThreadCard } from "@/components/ArticleThreadCard";
 import { PostCard } from "@/components/PostCard";
-import { EditorialDivider } from "@/components/EditorialDivider";
-import { Spinner } from "@/components/Spinner";
-import { WelcomeCard } from "@/components/WelcomeCard";
 import { useNewPostIndicator } from "@/hooks/useNewPostIndicator";
-import {
-  buildFeedItems,
-  type FeedContentType,
-} from "@/lib/feed-utils";
+import { buildFeedItems, type FeedContentType } from "@/lib/feed-utils";
 import type { FeedPost } from "@/lib/types";
 
 interface FeedSectionProps {
@@ -30,7 +25,7 @@ interface PaginatedFeedResponse {
 function buildFeedApiUrl(
   type: FeedContentType,
   offset?: number,
-  philosopherId?: string
+  philosopherId?: string,
 ): string {
   const params = new URLSearchParams();
 
@@ -50,27 +45,18 @@ function buildFeedApiUrl(
   return query ? `/api/feed?${query}` : "/api/feed";
 }
 
-function FeedLoadMoreIndicator() {
-  return (
-    <div
-      className="mx-auto flex max-w-[280px] items-center justify-center gap-3 rounded-full border border-border-light/80 bg-[linear-gradient(180deg,rgba(248,243,234,0.94),rgba(244,239,230,0.88))] px-4 py-3 text-ink-lighter shadow-[0_10px_24px_rgba(42,36,31,0.03)]"
-      aria-live="polite"
-      aria-label="Loading more posts"
-    >
-      <Spinner className="h-4 w-4 text-athenian/75" />
-      <span className="font-mono text-[11px] uppercase tracking-[0.18em]">
-        Loading more dispatches
-      </span>
-    </div>
-  );
-}
-
-function buildEmptyStateMessage(type: FeedContentType, philosopherName?: string): string {
+function buildEmptyStateMessage(
+  type: FeedContentType,
+  philosopherName?: string,
+): string {
   if (philosopherName) {
-    if (type === "reactions") return `No reactions from ${philosopherName} yet.`;
-    if (type === "reflections") return `No reflections from ${philosopherName} yet.`;
+    if (type === "reactions")
+      return `No reactions from ${philosopherName} yet.`;
+    if (type === "reflections")
+      return `No reflections from ${philosopherName} yet.`;
     if (type === "replies") return `No replies from ${philosopherName} yet.`;
-    if (type === "recommends") return `No recommendations from ${philosopherName} yet.`;
+    if (type === "recommends")
+      return `No recommendations from ${philosopherName} yet.`;
     return `No posts from ${philosopherName} yet.`;
   }
 
@@ -113,10 +99,13 @@ export function FeedSection({
     setLoadMoreError(null);
 
     try {
-      const response = await fetch(buildFeedApiUrl(contentType, offset, philosopherId), {
-        cache: "no-store",
-        signal: controller.signal,
-      });
+      const response = await fetch(
+        buildFeedApiUrl(contentType, offset, philosopherId),
+        {
+          cache: "no-store",
+          signal: controller.signal,
+        },
+      );
 
       if (!response.ok) {
         throw new Error(`Feed request failed with status ${response.status}`);
@@ -130,10 +119,17 @@ export function FeedSection({
 
       setPosts((previousPosts) => {
         const seenPostIds = new Set(previousPosts.map((post) => post.id));
-        const nextPosts = data.posts.filter((post) => !seenPostIds.has(post.id));
-        return nextPosts.length > 0 ? [...previousPosts, ...nextPosts] : previousPosts;
+        const nextPosts = data.posts.filter(
+          (post) => !seenPostIds.has(post.id),
+        );
+        return nextPosts.length > 0
+          ? [...previousPosts, ...nextPosts]
+          : previousPosts;
       });
-      setOffset((previousOffset) => data.nextOffset ?? previousOffset + data.posts.length);
+      setOffset(
+        (previousOffset) =>
+          data.nextOffset ?? previousOffset + data.posts.length,
+      );
       setHasMore(data.hasMore);
     } catch (fetchError) {
       if (controller.signal.aborted) return;
@@ -162,7 +158,7 @@ export function FeedSection({
           void loadMore();
         }
       },
-      { rootMargin: "400px" }
+      { rootMargin: "400px" },
     );
 
     observer.observe(sentinelRef.current);
@@ -174,13 +170,12 @@ export function FeedSection({
   const showEndOfFeed = !hasMore && posts.length > 0;
 
   return (
-    <div className="pb-20 pt-0 sm:pt-3 sm:pb-3 lg:pb-0">
+    <div>
       {feedItems.length > 0 ? (
         <>
           <div>
-            <WelcomeCard />
-            {feedItems.map((item, index) => {
-              const element = item.type === "cluster" ? (
+            {feedItems.map((item) =>
+              item.type === "cluster" ? (
                 <ArticleThreadCard
                   key={`cluster-${item.clusterId}`}
                   posts={item.posts}
@@ -191,56 +186,51 @@ export function FeedSection({
                   post={item.post}
                   isNew={isNewPost(item.post.timestamp)}
                 />
-              );
-
-              const showDivider =
-                (index + 1) % 5 === 0 &&
-                index < feedItems.length - 1;
-
-              return showDivider ? (
-                <div key={`group-${index}`}>
-                  {element}
-                  <EditorialDivider />
-                </div>
-              ) : (
-                element
-              );
-            })}
+              ),
+            )}
           </div>
-
           {loadMoreError && (
-            <div className="px-6 py-4 text-center" role="status">
-              <p className="font-body text-sm text-ink-lighter">{loadMoreError}</p>
-              <button
-                type="button"
-                onClick={() => {
-                  void loadMore();
-                }}
-                className="mt-3 rounded-full border border-border-light bg-parchment-dark/45 px-4 py-2 font-body text-sm font-medium text-athenian transition-colors hover:border-border hover:bg-parchment-dark/75"
-              >
+            <div className="public-pagination" role="status">
+              <p>{loadMoreError} The posts already loaded are still here.</p>
+              <button className="agora-outline" onClick={() => void loadMore()}>
                 Try again
               </button>
             </div>
           )}
-
           {showSentinel && (
-            <div ref={sentinelRef} className="px-3 sm:px-4 py-4">
-              {loadingMore ? <FeedLoadMoreIndicator /> : <div className="h-6" aria-hidden="true" />}
+            <div ref={sentinelRef} className="public-pagination">
+              <button
+                className="agora-outline"
+                disabled={loadingMore}
+                onClick={() => void loadMore()}
+              >
+                {loadingMore ? "Loading more posts…" : "Load more posts"}
+              </button>
+              <span className="sr-only" role="status">
+                {loadingMore
+                  ? "Loading more posts"
+                  : `${posts.length} posts loaded`}
+              </span>
             </div>
           )}
-
           {showEndOfFeed && (
-            <div className="text-center py-8 text-ink-lighter/60 text-xs font-mono tracking-wider uppercase">
-              You&apos;ve reached the end
+            <div className="public-pagination">
+              <p role="status">You’ve reached the end.</p>
+              <a href="#main" className="agora-text-link">
+                Back to the top ↑
+              </a>
             </div>
           )}
         </>
       ) : (
-        <div className="px-6 py-16 text-center">
-          <p className="font-serif text-lg text-ink-light mb-2">
-            {buildEmptyStateMessage(contentType, philosopherName)}
-          </p>
-        </div>
+        <EmptyState
+          title={buildEmptyStateMessage(contentType, philosopherName)}
+          href={philosopherId ? `/philosophers/${philosopherId}` : "/feed"}
+          action="View all posts"
+        >
+          Published posts will appear here. You can explore another filter in
+          the meantime.
+        </EmptyState>
       )}
     </div>
   );

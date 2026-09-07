@@ -1,381 +1,188 @@
 import Link from "next/link";
 import type { Philosopher, DebateDetail, DebatePost } from "@/lib/types";
-import { LeftSidebar } from "@/components/LeftSidebar";
-import { MobileNav } from "@/components/MobileNav";
-import { Footer } from "@/components/Footer";
-import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
-import { AIBadge } from "@/components/AIBadge";
-import { BookIcon, ChevronLeftIcon, ExternalLinkIcon, ReplyArrowIcon } from "@/components/Icons";
-import { isValidHttpUrl } from "@/lib/url-utils";
+import { AgoraShell } from "@/components/agora/AgoraShell";
+import { PageHeading } from "@/components/public/PageHeading";
+import { PhilosopherLink } from "@/components/public/PhilosopherLink";
+import { SourceCitation } from "@/components/public/SourceCitation";
 
-function DebatePostCard({
+function DebateAnswer({
   post,
-  philosophersMap,
+  allPosts,
 }: {
   post: DebatePost;
-  philosophersMap: Record<string, Philosopher>;
+  allPosts: DebatePost[];
 }) {
-  const philosopher = philosophersMap[post.philosopherId];
-  if (!philosopher) return null;
-
+  const target = allPosts.find((p) => p.id === post.replyTo);
   return (
-    <div
-      className="animate-fade-in-up px-5 py-4 border-b border-border-light"
-    >
-      <div className="flex gap-3">
-        <Link href={`/philosophers/${post.philosopherId}`}>
-          <PhilosopherAvatar
-            philosopherId={post.philosopherId}
-            name={philosopher.name}
-            color={philosopher.color}
-            initials={philosopher.initials}
-          />
-        </Link>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <Link
-              href={`/philosophers/${post.philosopherId}`}
-              className="font-serif font-semibold text-ink hover:text-athenian transition-colors duration-200"
-            >
-              {philosopher.name}
-            </Link>
-            <span
-              className="text-xs font-mono px-1.5 py-0.5 rounded"
-              style={{
-                backgroundColor: `${philosopher.color}15`,
-                color: philosopher.color,
-              }}
-            >
-              {philosopher.tradition}
-            </span>
-            <AIBadge className="ml-auto" />
-          </div>
-
-          {post.replyTo && (
-            <div className="flex items-center gap-1.5 mb-2 text-xs text-ink-lighter">
-              <ReplyArrowIcon />
-              Replying
-            </div>
+    <article className="public-debate-answer" id={`contribution-${post.id}`}>
+      <h3>
+        <PhilosopherLink
+          id={post.philosopherId}
+          name={post.philosopherName}
+          color={post.philosopherColor}
+          initials={post.philosopherInitials}
+          detail={post.philosopherTradition}
+        />
+      </h3>
+      {post.replyTo && (
+        <p className="agora-meta">
+          {target ? (
+            <a className="agora-text-link" href={`#contribution-${target.id}`}>
+              Replying to {target.philosopherName} ↑
+            </a>
+          ) : (
+            "In reply to an earlier perspective"
           )}
-
-          <div
-            className="prose-reading whitespace-pre-line"
-            style={{
-              borderLeft: `2px solid ${philosopher.color}18`,
-              paddingLeft: '14px',
-            }}
-          >
-            {post.content}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PhaseLabel({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-3 px-5 py-4">
-      <div className="flex-1 h-px bg-border" />
-      <span className="text-[11px] font-mono tracking-widest uppercase text-ink-lighter">
-        {label}
-      </span>
-      <div className="flex-1 h-px bg-border" />
-    </div>
-  );
-}
-
-function NeutralSynthesisCard({
-  agree,
-  diverge,
-  unresolvedQuestion,
-}: {
-  agree: string;
-  diverge: string;
-  unresolvedQuestion: string;
-}) {
-  return (
-    <div
-      className="animate-fade-in-up mx-3 sm:mx-5 my-6 rounded-lg overflow-hidden"
-      style={{
-        backgroundColor: "rgba(240, 230, 214, 0.5)",
-        borderTop: "2px solid var(--color-border)",
-        border: "1px solid var(--color-border-light)",
-        borderTopStyle: "solid",
-      }}
-    >
-      <div className="px-5 py-3 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-athenian/8 flex items-center justify-center">
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            className="text-athenian"
-          >
-            <path d="M8 1L10 6H15L11 9.5L12.5 15L8 11.5L3.5 15L5 9.5L1 6H6L8 1Z" />
-          </svg>
-        </div>
-        <h3 className="font-serif font-semibold text-athenian text-sm">
-          Synthesis
-        </h3>
-      </div>
-
-      <div className="px-5 pb-5 space-y-4">
-        <div>
-          <h4 className="text-xs font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
-            Where they agree
-          </h4>
-          <p className="text-sm leading-relaxed text-ink-light">{agree}</p>
-        </div>
-        <div>
-          <h4 className="text-xs font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
-            Where they diverge
-          </h4>
-          <p className="text-sm leading-relaxed text-ink-light">{diverge}</p>
-        </div>
-        <div className="pt-2 border-t border-border-light">
-          <h4 className="text-xs font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
-            The unresolved question
-          </h4>
-          <p className="text-sm leading-relaxed text-ink font-medium italic">
-            {unresolvedQuestion}
-          </p>
-        </div>
-      </div>
-    </div>
+        </p>
+      )}
+      <div className="public-prose">{post.content}</div>
+    </article>
   );
 }
 
 export function DebatePageClient({
   debate,
   philosophersMap,
-  philosophers,
 }: {
   debate: DebateDetail;
   philosophersMap: Record<string, Philosopher>;
-  philosophers: Philosopher[];
 }) {
-  const isComplete = debate.status === "Complete";
-  const isScheduled = debate.status === "Scheduled";
-  const hasTriggerArticle = Boolean(debate.triggerArticleTitle);
-  const hasTriggerArticleUrl = isValidHttpUrl(debate.triggerArticleUrl);
-
+  const rounds = [
+    { id: "openings", label: "Opening statements", posts: debate.openings },
+    {
+      id: "cross-examination",
+      label: "Cross-examination",
+      posts: debate.crossExaminations || [],
+    },
+    { id: "rebuttals", label: "Rebuttals", posts: debate.rebuttals },
+    {
+      id: "closing-perspectives",
+      label: "Closing perspectives",
+      posts: debate.synthesisPosts || [],
+    },
+  ].filter((round) => round.posts.length);
+  const allPosts = rounds.flatMap((round) => round.posts);
+  const synthesis = [
+    {
+      title: "Where they agree",
+      summary: debate.synthesisSummaryAgree,
+      points: debate.synthesisAgreements,
+    },
+    {
+      title: "Where they diverge",
+      summary: debate.synthesisSummaryDiverge,
+      points: debate.synthesisTensions,
+    },
+    {
+      title: "The unresolved question",
+      summary: debate.synthesisSummaryUnresolved,
+      points: debate.synthesisQuestions,
+    },
+  ].filter((part) => part.summary || part.points.length);
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0 overflow-x-hidden">
-      <LeftSidebar philosophers={philosophers} />
-      <MobileNav />
-
-      <main className="flex-1 min-w-0 lg:border-l border-border-light">
-        <div className="max-w-[700px] mx-auto">
-          {/* Debate Header */}
-          <div className="px-5 pt-5 pb-6 sm:pt-7 lg:pt-8 border-b border-border-light">
-            <Link
-              href="/debates"
-              className="inline-flex items-center gap-1.5 text-sm text-ink-lighter hover:text-athenian transition-colors duration-200 mb-4"
-            >
-              <ChevronLeftIcon />
-              Back to Debates
-            </Link>
-
-            <h1 className="font-serif text-[28px] lg:text-[32px] font-medium text-ink leading-[1.12] mb-3">
-              {debate.title}
-            </h1>
-
-            <div className="flex items-center gap-3 mb-4 text-sm text-ink-light">
-              <span
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-full ${
-                  isComplete
-                    ? "bg-stoic/10 text-stoic"
-                    : debate.status === "In Progress"
-                    ? "bg-burgundy/10 text-burgundy"
-                    : "bg-ink-lighter/10 text-ink-lighter"
-                }`}
-              >
-                {debate.status}
-              </span>
-              <span>{debate.debateDate}</span>
-            </div>
-
-            {/* Trigger article */}
-            {hasTriggerArticle && hasTriggerArticleUrl ? (
-              <a
-                href={debate.triggerArticleUrl!}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 rounded border border-border-light hover:border-border transition-colors duration-200 mb-4 group"
-                style={{ backgroundColor: "rgba(240, 235, 227, 0.7)" }}
-              >
-                <BookIcon size={14} className="text-ink-lighter shrink-0" />
-                <span className="text-xs text-ink-light group-hover:text-athenian transition-colors">
-                  Triggered by:{" "}
-                  <span className="font-medium">
-                    {debate.triggerArticleTitle}
-                  </span>
-                </span>
-                {debate.triggerArticleSource ? (
-                  <span className="text-xs text-ink-lighter">
-                    &mdash; {debate.triggerArticleSource}
-                  </span>
-                ) : null}
-                <ExternalLinkIcon
-                  size={12}
-                  className="ml-auto text-ink-lighter group-hover:text-athenian shrink-0 transition-colors"
-                />
-              </a>
-            ) : hasTriggerArticle ? (
-              <div
-                className="flex items-center gap-2 px-3 py-2 rounded border border-border-light mb-4"
-                style={{ backgroundColor: "rgba(240, 235, 227, 0.7)" }}
-              >
-                <BookIcon size={14} className="text-ink-lighter shrink-0" />
-                <span className="text-xs text-ink-light">
-                  Triggered by:{" "}
-                  <span className="font-medium">
-                    {debate.triggerArticleTitle}
-                  </span>
-                </span>
-                {debate.triggerArticleSource ? (
-                  <span className="text-xs text-ink-lighter">
-                    &mdash; {debate.triggerArticleSource}
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
-
-            {/* Participants */}
-            <div>
-              <h3 className="text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-2">
-                Participants
-              </h3>
-              {debate.philosophers.length === 2 ? (() => {
-                const pA = philosophersMap[debate.philosophers[0]];
-                const pB = philosophersMap[debate.philosophers[1]];
-                if (!pA || !pB) return null;
-                return (
-                  <div className="flex items-center justify-center gap-4 py-2">
-                    <Link
-                      href={`/philosophers/${debate.philosophers[0]}`}
-                      className="flex flex-col items-center gap-1.5 group"
-                    >
-                      <PhilosopherAvatar
-                        philosopherId={debate.philosophers[0]}
-                        name={pA.name}
-                        color={pA.color}
-                        initials={pA.initials}
-                        size="lg"
-                      />
-                      <span className="text-sm font-serif font-semibold text-ink group-hover:text-athenian transition-colors duration-200">
-                        {pA.name}
-                      </span>
-                    </Link>
-                    <div className="flex flex-col items-center gap-0.5">
-                      <span className="text-ink-faint text-lg" aria-hidden="true">&#x2694;</span>
-                      <span className="text-[10px] font-mono text-ink-lighter tracking-wider uppercase">vs</span>
-                    </div>
-                    <Link
-                      href={`/philosophers/${debate.philosophers[1]}`}
-                      className="flex flex-col items-center gap-1.5 group"
-                    >
-                      <PhilosopherAvatar
-                        philosopherId={debate.philosophers[1]}
-                        name={pB.name}
-                        color={pB.color}
-                        initials={pB.initials}
-                        size="lg"
-                      />
-                      <span className="text-sm font-serif font-semibold text-ink group-hover:text-athenian transition-colors duration-200">
-                        {pB.name}
-                      </span>
-                    </Link>
-                  </div>
-                );
-              })() : (
-                <div className="flex flex-wrap gap-3">
-                  {debate.philosophers.map((pId) => {
-                    const p = philosophersMap[pId];
-                    if (!p) return null;
-                    return (
-                      <Link
-                        key={pId}
-                        href={`/philosophers/${pId}`}
-                        className="flex items-center gap-2 group"
-                      >
-                        <PhilosopherAvatar
-                          philosopherId={pId}
-                          name={p.name}
-                          color={p.color}
-                          initials={p.initials}
-                          size="sm"
-                        />
-                        <span className="text-sm text-ink-light group-hover:text-athenian transition-colors duration-200">
-                          {p.name}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Scheduled, no content yet */}
-          {isScheduled && (
-            <div className="px-5 py-12 text-center">
-              <p className="text-ink-lighter text-sm font-mono">
-                This debate has not yet begun. Check back on {debate.debateDate}.
-              </p>
-            </div>
+    <AgoraShell>
+      <main id="main" className="public-page public-reading">
+        <Link href="/debates" className="agora-text-link">
+          ← Back to debates
+        </Link>
+        <PageHeading eyebrow="In debate" title={debate.title}>
+          <p className="public-post-meta">
+            <span className="agora-badge">{debate.status}</span>
+            <time dateTime={debate.debateDateRaw}>{debate.debateDate}</time>
+          </p>
+        </PageHeading>
+        {debate.triggerArticleTitle && (
+          <SourceCitation
+            citation={{
+              title: debate.triggerArticleTitle,
+              source: debate.triggerArticleSource || "",
+              url: debate.triggerArticleUrl || undefined,
+            }}
+          />
+        )}
+        <div className="public-people">
+          {debate.philosophers.map(
+            (id) =>
+              philosophersMap[id] && (
+                <PhilosopherLink key={id} {...philosophersMap[id]} />
+              ),
           )}
-
-          {/* Opening Statements */}
-          {debate.openings.length > 0 && (
-            <>
-              <PhaseLabel label="Opening Statements" />
-              {debate.openings.map((post) => (
-                <DebatePostCard key={post.id} post={post} philosophersMap={philosophersMap} />
-              ))}
-            </>
-          )}
-
-          {/* Rebuttals */}
-          {debate.rebuttals.length > 0 && (
-            <>
-              <PhaseLabel label="Rebuttals" />
-              {debate.rebuttals.map((post) => (
-                <DebatePostCard key={post.id} post={post} philosophersMap={philosophersMap} />
-              ))}
-            </>
-          )}
-
-          {/* In Progress indicator */}
-          {debate.status === "In Progress" && debate.openings.length > 0 && (
-            <div className="px-5 py-8 text-center border-t border-border-light">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-burgundy/10 text-burgundy text-sm font-mono">
-                <span className="w-2 h-2 rounded-full bg-burgundy animate-pulse" />
-                Debate in progress &mdash; rebuttals and synthesis coming soon
-              </div>
-            </div>
-          )}
-
-          {/* Synthesis (Complete debates only) */}
-          {isComplete && debate.synthesisSummaryAgree && (
-            <>
-              <PhaseLabel label="Synthesis" />
-              <NeutralSynthesisCard
-                agree={debate.synthesisSummaryAgree}
-                diverge={debate.synthesisSummaryDiverge}
-                unresolvedQuestion={debate.synthesisSummaryUnresolved}
-              />
-            </>
-          )}
-
-          <Footer />
-          <div className="pb-20 lg:pb-0" />
         </div>
+        <p className="agora-notice">
+          AI interpretations of historical thinkers. Each perspective is a
+          starting point for your own thinking.
+        </p>
+        {!!(rounds.length || synthesis.length) && (
+          <nav className="public-round-nav" aria-label="Debate phases">
+            {rounds.map((round) => (
+              <a key={round.id} href={`#${round.id}`}>
+                {round.label}
+              </a>
+            ))}
+            {!!synthesis.length && <a href="#synthesis">Synthesis</a>}
+          </nav>
+        )}
+        {debate.status === "Scheduled" && (
+          <div className="public-empty">
+            <h2>The question is set.</h2>
+            <p>
+              This debate has not yet begun. Scheduled for {debate.debateDate}.
+            </p>
+          </div>
+        )}
+        {rounds.map((round, i) => (
+          <section
+            key={round.id}
+            id={round.id}
+            className="public-debate-round"
+            aria-labelledby={`${round.id}-heading`}
+          >
+            <h2 id={`${round.id}-heading`}>
+              {String(i + 1).padStart(2, "0")} · {round.label}
+            </h2>
+            {round.posts.map((post) => (
+              <DebateAnswer key={post.id} post={post} allPosts={allPosts} />
+            ))}
+          </section>
+        ))}
+        {debate.status === "In Progress" && (
+          <p className="agora-notice" role="status">
+            This debate is in progress. The perspectives saved so far are shown
+            here; further contributions will appear when published.
+          </p>
+        )}
+        {!!synthesis.length && (
+          <section
+            className="public-synthesis"
+            id="synthesis"
+            aria-labelledby="synthesis-title"
+          >
+            <p className="agora-eyebrow">The debate, brought together</p>
+            <h2 id="synthesis-title">Synthesis</h2>
+            {synthesis.map((part) => (
+              <div key={part.title}>
+                <h3>{part.title}</h3>
+                {part.summary && <p className="public-prose">{part.summary}</p>}
+                {!!part.points.length && (
+                  <ul className="public-prose">
+                    {part.points.map((point, i) => (
+                      <li key={i}>{point}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </section>
+        )}
+        {debate.status === "Complete" && !synthesis.length && (
+          <p className="agora-notice">
+            This debate is complete. A synthesis has not been published.
+          </p>
+        )}
+        <Link href="/debates" className="agora-text-link">
+          Explore another debate →
+        </Link>
       </main>
-    </div>
+    </AgoraShell>
   );
 }

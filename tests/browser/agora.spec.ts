@@ -356,7 +356,9 @@ test("navigation, feed filters, debate and mock issue actions", async ({
   await page
     .getByRole("button", { name: "Preview contextual question" })
     .click();
-  await expect(page.getByRole("status")).toContainText("Nothing submitted");
+  await expect(page.locator("main").getByRole("status")).toContainText(
+    "Nothing submitted",
+  );
   await page.getByRole("button", { name: "Remove context" }).click();
   expect(submissions).toBe(0);
   await page

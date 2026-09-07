@@ -2,7 +2,7 @@
 
 Implementation branch: `codex/agora-homepage-implementation`.
 
-The original design explorations are preserved. `conversation-study.html` supplied the interaction direction; `typography-study.html` supplied Paper & clay, Lora, DM Sans and responsive spacing. The approved font files and their OFL notices are bundled with the application. The new palette is scoped to Agora surfaces so existing feed, debate and admin styling remains usable.
+The original design explorations are preserved. `conversation-study.html` supplied the interaction direction; `typography-study.html` supplied Paper & clay, Lora, DM Sans and responsive spacing. The approved font files and their OFL notices are bundled with the application. The Paper & clay palette is scoped to the shared public shell. Phase 3 extends it to the remaining public pages while preserving the legacy admin tokens and styling.
 
 ## Run locally
 
@@ -59,3 +59,37 @@ Initial redesign completed on 7 September 2026: lint, TypeScript, all 164 unit t
 - Production Next.js build. The existing middleware deprecation warning remains.
 
 No production deployment or paid generation is performed. Real Google OAuth, real Anthropic output quality, native mobile browsers and assistive-technology screen-reader speech are not exercised by the local fixture tests.
+
+## Phase 3: remaining public pages
+
+The public feed, individual posts, debate archive and reader, philosopher profiles, user profile, Schools of Thought and About now share the Paper & clay shell. The original design studies are unchanged.
+
+- `src/app/public-design.css` extends the tokens from `agora-design.css` with public-only page layouts. Feed and philosopher pages use a reading column and a secondary directory; debates use opening previews and a focused reader; the account page is a private library. Typography uses Lora for headlines and prose and DM Sans for controls. Portrait links use 32px images.
+- Navigation identifies the active destination. Every public destination has loading, unavailable-page and error states. Error recovery requests fresh server data before resetting the boundary. Historical context uses a native keyboard-accessible disclosure.
+- Feed filters, the interleaving algorithm, automatic pagination, likes, bookmarks and sharing remain. A visible Load more posts control also supports keyboard access. Post readers preserve the entire text, inline emphasis, source links, art, historical context, recommendations and links to the replied-to post. Sign-in returns to the original post or philosopher filter.
+- Debate readers include all saved opening, cross-examination, rebuttal and synthesis-phase posts, reply-target anchors, and both summary and list-based synthesis fields. The previous reader omitted cross-examination, closing posts and list-only synthesis. Scheduled and in-progress states reflect saved data; no generation or polling behavior was added.
+- Philosopher biographies, principles and key works remain. The old sidebar's “Following” section was a directory, with no follow toggle, persistence or endpoint in this checkout. All philosopher links remain available through the feed, profiles and Schools; no new follow system was invented.
+- The profile remains authenticated and private to its owner. It distinguishes the audience of each conversation, retains all saved questions and post interactions, refreshes after removal, and handles sign-out failures. The existing Agora access checks, submissions, suggestions, quota handling and whole-group follow-up remain unchanged.
+- The entire issue-in-focus feature is still a labeled sample. No issue backend, contextual-question submission, generation recovery, prompt, model or quota changes are included. Admin styles and global legacy tokens remain unchanged.
+
+### Additional local fixtures
+
+`scripts/fixtures/public-page-review.ts` is called only by `scripts/agora-review.ts` against its freshly created isolated database. It adds grouped reactions and cross-replies, an aphorism, a glint, a recommendation, fictional historical context, an original SVG still life for art layout review, a paginated Seneca profile, saved account interactions, and scheduled/in-progress/complete debates including every stored phase and both synthesis formats.
+
+Useful routes in addition to the earlier Agora fixtures:
+
+- `/feed`, including each content filter
+- `/post/review-history`, `/post/review-art`, `/post/review-recommendation`, `/post/review-reply-0`
+- `/debates/review-debate`, `/debates/review-debate-scheduled`, `/debates/review-debate-progress`, `/debates/review-debate-lists`
+- `/philosophers/seneca` for pagination; `/philosophers/seneca?type=replies` for an empty filter
+- `/profile` with the owner account for saved content; the second account for an empty library
+- `/schools` and `/about`
+
+The Local test preview banner and account shortcuts remain. Browser screenshots use the `public-*` prefix in `.local-review/`. The browser tests restore temporary fixture content and the shared test session after sign-out.
+
+### Phase 3 validation — 7 September 2026
+
+- All 165 unit tests in 13 files pass, including the added complete-debate data check. ESLint, TypeScript and the final production build pass. The existing middleware deprecation warning remains. The build uses the isolated review database; network access is needed only for the existing Google Fonts build downloads.
+- All 39 distinct browser scenarios passed across the full 36-case regression run and three additional state/accessibility checks. The 13 public-page scenarios were rerun after the final presentation changes and all passed. A transient development reload during an earlier desktop run was resolved by the stable rerun.
+- Browser coverage includes all eight public page types at 320, 390, 768 and 1440px, actual element bounds, 200% root text at 320px, reduced motion, keyboard filters and skip navigation, touch targets, all feed filters, both feed/profile pagination, complete debate phases and synthesis, account ownership, like/bookmark persistence and rollback, sign-out, guest return paths, private access, loading/empty/error recovery, and the unchanged admin palette. Screenshots were reviewed at mobile and desktop sizes.
+- The final local review session starts with fresh isolated fixtures, the visible test banner and working account shortcuts. The normal application database and design-explorations files are untouched. No deployment or paid AI calls were made.

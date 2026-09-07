@@ -1,9 +1,8 @@
-import Link from "next/link";
 import type { Philosopher } from "@/lib/types";
-import { LeftSidebar } from "@/components/LeftSidebar";
-import { MobileNav } from "@/components/MobileNav";
-import { Footer } from "@/components/Footer";
-import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
+import { AgoraShell } from "@/components/agora/AgoraShell";
+import { PageHeading } from "@/components/public/PageHeading";
+import { PhilosopherLink } from "@/components/public/PhilosopherLink";
+import { EmptyState } from "@/components/public/PageState";
 
 const schools = [
   {
@@ -84,57 +83,6 @@ const schools = [
   },
 ];
 
-function SchoolCard({
-  school,
-  philosophersMap,
-}: {
-  school: (typeof schools)[0];
-  philosophersMap: Record<string, Philosopher>;
-}) {
-  return (
-    <div
-      className="animate-fade-in-up rounded-lg border border-border-light overflow-hidden hover:border-border transition-all duration-200"
-      style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
-    >
-      <div
-        className="h-1.5"
-        style={{ backgroundColor: school.color }}
-      />
-      <div className="p-5">
-        <h3 className="font-serif text-lg font-bold text-ink mb-2">
-          {school.name}
-        </h3>
-        <p className="text-sm text-ink-light leading-relaxed mb-4">
-          {school.description}
-        </p>
-        <div className="flex items-center gap-3 flex-wrap">
-          {school.philosophers.map((sp) => {
-            const p = philosophersMap[sp.id];
-            return (
-              <Link
-                key={sp.id}
-                href={`/philosophers/${sp.id}`}
-                className="flex items-center gap-2 group"
-              >
-                <PhilosopherAvatar
-                  philosopherId={sp.id}
-                  name={p?.name ?? sp.name}
-                  color={p?.color ?? school.color}
-                  initials={p?.initials ?? sp.name.slice(0, 2).toUpperCase()}
-                  size="sm"
-                />
-                <span className="text-sm text-ink-light group-hover:text-athenian transition-colors duration-200">
-                  {sp.name}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function SchoolsPageClient({
   philosophersMap,
   philosophers,
@@ -142,36 +90,60 @@ export function SchoolsPageClient({
   philosophersMap: Record<string, Philosopher>;
   philosophers: Philosopher[];
 }) {
+  const listedIds = new Set(
+    schools.flatMap((s) => s.philosophers.map((p) => p.id)),
+  );
+  const additional = philosophers.filter((p) => !listedIds.has(p.id));
+  const groups = [
+    ...schools.map((s) => ({
+      name: s.name,
+      description: s.description,
+      people: s.philosophers.map((p) => philosophersMap[p.id]).filter(Boolean),
+    })),
+    ...Array.from(new Set(additional.map((p) => p.tradition))).map(
+      (tradition) => ({
+        name: tradition,
+        description: "",
+        people: additional.filter((p) => p.tradition === tradition),
+      }),
+    ),
+  ].filter((s) => s.people.length);
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row pt-14 lg:pt-0 overflow-x-hidden">
-      <LeftSidebar philosophers={philosophers} />
-      <MobileNav />
-
-      <main className="flex-1 min-w-0 lg:border-l border-border-light">
-        <div className="max-w-[700px] mx-auto">
-          <div className="px-5 pt-5 pb-6 sm:pt-7 lg:pt-8 border-b border-border-light">
-            <h1 className="font-serif text-2xl lg:text-3xl font-bold text-ink leading-tight mb-3">
-              Schools of Thought
-            </h1>
-            <p className="text-[15px] text-ink-light leading-relaxed">
-              Explore philosophical traditions and the thinkers who shaped them.
-            </p>
-          </div>
-
-          <div className="px-5 py-6 space-y-4">
-            {schools.map((school) => (
-              <SchoolCard
-                key={school.name}
-                school={school}
-                philosophersMap={philosophersMap}
-              />
+    <AgoraShell>
+      <main id="main" className="public-page">
+        <PageHeading
+          eyebrow="Different ways of seeing"
+          title="Schools of Thought"
+        >
+          <p>
+            Explore the traditions behind the voices. These are starting points:
+            a thinker’s work often crosses the boundaries of a single school.
+          </p>
+        </PageHeading>
+        {groups.length ? (
+          <div className="public-school-list">
+            {groups.map((school) => (
+              <section className="public-school" key={school.name}>
+                <h2>{school.name}</h2>
+                {school.description && <p>{school.description}</p>}
+                <div className="public-people">
+                  {school.people.map((p) => (
+                    <PhilosopherLink key={p.id} {...p} />
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
-
-          <Footer />
-          <div className="pb-20 lg:pb-0" />
-        </div>
+        ) : (
+          <EmptyState
+            title="The thinkers will be here soon."
+            href="/"
+            action="Back to the Agora"
+          >
+            Philosopher profiles will appear here when available.
+          </EmptyState>
+        )}
       </main>
-    </div>
+    </AgoraShell>
   );
 }

@@ -14,6 +14,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { buildOrganizationSchema, buildWebSiteSchema } from "@/lib/seo/schema";
 import "./globals.css";
 import "./agora-design.css";
+import "./public-design.css";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",

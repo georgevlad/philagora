@@ -620,6 +620,8 @@ export function getDebateById(id: string): DebateDetail | null {
     triggerArticleSource: d.trigger_article_source,
     triggerArticleUrl: d.trigger_article_url,
     philosophers: philRows.map((r) => r.philosopher_id),
+    crossExaminations: postRows.filter((p) => p.phase === "cross-examination").map(mapPost),
+    synthesisPosts: postRows.filter((p) => p.phase === "synthesis").map(mapPost),
     openings: postRows.filter((p) => p.phase === "opening").map(mapPost),
     rebuttals: postRows.filter((p) => p.phase === "rebuttal").map(mapPost),
     synthesisTensions: safeJsonParse(d.synthesis_tensions, []),

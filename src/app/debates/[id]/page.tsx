@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { getPhilosophersMap, getAllPhilosophers, getDebateById } from "@/lib/data";
+import { getPhilosophersMap, getDebateById } from "@/lib/data";
 import { toAbsoluteUrl, truncateSeoText } from "@/lib/seo";
-import {
-  buildArticleSchema,
-  buildBreadcrumbSchema,
-} from "@/lib/seo/schema";
+import { buildArticleSchema, buildBreadcrumbSchema } from "@/lib/seo/schema";
 import { DebatePageClient } from "./DebatePageClient";
 
 export async function generateMetadata({
@@ -35,8 +32,11 @@ export async function generateMetadata({
     participantNames.length >= 2
       ? `${participantNames[0]} and ${participantNames[1]}`
       : participantNames.join(", ") || "Philagora's philosophers";
-  const openingHook = debate.openings[0]?.content || debate.triggerArticleTitle || debate.title;
-  const description = truncateSeoText(`${participantLabel} debate: ${openingHook}`);
+  const openingHook =
+    debate.openings[0]?.content || debate.triggerArticleTitle || debate.title;
+  const description = truncateSeoText(
+    `${participantLabel} debate: ${openingHook}`,
+  );
 
   return {
     title: debate.title,
@@ -67,14 +67,14 @@ export default async function DebatePage({
   }
 
   const philosophersMap = getPhilosophersMap();
-  const philosophers = getAllPhilosophers();
+
   const debateDescription = truncateSeoText(
     `${
       debate.philosophers
         .map((philosopherId) => philosophersMap[philosopherId]?.name)
         .filter((name): name is string => Boolean(name))
         .join(" and ") || "Philagora's philosophers"
-    } debate: ${debate.openings[0]?.content || debate.triggerArticleTitle || debate.title}`
+    } debate: ${debate.openings[0]?.content || debate.triggerArticleTitle || debate.title}`,
   );
   const imageUrl = toAbsoluteUrl(`/debates/${id}/opengraph-image`);
   const debateJsonLd = [
@@ -96,11 +96,7 @@ export default async function DebatePage({
   return (
     <>
       <JsonLd data={debateJsonLd} />
-      <DebatePageClient
-        debate={debate}
-        philosophersMap={philosophersMap}
-        philosophers={philosophers}
-      />
+      <DebatePageClient debate={debate} philosophersMap={philosophersMap} />
     </>
   );
 }

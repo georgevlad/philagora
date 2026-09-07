@@ -5,569 +5,55 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import type { FeedPost } from "@/lib/types";
-import { PhilosopherAvatar } from "./PhilosopherAvatar";
-import { BookIcon, BookmarkIcon, ExternalLinkIcon, HeartIcon, ReplyArrowIcon, ReplyIcon } from "./Icons";
-import { philosopherAccentStyles } from "@/lib/color-utils";
-import { POST_CONTENT_TRUNCATE_LIMIT, STANCE_CONFIG, STANCE_CONNECTOR_PHRASES } from "@/lib/constants";
+import { PhilosopherLink } from "./public/PhilosopherLink";
+import { SourceCitation } from "./public/SourceCitation";
+import { BookmarkIcon, HeartIcon, ReplyIcon } from "./Icons";
+import { POST_CONTENT_TRUNCATE_LIMIT } from "@/lib/constants";
 import { timeAgo } from "@/lib/date-utils";
-import { showComingSoon, showToast } from "@/components/ComingSoonToast";
+import { showComingSoon, showToast } from "./ComingSoonToast";
 import { useSession } from "@/lib/auth-client";
-
-function TagBadge({
-  tag,
-  accent,
-}: {
-  tag: string;
-  accent: ReturnType<typeof philosopherAccentStyles>;
-}) {
-  const isCrossReply = tag === "Cross-Philosopher Reply";
-
-  return (
-    <span
-      className="inline-flex items-center px-2.5 py-1 text-[9px] font-mono tracking-[0.18em] uppercase rounded-full"
-      style={{
-        backgroundColor: isCrossReply ? accent.bgLight : accent.bgSubtle,
-        color: accent.textMuted,
-        border: `1px solid ${isCrossReply ? accent.borderLight : accent.borderSubtle}`,
-      }}
-    >
-      {tag}
-    </span>
-  );
-}
 
 function ActionButton({
   icon,
   count,
   label,
   active,
+  pending,
   onClick,
 }: {
   icon: React.ReactNode;
   count?: number;
   label: string;
   active?: boolean;
+  pending?: boolean;
   onClick?: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-center gap-1.5 transition-colors duration-200 group ${
-        active
-          ? "text-athenian"
-          : "text-ink-faint/75 hover:text-athenian"
-      }`}
       aria-label={label}
       aria-pressed={active}
+      disabled={pending}
     >
-      <span className="group-hover:scale-105 transition-transform duration-200">{icon}</span>
-      {count !== undefined && <span className="text-[11px] font-mono">{count}</span>}
+      {icon}
+      {count !== undefined && <span>{count}</span>}
     </button>
-  );
-}
-
-function PopularBadge() {
-  return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[9px] font-mono tracking-[0.18em] uppercase rounded-full bg-burgundy/10 text-burgundy border border-burgundy/20">
-      <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" stroke="none">
-        <path d="M8 1C8 1 3 5 3 9C3 11.7614 5.23858 14 8 14C10.7614 14 13 11.7614 13 9C13 5 8 1 8 1ZM8 12C6.34315 12 5 10.6569 5 9C5 7 8 4 8 4C8 4 11 7 11 9C11 10.6569 9.65685 12 8 12Z" />
-      </svg>
-      Trending
-    </span>
-  );
-}
-
-function PostConnectorLine({
-  post,
-  className,
-}: {
-  post: FeedPost;
-  className?: string;
-}) {
-  const connectorPhrase = STANCE_CONNECTOR_PHRASES[post.stance];
-  const capitalizedConnectorPhrase = connectorPhrase.charAt(0).toUpperCase() + connectorPhrase.slice(1);
-  const connectorColor = STANCE_CONFIG[post.stance].color;
-  const citationTitle = post.citation?.title?.trim();
-  const hasReplyTarget = Boolean(post.replyTo && post.replyTargetPhilosopherName);
-  const classes = ["mb-2", "text-sm", "font-body", "leading-relaxed", "text-ink-light", className]
-    .filter(Boolean)
-    .join(" ");
-
-  if (hasReplyTarget) {
-    return (
-      <div className={classes}>
-        <span style={{ color: connectorColor }}>{capitalizedConnectorPhrase}</span>{" "}
-        <span>{`${post.replyTargetPhilosopherName}'s take`}</span>
-      </div>
-    );
-  }
-
-  if (!citationTitle) {
-    return null;
-  }
-
-  return (
-    <div className={classes}>
-      <span style={{ color: connectorColor }}>{capitalizedConnectorPhrase}</span>
-      {": "}
-      {post.citation?.url ? (
-        <a
-          href={post.citation.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-ink-light no-underline transition-colors hover:text-terracotta"
-        >
-          {citationTitle}
-        </a>
-      ) : (
-        <span>{citationTitle}</span>
-      )}
-    </div>
-  );
-}
-
-function CrossReplyHeader({ post }: { post: FeedPost }) {
-  if (!post.replyTargetPhilosopherId || !post.replyTargetPhilosopherName) {
-    return null;
-  }
-
-  const accent = philosopherAccentStyles(post.philosopherColor);
-
-  return (
-    <div className="mb-4">
-      <div
-        className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-        style={{
-          background: `linear-gradient(135deg, ${post.philosopherColor}0d, rgba(248,243,234,0.92))`,
-          border: `1px solid ${accent.borderSubtle}`,
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <PhilosopherAvatar
-            philosopherId={post.philosopherId}
-            name={post.philosopherName}
-            color={post.philosopherColor}
-            initials={post.philosopherInitials}
-            size="sm"
-          />
-          <span className="font-serif font-semibold text-[14px] text-ink">{post.philosopherName}</span>
-        </div>
-        <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-ink-faint">Replies to</span>
-        <div className="flex items-center gap-2">
-          <PhilosopherAvatar
-            philosopherId={post.replyTargetPhilosopherId}
-            name={post.replyTargetPhilosopherName}
-            color={post.replyTargetPhilosopherColor!}
-            initials={post.replyTargetPhilosopherInitials!}
-            size="sm"
-          />
-          <span className="font-serif font-semibold text-[14px] text-ink">{post.replyTargetPhilosopherName}</span>
-        </div>
-      </div>
-      {post.replyTargetThesis && (
-        <div
-          className="mt-3 pl-4 py-2 text-[13px] font-serif italic text-ink-light leading-relaxed"
-          style={{
-            borderLeft: `2px solid ${post.replyTargetPhilosopherColor ?? "var(--color-border-light)"}`,
-          }}
-        >
-          <span className="line-clamp-2">&ldquo;{post.replyTargetThesis}&rdquo;</span>
-          <span className="block mt-1 text-[11px] font-body not-italic text-ink-faint">
-            — {post.replyTargetPhilosopherName}
-          </span>
-        </div>
-      )}
-    </div>
   );
 }
 
 function parseInlineFormatting(text: string): React.ReactNode[] {
-  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
-
-  return parts.map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={i}>{part.slice(2, -2)}</strong>;
-    }
-    if (part.startsWith("*") && part.endsWith("*")) {
-      return <em key={i}>{part.slice(1, -1)}</em>;
-    }
-    return part;
-  });
-}
-
-function PostContent({
-  content,
-  color,
-  isAphorism,
-  isQuip,
-  linkHref,
-  forceExpanded,
-}: {
-  content: string;
-  color: string;
-  isAphorism?: boolean;
-  isQuip?: boolean;
-  linkHref?: string;
-  forceExpanded?: boolean;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const needsTruncation = !forceExpanded
-    && !isQuip
-    && content.length > POST_CONTENT_TRUNCATE_LIMIT
-    && (content.length - POST_CONTENT_TRUNCATE_LIMIT) > 50;
-  const displayText = needsTruncation && !expanded
-    ? content.slice(0, POST_CONTENT_TRUNCATE_LIMIT).replace(/\s+\S*$/, "") + "..."
-    : content;
-  const formattedText = parseInlineFormatting(displayText);
-  const textContent = linkHref ? (
-    <Link href={linkHref} className="cursor-pointer">
-      {formattedText}
-    </Link>
-  ) : (
-    <>{formattedText}</>
-  );
-
-  const toggleButton = needsTruncation && (
-    <button
-      onClick={() => setExpanded(!expanded)}
-      className={`ml-1 text-athenian/75 hover:text-athenian text-[13px] transition-colors ${isAphorism ? "font-body not-italic" : ""}`}
-    >
-      {expanded ? "Show less" : "Read more"}
-    </button>
-  );
-
-  if (isAphorism) {
-    return (
-      <div
-        className="text-[16px] text-ink mb-2 whitespace-pre-line text-center leading-[1.75] italic px-4"
-        style={{ fontFamily: "var(--font-lora), var(--font-playfair), Georgia, serif" }}
-      >
-        {textContent}
-        {toggleButton}
-      </div>
+  return text
+    .split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g)
+    .map((part, i) =>
+      part.startsWith("**") && part.endsWith("**") ? (
+        <strong key={i}>{part.slice(2, -2)}</strong>
+      ) : part.startsWith("*") && part.endsWith("*") ? (
+        <em key={i}>{part.slice(1, -1)}</em>
+      ) : (
+        part
+      ),
     );
-  }
-
-  if (isQuip) {
-    return (
-      <div
-        className="mb-2 rounded-[20px] px-5 py-4 whitespace-pre-line"
-        style={{
-          borderLeft: `4px solid ${color}`,
-          background: `linear-gradient(135deg, ${color}12, rgba(248,243,234,0.78))`,
-        }}
-      >
-        <p
-          className="font-serif italic text-lg sm:text-xl leading-relaxed text-ink/90"
-          style={{ fontFamily: "var(--font-lora), var(--font-playfair), Georgia, serif" }}
-        >
-          {textContent}
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="prose-reading text-[16px] text-ink mb-1 whitespace-pre-line"
-      style={{
-        borderLeft: `1.5px solid ${color}1f`,
-        paddingLeft: "16px",
-      }}
-    >
-      {textContent}
-      {toggleButton}
-    </div>
-  );
-}
-
-function formatHistoricalSource(source: string) {
-  return source.replace(/^on this day\b/i, "Today in History");
-}
-
-function TodayInHistoryHeader({ source }: { source: string }) {
-  return (
-    <div className="mb-3 flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-ink-lighter">
-      <span aria-hidden="true">🕰️</span>
-      <span>{formatHistoricalSource(source)}</span>
-    </div>
-  );
-}
-
-function ExaminedLifeHeader({ source }: { source: string }) {
-  return (
-    <div className="mb-3 flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-ink-lighter">
-      <span aria-hidden="true">💭</span>
-      <span>{source.toUpperCase()}</span>
-    </div>
-  );
-}
-
-function ArtCommentaryHeader() {
-  return (
-    <div className="mb-3 flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-ink-lighter">
-      <span aria-hidden="true">🖼️</span>
-      <span>Art Commentary</span>
-    </div>
-  );
-}
-
-function HistoricalEventTitle({
-  title,
-  color,
-  context,
-  displayDate,
-}: {
-  title: string;
-  color: string;
-  context?: string;
-  displayDate?: string;
-}) {
-  const [showContext, setShowContext] = useState(false);
-
-  return (
-    <>
-      <blockquote
-        className="mb-4 rounded-r-xl px-4 py-3 font-serif text-[18px] leading-[1.4] text-ink sm:text-[19px]"
-        style={{
-          borderLeft: `3px solid ${color}`,
-          background: `linear-gradient(90deg, ${color}12, rgba(248,243,234,0.45))`,
-          fontWeight: 500,
-        }}
-      >
-        <span className="flex items-start gap-2">
-          <span className="flex-1">{title}</span>
-          {context && (
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowContext(true);
-              }}
-              className="mt-0.5 flex-shrink-0 text-ink-lighter transition-colors hover:text-terracotta"
-              aria-label="View historical context"
-              title="View historical context"
-            >
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <circle cx="9" cy="9" r="8" stroke="currentColor" strokeWidth="1.2" />
-                <text
-                  x="9"
-                  y="13"
-                  textAnchor="middle"
-                  fill="currentColor"
-                  fontSize="11"
-                  fontFamily="Georgia, serif"
-                  fontStyle="italic"
-                >
-                  i
-                </text>
-              </svg>
-            </button>
-          )}
-        </span>
-      </blockquote>
-
-      {showContext && context && (
-        <EventContextModal
-          title={title}
-          displayDate={displayDate}
-          context={context}
-          onClose={() => setShowContext(false)}
-        />
-      )}
-    </>
-  );
-}
-
-function EventContextModal({
-  title,
-  displayDate,
-  context,
-  onClose,
-}: {
-  title: string;
-  displayDate?: string;
-  context: string;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm" />
-
-      <div
-        className="relative w-full max-w-lg rounded-2xl border border-border bg-parchment p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 text-ink-lighter transition-colors hover:text-ink"
-          aria-label="Close"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          >
-            <path d="M5 5l10 10M15 5L5 15" />
-          </svg>
-        </button>
-
-        <div className="mb-4 pr-8">
-          <p className="mb-2 text-[11px] font-mono uppercase tracking-[0.08em] text-ink-lighter">
-            Historical Context
-          </p>
-          <h3
-            className="font-serif text-xl font-semibold leading-snug text-ink"
-            style={{ fontFamily: "var(--font-playfair), Georgia, serif" }}
-          >
-            {title}
-          </h3>
-          {displayDate && (
-            <p className="mt-1 font-mono text-sm text-ink-light">{displayDate}</p>
-          )}
-        </div>
-
-        <div className="mb-4 h-px bg-border-light" />
-
-        <div className="max-h-[60vh] overflow-y-auto pr-2 text-[15px] leading-relaxed text-ink-light whitespace-pre-line">
-          {context}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ArtworkFramedImage({
-  imageUrl,
-  title,
-  artist,
-  sizes,
-  className,
-}: {
-  imageUrl: string;
-  title?: string;
-  artist?: string;
-  sizes: string;
-  className?: string;
-}) {
-  const placard = [title?.trim(), artist?.trim()].filter(Boolean).join(" · ");
-
-  return (
-    <div className={className}>
-      <div className="overflow-hidden rounded-xl border border-border-light/80 bg-parchment-dark/20 p-2 sm:p-3">
-        <div className="relative aspect-[4/3] w-full rounded-lg bg-parchment-dark/30 shadow-[inset_0_0_0_1px_rgba(42,36,31,0.06)]">
-          <Image
-            src={imageUrl}
-            alt={title || "Artwork"}
-            fill
-            className="object-contain"
-            sizes={sizes}
-            unoptimized
-          />
-        </div>
-        {placard && (
-          <div className="pt-2.5 sm:pt-3">
-            <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-ink-faint">
-              {placard}
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function HistoricalEventThumbnail({
-  thumbnailUrl,
-  title,
-}: {
-  thumbnailUrl: string;
-  title: string;
-}) {
-  return (
-    <div className="-mx-5 -mt-5 mb-4 overflow-hidden rounded-t-2xl sm:-mx-6 sm:-mt-5">
-      <div className="relative aspect-[16/9] w-full bg-parchment-dark/30">
-        <Image
-          src={thumbnailUrl}
-          alt={title}
-          fill
-          className="object-cover"
-          sizes="(max-width: 640px) 100vw, 640px"
-        />
-      </div>
-    </div>
-  );
-}
-
-type RecommendationBadgeData = {
-  label: string;
-  searchUrl: string;
-};
-
-function recommendationBadge(post: FeedPost): RecommendationBadgeData | null {
-  if (!post.recommendationTitle) return null;
-
-  const medium = (post.recommendationMedium ?? "other").toLowerCase();
-  const icon =
-    medium === "film" || medium === "tv"
-      ? "🎬"
-      : medium === "music"
-      ? "🎵"
-      : medium === "book"
-      ? "📚"
-      : medium === "podcast"
-      ? "🎧"
-      : "✨";
-
-  let label = `${icon} Recommends: ${post.recommendationTitle}`;
-  if (post.recommendationAuthor) {
-    label += ` by ${post.recommendationAuthor}`;
-  }
-  if (post.recommendationMedium) {
-    label += ` (${post.recommendationMedium})`;
-  }
-
-  const searchParts = [post.recommendationTitle];
-  if (post.recommendationAuthor) searchParts.push(post.recommendationAuthor);
-  if (post.recommendationMedium) searchParts.push(post.recommendationMedium);
-
-  return {
-    label,
-    searchUrl: `https://www.google.com/search?q=${encodeURIComponent(searchParts.join(" "))}`,
-  };
-}
-
-function RecommendationBadgeLink({ recommendation }: { recommendation: RecommendationBadgeData }) {
-  return (
-    <a
-      href={recommendation.searchUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-mono tracking-wide text-emerald-800 transition-colors duration-200 hover:border-emerald-300 hover:bg-emerald-100 cursor-pointer"
-      onClick={(event) => event.stopPropagation()}
-    >
-      {recommendation.label}
-      <svg
-        width="10"
-        height="10"
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        className="opacity-50"
-      >
-        <path d="M6 3h7v7M13 3L6 10" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </a>
-  );
 }
 
 export function PostCard({
@@ -581,340 +67,161 @@ export function PostCard({
   isNew?: boolean;
   compact?: boolean;
 }) {
-  const color = post.philosopherColor;
-  const accent = philosopherAccentStyles(color);
-  const isCrossReply = post.tag === "Cross-Philosopher Reply";
-  const isAphorism = post.tag === "Practical Wisdom" || post.tag === "Timeless Wisdom";
+  const [showAll, setShowAll] = useState(false);
+  const isAphorism =
+    post.tag === "Practical Wisdom" || post.tag === "Timeless Wisdom";
   const isQuip = post.tag === "Glint";
-  const isPopular = post.likes >= 50;
-  const isHistoricalEvent = post.sourceType === "historical_event";
-  const isEveryday = post.sourceType === "everyday";
-  const isArtCommentary = post.sourceType === "art_commentary";
-  const shouldShowThesis = !isQuip || post.thesis.trim() !== post.content.trim();
-  const postHref = `/post/${post.id}`;
-  const recommendationLabel = recommendationBadge(post);
-  const relativeTimestamp = timeAgo(post.createdAt);
-  const content = (
-    <div className={compact ? "px-4 py-3 sm:px-5 sm:py-3.5" : "px-4 py-4 sm:px-6 sm:py-5"}>
-      {isCrossReply && <CrossReplyHeader post={post} />}
-
-      {post.replyTo && !isCrossReply && (
-        <div className="flex items-center gap-2 ml-12 mb-3 text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">
-          <ReplyArrowIcon size={14} />
-          In conversation
-        </div>
-      )}
-
-      {isAphorism ? (
-        <div className="flex flex-col items-center text-center relative">
-          <div
-            className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 font-serif select-none pointer-events-none"
-            style={{ fontSize: "120px", color: accent.bgSubtle, lineHeight: 1 }}
-            aria-hidden="true"
-          >
-            &ldquo;
-          </div>
-
-          {isHistoricalEvent && post.thumbnailUrl && (
-            <HistoricalEventThumbnail
-              thumbnailUrl={post.thumbnailUrl}
-              title={post.citation?.title || "Historical event"}
-            />
-          )}
-
-          {isArtCommentary && post.citation?.imageUrl && (
-            <ArtworkFramedImage
-              imageUrl={post.citation.imageUrl}
-              title={post.citation.title}
-              artist={post.citation.source}
-              sizes="(max-width: 640px) 100vw, 640px"
-              className="-mx-5 -mt-5 mb-4 sm:-mx-6 sm:-mt-5"
-            />
-          )}
-
-          <div className="flex items-center gap-2 mb-2 relative z-10">
-            <Link href={`/philosophers/${post.philosopherId}`}>
-              <PhilosopherAvatar philosopherId={post.philosopherId} name={post.philosopherName} color={color} initials={post.philosopherInitials} />
-            </Link>
-            <div className="flex items-center gap-2 flex-wrap justify-center">
-              <Link
-                href={`/philosophers/${post.philosopherId}`}
-                className="font-serif font-semibold text-[17px] text-ink hover:text-athenian transition-colors duration-200 link-underline"
-              >
-                {post.philosopherName}
-              </Link>
-              <span className="text-xs text-ink-lighter">&middot;</span>
-              <span className="text-xs text-ink-lighter">{relativeTimestamp}</span>
-              {isPopular && <PopularBadge />}
-            </div>
-          </div>
-
-          {!compact && (
-            <PostConnectorLine
-              post={post}
-              className="relative z-10 w-full max-w-lg text-center"
-            />
-          )}
-
-          {isHistoricalEvent && post.citation?.source && (
-            <div className="relative z-10">
-              <TodayInHistoryHeader source={post.citation.source} />
-            </div>
-          )}
-
-          {isEveryday && post.citation?.source && (
-            <div className="relative z-10">
-              <ExaminedLifeHeader source={post.citation.source} />
-            </div>
-          )}
-
-          {isArtCommentary && (
-            <div className="relative z-10">
-              <ArtCommentaryHeader />
-            </div>
-          )}
-
-          {(isHistoricalEvent || isEveryday) && post.citation?.title && (
-            <div className="relative z-10 w-full max-w-lg">
-              <HistoricalEventTitle
-                title={post.citation.title}
-                color={color}
-                context={isHistoricalEvent ? post.eventContext : undefined}
-                displayDate={isHistoricalEvent ? post.eventDisplayDate : undefined}
-              />
-            </div>
-          )}
-
-          {post.citation && !compact && !isHistoricalEvent && !isEveryday && !isArtCommentary && (
-            <div className="w-full mb-4">
-              <CitationBlock citation={post.citation} color={color} accent={accent} />
-            </div>
-          )}
-
-          <Link href={postHref} className="block cursor-pointer">
-            <blockquote className="font-serif text-[20px] leading-[1.38] text-ink mb-4 max-w-lg px-3 relative z-10 font-medium sm:text-[24px]">
-              &ldquo;{post.thesis}&rdquo;
-            </blockquote>
-          </Link>
-
-          <div className="w-14 mx-auto mb-5" style={{ height: "1px", backgroundColor: accent.borderMedium }} />
-
-          <PostContent content={post.content} color={color} isAphorism linkHref={postHref} forceExpanded={expanded} />
-
-          {recommendationLabel && <RecommendationBadgeLink recommendation={recommendationLabel} />}
-
-          <div className="flex items-center justify-between gap-2 flex-wrap w-full mt-3 pt-3 border-t border-border-light/70">
-            <TagBadge tag={post.tag} accent={accent} />
-            <ActionButtons post={post} />
-          </div>
-        </div>
-      ) : (
-        <div className="flex gap-4">
-          {!isCrossReply && (
-            <Link href={`/philosophers/${post.philosopherId}`}>
-              <PhilosopherAvatar philosopherId={post.philosopherId} name={post.philosopherName} color={color} initials={post.philosopherInitials} />
-            </Link>
-          )}
-
-          <div className="flex-1 min-w-0">
-            {isHistoricalEvent && post.thumbnailUrl && (
-              <div className="mb-3 -mr-1 overflow-hidden rounded-xl">
-                <div className="relative aspect-[16/9] w-full bg-parchment-dark/30">
-                  <Image
-                    src={post.thumbnailUrl}
-                    alt={post.citation?.title || "Historical event"}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 100vw, 540px"
-                  />
-                </div>
-              </div>
-            )}
-
-            {isArtCommentary && post.citation?.imageUrl && (
-              <ArtworkFramedImage
-                imageUrl={post.citation.imageUrl}
-                title={post.citation.title}
-                artist={post.citation.source}
-                sizes="(max-width: 640px) 100vw, 540px"
-                className="mb-3 -mr-1"
-              />
-            )}
-
-            {!isCrossReply && (
-              <div className="flex items-center gap-2 flex-wrap mb-2">
-                <Link
-                  href={`/philosophers/${post.philosopherId}`}
-                  className="font-serif font-semibold text-[17px] text-ink hover:text-athenian transition-colors duration-200 link-underline"
-                >
-                  {post.philosopherName}
-                </Link>
-                <span className="text-xs text-ink-lighter">&middot;</span>
-                <span className="text-xs text-ink-lighter">{relativeTimestamp}</span>
-                {isPopular && <PopularBadge />}
-              </div>
-            )}
-
-            {isCrossReply && (
-              <div className="flex items-center gap-2 flex-wrap mb-2">
-                {isPopular && <PopularBadge />}
-                {isPopular && <span className="text-xs text-ink-lighter">&middot;</span>}
-                <span className="text-xs text-ink-lighter">{relativeTimestamp}</span>
-              </div>
-            )}
-
-            {!compact && !(isCrossReply && post.replyTargetThesis) && <PostConnectorLine post={post} />}
-
-            {isHistoricalEvent && post.citation?.source && (
-              <TodayInHistoryHeader source={post.citation.source} />
-            )}
-
-            {isEveryday && post.citation?.source && (
-              <ExaminedLifeHeader source={post.citation.source} />
-            )}
-
-            {isArtCommentary && (
-              <ArtCommentaryHeader />
-            )}
-
-            {(isHistoricalEvent || isEveryday) && post.citation?.title && (
-              <HistoricalEventTitle
-                title={post.citation.title}
-                color={color}
-                context={isHistoricalEvent ? post.eventContext : undefined}
-                displayDate={isHistoricalEvent ? post.eventDisplayDate : undefined}
-              />
-            )}
-
-            {post.citation && !compact && !isHistoricalEvent && !isEveryday && !isArtCommentary && (
-              <div className="mb-3 -mt-1">
-                <CitationBlock citation={post.citation} color={color} accent={accent} />
-              </div>
-            )}
-
-            {shouldShowThesis && (
-              <Link href={postHref} className="block cursor-pointer">
-                <blockquote
-                  className="font-serif text-[18px] leading-[1.4] text-ink mb-3 rounded-r-xl px-4 py-3 sm:text-[21px]"
-                  style={{
-                    borderLeft: `3px solid ${color}`,
-                    background: `linear-gradient(90deg, ${color}0f, rgba(248,243,234,0.4))`,
-                    fontWeight: 500,
-                  }}
-                >
-                  {post.thesis}
-                </blockquote>
-              </Link>
-            )}
-
-            <PostContent content={post.content} color={color} isQuip={isQuip} linkHref={postHref} forceExpanded={expanded} />
-
-            {recommendationLabel && <RecommendationBadgeLink recommendation={recommendationLabel} />}
-
-            <div className="flex items-center justify-between gap-2 flex-wrap mt-3 pt-3 border-t border-border-light/70">
-              <TagBadge tag={post.tag} accent={accent} />
-              <ActionButtons post={post} />
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  if (compact) {
-    return <div className="border-b border-border-light/60 last:border-b-0">{content}</div>;
-  }
-
+  const isArt = post.sourceType === "art_commentary";
+  const isHistorical = post.sourceType === "historical_event";
+  const truncate =
+    !expanded &&
+    !showAll &&
+    !isQuip &&
+    post.content.length > POST_CONTENT_TRUNCATE_LIMIT + 50;
+  const content = truncate
+    ? post.content
+        .slice(0, POST_CONTENT_TRUNCATE_LIMIT)
+        .replace(/\s+\S*$/, "") + "…"
+    : post.content;
+  const title =
+    post.thesis ||
+    (expanded ? `${post.philosopherName} · ${post.tag || "A reflection"}` : "");
+  const Title = expanded ? "h1" : "h2";
+  const recommendation = [
+    post.recommendationTitle,
+    post.recommendationAuthor,
+    post.recommendationMedium,
+  ]
+    .filter(Boolean)
+    .join(" ");
   return (
     <article
-      className="animate-fade-in-up rounded-[22px] bg-[linear-gradient(180deg,rgba(248,243,234,0.96),rgba(244,239,230,0.92))] border border-border-light/90 mx-2 my-2.5 overflow-hidden shadow-[0_14px_34px_rgba(42,36,31,0.045)] transition-shadow duration-200 hover:shadow-[0_18px_40px_rgba(42,36,31,0.06)] sm:mx-4 sm:my-3"
-      style={{
-        borderTop: `2px solid ${color}`,
-        borderLeftWidth: isNew ? "3px" : isPopular ? "3px" : undefined,
-        borderLeftColor: isNew ? "var(--color-gold, #B08A49)" : isPopular ? "var(--color-burgundy)" : undefined,
-        borderLeftStyle: isNew || isPopular ? "solid" : undefined,
-      }}
+      className={`public-post ${expanded ? "public-post-expanded" : ""} ${isAphorism ? "public-post-aphorism" : ""} ${isQuip ? "public-post-quip" : ""}`}
+      data-post-id={post.id}
     >
-      {content}
+      <header className="public-post-header">
+        <PhilosopherLink
+          id={post.philosopherId}
+          name={post.philosopherName}
+          color={post.philosopherColor}
+          initials={post.philosopherInitials}
+          detail={post.philosopherTradition}
+        />
+        <div className="public-post-meta">
+          <time dateTime={post.createdAt}>{timeAgo(post.createdAt)}</time>
+          {isNew && <span className="agora-badge">New</span>}
+          {post.likes >= 50 && <span className="agora-badge">Trending</span>}
+        </div>
+      </header>
+      {title &&
+        (!isQuip || title.trim() !== post.content.trim() || expanded) && (
+          <Title className="public-post-title">
+            {expanded ? title : <Link href={`/post/${post.id}`}>{title}</Link>}
+          </Title>
+        )}
+      {post.replyTo && (
+        <div className="public-reply-context">
+          <Link href={`/post/${post.replyTo}`}>
+            Replying to {post.replyTargetPhilosopherName || "an earlier post"} →
+          </Link>
+          {post.replyTargetThesis && <p>{post.replyTargetThesis}</p>}
+        </div>
+      )}
+      {!compact && post.citation && (
+        <SourceCitation
+          citation={post.citation}
+          showImage={!isArt && !isHistorical}
+        />
+      )}
+      {isHistorical && post.thumbnailUrl && (
+        <div className="public-source-image">
+          <Image
+            src={post.thumbnailUrl}
+            alt={post.citation?.title || "Historical event"}
+            fill
+            sizes="(max-width: 760px) 100vw, 720px"
+          />
+        </div>
+      )}
+      {isArt && post.citation?.imageUrl && (
+        <figure>
+          <div className="public-artwork">
+            <Image
+              src={post.citation.imageUrl}
+              alt={post.citation.title || "Artwork"}
+              fill
+              sizes="(max-width: 760px) 100vw, 720px"
+              unoptimized
+            />
+          </div>
+          <figcaption className="agora-meta">
+            {post.citation.title} · {post.citation.source}
+          </figcaption>
+        </figure>
+      )}
+      {isHistorical && post.eventContext && (
+        <details className="public-context">
+          <summary>
+            Historical context
+            {post.eventDisplayDate ? ` · ${post.eventDisplayDate}` : ""}
+          </summary>
+          <p>{post.eventContext}</p>
+        </details>
+      )}
+      <div className="public-prose">{parseInlineFormatting(content)}</div>
+      {truncate && (
+        <button
+          className="agora-text-link"
+          aria-expanded={false}
+          onClick={() => setShowAll(true)}
+        >
+          Read more
+        </button>
+      )}
+      {!expanded && showAll && (
+        <button
+          className="agora-text-link"
+          aria-expanded={true}
+          onClick={() => setShowAll(false)}
+        >
+          Show less
+        </button>
+      )}
+      {post.recommendationTitle && (
+        <aside className="public-source">
+          <p className="agora-eyebrow">
+            Recommends
+            {post.recommendationMedium ? ` · ${post.recommendationMedium}` : ""}
+          </p>
+          <p className="public-source-title">
+            <a
+              href={`https://www.google.com/search?q=${encodeURIComponent(recommendation)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {post.recommendationTitle} ↗
+            </a>
+          </p>
+          {post.recommendationAuthor && (
+            <p className="agora-meta">By {post.recommendationAuthor}</p>
+          )}
+        </aside>
+      )}
+      <footer className="public-post-footer">
+        <span className="agora-meta">
+          {post.stance}
+          {post.tag ? ` · ${post.tag}` : ""}
+        </span>
+        <ActionButtons post={post} />
+      </footer>
+      {!expanded && (
+        <Link className="agora-text-link" href={`/post/${post.id}`}>
+          Open post →
+        </Link>
+      )}
     </article>
   );
 }
-
-function CitationBlock({
-  citation,
-  color,
-  accent,
-}: {
-  citation: NonNullable<FeedPost["citation"]>;
-  color: string;
-  accent: ReturnType<typeof philosopherAccentStyles>;
-}) {
-  const inner = citation.imageUrl ? (
-    <div className="-mx-4 -mt-3 flex flex-col gap-0 sm:mx-0 sm:mt-0 sm:flex-row sm:items-center sm:gap-3">
-      <div className="h-[140px] w-full overflow-hidden rounded-t-2xl border-b border-border-light/60 bg-parchment-dark/35 sm:h-16 sm:w-16 sm:shrink-0 sm:rounded-xl sm:border sm:border-border-light/60">
-        <Image src={citation.imageUrl} alt="" width={280} height={140} className="w-full h-full object-cover" />
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col px-4 py-3 sm:p-0">
-        <span className="font-serif text-[15px] leading-snug text-ink font-medium line-clamp-3 sm:line-clamp-2 group-hover:text-athenian transition-colors">
-          {citation.title}
-        </span>
-        <span className="mt-1 inline-flex items-center gap-1.5 text-[10px] text-ink-faint font-mono tracking-[0.16em] uppercase">
-          <span className="min-w-0 truncate">{citation.source}</span>
-          {citation.url && (
-            <ExternalLinkIcon
-              size={15}
-              className="text-ink-lighter group-hover:text-athenian shrink-0 transition-colors sm:hidden"
-            />
-          )}
-        </span>
-      </div>
-      {citation.url && (
-        <ExternalLinkIcon
-          size={15}
-          className="hidden text-ink-lighter group-hover:text-athenian shrink-0 transition-colors sm:block"
-        />
-      )}
-    </div>
-  ) : (
-    <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center" style={{ backgroundColor: accent.bgSubtle }}>
-        <BookIcon size={15} stroke={color} className="opacity-60" />
-      </div>
-      <div className="flex flex-col min-w-0 flex-1">
-        <span className="font-serif text-[15px] leading-snug text-ink font-medium line-clamp-2 group-hover:text-athenian transition-colors">
-          {citation.title}
-        </span>
-        <span className="text-[10px] text-ink-faint font-mono mt-1 tracking-[0.16em] uppercase">{citation.source}</span>
-      </div>
-      {citation.url && (
-        <ExternalLinkIcon
-          size={15}
-          className="text-ink-lighter group-hover:text-athenian shrink-0 transition-colors"
-        />
-      )}
-    </div>
-  );
-
-  return (
-    <div className="mt-4 mb-1">
-      {citation.url ? (
-        <a
-          href={citation.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block px-4 py-3 rounded-2xl border border-border-light/80 bg-[linear-gradient(180deg,rgba(238,230,216,0.52),rgba(248,243,234,0.88))] hover:bg-parchment-tint/90 transition-colors group"
-        >
-          {inner}
-        </a>
-      ) : (
-        <div className="px-4 py-3 rounded-2xl border border-border-light/80 bg-[linear-gradient(180deg,rgba(238,230,216,0.52),rgba(248,243,234,0.88))] group">
-          {inner}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function ActionButtons({ post }: { post: FeedPost }) {
   const { data: session, isPending: sessionPending } = useSession();
   const pathname = usePathname();
@@ -941,7 +248,9 @@ function ActionButtons({ post }: { post: FeedPost }) {
     }
 
     if (!session?.user) {
-      window.location.assign("/sign-in");
+      window.location.assign(
+        `/sign-in?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`,
+      );
       return;
     }
 
@@ -961,12 +270,14 @@ function ActionButtons({ post }: { post: FeedPost }) {
 
       if (!res.ok) {
         if (res.status === 401) {
-          window.location.assign("/sign-in");
+          window.location.assign(
+            `/sign-in?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`,
+          );
         }
         throw new Error(`Like toggle failed with status ${res.status}`);
       }
 
-      const data = await res.json() as { liked?: boolean };
+      const data = (await res.json()) as { liked?: boolean };
       if (typeof data.liked === "boolean") {
         setLiked(data.liked);
         if (!data.liked && pathname === "/profile") {
@@ -988,7 +299,9 @@ function ActionButtons({ post }: { post: FeedPost }) {
     }
 
     if (!session?.user) {
-      window.location.assign("/sign-in");
+      window.location.assign(
+        `/sign-in?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`,
+      );
       return;
     }
 
@@ -997,7 +310,9 @@ function ActionButtons({ post }: { post: FeedPost }) {
 
     setBookmarkPending(true);
     setBookmarked(!wasBookmarked);
-    setBookmarkCount(wasBookmarked ? Math.max(0, previousCount - 1) : previousCount + 1);
+    setBookmarkCount(
+      wasBookmarked ? Math.max(0, previousCount - 1) : previousCount + 1,
+    );
 
     try {
       const res = await fetch("/api/bookmarks", {
@@ -1008,12 +323,14 @@ function ActionButtons({ post }: { post: FeedPost }) {
 
       if (!res.ok) {
         if (res.status === 401) {
-          window.location.assign("/sign-in");
+          window.location.assign(
+            `/sign-in?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`,
+          );
         }
         throw new Error(`Bookmark toggle failed with status ${res.status}`);
       }
 
-      const data = await res.json() as { bookmarked?: boolean };
+      const data = (await res.json()) as { bookmarked?: boolean };
       if (typeof data.bookmarked === "boolean") {
         setBookmarked(data.bookmarked);
         if (!data.bookmarked && pathname === "/profile") {
@@ -1032,9 +349,10 @@ function ActionButtons({ post }: { post: FeedPost }) {
   async function handleShare(postToShare: FeedPost) {
     const url = `${window.location.origin}/post/${postToShare.id}`;
     const sourceText = (postToShare.thesis || postToShare.content).trim();
-    const snippet = sourceText.length > 100
-      ? sourceText.slice(0, 99).replace(/\s+\S*$/, "") + "..."
-      : sourceText;
+    const snippet =
+      sourceText.length > 100
+        ? sourceText.slice(0, 99).replace(/\s+\S*$/, "") + "..."
+        : sourceText;
     const text = `${postToShare.philosopherName}: "${snippet}"`;
 
     if (navigator.share) {
@@ -1052,24 +370,23 @@ function ActionButtons({ post }: { post: FeedPost }) {
       await navigator.clipboard.writeText(url);
       showToast("Link copied to clipboard");
     } catch {
-      // Ignore clipboard failures when no native share path is available.
+      showToast(
+        "Could not copy the link. You can copy this post’s address from your browser.",
+      );
     }
   }
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="public-post-actions">
       <ActionButton
         label="Reply"
-        icon={
-          <ReplyIcon />
-        }
+        icon={<ReplyIcon />}
         onClick={() => showComingSoon("Replies")}
       />
       <ActionButton
         label="Like"
-        icon={
-          <HeartIcon fill={liked ? "currentColor" : "none"} />
-        }
+        pending={likePending || sessionPending}
+        icon={<HeartIcon fill={liked ? "currentColor" : "none"} />}
         count={likeCount > 0 ? likeCount : undefined}
         active={liked}
         onClick={() => {
@@ -1078,9 +395,8 @@ function ActionButtons({ post }: { post: FeedPost }) {
       />
       <ActionButton
         label="Bookmark"
-        icon={
-          <BookmarkIcon fill={bookmarked ? "currentColor" : "none"} />
-        }
+        pending={bookmarkPending || sessionPending}
+        icon={<BookmarkIcon fill={bookmarked ? "currentColor" : "none"} />}
         count={bookmarkCount > 0 ? bookmarkCount : undefined}
         active={bookmarked}
         onClick={() => {
@@ -1093,14 +409,28 @@ function ActionButtons({ post }: { post: FeedPost }) {
           void handleShare(post);
         }}
         icon={
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M2 8V13C2 13.5523 2.44772 14 3 14H13C13.5523 14 14 13.5523 14 13V8" strokeLinecap="round" strokeLinejoin="round" />
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
+            <path
+              d="M2 8V13C2 13.5523 2.44772 14 3 14H13C13.5523 14 14 13.5523 14 13V8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
             <path d="M8 2V10" strokeLinecap="round" />
-            <path d="M5 5L8 2L11 5" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M5 5L8 2L11 5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         }
       />
     </div>
   );
 }
-

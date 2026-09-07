@@ -191,6 +191,8 @@ export interface DebateDetail {
   triggerArticleUrl: string | null;
   philosophers: string[];
   openings: DebatePost[];
+  crossExaminations?: DebatePost[];
+  synthesisPosts?: DebatePost[];
   rebuttals: DebatePost[];
   synthesisTensions: string[];
   synthesisAgreements: string[];

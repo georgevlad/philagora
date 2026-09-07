@@ -1,3 +1,4 @@
+import { seedPublicPageReview } from "./fixtures/public-page-review";
 import fs from "node:fs";
 import path from "node:path";
 import http from "node:http";
@@ -191,6 +192,7 @@ async function main() {
       "INSERT INTO debate_posts (id,debate_id,philosopher_id,content,phase,sort_order) VALUES (?,?,?,?,'opening',?)",
     ).run(randomUUID(), "review-debate", pid, responseTexts[pid], i);
   }
+  seedPublicPageReview(db);
   let mode = "normal";
   let calls = 0;
   const counters = {

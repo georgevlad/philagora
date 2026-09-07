@@ -188,7 +188,9 @@ test("feed pagination keeps personalized likes and bookmarks", async ({
   db.close();
   await page.goto("/feed");
   await expect(
-    page.locator("aside").getByRole("link", { name: "RO Review", exact: true }),
+    page
+      .getByRole("navigation", { name: "Main navigation" })
+      .getByRole("link", { name: "Your profile", exact: true }),
   ).toBeVisible();
   const bookmarkResponse = page.waitForResponse(
     (r) =>
@@ -210,7 +212,20 @@ test("feed pagination keeps personalized likes and bookmarks", async ({
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   const data = await (await pagination).json();
   expect(data.posts.length).toBeGreaterThan(0);
-  await expect(page.getByText("You've reached the end")).toBeVisible();
+  while (
+    await page
+      .getByRole("button", { name: "Load more posts", exact: true })
+      .count()
+  ) {
+    const more = page.waitForResponse(
+      (r) => r.url().includes("/api/feed?") && r.url().includes("offset="),
+    );
+    await page
+      .getByRole("button", { name: "Load more posts", exact: true })
+      .scrollIntoViewIfNeeded();
+    await more;
+  }
+  await expect(page.getByText("You’ve reached the end.")).toBeVisible();
 });
 
 test("Agora empty state preserves the composer and sample issue", async ({
