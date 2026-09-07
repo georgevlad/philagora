@@ -4,6 +4,9 @@ import {
   parseAgoraRecommendation,
 } from "@/lib/agora";
 import { getDb } from "@/lib/db";
+import { getIdentityFromHeaders } from "@/lib/auth";
+import { canReadAgoraThread, canFollowUpAgoraThread } from "@/lib/agora-access";
+import { getAgoraThreadById } from "@/lib/data";
 import type { AgoraSynthesisSections } from "@/lib/types";
 
 interface ThreadRow {
@@ -53,7 +56,7 @@ function loadResponses(db: ReturnType<typeof getDb>, threadId: string) {
        FROM agora_responses ar
        JOIN philosophers p ON ar.philosopher_id = p.id
        WHERE ar.thread_id = ?
-       ORDER BY ar.sort_order`
+       ORDER BY ar.sort_order`,
     )
     .all(threadId) as ResponseRow[];
 
@@ -85,7 +88,7 @@ function loadSynthesis(db: ReturnType<typeof getDb>, threadId: string) {
 function loadFollowUp(db: ReturnType<typeof getDb>, threadId: string) {
   const followUpThread = db
     .prepare(
-      "SELECT id, question, status, created_at FROM agora_threads WHERE follow_up_to = ? LIMIT 1"
+      "SELECT id, question, status, created_at FROM agora_threads WHERE follow_up_to = ? LIMIT 1",
     )
     .get(threadId) as
     | {
@@ -112,8 +115,8 @@ function loadFollowUp(db: ReturnType<typeof getDb>, threadId: string) {
 
 /** GET /api/agora/[threadId] — Full thread state for polling UI and display */
 export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ threadId: string }> }
+  request: NextRequest,
+  { params }: { params: Promise<{ threadId: string }> },
 ) {
   try {
     const db = getDb();
@@ -125,54 +128,74 @@ export async function GET(
                 visibility, user_id, follow_up_to,
                 article_url, article_title, article_source, article_excerpt, created_at
          FROM agora_threads
-         WHERE id = ?`
+         WHERE id = ?`,
       )
       .get(threadId) as ThreadRow | undefined;
 
-    if (!thread) {
+    const identity = await getIdentityFromHeaders(request);
+    if (
+      !thread ||
+      !canReadAgoraThread(
+        { visibility: thread.visibility, userId: thread.user_id },
+        identity,
+      )
+    ) {
       return NextResponse.json({ error: "Thread not found" }, { status: 404 });
     }
+
+    const detail = getAgoraThreadById(threadId)!;
+    const canFollowUp = canFollowUpAgoraThread(detail, identity);
+    // Ownership is used on the server; public readers do not need account IDs.
+    const ownsThread =
+      identity.type === "admin" ||
+      (identity.type === "user" && identity.id === thread.user_id);
+    detail.userId = ownsThread ? detail.userId : null;
 
     const philosophers = db
       .prepare(
         `SELECT p.id, p.name, p.initials, p.color, p.tradition
          FROM philosophers p
          JOIN agora_thread_philosophers atp ON p.id = atp.philosopher_id
-         WHERE atp.thread_id = ?`
+         WHERE atp.thread_id = ?`,
       )
       .all(threadId) as PhilosopherRow[];
 
     const responses = loadResponses(db, threadId);
     const synthesis = loadSynthesis(db, threadId);
-    const followUp = thread.follow_up_to ? null : loadFollowUp(db, threadId);
+    const followUp = detail.followUp ? loadFollowUp(db, threadId) : null;
 
-    return NextResponse.json({
-      thread: {
-        ...thread,
-        recommendations_enabled: thread.recommendations_enabled ?? 0,
-        question_type: thread.question_type ?? "advice",
-        visibility: thread.visibility ?? "public",
-        user_id: thread.user_id ?? null,
-        follow_up_to: thread.follow_up_to ?? null,
-        article: thread.article_url
-          ? {
-              url: thread.article_url,
-              title: thread.article_title ?? null,
-              source: thread.article_source ?? null,
-              excerpt: thread.article_excerpt ?? null,
-            }
-          : null,
+    return NextResponse.json(
+      {
+        thread: {
+          ...thread,
+          recommendations_enabled: thread.recommendations_enabled ?? 0,
+          question_type: thread.question_type ?? "advice",
+          visibility: thread.visibility ?? "public",
+          user_id: ownsThread ? (thread.user_id ?? null) : null,
+          follow_up_to: thread.follow_up_to ?? null,
+          article: thread.article_url
+            ? {
+                url: thread.article_url,
+                title: thread.article_title ?? null,
+                source: thread.article_source ?? null,
+                excerpt: thread.article_excerpt ?? null,
+              }
+            : null,
+        },
+        philosophers,
+        responses,
+        synthesis,
+        followUp,
+        detail,
+        canFollowUp,
       },
-      philosophers,
-      responses,
-      synthesis,
-      followUp,
-    });
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
   } catch (error) {
     console.error("Failed to fetch agora thread:", error);
     return NextResponse.json(
       { error: "Failed to fetch agora thread" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

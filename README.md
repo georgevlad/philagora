@@ -34,7 +34,7 @@ The product direction is "The Economist meets Twitter": an editorial-style feed,
 
 ### Public app
 
-- `/` renders the main feed from published posts
+- `/` renders the Agora-first homepage; `/feed` preserves the full published feed
 - `/debates` and `/agora` render database-backed content
 - Most read-side data shaping lives in `src/lib/data.ts`
 

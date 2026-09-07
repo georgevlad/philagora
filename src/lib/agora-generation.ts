@@ -4,10 +4,7 @@ import {
   getSynthesisTemplateForType,
 } from "@/lib/content-templates";
 import { getDb } from "@/lib/db";
-import {
-  generateContent,
-  generateSynthesis,
-} from "@/lib/generation-service";
+import { generateContent, generateSynthesis } from "@/lib/generation-service";
 import type {
   AgoraGenerationRecommendationRow,
   AgoraGenerationResponseRow,
@@ -20,7 +17,9 @@ export interface RunAgoraGenerationOptions {
   questionType: AgoraQuestionType;
   recommendationsEnabled: boolean;
   recommendationHint: string | null;
-  buildResponseSourceMaterial: (args: { alreadyRecommended: string[] }) => string;
+  buildResponseSourceMaterial: (args: {
+    alreadyRecommended: string[];
+  }) => string;
   buildSynthesisSourceMaterial: (args: {
     responses: AgoraGenerationResponseRow[];
     recommendations: AgoraGenerationRecommendationRow[];
@@ -28,17 +27,27 @@ export interface RunAgoraGenerationOptions {
 }
 
 export async function runAgoraGeneration(
-  options: RunAgoraGenerationOptions
+  options: RunAgoraGenerationOptions,
 ): Promise<void> {
   try {
     const db = getDb();
     const threadLogId = options.threadId.slice(0, 8);
+    const privateThread =
+      (
+        db
+          .prepare("SELECT visibility FROM agora_threads WHERE id = ?")
+          .get(options.threadId) as { visibility: string } | undefined
+      )?.visibility === "private";
+    const logText = (value: string | undefined) =>
+      privateThread ? "[Private Agora content omitted]" : value;
     let successCount = 0;
     const alreadyRecommended: string[] = [];
 
-    db.prepare("UPDATE agora_threads SET status = 'in_progress' WHERE id = ?").run(options.threadId);
+    db.prepare(
+      "UPDATE agora_threads SET status = 'in_progress' WHERE id = ?",
+    ).run(options.threadId);
     console.log(
-      `[Agora] Starting thread ${threadLogId} (${options.philosopherIds.length} philosophers, type: ${options.questionType})`
+      `[Agora] Starting thread ${threadLogId} (${options.philosopherIds.length} philosophers, type: ${options.questionType})`,
     );
 
     for (let index = 0; index < options.philosopherIds.length; index += 1) {
@@ -47,7 +56,7 @@ export async function runAgoraGeneration(
         options.questionType,
         options.recommendationsEnabled,
         options.recommendationHint,
-        alreadyRecommended
+        alreadyRecommended,
       );
       const sourceMaterial = options.buildResponseSourceMaterial({
         alreadyRecommended: [...alreadyRecommended],
@@ -62,7 +71,7 @@ export async function runAgoraGeneration(
             "agora_response",
             sourceMaterial,
             undefined,
-            responseTemplate
+            responseTemplate,
           );
 
           const logStatus = outcome.success ? "generated" : "rejected";
@@ -72,8 +81,14 @@ export async function runAgoraGeneration(
 
           db.prepare(
             `INSERT INTO generation_log (philosopher_id, content_type, system_prompt_id, user_input, raw_output, status)
-             VALUES (?, 'agora_response', ?, ?, ?, ?)`
-          ).run(philosopherId, outcome.systemPromptId, sourceMaterial, rawOutput, logStatus);
+             VALUES (?, 'agora_response', ?, ?, ?, ?)`,
+          ).run(
+            philosopherId,
+            outcome.systemPromptId,
+            logText(sourceMaterial),
+            logText(rawOutput),
+            logStatus,
+          );
 
           if (outcome.success) {
             const data = outcome.data as {
@@ -86,15 +101,19 @@ export async function runAgoraGeneration(
               };
             };
             const posts = Array.isArray(data.posts)
-              ? data.posts.filter((post): post is string => typeof post === "string")
+              ? data.posts.filter(
+                  (post): post is string => typeof post === "string",
+                )
               : [];
+            if (posts.length === 0 || posts.every((post) => !post.trim()))
+              throw new Error("Empty response");
             const recommendation = data.recommendation
               ? JSON.stringify(data.recommendation)
               : null;
 
             if (data.recommendation?.title && data.recommendation?.medium) {
               alreadyRecommended.push(
-                `"${data.recommendation.title}"${data.recommendation.author ? ` by ${data.recommendation.author}` : ""} (${data.recommendation.medium})`
+                `"${data.recommendation.title}"${data.recommendation.author ? ` by ${data.recommendation.author}` : ""} (${data.recommendation.medium})`,
               );
             }
 
@@ -107,35 +126,37 @@ export async function runAgoraGeneration(
                  sort_order,
                  recommendation
                )
-               VALUES (?, ?, ?, ?, ?, ?)`
+               VALUES (?, ?, ?, ?, ?, ?)`,
             ).run(
               crypto.randomUUID(),
               options.threadId,
               philosopherId,
               JSON.stringify(posts),
               index,
-              recommendation
+              recommendation,
             );
             successCount += 1;
             console.log(
-              `[Agora] ✓ ${philosopherId} responded (attempt ${attempt}, ${posts.length} post${posts.length === 1 ? "" : "s"})`
+              `[Agora] ✓ ${philosopherId} responded (attempt ${attempt}, ${posts.length} post${posts.length === 1 ? "" : "s"})`,
             );
             philosopherSucceeded = true;
             break;
           }
 
           if (attempt < maxAttempts) {
-            const rawPreview = (outcome.rawOutput || "").slice(0, 200);
+            const rawPreview = privateThread
+              ? ""
+              : (outcome.rawOutput || "").slice(0, 200);
             console.warn(
-              `Agora: retrying ${philosopherId} (attempt ${attempt} failed: ${outcome.error ?? "unknown"})`
-              + (rawPreview ? ` | raw preview: ${rawPreview}` : "")
+              `Agora: retrying ${philosopherId} (attempt ${attempt} failed: ${privateThread ? "generation error" : (outcome.error ?? "unknown")})` +
+                (rawPreview ? ` | raw preview: ${rawPreview}` : ""),
             );
             continue;
           }
         } catch (error) {
           console.error(
             `Agora generation failed for philosopher ${philosopherId} (attempt ${attempt}):`,
-            error
+            error,
           );
 
           if (attempt >= maxAttempts) {
@@ -146,14 +167,18 @@ export async function runAgoraGeneration(
 
       if (!philosopherSucceeded) {
         console.error(
-          `[Agora] ✗ ${philosopherId} failed all ${maxAttempts} attempts on thread ${threadLogId}`
+          `[Agora] ✗ ${philosopherId} failed all ${maxAttempts} attempts on thread ${threadLogId}`,
         );
       }
     }
 
     if (successCount === 0) {
-      console.error(`[Agora] Thread ${threadLogId} failed - no philosophers responded`);
-      db.prepare("UPDATE agora_threads SET status = 'failed' WHERE id = ?").run(options.threadId);
+      console.error(
+        `[Agora] Thread ${threadLogId} failed - no philosophers responded`,
+      );
+      db.prepare("UPDATE agora_threads SET status = 'failed' WHERE id = ?").run(
+        options.threadId,
+      );
       return;
     }
 
@@ -164,7 +189,7 @@ export async function runAgoraGeneration(
            FROM agora_responses ar
            JOIN philosophers p ON ar.philosopher_id = p.id
            WHERE ar.thread_id = ?
-           ORDER BY ar.sort_order`
+           ORDER BY ar.sort_order`,
         )
         .all(options.threadId) as AgoraGenerationResponseRow[];
 
@@ -175,7 +200,7 @@ export async function runAgoraGeneration(
                 `SELECT ar.recommendation, p.name as philosopher_name
                  FROM agora_responses ar
                  JOIN philosophers p ON ar.philosopher_id = p.id
-                 WHERE ar.thread_id = ? AND ar.recommendation IS NOT NULL`
+                 WHERE ar.thread_id = ? AND ar.recommendation IS NOT NULL`,
               )
               .all(options.threadId) as AgoraGenerationRecommendationRow[])
           : [];
@@ -183,11 +208,13 @@ export async function runAgoraGeneration(
           responses,
           recommendations,
         });
-        const synthesisTemplate = getSynthesisTemplateForType(options.questionType);
+        const synthesisTemplate = getSynthesisTemplateForType(
+          options.questionType,
+        );
         const outcome = await generateSynthesis(
           "agora_synthesis",
           sourceMaterial,
-          synthesisTemplate
+          synthesisTemplate,
         );
         const status = outcome.success ? "generated" : "rejected";
         const rawOutput = outcome.success
@@ -196,22 +223,22 @@ export async function runAgoraGeneration(
 
         db.prepare(
           `INSERT INTO generation_log (philosopher_id, content_type, system_prompt_id, user_input, raw_output, status)
-           VALUES (?, 'synthesis', ?, ?, ?, ?)`
-        ).run(null, null, sourceMaterial, rawOutput, status);
+           VALUES (?, 'synthesis', ?, ?, ?, ?)`,
+        ).run(null, null, logText(sourceMaterial), logText(rawOutput), status);
 
         if (outcome.success) {
           db.prepare(
             `INSERT INTO agora_synthesis_v2 (thread_id, synthesis_type, sections)
-             VALUES (?, ?, ?)`
+             VALUES (?, ?, ?)`,
           ).run(
             options.threadId,
             options.questionType,
-            JSON.stringify(outcome.data)
+            JSON.stringify(outcome.data),
           );
           console.log(`[Agora] ✓ synthesis complete for thread ${threadLogId}`);
         } else {
           console.warn(
-            `[Agora] ✗ synthesis failed for thread ${threadLogId}: ${outcome.error ?? "unknown"}`
+            `[Agora] ✗ synthesis failed for thread ${threadLogId}: ${outcome.error ?? "unknown"}`,
           );
         }
       }
@@ -220,14 +247,21 @@ export async function runAgoraGeneration(
     }
 
     console.log(
-      `[Agora] Thread ${threadLogId} complete (${successCount}/${options.philosopherIds.length} philosophers)`
+      `[Agora] Thread ${threadLogId} complete (${successCount}/${options.philosopherIds.length} philosophers)`,
     );
-    db.prepare("UPDATE agora_threads SET status = 'complete' WHERE id = ?").run(options.threadId);
+    db.prepare("UPDATE agora_threads SET status = 'complete' WHERE id = ?").run(
+      options.threadId,
+    );
   } catch (error) {
-    console.error(`[Agora] Thread ${options.threadId.slice(0, 8)} crashed:`, error);
+    console.error(
+      `[Agora] Thread ${options.threadId.slice(0, 8)} crashed:`,
+      error,
+    );
     try {
       const db = getDb();
-      db.prepare("UPDATE agora_threads SET status = 'failed' WHERE id = ?").run(options.threadId);
+      db.prepare("UPDATE agora_threads SET status = 'failed' WHERE id = ?").run(
+        options.threadId,
+      );
     } catch {
       // Nothing more we can do here.
     }

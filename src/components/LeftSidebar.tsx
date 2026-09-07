@@ -13,7 +13,7 @@ import { PhilosopherAvatar } from "./PhilosopherAvatar";
 const navItems = [
   {
     label: "Feed",
-    href: "/",
+    href: "/feed",
     icon: <HomeIcon />,
   },
   {

@@ -859,7 +859,7 @@ function buildAgoraThreadDetail(
     responses,
     synthesis,
     followUpTo: t.follow_up_to ?? null,
-    followUp: followUpRow ? buildAgoraFollowUpDetail(db, followUpRow) : null,
+    followUp: followUpRow && followUpRow.visibility === t.visibility && followUpRow.user_id === t.user_id ? buildAgoraFollowUpDetail(db, followUpRow) : null,
   };
 }
 

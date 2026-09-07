@@ -13,7 +13,7 @@ export function MobileNav({ topContent }: { topContent?: ReactNode }) {
   const items = [
     {
       label: "Feed",
-      href: "/",
+      href: "/feed",
       icon: <HomeIcon />,
     },
     {

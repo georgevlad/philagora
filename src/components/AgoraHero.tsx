@@ -3,11 +3,10 @@
 import type { FormEvent, KeyboardEvent } from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { writeAgoraDraft } from "@/lib/agora-draft";
 import { pickAgoraSuggestions, SHORT_PROMPTS } from "@/lib/agora-suggestions";
 
-function buildAgoraUrl(question: string): string {
-  return `/agora?q=${encodeURIComponent(question)}`;
-}
+
 
 export function AgoraHero() {
   const router = useRouter();
@@ -31,7 +30,8 @@ export function AgoraHero() {
       return;
     }
 
-    router.push(buildAgoraUrl(normalizedQuestion));
+    writeAgoraDraft("agora:composer-prefill", normalizedQuestion);
+    router.push("/agora#ask");
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {

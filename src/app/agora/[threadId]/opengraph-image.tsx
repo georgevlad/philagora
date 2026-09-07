@@ -1,3 +1,4 @@
+import { isPublicAgoraThread } from "@/lib/agora-access";
 import { getAgoraThreadById, getPhilosophersMap } from "@/lib/data";
 import {
   COLORS,
@@ -28,7 +29,7 @@ export default async function AgoraOpenGraphImage({ params }: Props) {
     const { threadId } = await params;
     const thread = getAgoraThreadById(threadId);
 
-    if (!thread || thread.hiddenFromFeed) {
+    if (!thread || !isPublicAgoraThread(thread)) {
       return renderRootOg();
     }
 
@@ -43,9 +44,14 @@ export default async function AgoraOpenGraphImage({ params }: Props) {
 
     question = truncateOgText(thread.question, 120);
     answeredBy =
-      names.length > 0 ? `Answered by ${names.join(", ")}` : "Answered by Philagora";
+      names.length > 0
+        ? `Answered by ${names.join(", ")}`
+        : "Answered by Philagora";
   } catch (error) {
-    console.error("[og] agora/[threadId] render failed, falling back to root OG:", error);
+    console.error(
+      "[og] agora/[threadId] render failed, falling back to root OG:",
+      error,
+    );
     return renderRootOg();
   }
 
@@ -129,7 +135,10 @@ export default async function AgoraOpenGraphImage({ params }: Props) {
   try {
     return createOgImageResponse(element);
   } catch (error) {
-    console.error("[og] agora/[threadId] render failed, falling back to root OG:", error);
+    console.error(
+      "[og] agora/[threadId] render failed, falling back to root OG:",
+      error,
+    );
     return renderRootOg();
   }
 }

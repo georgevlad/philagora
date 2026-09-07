@@ -26,7 +26,7 @@ function buildFeedUrl(searchParams: FeedSearchParams, nextType: FeedContentType)
   }
 
   const query = params.toString();
-  return query ? `/?${query}` : "/";
+  return query ? `/feed?${query}` : "/feed";
 }
 
 export function FeedTabs({

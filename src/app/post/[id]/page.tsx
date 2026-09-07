@@ -82,7 +82,7 @@ export default async function PostPage({ params }: PageProps) {
       <div className="mx-auto max-w-2xl px-4 py-8 sm:py-12">
         <JsonLd data={postJsonLd} />
         <Link
-          href="/"
+          href="/feed"
           className="mb-6 inline-flex items-center gap-1.5 text-sm font-mono text-ink-lighter transition-colors hover:text-athenian"
         >
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -95,7 +95,7 @@ export default async function PostPage({ params }: PageProps) {
 
         <div className="mt-8 flex justify-center">
           <Link
-            href="/"
+            href="/feed"
             className="inline-flex items-center gap-1.5 text-sm font-mono text-ink-lighter transition-colors hover:text-athenian"
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">

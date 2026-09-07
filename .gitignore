@@ -53,3 +53,8 @@ next-env.d.ts
 /data/*.db
 /data/*.db-shm
 /data/*.db-wal
+
+# Isolated Agora review databases, logs, screenshots and browser reports
+/.local-review/
+/test-results/
+/playwright-report/

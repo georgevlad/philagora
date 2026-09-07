@@ -30,6 +30,7 @@ function buildRouteEntry(
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes: MetadataRoute.Sitemap = [
     buildRouteEntry("/", "daily", 1),
+    buildRouteEntry("/feed", "daily", 0.9),
     buildRouteEntry("/debates", "weekly", 0.8),
     buildRouteEntry("/agora", "weekly", 0.8),
     buildRouteEntry("/schools", "weekly", 0.8),

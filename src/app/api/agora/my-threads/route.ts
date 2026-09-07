@@ -11,5 +11,5 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     threads: getUserAgoraThreads(identity.id),
-  });
+  }, { headers: { "Cache-Control": "private, no-store" } });
 }

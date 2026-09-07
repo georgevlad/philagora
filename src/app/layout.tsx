@@ -1,21 +1,19 @@
+import localFont from "next/font/local";
 import type { Metadata } from "next";
 import {
   Playfair_Display,
-  DM_Sans,
   JetBrains_Mono,
-  Lora,
   Cormorant_Garamond,
 } from "next/font/google";
+import { LocalReviewBanner } from "@/components/LocalReviewBanner";
 import DevelopmentBanner from "@/components/DevelopmentBanner";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { ComingSoonToastProvider } from "@/components/ComingSoonToast";
 import { getMetadataBase } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/JsonLd";
-import {
-  buildOrganizationSchema,
-  buildWebSiteSchema,
-} from "@/lib/seo/schema";
+import { buildOrganizationSchema, buildWebSiteSchema } from "@/lib/seo/schema";
 import "./globals.css";
+import "./agora-design.css";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -23,9 +21,10 @@ const playfair = Playfair_Display({
   display: "swap",
 });
 
-const dmSans = DM_Sans({
+const dmSans = localFont({
+  src: "./fonts/dm-sans-latin.woff2",
+  weight: "100 1000",
   variable: "--font-dm-sans",
-  subsets: ["latin"],
   display: "swap",
 });
 
@@ -35,9 +34,10 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
-const lora = Lora({
+const lora = localFont({
+  src: "./fonts/lora-latin.woff2",
+  weight: "400 700",
   variable: "--font-lora",
-  subsets: ["latin"],
   display: "swap",
 });
 
@@ -123,7 +123,12 @@ export default function RootLayout({
         <JsonLd data={[buildOrganizationSchema(), buildWebSiteSchema()]} />
         <GoogleAnalytics />
         <ComingSoonToastProvider>
-          <DevelopmentBanner />
+          {process.env.NODE_ENV === "development" &&
+          process.env.AGORA_REVIEW_MODE === "fixtures" ? (
+            <LocalReviewBanner />
+          ) : (
+            <DevelopmentBanner />
+          )}
           {children}
         </ComingSoonToastProvider>
       </body>

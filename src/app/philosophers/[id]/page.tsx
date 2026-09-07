@@ -97,7 +97,7 @@ export default async function PhilosopherProfileDynamic({
           {/* Back link */}
           <div className="px-5 pt-4 sm:pt-6">
             <Link
-              href="/"
+              href="/feed"
               className="inline-flex items-center gap-1.5 text-sm text-ink-lighter hover:text-athenian transition-colors duration-200"
             >
               <ChevronLeftIcon />
