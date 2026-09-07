@@ -1,0 +1,39 @@
+/* Review controls are neutral; only the specimen beneath them changes palette. */
+.palette-study{--field-border:#bbbcb2;--placeholder:#72746a;--context-border:#d9bbb0;--context-hover:#e9d1c7;--selection:#e8c8b9}
+.palette-study ::selection{background:var(--selection);color:var(--ink)}
+.palette-study .question-form{border-color:var(--field-border);box-shadow:none}
+.palette-study .question-form:focus-within{border-color:var(--accent)}
+.palette-study .question-form textarea::placeholder{color:var(--placeholder)}
+.palette-study .privacy-choice{background:var(--soft)}
+.palette-study .button-outline{border-color:var(--field-border)}
+.palette-study .button-outline:hover{border-color:var(--accent)}
+.palette-study .suggestions button:hover{background:var(--tint);border-color:var(--accent)}
+.palette-study .issue-context{border-color:var(--context-border)}
+.palette-study .issue-context [data-remove-issue]:hover{background:var(--context-hover)}
+.palette-study .debate-card .inline-reading{border-color:var(--line)}
+.palette-study .mobile-menu nav{box-shadow:0 8px 24px #00000010}
+.palette-study :where(main [id],main[id]){scroll-margin-top:72px}
+.palette-toolbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:center;gap:24px;padding:7px 28px;min-height:55px;background:#f2f2f0;color:#33352f;border-bottom:1px solid #d4d5cf;font-family:var(--sans);font-size:.8125rem}
+.palette-back{display:flex;align-items:center;gap:7px;color:#53564e}
+.palette-study-label{color:#64675f;border-left:1px solid #d4d5cf;padding-left:24px;margin-right:auto}
+.palette-picker{display:flex;align-items:center;gap:6px;border:0;margin:0;padding:0}
+.palette-picker label{position:relative;display:flex;align-items:center;gap:8px;border:1px solid transparent;border-radius:4px;padding:7px 13px;min-height:38px;cursor:pointer}
+.palette-picker input{position:absolute;opacity:0;width:1px;height:1px}
+.palette-picker label:has(input:checked){border-color:#93978b;background:#fff;box-shadow:inset 0 -2px #45493e}
+.palette-picker label:has(input:focus-visible){outline:2px solid #42483d;outline-offset:3px}
+.palette-dot{display:inline-block;width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.palette-notes{position:relative;margin-left:auto}
+.palette-notes>summary{list-style:none;cursor:pointer;min-height:38px;display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:4px}
+.palette-notes>summary::-webkit-details-marker{display:none}
+.palette-notes>summary:hover{background:#e6e7e2}
+.palette-notes-panel{position:absolute;top:47px;right:0;width:350px;max-width:calc(100vw - 28px);padding:24px;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:5px;box-shadow:0 12px 35px #00000015;max-height:calc(100dvh - 84px);overflow:auto}
+.palette-notes-panel h2{font-size:1.6rem;margin:10px 0 12px}
+.palette-notes-panel>p:not(.eyebrow){font-size:.875rem;line-height:1.7;color:var(--muted)}
+.palette-token-list{margin:19px 0}
+.palette-token-list>div{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:10px 0;border-top:1px solid var(--line)}
+.palette-token-list dt{display:flex;align-items:center;gap:10px;font-size:.8125rem}
+.palette-token-list dd{margin:0;font-family:monospace;font-size:.75rem;color:var(--muted)}
+.token-swatch{display:block;width:19px;height:19px;flex-shrink:0;border:1px solid #00000025;border-radius:3px}
+@media(max-width:640px){.palette-toolbar{gap:8px;padding:6px 12px;justify-content:space-between;min-height:52px}.palette-study-label{display:none}.palette-back{font-size:1rem;min-width:23px}.palette-back>span{display:none}.palette-picker{gap:2px}.palette-picker label{padding:7px 10px;gap:6px;font-size:.8125rem}.palette-notes{margin-left:0}.palette-notes>summary{padding:7px 5px;font-size:.75rem;gap:3px}.palette-notes-panel{top:44px;right:0}.palette-study :where(main [id],main[id]){scroll-margin-top:65px}}
+@media(max-width:360px){.palette-toolbar{gap:4px;padding:6px 9px}.palette-picker label{padding:7px 8px}.palette-dot{width:9px;height:9px}}
+@media print{.palette-toolbar{display:none}}

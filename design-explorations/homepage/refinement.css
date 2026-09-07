@@ -1,0 +1,108 @@
+/* Scoped refinement styles; the original A, B and C files keep their stylesheet. */
+.refined-hero{grid-template-columns:.9fr 1.25fr;gap:64px;padding:40px 0 35px}
+.refined-hero h1{font-size:3.55rem;line-height:1.12}
+.refined-hero .hero-intro{line-height:1.75;max-width:410px}
+.refined-hero .ai-note{max-width:370px;line-height:1.7}
+.composer-footnote{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:9px}
+.composer-footnote .privacy-note{margin:0}
+.composer-footnote>span{font-size:.75rem;color:var(--muted)}
+.revision-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;padding:26px 0 32px;border-top:1px solid var(--ink)}
+.revision-grid>section{min-width:0}
+.revision-grid .section-heading{margin-bottom:23px}
+.revision-personal .response-pair{margin:21px 0 15px;gap:19px}
+.revision-personal .featured-conversation h2{font-size:2.1rem;margin:12px 0}
+.revision-personal .person-note{display:none}
+.revision-world{border-left:1px solid var(--line);padding-left:39px}
+.revision-world>h3{font-size:2.1rem;line-height:1.24;letter-spacing:-.035em;margin:12px 0 14px;max-width:480px}
+.revision-world .world-description{line-height:1.7}
+.issue-path{display:flex;flex-wrap:wrap;gap:6px 9px;font-size:.75rem;color:var(--muted);margin-top:18px}
+.issue-path>[aria-hidden]{color:var(--accent)}
+.issue-byline{display:flex;align-items:center;gap:12px;margin-top:19px}
+.avatar-group{display:flex;padding-left:0;flex-shrink:0}
+.avatar-group img{border:2px solid var(--paper);border-radius:50%;filter:saturate(.58);object-position:center 35%;box-sizing:content-box}
+.avatar-group img+img{margin-left:-8px}
+.issue-byline>p{font-size:.75rem;line-height:1.65;color:var(--muted)}
+.revision-world .source-line{margin:15px 0 20px}
+.issue-actions{display:flex;gap:12px 23px;align-items:center;flex-wrap:wrap}
+.issue-actions>.text-link{min-height:44px}
+.revision-recent{border-top:1px solid var(--ink);padding:25px 0 28px}
+.revision-recent .section-heading{border:0;margin-bottom:0;padding-bottom:8px}
+.revision-recent .question-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px}
+.revision-recent .question-row{border:0}
+.revision-recent .question-row+.question-row{padding-left:28px;border-left:1px solid var(--line)}
+.revision-recent .question-row summary{align-items:flex-start;padding:12px 0}
+.revision-recent .question-title{font-size:1.2rem}
+.revision-recent .question-names{line-height:1.7}
+.issue-context{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;background:var(--tint);padding:12px 12px 12px 16px;border-bottom:1px solid #d9bbb0}
+.issue-context[hidden],.preview-context[hidden]{display:none}
+.issue-context>div{min-width:0}
+.context-label{display:block;font-size:.75rem;color:var(--accent-dark);margin-bottom:4px}
+.issue-context [data-issue-title]{display:block;font-size:.875rem;line-height:1.6}
+.issue-context [data-remove-issue]{width:34px;height:34px;flex-shrink:0;font-size:1.4rem;border-radius:3px;line-height:1}
+.issue-context [data-remove-issue]:hover{background:#e9d1c7}
+.preview-context{padding:17px 18px;background:var(--soft);border-left:2px solid var(--accent);margin:18px 0}
+.preview-context [data-preview-issue]{font-family:var(--serif);font-size:1.1rem;line-height:1.55;margin:8px 0}
+.preview-context .text-link{font-size:.8125rem;padding-bottom:0}
+.issue-followup{border-top:1px solid var(--ink);padding-top:26px}
+.issue-followup>.followup-intro{max-width:670px;color:var(--muted)}
+.issue-followup .composer-section{margin-top:23px}
+.refined-briefing .suggestions{margin-top:16px}
+.refined-briefing .reading-nav{gap:14px 23px}
+.latest-iteration{display:grid;grid-template-columns:1.5fr 1fr;gap:64px;border-top:1px solid var(--ink);border-bottom:1px solid var(--line);padding:32px 0;margin:39px 0 36px}
+.latest-iteration h2{font-size:2.25rem;margin:11px 0 16px}
+.latest-iteration p:not(.eyebrow){font-size:1rem;line-height:1.8;color:var(--muted);max-width:600px}
+.latest-actions{display:flex;flex-wrap:wrap;align-items:center;gap:15px 26px;margin-top:23px}
+.mobile-sequence{margin:0;padding:0 0 0 35px;border-left:1px solid var(--line);list-style:none;align-self:center}
+.mobile-sequence li{font-family:var(--serif);font-size:1.12rem;padding:11px 0}
+.mobile-sequence li>span{font-family:var(--sans);font-size:.75rem;color:var(--accent);margin-right:17px}
+.original-options-heading{font-family:var(--sans);font-size:.875rem;font-weight:600;letter-spacing:0}
+.original-options-heading+.option-grid{margin-top:22px}
+@media(max-width:1160px){.refined-hero{gap:38px}.refined-hero h1{font-size:3.2rem}.revision-grid{gap:30px}.revision-world{padding-left:29px}.revision-grid .section-aside{display:none}.revision-personal .response-pair article{grid-template-columns:110px 1fr}}
+@media(max-width:900px){.refined-hero{gap:27px;grid-template-columns:.9fr 1.2fr}.refined-hero h1{font-size:2.7rem}.revision-grid{gap:26px}.revision-world{padding-left:25px}.revision-personal .response-pair article{display:block}.revision-personal .response-copy{margin-top:8px}.revision-recent .question-list{gap:22px}.revision-recent .question-row+.question-row{padding-left:21px}.latest-iteration{gap:30px}.mobile-sequence{padding-left:25px}}
+@media(max-width:640px){
+  .revision-bar .study-home{display:flex;font-size:.75rem;gap:6px;min-width:0}
+  .revision-bar .study-home>span:not([aria-hidden]){display:inline}
+  .revision-bar{justify-content:space-between;padding:0 14px;gap:12px}
+  .revision-bar .study-options{flex:0 1 auto;gap:4px}
+  .revision-bar .study-options a{padding:11px 9px}
+  .refined-hero{grid-template-columns:1fr;gap:20px;padding:25px 0 26px}
+  .refined-hero h1{font-size:2.35rem;margin:9px 0 12px}
+  .refined-hero .hero-intro{font-size:.9375rem;line-height:1.65}
+  .refined-hero .ai-note{margin-top:10px}
+  .refined-hero .question-form textarea{min-height:83px}
+  .composer-footnote{gap:4px 13px}
+  .composer-footnote>span{font-size:.75rem}
+  .revision-grid{grid-template-columns:1fr;gap:0;padding:23px 0 26px}
+  .revision-grid .section-heading{margin-bottom:20px;padding-bottom:12px}
+  .revision-personal{padding-bottom:25px}
+  .revision-personal .featured-conversation h2{font-size:1.8rem;margin:10px 0}
+  .revision-personal .response-pair{gap:17px;margin:18px 0 9px}
+  .revision-personal .response-pair article{display:grid;grid-template-columns:78px 1fr;gap:13px}
+  .revision-personal .response-copy{margin:0;line-height:1.65}
+  .revision-world{border-left:0;padding:23px 0 0;border-top:1px solid var(--ink)}
+  .revision-world>h3{font-size:1.8rem;margin:12px 0 14px}
+  .revision-world .world-description{font-size:.9375rem}
+  .issue-path{gap:5px 8px;font-size:.75rem;margin-top:15px}
+  .issue-byline{margin-top:16px}
+  .revision-world .source-line{margin:14px 0 18px}
+  .issue-actions{gap:9px 20px}
+  .issue-actions .button-outline{font-size:.8125rem;padding:10px 14px}
+  .issue-actions .text-link{font-size:.8125rem}
+  .revision-recent{padding:23px 0}
+  .revision-recent .section-aside{display:none}
+  .revision-recent .question-list{grid-template-columns:1fr;gap:0}
+  .revision-recent .question-row summary{padding:16px 0}
+  .revision-recent .question-row+.question-row{padding-left:0;border-left:0;border-top:1px solid var(--line)}
+  .revision-recent .question-title{font-size:1.15rem}
+  .issue-context{padding:10px 9px 10px 13px;gap:5px}
+  .issue-context [data-issue-title]{font-size:.8125rem}
+  .issue-followup{padding-top:23px}
+  .latest-iteration{grid-template-columns:1fr;gap:27px;padding:26px 0;margin:29px 0}
+  .latest-iteration h2{font-size:1.9rem}
+  .latest-actions{gap:12px;margin-top:19px}
+  .latest-actions>*{width:100%}
+  .mobile-sequence{border-left:0;border-top:1px solid var(--line);padding:16px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:6px 20px}
+  .mobile-sequence li{font-family:var(--sans);font-size:.8125rem;line-height:1.7;padding:4px 0}
+  .mobile-sequence li>span{display:block;margin:0;font-size:.75rem}
+}
+@media(max-width:360px){.revision-bar .study-home>span:not([aria-hidden]){display:none}.revision-bar .study-home{font-size:1rem}.revision-personal .response-pair article{grid-template-columns:72px 1fr;gap:11px}.issue-path{gap:5px}.issue-actions{gap:9px 14px}}
