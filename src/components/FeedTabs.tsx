@@ -1,15 +1,23 @@
-"use client";
-
-import { useTransition } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   FEED_CONTENT_TABS,
-  normalizeFeedContentType,
   type FeedContentType,
 } from "@/lib/feed-utils";
 
-function buildFeedUrl(pathname: string, currentSearchParams: string, nextType: FeedContentType) {
-  const params = new URLSearchParams(currentSearchParams);
+export type FeedSearchParams = Record<string, string | string[] | undefined>;
+
+function buildFeedUrl(searchParams: FeedSearchParams, nextType: FeedContentType) {
+  const params = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        params.append(key, item);
+      }
+    } else if (value !== undefined) {
+      params.set(key, value);
+    }
+  }
 
   if (nextType === "all") {
     params.delete("type");
@@ -17,43 +25,29 @@ function buildFeedUrl(pathname: string, currentSearchParams: string, nextType: F
     params.set("type", nextType);
   }
 
-  params.delete("philosopher");
-
   const query = params.toString();
-  return query ? `${pathname}?${query}` : pathname;
+  return query ? `/?${query}` : "/";
 }
 
-export function FeedTabs({ mobileIntegrated = false }: { mobileIntegrated?: boolean }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
-  const activeType = normalizeFeedContentType(searchParams.get("type"));
-  const pushFilters = (nextType: FeedContentType) => {
-    const nextUrl = buildFeedUrl(pathname, searchParams.toString(), nextType);
-
-    startTransition(() => {
-      router.push(nextUrl, { scroll: false });
-    });
-  };
-
+export function FeedTabs({
+  activeType,
+  searchParams,
+}: {
+  activeType: FeedContentType;
+  searchParams: FeedSearchParams;
+}) {
   return (
-    <div
-      className={`${
-        mobileIntegrated
-          ? "bg-parchment border-b border-border-light/90"
-          : "sticky top-[61px] lg:top-0 z-10 bg-parchment/92 supports-[backdrop-filter]:backdrop-blur-md border-b border-border-light/90 shadow-[0_6px_16px_rgba(42,36,31,0.035)]"
-      } transition-opacity duration-200 ${isPending ? "opacity-85" : ""}`}
-    >
+    <div className="border-b border-border-light/90 bg-parchment lg:sticky lg:top-0 lg:z-10 lg:bg-parchment/92 lg:shadow-[0_6px_16px_rgba(42,36,31,0.035)] lg:supports-[backdrop-filter]:backdrop-blur-md">
       <div className="flex items-center px-2 py-1.5 sm:gap-1 sm:px-4 sm:py-2.5">
         {FEED_CONTENT_TABS.map((tab) => {
           const isActive = activeType === tab.key;
 
           return (
-            <button
+            <Link
               key={tab.key}
-              onClick={() => pushFilters(tab.key)}
-              aria-pressed={isActive}
+              href={buildFeedUrl(searchParams, tab.key)}
+              scroll={false}
+              aria-current={isActive ? "page" : undefined}
               className={`
                 flex-1 sm:flex-initial
                 cursor-pointer rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2
@@ -68,7 +62,7 @@ export function FeedTabs({ mobileIntegrated = false }: { mobileIntegrated?: bool
               `}
             >
               {tab.label}
-            </button>
+            </Link>
           );
         })}
       </div>

@@ -505,4 +505,163 @@ export const philosophers: Record<string, PhilosopherSeed> = {
       },
     ],
   },
+  augustine: {
+    id: "augustine",
+    name: "St. Augustine",
+    tradition: "Christian Philosophy",
+    color: "#C6B12A",
+    initials: "SA",
+    bio: "Bishop of Hippo and architect of Western Christian thought. Wrestles with the tension between human desire and divine order, the nature of evil, free will, and the restlessness of the soul seeking meaning beyond itself.",
+    era: "354–430 CE",
+    followers: 33,
+    postsCount: 0,
+    debatesCount: 0,
+    keyWorks: [
+      "Confessions",
+      "City of God",
+      "On the Trinity",
+      "On Free Choice of the Will",
+      "Enchiridion",
+    ],
+    corePrinciples: [
+      {
+        title: "The Restless Heart",
+        description:
+          "The soul is made for God and finds no peace in lesser things. All human striving—for pleasure, power, knowledge—is misdirected longing until it finds its true object.",
+      },
+      {
+        title: "Original Sin and the Will",
+        description:
+          "Human beings are free yet fundamentally flawed. The will is divided against itself, drawn toward what it knows to be wrong. Grace, not willpower alone, is what reorients us.",
+      },
+      {
+        title: "The Problem of Evil",
+        description:
+          "Evil is not a substance but a privation: the absence of good. Suffering exists not because God wills it but because free creatures turn away from the order of being.",
+      },
+      {
+        title: "Time and Eternity",
+        description:
+          "Time exists in the mind as memory, attention, and expectation, while eternity stands outside it. Human life is lived in the tension between temporal experience and eternal truth.",
+      },
+    ],
+  },
+  diogenes: {
+    id: "diogenes",
+    name: "Diogenes",
+    tradition: "Cynicism",
+    color: "#82905A",
+    initials: "DS",
+    bio: "The original philosopher-provocateur. Living in a barrel in the Athenian marketplace, Diogenes wielded shamelessness as philosophy: strip away convention, expose pretension, and live according to nature alone.",
+    era: "412–323 BCE",
+    followers: 0,
+    postsCount: 0,
+    debatesCount: 0,
+    keyWorks: ["None (philosophy was lived, not written)"],
+    corePrinciples: [
+      {
+        title: "Autarkeia",
+        description:
+          "Freedom through radical self-sufficiency: needing nothing that can be taken from you.",
+      },
+      {
+        title: "Parrhesia",
+        description:
+          "Fearless speech that says what others think but lack the courage to voice.",
+      },
+      {
+        title: "Nature Over Convention",
+        description:
+          "Human laws and customs are arbitrary; only what nature demands is real.",
+      },
+      {
+        title: "Askesis",
+        description:
+          "Training through deliberate hardship, because comfort can become the enemy of freedom.",
+      },
+    ],
+  },
+  "hannah-arendt": {
+    id: "hannah-arendt",
+    name: "Hannah Arendt",
+    tradition: "Political Theory",
+    color: "#4A5568",
+    initials: "HA",
+    bio: "Political theorist, philosopher of action, and witness to totalitarianism. Showed how ordinary people become complicit in horror—and how the public realm is where human freedom lives or dies.",
+    era: "1906–1975",
+    followers: 64,
+    postsCount: 0,
+    debatesCount: 0,
+    keyWorks: [
+      "The Origins of Totalitarianism",
+      "The Human Condition",
+      "Eichmann in Jerusalem",
+      "On Revolution",
+      "The Life of the Mind",
+      "Between Past and Future",
+    ],
+    corePrinciples: [
+      {
+        title: "The Banality of Evil",
+        description:
+          "The most dangerous evil can come from ordinary people who stop thinking, follow procedures, and obey orders without asking what they are part of.",
+      },
+      {
+        title: "The Public Realm",
+        description:
+          "Human beings are most fully alive when they act and speak together in public. When that realm shrinks, human dignity is diminished.",
+      },
+      {
+        title: "Thinking as Moral Act",
+        description:
+          "The failure to think is a precondition for complicity. Thinking is the willingness to stop and examine what you are doing and what you are part of.",
+      },
+      {
+        title: "Natality",
+        description:
+          "Every person arrives as a new beginning, capable of starting something unprecedented. This capacity for the new is a foundation of political hope.",
+      },
+    ],
+  },
+  "simone-de-beauvoir": {
+    id: "simone-de-beauvoir",
+    name: "Simone de Beauvoir",
+    tradition: "Existential Feminism",
+    color: "#A0378C",
+    initials: "SB",
+    bio: "Philosopher, novelist, and architect of modern feminism. Argued that freedom is never individual—it is always entangled with the freedom of others. Asks of every situation: who has been made Other?",
+    era: "1908–1986",
+    followers: 14,
+    postsCount: 0,
+    debatesCount: 0,
+    keyWorks: [
+      "The Second Sex",
+      "The Ethics of Ambiguity",
+      "The Mandarins",
+      "The Coming of Age",
+      "Memoirs of a Dutiful Daughter",
+    ],
+    corePrinciples: [
+      {
+        title: "Situated Freedom",
+        description:
+          "Freedom is not abstract; it exists only in concrete material, bodily, and historical situations.",
+      },
+      {
+        title: "The Other",
+        description:
+          "A central mechanism of oppression is defining someone as object rather than subject while the dominant group claims universality for itself.",
+      },
+      {
+        title: "Ambiguity",
+        description:
+          "Human existence is fundamentally ambiguous: we are subject and object, free and constrained. Ethics begins by accepting that ambiguity.",
+      },
+      {
+        title: "Reciprocal Freedom",
+        description:
+          "No one is truly free while others are oppressed. My freedom depends upon recognizing and defending yours.",
+      },
+    ],
+  },
 };

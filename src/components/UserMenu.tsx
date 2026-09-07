@@ -4,9 +4,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
 
-import { signOut, useSession } from "@/lib/auth-client";
+import { useSession } from "@/lib/auth-client";
 
 function getInitials(value: string) {
   return value
@@ -17,94 +16,6 @@ function getInitials(value: string) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
-}
-
-export function UserMenu() {
-  const { data: session, isPending } = useSession();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  if (isPending) {
-    return <div className="h-8 w-8 animate-pulse rounded-full bg-border-light/60" />;
-  }
-
-  if (!session?.user) {
-    return (
-      <Link
-        href="/sign-in"
-        className="flex items-center gap-2 rounded-full border border-border-light bg-white/80 px-3.5 py-1.5 text-xs font-mono text-ink-lighter transition-colors hover:border-border hover:bg-parchment hover:text-ink"
-      >
-        Sign in
-      </Link>
-    );
-  }
-
-  const user = session.user;
-  const displayName = user.name || "Philosopher";
-  const initials = getInitials(user.name || user.email);
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="rounded-full p-0.5 transition-colors hover:bg-parchment-dark/40"
-        aria-label="User menu"
-      >
-        {user.image ? (
-          <img
-            src={user.image}
-            alt={`${displayName} avatar`}
-            className="h-8 w-8 rounded-full border border-border-light/80 object-cover"
-          />
-        ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-athenian/20 bg-athenian/15 text-[11px] font-mono font-medium text-athenian">
-            {initials}
-          </div>
-        )}
-      </button>
-
-      {open ? (
-        <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-border-light bg-parchment shadow-lg">
-          <div className="border-b border-border-light/80 px-4 py-3">
-            <p className="truncate text-sm font-body font-medium text-ink">{displayName}</p>
-            <p className="mt-0.5 truncate text-[11px] font-mono text-ink-lighter">{user.email}</p>
-          </div>
-
-          <div className="py-1.5">
-            <Link
-              href="/profile"
-              onClick={() => setOpen(false)}
-              className="block px-4 py-2 text-sm font-body text-ink-light transition-colors hover:bg-parchment-dark/40 hover:text-ink"
-            >
-              My Profile
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                void signOut().then(() => window.location.reload());
-              }}
-              className="block w-full px-4 py-2 text-left text-sm font-body text-ink-light transition-colors hover:bg-parchment-dark/40 hover:text-ink"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
 }
 
 export function UserNavItem() {

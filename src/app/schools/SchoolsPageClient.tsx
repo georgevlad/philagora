@@ -1,12 +1,9 @@
-"use client";
-
 import Link from "next/link";
 import type { Philosopher } from "@/lib/types";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
 import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const schools = [
   {
@@ -89,18 +86,13 @@ const schools = [
 
 function SchoolCard({
   school,
-  index,
   philosophersMap,
 }: {
   school: (typeof schools)[0];
-  index: number;
   philosophersMap: Record<string, Philosopher>;
 }) {
-  const ref = useScrollReveal(index);
-
   return (
     <div
-      ref={ref}
       className="animate-fade-in-up rounded-lg border border-border-light overflow-hidden hover:border-border transition-all duration-200"
       style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
     >
@@ -167,11 +159,10 @@ export function SchoolsPageClient({
           </div>
 
           <div className="px-5 py-6 space-y-4">
-            {schools.map((school, i) => (
+            {schools.map((school) => (
               <SchoolCard
                 key={school.name}
                 school={school}
-                index={i}
                 philosophersMap={philosophersMap}
               />
             ))}

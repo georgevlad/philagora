@@ -1,6 +1,3 @@
-"use client";
-
-import { useScrollReveal } from "@/hooks/useScrollReveal";
 import type {
   AdviceSynthesis,
   AgoraQuestionType,
@@ -190,8 +187,6 @@ function renderDebate(sections: DebateSynthesis) {
 }
 
 export function SynthesisCard({ type, sections }: SynthesisProps) {
-  const ref = useScrollReveal();
-
   const accentClass =
     type === "conceptual"
       ? "border-gold/20 bg-gradient-to-br from-parchment-dark to-gold/5"
@@ -214,7 +209,6 @@ export function SynthesisCard({ type, sections }: SynthesisProps) {
 
   return (
     <div
-      ref={ref}
       className={`animate-fade-in-up mx-3 sm:mx-5 my-6 rounded-lg border overflow-hidden shadow-sm ${accentClass}`}
     >
       <div className={`px-5 py-3 border-b flex items-center gap-3 ${headerClass}`}>

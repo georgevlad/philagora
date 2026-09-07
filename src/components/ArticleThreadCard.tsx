@@ -4,17 +4,14 @@ import { useState } from "react";
 import Image from "next/image";
 import { PostCard } from "@/components/PostCard";
 import { BookIcon, ExternalLinkIcon } from "@/components/Icons";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { STANCE_CONFIG } from "@/lib/constants";
 import type { FeedPost, PostCitation } from "@/lib/types";
 
 interface ArticleThreadCardProps {
   posts: FeedPost[];
-  delay?: number;
 }
 
-export function ArticleThreadCard({ posts, delay = 0 }: ArticleThreadCardProps) {
-  const ref = useScrollReveal<HTMLDivElement>(delay);
+export function ArticleThreadCard({ posts }: ArticleThreadCardProps) {
   const reactions = posts.filter((post) => !post.replyTo);
   const replies = posts.filter((post) => Boolean(post.replyTo));
   const citation = reactions[0]?.citation || posts[0]?.citation;
@@ -25,7 +22,7 @@ export function ArticleThreadCard({ posts, delay = 0 }: ArticleThreadCardProps) 
     return (
       <>
         {posts.map((post) => (
-          <PostCard key={post.id} post={post} delay={delay} />
+          <PostCard key={post.id} post={post} />
         ))}
       </>
     );
@@ -35,7 +32,6 @@ export function ArticleThreadCard({ posts, delay = 0 }: ArticleThreadCardProps) 
 
   return (
     <div
-      ref={ref}
       className="animate-fade-in-up rounded-[22px] bg-[linear-gradient(180deg,rgba(248,243,234,0.96),rgba(244,239,230,0.92))] border border-border-light/90 mx-2 my-2.5 overflow-hidden shadow-[0_14px_34px_rgba(42,36,31,0.045)] transition-shadow duration-200 hover:shadow-[0_18px_40px_rgba(42,36,31,0.06)] sm:mx-4 sm:my-3"
       style={{ borderTop: `2px solid ${primaryColor}` }}
     >

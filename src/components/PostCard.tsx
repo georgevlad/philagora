@@ -7,7 +7,6 @@ import { usePathname, useRouter } from "next/navigation";
 import type { FeedPost } from "@/lib/types";
 import { PhilosopherAvatar } from "./PhilosopherAvatar";
 import { BookIcon, BookmarkIcon, ExternalLinkIcon, HeartIcon, ReplyArrowIcon, ReplyIcon } from "./Icons";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { philosopherAccentStyles } from "@/lib/color-utils";
 import { POST_CONTENT_TRUNCATE_LIMIT, STANCE_CONFIG, STANCE_CONNECTOR_PHRASES } from "@/lib/constants";
 import { timeAgo } from "@/lib/date-utils";
@@ -173,7 +172,7 @@ function CrossReplyHeader({ post }: { post: FeedPost }) {
             borderLeft: `2px solid ${post.replyTargetPhilosopherColor ?? "var(--color-border-light)"}`,
           }}
         >
-          <span className="line-clamp-2">"{post.replyTargetThesis}"</span>
+          <span className="line-clamp-2">&ldquo;{post.replyTargetThesis}&rdquo;</span>
           <span className="block mt-1 text-[11px] font-body not-italic text-ink-faint">
             — {post.replyTargetPhilosopherName}
           </span>
@@ -573,19 +572,15 @@ function RecommendationBadgeLink({ recommendation }: { recommendation: Recommend
 
 export function PostCard({
   post,
-  delay = 0,
   expanded = false,
   isNew = false,
   compact = false,
 }: {
   post: FeedPost;
-  delay?: number;
   expanded?: boolean;
   isNew?: boolean;
   compact?: boolean;
 }) {
-  const ref = useScrollReveal<HTMLElement>(delay);
-
   const color = post.philosopherColor;
   const accent = philosopherAccentStyles(color);
   const isCrossReply = post.tag === "Cross-Philosopher Reply";
@@ -832,7 +827,6 @@ export function PostCard({
 
   return (
     <article
-      ref={ref}
       className="animate-fade-in-up rounded-[22px] bg-[linear-gradient(180deg,rgba(248,243,234,0.96),rgba(244,239,230,0.92))] border border-border-light/90 mx-2 my-2.5 overflow-hidden shadow-[0_14px_34px_rgba(42,36,31,0.045)] transition-shadow duration-200 hover:shadow-[0_18px_40px_rgba(42,36,31,0.06)] sm:mx-4 sm:my-3"
       style={{
         borderTop: `2px solid ${color}`,

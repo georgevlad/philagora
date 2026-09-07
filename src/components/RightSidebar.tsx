@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { getQuestionTypeLabel } from "@/lib/agora";
-import { getPhilosophersMap, getAllDebates, getRecentAgoraThreads } from "@/lib/data";
+import { getRecentAgoraThreads, getRecentDebates } from "@/lib/data";
+import type { Philosopher } from "@/lib/types";
 import { PhilosopherAvatar } from "./PhilosopherAvatar";
 
-export function RightSidebar() {
-  const philosophersMap = getPhilosophersMap();
-  const debates = getAllDebates().slice(0, 2);
+export function RightSidebar({ philosophers }: { philosophers: Philosopher[] }) {
+  const philosophersMap = Object.fromEntries(
+    philosophers.map((philosopher) => [philosopher.id, philosopher])
+  ) as Record<string, Philosopher>;
+  const debates = getRecentDebates(2);
   const agoraThreads = getRecentAgoraThreads(3);
 
   return (

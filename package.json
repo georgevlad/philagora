@@ -8,7 +8,10 @@
     "build": "next build",
     "start": "next start",
     "start:railway": "npx tsx scripts/startup.ts",
+    "seed:content": "tsx scripts/seed-content.ts",
+    "seed:content:export": "tsx scripts/export-seed-content.ts",
     "lint": "eslint",
+    "check": "npm run lint && tsc --noEmit && vitest run && next build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

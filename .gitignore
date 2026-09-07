@@ -48,3 +48,8 @@ next-env.d.ts
 
 #db
 /db/philagora.db
+
+# local production snapshots and generated historical-event thumbnails
+/data/*.db
+/data/*.db-shm
+/data/*.db-wal

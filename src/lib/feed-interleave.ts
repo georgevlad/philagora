@@ -41,24 +41,6 @@ function getArticleKey(post: FeedPost): string | null {
   return post.citation.url || post.citation.title || null;
 }
 
-function violatesSameArticleCap(units: FeedUnit[], index: number): boolean {
-  const current = units[index];
-  if (!current?.articleKey) {
-    return false;
-  }
-
-  const windowStart = Math.max(0, index - 4);
-  let sameArticleCount = 0;
-
-  for (let i = windowStart; i <= index; i += 1) {
-    if (units[i]?.articleKey === current.articleKey) {
-      sameArticleCount += 1;
-    }
-  }
-
-  return sameArticleCount > 2;
-}
-
 function placeUnitsGreedy(units: FeedUnit[], freshArticles: Set<string>): FeedUnit[] {
   const WINDOW_SIZE = Math.min(units.length, 16);
   const result: FeedUnit[] = [];

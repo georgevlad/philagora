@@ -140,7 +140,11 @@ export async function GET(request: NextRequest) {
           `
         )
         .all(...diverseParams) as Array<ArticleCandidate & { cluster_rank: number }>;
-      const candidates = rankedCandidates.map(({ cluster_rank: _clusterRank, ...candidate }) => candidate);
+      const candidates = rankedCandidates.map((candidate) => {
+        const articleCandidate: ArticleCandidate & { cluster_rank?: number } = { ...candidate };
+        Reflect.deleteProperty(articleCandidate, "cluster_rank");
+        return articleCandidate;
+      });
 
       return NextResponse.json(enrichCandidates(db, candidates));
     }

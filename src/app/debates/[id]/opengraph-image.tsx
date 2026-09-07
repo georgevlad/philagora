@@ -20,20 +20,27 @@ interface Props {
 }
 
 export default async function DebateOpenGraphImage({ params }: Props) {
+  let debate: ReturnType<typeof getDebateById>;
+  let names: string[];
+
   try {
     const { id } = await params;
-    const debate = getDebateById(id);
+    debate = getDebateById(id);
 
     if (!debate) {
       return renderRootOg();
     }
 
     const philosophersMap = getPhilosophersMap();
-    const names = debate.philosophers
+    names = debate.philosophers
       .map((philosopherId) => philosophersMap[philosopherId]?.name)
       .filter((name): name is string => Boolean(name));
+  } catch (error) {
+    console.error("[og] debates/[id] render failed, falling back to root OG:", error);
+    return renderRootOg();
+  }
 
-    return createOgImageResponse(
+  const element = (
       <div
         style={{
           display: "flex",
@@ -110,7 +117,10 @@ export default async function DebateOpenGraphImage({ params }: Props) {
           <FooterStrip label="A PHILAGORA DEBATE" textColor={COLORS.inkLight} />
         </div>
       </div>
-    );
+  );
+
+  try {
+    return createOgImageResponse(element);
   } catch (error) {
     console.error("[og] debates/[id] render failed, falling back to root OG:", error);
     return renderRootOg();

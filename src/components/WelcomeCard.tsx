@@ -24,28 +24,30 @@ function readWelcomeSeenCount(): number {
 
 export function WelcomeCard() {
   const pathname = usePathname();
-  const [isVisible, setIsVisible] = useState<boolean | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     if (pathname !== "/") {
-      setIsVisible(false);
       return;
     }
 
-    const seenCount = readWelcomeSeenCount();
+    const timer = window.setTimeout(() => {
+      const seenCount = readWelcomeSeenCount();
 
-    if (seenCount >= MAX_WELCOME_VIEWS) {
-      setIsVisible(false);
-      return;
-    }
+      if (seenCount >= MAX_WELCOME_VIEWS) {
+        return;
+      }
 
-    try {
-      window.localStorage.setItem(WELCOME_SEEN_STORAGE_KEY, String(seenCount + 1));
-    } catch {
-      // Ignore storage write failures and still show the card for this visit.
-    }
+      try {
+        window.localStorage.setItem(WELCOME_SEEN_STORAGE_KEY, String(seenCount + 1));
+      } catch {
+        // Ignore storage write failures and still show the card for this visit.
+      }
 
-    setIsVisible(true);
+      setIsVisible(true);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [pathname]);
 
   const handleDismiss = () => {
@@ -58,7 +60,7 @@ export function WelcomeCard() {
     setIsVisible(false);
   };
 
-  if (!isVisible) {
+  if (pathname !== "/" || !isVisible) {
     return null;
   }
 
@@ -73,7 +75,7 @@ export function WelcomeCard() {
         &times;
       </button>
 
-      <section className="animate-fade-in-up visible relative overflow-hidden rounded-xl border border-border-light bg-parchment-tint shadow-[0_12px_28px_rgba(42,36,31,0.04)]">
+      <section className="animate-fade-in-up relative overflow-hidden rounded-xl border border-border-light bg-parchment-tint shadow-[0_12px_28px_rgba(42,36,31,0.04)]">
         {/* Accent left bar */}
         <div
           className="absolute left-0 top-0 bottom-0 w-1"

@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("dns/promises", () => ({
-  lookup: vi.fn(),
+const { mockLookup } = vi.hoisted(() => ({
+  mockLookup: vi.fn(),
 }));
 
-import { lookup } from "dns/promises";
+vi.mock("dns/promises", () => ({ lookup: mockLookup }));
 import {
   isIpv4MappedIpv6,
   isPrivateAddress,
@@ -12,8 +12,6 @@ import {
   isSafePublicUrl,
   normalizeIpv4Hostname,
 } from "@/lib/url-safety";
-
-const mockLookup = vi.mocked(lookup);
 
 beforeEach(() => {
   mockLookup.mockReset();

@@ -63,7 +63,7 @@ body {
   color: var(--color-ink);
 }
 
-/* Fade in animation for scroll */
+/* Fade in animation */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -80,18 +80,13 @@ body {
   opacity: 0;
 }
 
-.animate-fade-in-up.visible {
-  animation: fadeInUp 0.5s ease-out forwards;
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
-
-/* Staggered delays */
-.delay-1 { animation-delay: 0.05s; }
-.delay-2 { animation-delay: 0.1s; }
-.delay-3 { animation-delay: 0.15s; }
-.delay-4 { animation-delay: 0.2s; }
-.delay-5 { animation-delay: 0.25s; }
-.delay-6 { animation-delay: 0.3s; }
-.delay-7 { animation-delay: 0.35s; }
 
 /* Subtle link underline animation */
 .link-underline {

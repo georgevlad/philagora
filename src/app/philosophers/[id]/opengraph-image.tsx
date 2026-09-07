@@ -21,15 +21,22 @@ interface Props {
 }
 
 export default async function PhilosopherOpenGraphImage({ params }: Props) {
+  let philosopher: ReturnType<typeof getPhilosopherById>;
+
   try {
     const { id } = await params;
-    const philosopher = getPhilosopherById(id);
+    philosopher = getPhilosopherById(id);
 
     if (!philosopher) {
       return renderRootOg();
     }
 
-    return createOgImageResponse(
+  } catch (error) {
+    console.error("[og] philosophers/[id] render failed, falling back to root OG:", error);
+    return renderRootOg();
+  }
+
+  const element = (
       <div
         style={{
           display: "flex",
@@ -114,7 +121,10 @@ export default async function PhilosopherOpenGraphImage({ params }: Props) {
           <FooterStrip label={"PHILOSOPHER PROFILE \u00b7 PHILAGORA"} textColor={COLORS.inkLight} />
         </div>
       </div>
-    );
+  );
+
+  try {
+    return createOgImageResponse(element);
   } catch (error) {
     console.error("[og] philosophers/[id] render failed, falling back to root OG:", error);
     return renderRootOg();

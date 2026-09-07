@@ -12,17 +12,17 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import {
+  getAllDebates,
   getAllPhilosophers,
   getAgoraThreadById,
   getBookmarkedPosts,
-  getFilteredPublishedPosts,
   getInterleavedFeed,
   getLikedPosts,
   getPhilosopherById,
   getPhilosophersMap,
   getPostById,
-  getPostsByPhilosopher,
   getRecentAgoraThreads,
+  getRecentDebates,
   getUserAgoraThreads,
 } from "@/lib/data";
 
@@ -131,6 +131,40 @@ function seedLike(userId: string, postId: string, createdAt: string) {
       "INSERT INTO user_likes (user_id, post_id, created_at) VALUES (?, ?, ?)"
     )
     .run(userId, postId, createdAt);
+}
+
+function seedDebate(args: {
+  id: string;
+  title: string;
+  debateDate: string;
+  philosopherIds: string[];
+  openings?: Array<{ philosopherId: string; content: string }>;
+}) {
+  testDb
+    .prepare("INSERT INTO debates (id, title, debate_date) VALUES (?, ?, ?)")
+    .run(args.id, args.title, args.debateDate);
+
+  const insertPhilosopher = testDb.prepare(
+    "INSERT INTO debate_philosophers (debate_id, philosopher_id) VALUES (?, ?)"
+  );
+  for (const philosopherId of args.philosopherIds) {
+    insertPhilosopher.run(args.id, philosopherId);
+  }
+
+  const insertOpening = testDb.prepare(
+    `INSERT INTO debate_posts (
+       id, debate_id, philosopher_id, content, phase, sort_order
+     ) VALUES (?, ?, ?, ?, 'opening', ?)`
+  );
+  for (const [index, opening] of (args.openings ?? []).entries()) {
+    insertOpening.run(
+      `${args.id}-opening-${index}`,
+      args.id,
+      opening.philosopherId,
+      opening.content,
+      index
+    );
+  }
 }
 
 function seedAgoraThread(args: {
@@ -428,38 +462,6 @@ describe("getInterleavedFeed", () => {
   });
 });
 
-describe("getFilteredPublishedPosts", () => {
-  it("returns all published posts with no filters", () => {
-    const posts = getFilteredPublishedPosts();
-
-    expect(posts).toHaveLength(4);
-  });
-
-  it("filters by philosopher", () => {
-    const posts = getFilteredPublishedPosts(undefined, "camus");
-
-    expect(posts).toHaveLength(1);
-    expect(posts[0].philosopherId).toBe("camus");
-  });
-});
-
-describe("getPostsByPhilosopher", () => {
-  it("returns all published posts by a philosopher", () => {
-    const posts = getPostsByPhilosopher("nietzsche");
-
-    expect(posts).toHaveLength(2);
-    for (const post of posts) {
-      expect(post.philosopherId).toBe("nietzsche");
-    }
-  });
-
-  it("returns empty array for philosopher with no published posts", () => {
-    const posts = getPostsByPhilosopher("kant");
-
-    expect(posts).toHaveLength(0);
-  });
-});
-
 describe("getBookmarkedPosts", () => {
   it("returns published bookmarked posts ordered by bookmark time", () => {
     seedBookmark("user-1", "post-1", "2025-03-02 09:00:00");
@@ -485,6 +487,57 @@ describe("getLikedPosts", () => {
 
     expect(posts.map((post) => post.id)).toEqual(["post-3", "post-2"]);
     expect(posts.every((post) => post.isLiked)).toBe(true);
+  });
+});
+
+describe("debate list helpers", () => {
+  beforeEach(() => {
+    seedDebate({
+      id: "debate-oldest",
+      title: "The oldest debate",
+      debateDate: "2025-01-01 12:00:00",
+      philosopherIds: ["plato", "kant"],
+    });
+    seedDebate({
+      id: "debate-middle",
+      title: "The middle debate",
+      debateDate: "2025-02-01 12:00:00",
+      philosopherIds: ["camus", "nietzsche"],
+    });
+    seedDebate({
+      id: "debate-newest",
+      title: "The newest debate",
+      debateDate: "2025-03-01 12:00:00",
+      philosopherIds: ["nietzsche", "plato", "kant"],
+      openings: [
+        { philosopherId: "nietzsche", content: "The first opening. More follows." },
+        { philosopherId: "plato", content: "The second opening challenges it." },
+        { philosopherId: "kant", content: "This third opening is outside the preview." },
+      ],
+    });
+  });
+
+  it("bounds recent debates before loading their related previews", () => {
+    const debates = getRecentDebates(2);
+
+    expect(debates.map((debate) => debate.id)).toEqual([
+      "debate-newest",
+      "debate-middle",
+    ]);
+    expect(debates[0].philosophers).toEqual(["kant", "nietzsche", "plato"]);
+    expect(debates[0].openingPreviews).toEqual([
+      { philosopherId: "nietzsche", snippet: "The first opening." },
+      { philosopherId: "plato", snippet: "The second opening challenges it." },
+    ]);
+    expect(getRecentDebates(0)).toEqual([]);
+  });
+
+  it("keeps the unbounded debate list behavior", () => {
+    expect(getAllDebates().map((debate) => debate.id)).toEqual([
+      "debate-newest",
+      "debate-middle",
+      "debate-oldest",
+    ]);
   });
 });
 
@@ -643,6 +696,43 @@ describe("getAgoraThreadById", () => {
 });
 
 describe("getRecentAgoraThreads", () => {
+  it("limits recent threads and batches philosopher previews for the selected rows", () => {
+    seedAgoraThread({
+      id: "agora-oldest",
+      question: "The oldest question",
+      createdAt: "2025-01-01 12:00:00",
+      philosopherIds: ["plato"],
+    });
+    seedAgoraThread({
+      id: "agora-middle",
+      question: "The middle question",
+      createdAt: "2025-02-01 12:00:00",
+      philosopherIds: ["camus", "nietzsche"],
+    });
+    seedAgoraThread({
+      id: "agora-newest",
+      question: "The newest question",
+      createdAt: "2025-03-01 12:00:00",
+      philosopherIds: ["kant", "plato"],
+    });
+
+    const threads = getRecentAgoraThreads(2);
+
+    expect(threads.map((thread) => thread.id)).toEqual([
+      "agora-newest",
+      "agora-middle",
+    ]);
+    expect(threads[0].philosophers.map((philosopher) => philosopher.id)).toEqual([
+      "kant",
+      "plato",
+    ]);
+    expect(threads[1].philosophers.map((philosopher) => philosopher.id)).toEqual([
+      "camus",
+      "nietzsche",
+    ]);
+    expect(getRecentAgoraThreads(0)).toEqual([]);
+  });
+
   it("returns only public completed agora threads", () => {
     seedAgoraThread({
       id: "agora-private-complete",

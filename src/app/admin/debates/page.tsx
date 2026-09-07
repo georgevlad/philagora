@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { Philosopher, PhiloStatus, PhiloState } from "@/types/admin";
+import type { Philosopher, PhiloState } from "@/types/admin";
 import { DEBATE_STATUS_COLORS } from "@/lib/constants";
 import { formatDate } from "@/lib/date-utils";
 import { Spinner } from "@/components/Spinner";

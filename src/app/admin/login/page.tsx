@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
@@ -41,7 +42,7 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo area */}
         <div className="text-center mb-8">
-          <img
+          <Image
             src="/logo-icon.svg"
             alt="Philagora"
             width={48}

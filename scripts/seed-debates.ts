@@ -176,8 +176,6 @@ async function main() {
 
   // ── Step 2: Create debates ──────────────────────────────────────────
 
-  let totalDebatePosts = 0;
-
   const insertDebate = db.prepare(`
     INSERT INTO debates (
       id, title, trigger_article_title, trigger_article_source,
@@ -265,8 +263,6 @@ async function main() {
         );
 
         openings[pid] = { postId, content };
-        totalDebatePosts++;
-
         console.log(`✅ (${content.split(/\s+/).length} words)`);
       } catch (err) {
         console.log(
@@ -336,7 +332,6 @@ async function main() {
             sortOrder++
           );
 
-          totalDebatePosts++;
           console.log(`✅ (${content.split(/\s+/).length} words)`);
         } catch (err) {
           console.log(
@@ -411,8 +406,6 @@ async function main() {
   }
 
   // ── Step 3: Create agora threads ────────────────────────────────────
-
-  let totalAgoraResponses = 0;
 
   const insertThread = db.prepare(`
     INSERT INTO agora_threads (id, question, asked_by, status, created_at)
@@ -496,7 +489,6 @@ async function main() {
           posts,
         });
 
-        totalAgoraResponses++;
         console.log(`✅ (${posts.length} post${posts.length > 1 ? "s" : ""})`);
       } catch (err) {
         console.log(

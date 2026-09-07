@@ -20,7 +20,6 @@ import { Footer } from "@/components/Footer";
 import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
 import { AIBadge } from "@/components/AIBadge";
 import { SynthesisCard } from "@/components/SynthesisCard";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { timeAgo } from "@/lib/date-utils";
 
 // Types for API response
@@ -132,16 +131,11 @@ function recommendationMediumLabel(medium: AgoraRecommendation["medium"]): strin
 
 function ResponseCard({
   response,
-  delay,
 }: {
   response: ApiResponse;
-  delay: number;
 }) {
-  const ref = useScrollReveal(delay);
-
   return (
     <div
-      ref={ref}
       className="animate-fade-in-up px-5 py-4 border-b border-border-light"
     >
       <div className="flex gap-3">
@@ -685,7 +679,7 @@ export function ThreadPageClient({
 
       {!isFailed && (
         <div>
-          {data.philosophers.map((philosopher, idx) => {
+          {data.philosophers.map((philosopher) => {
             const response = data.responses.find(
               (r) => r.philosopher_id === philosopher.id
             );
@@ -695,7 +689,6 @@ export function ThreadPageClient({
                 <ResponseCard
                   key={philosopher.id}
                   response={response}
-                  delay={idx * 3}
                 />
               );
             }
@@ -868,8 +861,8 @@ export function ThreadPageClient({
 
           {(data.followUp.status === "complete" || data.followUp.responses.length > 0) && (
             <div>
-              {data.followUp.responses.map((response, index) => (
-                <ResponseCard key={response.id} response={response} delay={index * 3} />
+              {data.followUp.responses.map((response) => (
+                <ResponseCard key={response.id} response={response} />
               ))}
             </div>
           )}

@@ -21,6 +21,9 @@ interface Props {
 }
 
 export default async function AgoraOpenGraphImage({ params }: Props) {
+  let question: string;
+  let answeredBy: string;
+
   try {
     const { threadId } = await params;
     const thread = getAgoraThreadById(threadId);
@@ -38,86 +41,93 @@ export default async function AgoraOpenGraphImage({ params }: Props) {
             .filter((name): name is string => Boolean(name))
     ).filter((name, index, allNames) => allNames.indexOf(name) === index);
 
-    const question = truncateOgText(thread.question, 120);
-    const answeredBy =
+    question = truncateOgText(thread.question, 120);
+    answeredBy =
       names.length > 0 ? `Answered by ${names.join(", ")}` : "Answered by Philagora";
+  } catch (error) {
+    console.error("[og] agora/[threadId] render failed, falling back to root OG:", error);
+    return renderRootOg();
+  }
 
-    return createOgImageResponse(
+  const element = (
+    <div
+      style={{
+        position: "relative",
+        display: "flex",
+        width: "100%",
+        height: "100%",
+        padding: "72px 92px 52px",
+        backgroundColor: COLORS.parchment,
+        color: COLORS.ink,
+      }}
+    >
       <div
         style={{
-          position: "relative",
+          position: "absolute",
+          top: 24,
+          left: 64,
+          fontFamily: OG_SERIF_FONT,
+          fontSize: 200,
+          lineHeight: 1,
+          color: "rgba(122, 46, 46, 0.3)",
+        }}
+      >
+        {"\u201c"}
+      </div>
+
+      <div
+        style={{
           display: "flex",
+          flexDirection: "column",
           width: "100%",
           height: "100%",
-          padding: "72px 92px 52px",
-          backgroundColor: COLORS.parchment,
-          color: COLORS.ink,
+          justifyContent: "space-between",
+          alignItems: "center",
+          textAlign: "center",
         }}
       >
         <div
           style={{
-            position: "absolute",
-            top: 24,
-            left: 64,
-            fontFamily: OG_SERIF_FONT,
-            fontSize: 200,
-            lineHeight: 1,
-            color: "rgba(122, 46, 46, 0.3)",
-          }}
-        >
-          {"\u201c"}
-        </div>
-
-        <div
-          style={{
             display: "flex",
             flexDirection: "column",
+            flex: 1,
             width: "100%",
-            height: "100%",
-            justifyContent: "space-between",
+            justifyContent: "center",
             alignItems: "center",
-            textAlign: "center",
+            padding: "36px 32px 0",
           }}
         >
           <div
             style={{
-              display: "flex",
-              flexDirection: "column",
-              flex: 1,
-              width: "100%",
-              justifyContent: "center",
-              alignItems: "center",
-              padding: "36px 32px 0",
+              fontFamily: OG_SERIF_FONT,
+              fontSize: 52,
+              lineHeight: 1.12,
+              maxWidth: 920,
             }}
           >
-            <div
-              style={{
-                fontFamily: OG_SERIF_FONT,
-                fontSize: 52,
-                lineHeight: 1.12,
-                maxWidth: 920,
-              }}
-            >
-              {question}
-            </div>
-            <div
-              style={{
-                marginTop: 30,
-                fontFamily: OG_BODY_FONT,
-                fontSize: 26,
-                lineHeight: 1.3,
-                color: COLORS.inkLight,
-                maxWidth: 880,
-              }}
-            >
-              {answeredBy}
-            </div>
+            {question}
           </div>
-
-          <FooterStrip label={"THE AGORA \u00b7 PHILAGORA"} />
+          <div
+            style={{
+              marginTop: 30,
+              fontFamily: OG_BODY_FONT,
+              fontSize: 26,
+              lineHeight: 1.3,
+              color: COLORS.inkLight,
+              maxWidth: 880,
+            }}
+          >
+            {answeredBy}
+          </div>
         </div>
+
+        <FooterStrip label={"THE AGORA \u00b7 PHILAGORA"} />
       </div>
-    );
+    </div>
+  );
+
+  try {
+    return createOgImageResponse(element);
   } catch (error) {
     console.error("[og] agora/[threadId] render failed, falling back to root OG:", error);
     return renderRootOg();

@@ -7,7 +7,6 @@ import {
   type DailyGeneratedItem,
   type DailySummary,
   type DraftStatus,
-  type PhilosopherUsage,
   type PipelineResult,
   type RawCandidateArticle,
   type ReviewItem,
@@ -18,7 +17,6 @@ export function useDailyGeneration({
   selectedArticleIds,
   config,
   setArticles,
-  setPhilosopherUsage,
   setSummary,
   setReviewItems,
   setSelectedDraftIds,
@@ -30,7 +28,6 @@ export function useDailyGeneration({
   selectedArticleIds: string[];
   config: typeof DEFAULT_CONFIG;
   setArticles: React.Dispatch<React.SetStateAction<CandidateArticle[]>>;
-  setPhilosopherUsage: React.Dispatch<React.SetStateAction<Record<string, PhilosopherUsage>>>;
   setSummary: React.Dispatch<React.SetStateAction<DailySummary | null>>;
   setReviewItems: React.Dispatch<React.SetStateAction<ReviewItem[]>>;
   setSelectedDraftIds: React.Dispatch<React.SetStateAction<string[]>>;

@@ -3,11 +3,12 @@ import { LeftSidebar } from "@/components/LeftSidebar";
 import { RightSidebar } from "@/components/RightSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { AgoraHero } from "@/components/AgoraHero";
-import { FeedTabs } from "@/components/FeedTabs";
+import { FeedTabs, type FeedSearchParams } from "@/components/FeedTabs";
 import { FeedSection } from "@/components/FeedSection";
 import { Footer } from "@/components/Footer";
 import { getIdentityFromCookies } from "@/lib/auth";
 import { getAllPhilosophers, getInterleavedFeed } from "@/lib/data";
+import { normalizeFeedContentType } from "@/lib/feed-utils";
 
 // Re-render this page on every request so published posts appear immediately
 export const dynamic = "force-dynamic";
@@ -21,10 +22,23 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<FeedSearchParams>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const rawContentType = resolvedSearchParams.type;
+  const selectedContentType = normalizeFeedContentType(
+    Array.isArray(rawContentType) ? rawContentType[0] : rawContentType
+  );
   const identity = await getIdentityFromCookies();
   const userId = identity.type === "user" ? identity.id : undefined;
-  const { posts, hasMore } = getInterleavedFeed({ limit: 15, userId });
+  const { posts, hasMore } = getInterleavedFeed({
+    contentType: selectedContentType === "all" ? undefined : selectedContentType,
+    limit: 15,
+    userId,
+  });
   const philosophers = getAllPhilosophers();
 
   return (
@@ -35,18 +49,21 @@ export default async function HomePage() {
       <main className="flex-1 min-w-0 lg:border-r border-border-light lg:border-l bg-[linear-gradient(180deg,rgba(248,243,234,0.5),rgba(244,239,230,0.12))]">
         <div className="max-w-[700px] mx-auto">
           <AgoraHero />
-          <div className="lg:hidden">
-            <FeedTabs mobileIntegrated />
-          </div>
-          <div className="hidden lg:block">
-            <FeedTabs />
-          </div>
-          <FeedSection initialPosts={posts} initialHasMore={hasMore} />
+          <FeedTabs
+            activeType={selectedContentType}
+            searchParams={resolvedSearchParams}
+          />
+          <FeedSection
+            key={selectedContentType}
+            initialPosts={posts}
+            initialHasMore={hasMore}
+            contentType={selectedContentType}
+          />
           <Footer />
         </div>
       </main>
 
-      <RightSidebar />
+      <RightSidebar philosophers={philosophers} />
     </div>
   );
 }

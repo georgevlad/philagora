@@ -47,7 +47,7 @@ export function AgoraHero() {
 
   return (
     <div className="px-2 pb-2.5 pt-3 sm:px-4 sm:pb-3 sm:pt-4">
-      <section className="animate-fade-in-up visible relative overflow-hidden rounded-xl border border-border-light bg-parchment-tint shadow-[0_12px_28px_rgba(42,36,31,0.04)]">
+      <section className="animate-fade-in-up relative overflow-hidden rounded-xl border border-border-light bg-parchment-tint shadow-[0_12px_28px_rgba(42,36,31,0.04)]">
         <div
           className="absolute bottom-0 left-0 top-0 w-1"
           style={{

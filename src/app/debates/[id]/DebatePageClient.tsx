@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import type { Philosopher, DebateDetail, DebatePost } from "@/lib/types";
 import { LeftSidebar } from "@/components/LeftSidebar";
@@ -8,25 +6,20 @@ import { Footer } from "@/components/Footer";
 import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
 import { AIBadge } from "@/components/AIBadge";
 import { BookIcon, ChevronLeftIcon, ExternalLinkIcon, ReplyArrowIcon } from "@/components/Icons";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { isValidHttpUrl } from "@/lib/url-utils";
 
 function DebatePostCard({
   post,
-  delay,
   philosophersMap,
 }: {
   post: DebatePost;
-  delay: number;
   philosophersMap: Record<string, Philosopher>;
 }) {
-  const ref = useScrollReveal(delay);
   const philosopher = philosophersMap[post.philosopherId];
   if (!philosopher) return null;
 
   return (
     <div
-      ref={ref}
       className="animate-fade-in-up px-5 py-4 border-b border-border-light"
     >
       <div className="flex gap-3">
@@ -101,11 +94,8 @@ function NeutralSynthesisCard({
   diverge: string;
   unresolvedQuestion: string;
 }) {
-  const ref = useScrollReveal();
-
   return (
     <div
-      ref={ref}
       className="animate-fade-in-up mx-3 sm:mx-5 my-6 rounded-lg overflow-hidden"
       style={{
         backgroundColor: "rgba(240, 230, 214, 0.5)",
@@ -344,8 +334,8 @@ export function DebatePageClient({
           {debate.openings.length > 0 && (
             <>
               <PhaseLabel label="Opening Statements" />
-              {debate.openings.map((post, i) => (
-                <DebatePostCard key={post.id} post={post} delay={i} philosophersMap={philosophersMap} />
+              {debate.openings.map((post) => (
+                <DebatePostCard key={post.id} post={post} philosophersMap={philosophersMap} />
               ))}
             </>
           )}
@@ -354,8 +344,8 @@ export function DebatePageClient({
           {debate.rebuttals.length > 0 && (
             <>
               <PhaseLabel label="Rebuttals" />
-              {debate.rebuttals.map((post, i) => (
-                <DebatePostCard key={post.id} post={post} delay={i} philosophersMap={philosophersMap} />
+              {debate.rebuttals.map((post) => (
+                <DebatePostCard key={post.id} post={post} philosophersMap={philosophersMap} />
               ))}
             </>
           )}

@@ -63,19 +63,6 @@ export function buildFeedContentTypeConditions(
   return [];
 }
 
-export function sharesSameArticle(a: FeedPost, b: FeedPost): boolean {
-  if (!a.citation || !b.citation) return false;
-  if (a.citation.url && b.citation.url && a.citation.url === b.citation.url) return true;
-  if (a.citation.title && b.citation.title && a.citation.source && b.citation.source) {
-    return a.citation.title === b.citation.title && a.citation.source === b.citation.source;
-  }
-  return false;
-}
-
-function isStandaloneReaction(post: FeedPost): boolean {
-  return Boolean(post.citation) && !post.replyTo;
-}
-
 export function classifyPostFormat(post: {
   replyTo?: string;
   sourceType?: string;
@@ -118,12 +105,4 @@ export function buildFeedItems(posts: FeedPost[]): FeedItem[] {
   }
 
   return items;
-}
-
-export function getPhilosopherChipLabel(name: string): string {
-  const trimmed = name.trim();
-  if (!trimmed) return "";
-
-  const parts = trimmed.split(/\s+/);
-  return parts[parts.length - 1] ?? trimmed;
 }

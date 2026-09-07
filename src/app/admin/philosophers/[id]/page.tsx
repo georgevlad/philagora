@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 
@@ -9,25 +9,8 @@ interface CorePrinciple {
   description: string;
 }
 
-interface PhilosopherData {
-  id: string;
-  name: string;
-  tradition: string;
-  color: string;
-  initials: string;
-  bio: string;
-  era: string;
-  key_works: string[];
-  core_principles: CorePrinciple[];
-  followers: number;
-  posts_count: number;
-  debates_count: number;
-  is_active: number;
-}
-
 export default function EditPhilosopherPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

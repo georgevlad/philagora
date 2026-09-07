@@ -292,14 +292,6 @@ function overlayUserFeedState(posts: FeedPost[], userId: string): FeedPost[] {
   }));
 }
 
-export function getFilteredPublishedPosts(
-  contentType?: string,
-  philosopherId?: string,
-  userId?: string
-): FeedPost[] {
-  return interleaveFeed(queryPublishedPosts({ contentType, philosopherId, userId }));
-}
-
 export function getInterleavedFeed(options: {
   contentType?: string;
   philosopherId?: string;
@@ -350,10 +342,6 @@ export function getInterleavedFeed(options: {
   setCachedAnonymousInterleave(cacheKey, toAnonymousFeedPosts(interleavedPosts));
 
   return buildFeedPage(interleavedPosts, offset, limit);
-}
-
-export function getPostsByPhilosopher(philosopherId: string, userId?: string): FeedPost[] {
-  return interleaveFeed(queryPublishedPosts({ philosopherId, userId }));
 }
 
 export function getPostById(id: string, userId?: string): FeedPost | null {
@@ -459,44 +447,82 @@ function formatDebateDate(dateStr: string): string {
 
 // ── Debate queries ────────────────────────────────────────────
 
-export function getAllDebates(): DebateListItem[] {
+function getDebates(limit?: number): DebateListItem[] {
   const db = getDb();
+  const boundedLimit = limit === undefined ? undefined : Math.max(0, Math.floor(limit));
+
+  if (boundedLimit === 0) {
+    return [];
+  }
 
   const debates = db
-    .prepare("SELECT * FROM debates ORDER BY debate_date DESC")
-    .all() as DebateRow[];
+    .prepare(
+      `SELECT * FROM debates
+       ORDER BY debate_date DESC${boundedLimit === undefined ? "" : " LIMIT ?"}`
+    )
+    .all(...(boundedLimit === undefined ? [] : [boundedLimit])) as DebateRow[];
+
+  if (debates.length === 0) {
+    return [];
+  }
+
+  const debateIds = debates.map((debate) => debate.id);
+  const placeholders = debateIds.map(() => "?").join(", ");
+  const philosopherRows = db
+    .prepare(
+      `SELECT debate_id, philosopher_id
+       FROM debate_philosophers
+       WHERE debate_id IN (${placeholders})
+       ORDER BY debate_id, philosopher_id`
+    )
+    .all(...debateIds) as Array<DebatePhilosopherRow & { debate_id: string }>;
+  const openingRows = db
+    .prepare(
+      `WITH ranked_openings AS (
+         SELECT debate_id, philosopher_id, content,
+                ROW_NUMBER() OVER (
+                  PARTITION BY debate_id
+                  ORDER BY sort_order ASC
+                ) AS opening_rank
+         FROM debate_posts
+         WHERE phase = 'opening'
+           AND debate_id IN (${placeholders})
+       )
+       SELECT debate_id, philosopher_id, content
+       FROM ranked_openings
+       WHERE opening_rank <= 2
+       ORDER BY debate_id, opening_rank`
+    )
+    .all(...debateIds) as Array<{
+      debate_id: string;
+      philosopher_id: string;
+      content: string;
+    }>;
+
+  const philosophersByDebate = new Map<string, string[]>();
+  for (const row of philosopherRows) {
+    const philosopherIds = philosophersByDebate.get(row.debate_id) ?? [];
+    philosopherIds.push(row.philosopher_id);
+    philosophersByDebate.set(row.debate_id, philosopherIds);
+  }
+
+  const openingsByDebate = new Map<string, DebateListItem["openingPreviews"]>();
+  for (const row of openingRows) {
+    const firstSentenceMatch = row.content.match(/^(.+?[.!?])\s/);
+    let snippet = firstSentenceMatch
+      ? firstSentenceMatch[1]
+      : row.content.slice(0, 100);
+
+    if (snippet.length > 120) {
+      snippet = `${snippet.slice(0, 117)}...`;
+    }
+
+    const previews = openingsByDebate.get(row.debate_id) ?? [];
+    previews.push({ philosopherId: row.philosopher_id, snippet });
+    openingsByDebate.set(row.debate_id, previews);
+  }
 
   return debates.map((d) => {
-    const philRows = db
-      .prepare("SELECT philosopher_id FROM debate_philosophers WHERE debate_id = ?")
-      .all(d.id) as DebatePhilosopherRow[];
-
-    // Get first two opening post snippets for tension preview
-    const openingRows = db
-      .prepare(
-        `SELECT dp.philosopher_id, dp.content FROM debate_posts dp
-         WHERE dp.debate_id = ? AND dp.phase = 'opening'
-         ORDER BY dp.sort_order ASC LIMIT 2`
-      )
-      .all(d.id) as { philosopher_id: string; content: string }[];
-
-    const openingPreviews = openingRows.map((row) => {
-      // Extract the first sentence as the strongest opening hook.
-      const firstSentenceMatch = row.content.match(/^(.+?[.!?])\s/);
-      let snippet = firstSentenceMatch
-        ? firstSentenceMatch[1]
-        : row.content.slice(0, 100);
-
-      if (snippet.length > 120) {
-        snippet = `${snippet.slice(0, 117)}...`;
-      }
-
-      return {
-        philosopherId: row.philosopher_id,
-        snippet,
-      };
-    });
-
     return {
       id: d.id,
       title: d.title,
@@ -506,10 +532,18 @@ export function getAllDebates(): DebateListItem[] {
       triggerArticleTitle: d.trigger_article_title,
       triggerArticleSource: d.trigger_article_source,
       triggerArticleUrl: d.trigger_article_url,
-      philosophers: philRows.map((r) => r.philosopher_id),
-      openingPreviews,
+      philosophers: philosophersByDebate.get(d.id) ?? [],
+      openingPreviews: openingsByDebate.get(d.id) ?? [],
     };
   });
+}
+
+export function getAllDebates(): DebateListItem[] {
+  return getDebates();
+}
+
+export function getRecentDebates(limit = 2): DebateListItem[] {
+  return getDebates(limit);
 }
 
 export function getAllPublicDebateIds(): Array<{ id: string; updatedAt: string }> {
@@ -598,6 +632,11 @@ export function getAllAgoraThreads(): AgoraThreadDetail[] {
 
 export function getRecentAgoraThreads(limit = 5) {
   const db = getDb();
+  const boundedLimit = Math.max(0, Math.floor(limit));
+
+  if (boundedLimit === 0) {
+    return [];
+  }
 
   const threads = db
     .prepare(
@@ -610,7 +649,7 @@ export function getRecentAgoraThreads(limit = 5) {
        ORDER BY created_at DESC
        LIMIT ?`
     )
-    .all(limit) as Array<{
+    .all(boundedLimit) as Array<{
       id: string;
       question: string;
       asked_by: string;
@@ -618,22 +657,42 @@ export function getRecentAgoraThreads(limit = 5) {
       created_at: string;
     }>;
 
-  const getPhilosophers = db.prepare(
-    `SELECT p.id, p.name, p.initials, p.color
-     FROM philosophers p
-     JOIN agora_thread_philosophers atp ON p.id = atp.philosopher_id
-     WHERE atp.thread_id = ?`
-  );
+  if (threads.length === 0) {
+    return [];
+  }
 
-  return threads.map((thread) => ({
-    ...thread,
-    question_type: thread.question_type ?? "advice",
-    philosophers: getPhilosophers.all(thread.id) as Array<{
+  const threadIds = threads.map((thread) => thread.id);
+  const placeholders = threadIds.map(() => "?").join(", ");
+  const philosopherRows = db
+    .prepare(
+      `SELECT atp.thread_id, p.id, p.name, p.initials, p.color
+       FROM agora_thread_philosophers atp
+       JOIN philosophers p ON p.id = atp.philosopher_id
+       WHERE atp.thread_id IN (${placeholders})
+       ORDER BY atp.thread_id, atp.philosopher_id`
+    )
+    .all(...threadIds) as Array<{
+      thread_id: string;
       id: string;
       name: string;
       initials: string;
       color: string;
-    }>,
+    }>;
+
+  const philosophersByThread = new Map<
+    string,
+    Array<{ id: string; name: string; initials: string; color: string }>
+  >();
+  for (const { thread_id: threadId, ...philosopher } of philosopherRows) {
+    const philosophers = philosophersByThread.get(threadId) ?? [];
+    philosophers.push(philosopher);
+    philosophersByThread.set(threadId, philosophers);
+  }
+
+  return threads.map((thread) => ({
+    ...thread,
+    question_type: thread.question_type ?? "advice",
+    philosophers: philosophersByThread.get(thread.id) ?? [],
   }));
 }
 

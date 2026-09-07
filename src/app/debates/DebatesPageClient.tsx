@@ -1,5 +1,3 @@
-﻿"use client";
-
 import Link from "next/link";
 import type { Philosopher, DebateListItem } from "@/lib/types";
 import { LeftSidebar } from "@/components/LeftSidebar";
@@ -7,18 +5,14 @@ import { MobileNav } from "@/components/MobileNav";
 import { Footer } from "@/components/Footer";
 import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
 import { BookIcon } from "@/components/Icons";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 function DebateListCard({
   debate,
-  index,
   philosophersMap,
 }: {
   debate: DebateListItem;
-  index: number;
   philosophersMap: Record<string, Philosopher>;
 }) {
-  const ref = useScrollReveal(index);
   const isInProgress = debate.status === "In Progress";
   const accent = isInProgress ? "var(--color-burgundy)" : "var(--color-athenian)";
   const softBg = isInProgress ? "rgba(122, 62, 58, 0.05)" : "rgba(49, 78, 61, 0.05)";
@@ -27,7 +21,6 @@ function DebateListCard({
   return (
     <Link href={`/debates/${debate.id}`}>
       <article
-        ref={ref}
         className="animate-fade-in-up mb-5 rounded-[26px] border border-border-light/90 bg-[linear-gradient(180deg,rgba(248,243,234,0.95),rgba(244,239,230,0.92))] overflow-hidden shadow-[0_16px_34px_rgba(42,36,31,0.045)] hover:shadow-[0_22px_42px_rgba(42,36,31,0.07)] transition-all duration-200 hover:-translate-y-0.5"
         style={{ borderTop: `3px solid ${accent}` }}
       >
@@ -179,11 +172,10 @@ export function DebatesPageClient({
 
           <div className="px-6 py-8">
             {debates.length > 0 ? (
-              debates.map((debate, i) => (
+              debates.map((debate) => (
                 <DebateListCard
                   key={debate.id}
                   debate={debate}
-                  index={i}
                   philosophersMap={philosophersMap}
                 />
               ))

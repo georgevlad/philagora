@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { ArticleThreadCard } from "@/components/ArticleThreadCard";
 import { PostCard } from "@/components/PostCard";
 import { EditorialDivider } from "@/components/EditorialDivider";
@@ -10,7 +9,6 @@ import { WelcomeCard } from "@/components/WelcomeCard";
 import { useNewPostIndicator } from "@/hooks/useNewPostIndicator";
 import {
   buildFeedItems,
-  normalizeFeedContentType,
   type FeedContentType,
 } from "@/lib/feed-utils";
 import type { FeedPost } from "@/lib/types";
@@ -18,6 +16,7 @@ import type { FeedPost } from "@/lib/types";
 interface FeedSectionProps {
   initialPosts: FeedPost[];
   initialHasMore: boolean;
+  contentType?: FeedContentType;
   philosopherId?: string;
   philosopherName?: string;
 }
@@ -49,33 +48,6 @@ function buildFeedApiUrl(
 
   const query = params.toString();
   return query ? `/api/feed?${query}` : "/api/feed";
-}
-
-function FeedSkeleton() {
-  return (
-    <div className="px-3 sm:px-4 py-3 space-y-4">
-      {[0, 1, 2].map((index) => (
-        <div
-          key={index}
-          className="rounded-[22px] border border-border-light/90 bg-[linear-gradient(180deg,rgba(248,243,234,0.96),rgba(244,239,230,0.92))] px-5 py-5 sm:px-6 animate-pulse shadow-[0_14px_34px_rgba(42,36,31,0.03)]"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-11 h-11 rounded-full bg-border-light/80" />
-            <div className="flex-1 space-y-2">
-              <div className="h-4 w-32 rounded-full bg-border-light/70" />
-              <div className="h-3 w-24 rounded-full bg-border-light/55" />
-            </div>
-          </div>
-          <div className="space-y-3">
-            <div className="h-6 w-[78%] rounded-full bg-parchment-dark/75" />
-            <div className="h-4 w-full rounded-full bg-border-light/65" />
-            <div className="h-4 w-[92%] rounded-full bg-border-light/55" />
-            <div className="h-4 w-[66%] rounded-full bg-border-light/45" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 function FeedLoadMoreIndicator() {
@@ -112,112 +84,28 @@ function buildEmptyStateMessage(type: FeedContentType, philosopherName?: string)
 export function FeedSection({
   initialPosts,
   initialHasMore,
+  contentType = "all",
   philosopherId,
   philosopherName,
 }: FeedSectionProps) {
   const isNewPost = useNewPostIndicator();
-  const searchParams = useSearchParams();
-  const selectedType = normalizeFeedContentType(searchParams.get("type"));
-  const showDefaultFeed = selectedType === "all";
-  const [posts, setPosts] = useState<FeedPost[]>(showDefaultFeed ? initialPosts : []);
-  const [offset, setOffset] = useState<number>(showDefaultFeed ? initialPosts.length : 0);
-  const [hasMore, setHasMore] = useState<boolean>(showDefaultFeed ? initialHasMore : true);
-  const [loading, setLoading] = useState(!showDefaultFeed);
+  const [posts, setPosts] = useState<FeedPost[]>(initialPosts);
+  const [offset, setOffset] = useState(initialPosts.length);
+  const [hasMore, setHasMore] = useState(initialHasMore);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const filterRequestRef = useRef<AbortController | null>(null);
   const loadMoreRequestRef = useRef<AbortController | null>(null);
-  const requestVersionRef = useRef(0);
 
   useEffect(() => {
-    return () => {
-      filterRequestRef.current?.abort();
-      loadMoreRequestRef.current?.abort();
-    };
+    return () => loadMoreRequestRef.current?.abort();
   }, []);
 
-  useEffect(() => {
-    requestVersionRef.current += 1;
-    const requestVersion = requestVersionRef.current;
-
-    filterRequestRef.current?.abort();
-    loadMoreRequestRef.current?.abort();
-    filterRequestRef.current = null;
-    loadMoreRequestRef.current = null;
-
-    setLoadingMore(false);
-    setLoadMoreError(null);
-
-    if (showDefaultFeed) {
-      setPosts(initialPosts);
-      setOffset(initialPosts.length);
-      setHasMore(initialHasMore);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    const controller = new AbortController();
-    filterRequestRef.current = controller;
-    setPosts([]);
-    setOffset(0);
-    setHasMore(true);
-    setLoading(true);
-    setError(null);
-
-    const loadPosts = async () => {
-      try {
-        const response = await fetch(buildFeedApiUrl(selectedType, 0, philosopherId), {
-          cache: "no-store",
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          throw new Error(`Feed request failed with status ${response.status}`);
-        }
-
-        const data = (await response.json()) as PaginatedFeedResponse;
-
-        if (controller.signal.aborted || requestVersion !== requestVersionRef.current) {
-          return;
-        }
-
-        setPosts(data.posts);
-        setOffset(data.nextOffset ?? data.posts.length);
-        setHasMore(data.hasMore);
-      } catch (fetchError) {
-        if (controller.signal.aborted) return;
-
-        console.error("Failed to load filtered feed:", fetchError);
-        setError("Unable to load the feed right now.");
-        setPosts([]);
-        setOffset(0);
-        setHasMore(false);
-      } finally {
-        if (!controller.signal.aborted && requestVersion === requestVersionRef.current) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadPosts();
-
-    return () => {
-      controller.abort();
-      if (filterRequestRef.current === controller) {
-        filterRequestRef.current = null;
-      }
-    };
-  }, [initialHasMore, initialPosts, philosopherId, selectedType, showDefaultFeed]);
-
   const loadMore = useCallback(async () => {
-    if (loading || loadingMore || loadMoreError || !hasMore) {
+    if (loadingMore || loadMoreError || !hasMore) {
       return;
     }
 
-    const requestVersion = requestVersionRef.current;
     const controller = new AbortController();
     loadMoreRequestRef.current?.abort();
     loadMoreRequestRef.current = controller;
@@ -225,7 +113,7 @@ export function FeedSection({
     setLoadMoreError(null);
 
     try {
-      const response = await fetch(buildFeedApiUrl(selectedType, offset, philosopherId), {
+      const response = await fetch(buildFeedApiUrl(contentType, offset, philosopherId), {
         cache: "no-store",
         signal: controller.signal,
       });
@@ -236,7 +124,7 @@ export function FeedSection({
 
       const data = (await response.json()) as PaginatedFeedResponse;
 
-      if (controller.signal.aborted || requestVersion !== requestVersionRef.current) {
+      if (controller.signal.aborted) {
         return;
       }
 
@@ -253,7 +141,7 @@ export function FeedSection({
       console.error("Failed to load more posts:", fetchError);
       setLoadMoreError("Unable to load more posts right now.");
     } finally {
-      if (!controller.signal.aborted && requestVersion === requestVersionRef.current) {
+      if (!controller.signal.aborted) {
         setLoadingMore(false);
       }
 
@@ -261,10 +149,10 @@ export function FeedSection({
         loadMoreRequestRef.current = null;
       }
     }
-  }, [hasMore, loadMoreError, loading, loadingMore, offset, philosopherId, selectedType]);
+  }, [contentType, hasMore, loadMoreError, loadingMore, offset, philosopherId]);
 
   useEffect(() => {
-    if (!sentinelRef.current || loading || loadingMore || loadMoreError || !hasMore) {
+    if (!sentinelRef.current || loadingMore || loadMoreError || !hasMore) {
       return;
     }
 
@@ -279,59 +167,34 @@ export function FeedSection({
 
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [hasMore, loadMore, loadMoreError, loading, loadingMore]);
+  }, [hasMore, loadMore, loadMoreError, loadingMore]);
 
   const feedItems = useMemo(() => buildFeedItems(posts), [posts]);
   const showSentinel = hasMore && !loadMoreError;
   const showEndOfFeed = !hasMore && posts.length > 0;
-  const getRevealDelay = useCallback((index: number) => Math.min(index, 4), []);
-
-  if (loading && posts.length === 0) {
-    return (
-      <div className="pb-20 pt-0 sm:pt-3 sm:pb-3 lg:pb-0">
-        <FeedSkeleton />
-      </div>
-    );
-  }
 
   return (
     <div className="pb-20 pt-0 sm:pt-3 sm:pb-3 lg:pb-0">
-      {loading && posts.length > 0 && (
-        <div className="px-4 pb-2">
-          <div className="h-1 overflow-hidden rounded-full bg-border-light/70">
-            <div className="h-full w-28 rounded-full bg-gold/55 animate-pulse" />
-          </div>
-        </div>
-      )}
-
       {feedItems.length > 0 ? (
         <>
-          <div className={loading ? "opacity-80 transition-opacity duration-200" : "transition-opacity duration-200"}>
+          <div>
             <WelcomeCard />
             {feedItems.map((item, index) => {
-              const revealDelay = getRevealDelay(index);
               const element = item.type === "cluster" ? (
                 <ArticleThreadCard
                   key={`cluster-${item.clusterId}`}
                   posts={item.posts}
-                  delay={revealDelay}
                 />
               ) : (
                 <PostCard
                   key={item.post.id}
                   post={item.post}
-                  delay={revealDelay}
                   isNew={isNewPost(item.post.timestamp)}
                 />
               );
 
-              const postCount = feedItems
-                .slice(0, index + 1)
-                .filter((feedItem) => feedItem.type === "post" || feedItem.type === "cluster").length;
               const showDivider =
-                (item.type === "post" || item.type === "cluster") &&
-                postCount > 0 &&
-                postCount % 5 === 0 &&
+                (index + 1) % 5 === 0 &&
                 index < feedItems.length - 1;
 
               return showDivider ? (
@@ -366,7 +229,7 @@ export function FeedSection({
       ) : (
         <div className="px-6 py-16 text-center">
           <p className="font-serif text-lg text-ink-light mb-2">
-            {error ?? buildEmptyStateMessage(selectedType, philosopherName)}
+            {buildEmptyStateMessage(contentType, philosopherName)}
           </p>
         </div>
       )}

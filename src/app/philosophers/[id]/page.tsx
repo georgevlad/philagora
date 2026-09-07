@@ -15,6 +15,7 @@ import { AIBadge } from "@/components/AIBadge";
 import { BookIcon, ChevronLeftIcon } from "@/components/Icons";
 import { PrincipleCard } from "@/components/PrincipleCard";
 import { getIdentityFromCookies } from "@/lib/auth";
+import { normalizeFeedContentType } from "@/lib/feed-utils";
 import { truncateSeoText } from "@/lib/seo";
 import { buildBreadcrumbSchema } from "@/lib/seo/schema";
 
@@ -50,10 +51,17 @@ export async function generateMetadata({
 
 export default async function PhilosopherProfileDynamic({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ type?: string | string[] }>;
 }) {
   const { id } = await params;
+  const resolvedSearchParams = await searchParams;
+  const rawContentType = resolvedSearchParams.type;
+  const selectedContentType = normalizeFeedContentType(
+    Array.isArray(rawContentType) ? rawContentType[0] : rawContentType
+  );
   const identity = await getIdentityFromCookies();
   const userId = identity.type === "user" ? identity.id : undefined;
 
@@ -67,6 +75,7 @@ export default async function PhilosopherProfileDynamic({
   }
 
   const { posts: philosopherPosts, hasMore } = getInterleavedFeed({
+    contentType: selectedContentType === "all" ? undefined : selectedContentType,
     philosopherId: id,
     limit: 15,
     userId,
@@ -144,7 +153,7 @@ export default async function PhilosopherProfileDynamic({
             </h2>
             <div className="grid gap-3 sm:grid-cols-2">
               {philosopher.corePrinciples.map((principle, i) => (
-                <PrincipleCard key={i} principle={principle} index={i} />
+                <PrincipleCard key={i} principle={principle} />
               ))}
             </div>
           </div>
@@ -175,8 +184,10 @@ export default async function PhilosopherProfileDynamic({
               </h2>
             </div>
             <FeedSection
+              key={selectedContentType}
               initialPosts={philosopherPosts}
               initialHasMore={hasMore}
+              contentType={selectedContentType}
               philosopherId={id}
               philosopherName={philosopher.name}
             />

@@ -2,7 +2,6 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -67,57 +66,9 @@ function getUserLabel(name: string | null | undefined, email: string) {
   return firstName || email;
 }
 
-type SidebarPhilosopher = Pick<Philosopher, "id" | "name" | "color" | "initials">;
-
-function isSidebarPhilosopher(value: unknown): value is SidebarPhilosopher {
-  return Boolean(
-    value
-    && typeof value === "object"
-    && typeof (value as SidebarPhilosopher).id === "string"
-    && typeof (value as SidebarPhilosopher).name === "string"
-    && typeof (value as SidebarPhilosopher).color === "string"
-    && typeof (value as SidebarPhilosopher).initials === "string"
-  );
-}
-
 export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
   const pathname = usePathname();
   const { data: session, isPending } = useSession();
-  const [resolvedPhilosophers, setResolvedPhilosophers] = useState<SidebarPhilosopher[]>(philosophers);
-
-  useEffect(() => {
-    setResolvedPhilosophers(philosophers);
-  }, [philosophers]);
-
-  useEffect(() => {
-    if (philosophers.length > 0) {
-      return;
-    }
-
-    let cancelled = false;
-
-    async function loadPhilosophers() {
-      try {
-        const response = await fetch("/api/philosophers", { cache: "no-store" });
-        if (!response.ok) {
-          return;
-        }
-
-        const data = await response.json();
-        if (!cancelled && Array.isArray(data)) {
-          setResolvedPhilosophers(data.filter(isSidebarPhilosopher));
-        }
-      } catch {
-        // Leave the sidebar unchanged if the fallback request fails.
-      }
-    }
-
-    void loadPhilosophers();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [philosophers]);
 
   return (
     <aside className="hidden lg:flex flex-col w-64 shrink-0 sticky top-0 h-screen border-r border-border-light/80 bg-parchment-dark/55 supports-[backdrop-filter]:backdrop-blur-sm py-6 px-4 shadow-[inset_-1px_0_0_rgba(255,255,255,0.35)]">
@@ -276,7 +227,7 @@ export function LeftSidebar({ philosophers }: { philosophers: Philosopher[] }) {
             className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10 bg-gradient-to-t from-parchment-dark/95 via-parchment-dark/78 to-transparent"
           />
           <div className="sidebar-scrollbar h-full overflow-y-auto space-y-1 pr-1 pb-6">
-            {resolvedPhilosophers.map((p) => (
+            {philosophers.map((p) => (
               <Link
                 key={p.id}
                 href={`/philosophers/${p.id}`}

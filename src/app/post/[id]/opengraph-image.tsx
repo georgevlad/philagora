@@ -22,6 +22,9 @@ interface Props {
 }
 
 export default async function PostOpenGraphImage({ params }: Props) {
+  let philosopher: ReturnType<typeof getPhilosopherById>;
+  let thesis: string;
+
   try {
     const { id } = await params;
     const post = getPostById(id);
@@ -30,15 +33,19 @@ export default async function PostOpenGraphImage({ params }: Props) {
       return renderRootOg();
     }
 
-    const philosopher = getPhilosopherById(post.philosopherId);
+    philosopher = getPhilosopherById(post.philosopherId);
 
     if (!philosopher) {
       return renderRootOg();
     }
 
-    const thesis = buildOgExcerpt(post.thesis, post.content, 140);
+    thesis = buildOgExcerpt(post.thesis, post.content, 140);
+  } catch (error) {
+    console.error("[og] post/[id] render failed, falling back to root OG:", error);
+    return renderRootOg();
+  }
 
-    return createOgImageResponse(
+  const element = (
       <div
         style={{
           display: "flex",
@@ -157,7 +164,10 @@ export default async function PostOpenGraphImage({ params }: Props) {
           <FooterStrip label={`PHILAGORA \u00b7 in the voice of ${philosopher.name}`} />
         </div>
       </div>
-    );
+  );
+
+  try {
+    return createOgImageResponse(element);
   } catch (error) {
     console.error("[og] post/[id] render failed, falling back to root OG:", error);
     return renderRootOg();

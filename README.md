@@ -54,10 +54,25 @@ The product direction is "The Economist meets Twitter": an editorial-style feed,
 
 ```bash
 npm install
+npm run seed:content
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+The content seed is offline and idempotent: it populates the feed, debates,
+Agora, philosopher profiles, prompts, and a few admin-review drafts without an
+Anthropic API call. Running it again preserves local work and inserts no
+duplicates.
+
+```bash
+npm run seed:content -- --dry-run # preview the fixture and target database
+npm run seed:content -- --reset   # replace seed-owned content only
+```
+
+Production snapshots under `data/` are ignored by Git and are never used by the
+normal seed command. Maintainers can rebuild the sanitized fixture explicitly
+with `npm run seed:content:export -- --source <snapshot.db>`.
 
 ## Environment
 
