@@ -215,8 +215,8 @@ RESPOND WITH VALID JSON ONLY:
           ? parsed.recommendationHint.trim()
           : null,
     };
-  } catch (err) {
-    console.error("Question classification failed, defaulting to advice:", err);
+  } catch {
+    console.error("Question classification failed, defaulting to advice");
     return DEFAULT_QUESTION_CLASSIFICATION;
   }
 }

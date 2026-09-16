@@ -1,3 +1,5 @@
+import { withAgoraModelCall } from "@/lib/agora-model-call";
+import { agoraEditorialConflict, getAgoraJob, reconcileAgoraEditorialCompletion } from "@/lib/agora-jobs";
 import { NextRequest, NextResponse } from "next/server";
 import {
   buildAgoraSynthesisSourceMaterial,
@@ -11,6 +13,7 @@ import type { AgoraQuestionType } from "@/lib/types";
 
 interface ThreadRow {
   id: string;
+  visibility?: string;
   question: string;
   asked_by: string;
   question_type?: AgoraQuestionType;
@@ -52,7 +55,7 @@ export async function POST(
 
     const thread = db
       .prepare(
-        `SELECT id, question, asked_by, question_type, recommendations_enabled,
+        `SELECT id, question, asked_by, visibility, question_type, recommendations_enabled,
                 article_url, article_title, article_source, article_excerpt
          FROM agora_threads
          WHERE id = ?`
@@ -63,7 +66,11 @@ export async function POST(
       return NextResponse.json({ error: "Thread not found" }, { status: 404 });
     }
 
+    const conflict = agoraEditorialConflict(db, threadId, "synthesis");
+    if (conflict) return NextResponse.json({ error: conflict }, { status: 409 });
+
     if (action === "generate") {
+      if (getAgoraJob(db, threadId)) return NextResponse.json({ error: "Use recovery for this durable conversation. Exhausted work requires manual editorial completion." }, { status: 409 });
       // Fetch all responses with philosopher info
       const responses = db
         .prepare(
@@ -104,11 +111,11 @@ export async function POST(
       const synthesisTemplate = getSynthesisTemplateForType(questionType);
 
       // Generate synthesis
-      const outcome = await generateSynthesis(
+      const outcome = await withAgoraModelCall(() => generateSynthesis(
         "agora_synthesis",
         sourceMaterial,
         synthesisTemplate
-      );
+      ), false);
 
       // Log to generation_log with null philosopher_id
       const status = outcome.success ? "generated" : "rejected";
@@ -121,7 +128,7 @@ export async function POST(
           `INSERT INTO generation_log (philosopher_id, content_type, system_prompt_id, user_input, raw_output, status)
            VALUES (?, 'synthesis', ?, ?, ?, ?)`
         )
-        .run(null, null, sourceMaterial, rawOutput, status);
+        .run(null, null, thread.visibility === "private" ? "[Private Agora content omitted]" : sourceMaterial, thread.visibility === "private" ? "[Private Agora content omitted]" : rawOutput, status);
 
       const logEntry = db
         .prepare("SELECT * FROM generation_log WHERE id = ?")
@@ -156,6 +163,8 @@ export async function POST(
     }
 
     db.transaction(() => {
+      const conflict = agoraEditorialConflict(db, threadId, "synthesis");
+      if (conflict) throw new Error(conflict);
       const synthesisType = data.synthesisType ?? thread.question_type ?? "advice";
       const sectionsJson =
         data.sections && typeof data.sections === "object"
@@ -172,10 +181,7 @@ export async function POST(
            sections = excluded.sections`
       ).run(threadId, synthesisType, sectionsJson);
 
-      // Mark thread as complete
-      db.prepare("UPDATE agora_threads SET status = 'complete' WHERE id = ?").run(
-        threadId
-      );
+      reconcileAgoraEditorialCompletion(db, threadId);
 
       // Update generation_log entry if provided
       if (data.generation_log_id) {
@@ -199,10 +205,10 @@ export async function POST(
       : null;
 
     return NextResponse.json({ thread: updated, synthesis });
-  } catch (error) {
-    console.error("Agora synthesis failed:", error);
+  } catch {
+    console.error("Admin Agora generation failed");
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Synthesis failed" },
+      { error: "Synthesis failed" },
       { status: 500 }
     );
   }

@@ -230,7 +230,14 @@ export interface AgoraThreadArticle {
   excerpt: string | null;
 }
 
+export interface AgoraRecovery {
+  state: "available" | "unavailable" | "queued" | "running" | "retry_wait" | "complete" | "exhausted" | "blocked";
+  canRecover: boolean;
+  nextAttemptAt?: string;
+}
+
 export interface AgoraThreadFollowUp {
+  recovery?: AgoraRecovery;
   id: string;
   question: string;
   status: AgoraThreadStatus;
@@ -240,6 +247,7 @@ export interface AgoraThreadFollowUp {
 }
 
 export interface AgoraThreadDetail {
+  recovery?: AgoraRecovery;
   id: string;
   question: string;
   askedBy: string;

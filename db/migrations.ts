@@ -116,8 +116,41 @@ const MIGRATIONS: Migration[] = [
     name: "refresh_anthropic_model_defaults",
     migrate: (db) => migrateRefreshAnthropicModelDefaults(db),
   },
+  {
+    version: 18,
+    name: "durable_agora_generation_jobs",
+    migrate: (db) => migrateAgoraGenerationJobs(db),
+  },
   // Future migrations go here
 ];
+
+function migrateAgoraGenerationJobs(db: Database.Database): void {
+  // Additive only: preserve legacy responses (including duplicates) and synthesis.
+  // Eligibility is evaluated explicitly by the recovery service, not by a migration.
+  db.transaction(() => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS agora_jobs (
+        thread_id TEXT PRIMARY KEY REFERENCES agora_threads(id) ON DELETE CASCADE,
+        context_json TEXT NOT NULL,
+        state TEXT NOT NULL DEFAULT 'queued' CHECK(state IN ('queued','running','retry_wait','complete','exhausted','blocked')),
+        lease_token TEXT, lease_until INTEGER,
+        next_attempt_at INTEGER NOT NULL DEFAULT 0, failure_code TEXT,
+        created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_agora_jobs_due ON agora_jobs(state, next_attempt_at, lease_until);
+      CREATE TABLE IF NOT EXISTS agora_job_steps (
+        thread_id TEXT NOT NULL REFERENCES agora_jobs(thread_id) ON DELETE CASCADE,
+        step_key TEXT NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 0 CHECK(attempts BETWEEN 0 AND 3),
+        source_material TEXT, template TEXT,
+        PRIMARY KEY(thread_id, step_key)
+      );
+      CREATE TABLE IF NOT EXISTS agora_recovery_limits (
+        actor_key TEXT PRIMARY KEY, window_start INTEGER NOT NULL, requests INTEGER NOT NULL
+      );
+    `);
+  })();
+}
 
 const DEFAULT_NEWS_SOURCES: [string, string, string, string][] = [
   ["bbc-world", "BBC World News", "https://feeds.bbci.co.uk/news/world/rss.xml", "world"],

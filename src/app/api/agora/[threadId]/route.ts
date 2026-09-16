@@ -1,3 +1,4 @@
+import { authorizeAgoraRecovery } from "@/lib/agora-access";
 import { NextRequest, NextResponse } from "next/server";
 import {
   getAgoraSynthesisForThread,
@@ -144,6 +145,7 @@ export async function GET(
     }
 
     const detail = getAgoraThreadById(threadId)!;
+    authorizeAgoraRecovery(detail, identity);
     const canFollowUp = canFollowUpAgoraThread(detail, identity);
     // Ownership is used on the server; public readers do not need account IDs.
     const ownsThread =
@@ -191,8 +193,8 @@ export async function GET(
       },
       { headers: { "Cache-Control": "private, no-store" } },
     );
-  } catch (error) {
-    console.error("Failed to fetch agora thread:", error);
+  } catch {
+    console.error("Failed to fetch agora thread");
     return NextResponse.json(
       { error: "Failed to fetch agora thread" },
       { status: 500 },

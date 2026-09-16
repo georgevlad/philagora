@@ -1,3 +1,4 @@
+import { authorizeAgoraRecovery } from "@/lib/agora-access";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/seo/JsonLd";
 import {
@@ -87,6 +88,7 @@ export default async function AgoraThreadPage({ params }: Props) {
   const candidate = getAgoraThreadById(threadId);
   const thread =
     candidate && canReadAgoraThread(candidate, identity) ? candidate : null;
+  if (thread) authorizeAgoraRecovery(thread, identity);
   if (thread?.followUpTo) redirect(`/agora/${thread.followUpTo}#follow-up`);
   const initialCanFollowUp = thread
     ? canFollowUpAgoraThread(thread, identity)

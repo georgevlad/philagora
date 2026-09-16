@@ -1,12 +1,11 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import {
-  buildAgoraFollowUpResponseSourceMaterial,
-  buildAgoraFollowUpSynthesisSourceMaterial,
   getAgoraSynthesisForThread,
   sanitizeAgoraQuestion,
   type AgoraFollowUpContextResponseRow,
 } from "@/lib/agora";
+import { agoraWork, enqueueAgoraJob, snapshotParticipants, getAgoraJob, type AgoraJobContext } from "@/lib/agora-jobs";
 import { runAgoraGeneration } from "@/lib/agora-generation";
 import { getIdentityFromHeaders, hasUnlimitedAgoraAccess } from "@/lib/auth";
 import { agoraQuotaError, AgoraQuotaError } from "@/lib/agora-quota";
@@ -91,13 +90,6 @@ export async function POST(
       return NextResponse.json({ error: "Thread not found" }, { status: 404 });
     }
 
-    if (parent.status !== "complete") {
-      return NextResponse.json(
-        { error: "Cannot follow up on a thread that is still generating" },
-        { status: 400 },
-      );
-    }
-
     if (parent.follow_up_to) {
       return NextResponse.json(
         { error: "Cannot add a follow-up to a follow-up" },
@@ -135,6 +127,10 @@ export async function POST(
           );
     }
 
+    if (parent.status !== "complete" || !agoraWork(db, parentId).complete) {
+      return NextResponse.json({ error: "Finish recovering this conversation before adding a follow-up" }, { status: 409 });
+    }
+
     const clientIp =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
       "unknown";
@@ -160,7 +156,7 @@ export async function POST(
       .all(parentId) as ParentResponseRow[];
     const parentPhilosophers = db
       .prepare(
-        "SELECT philosopher_id FROM agora_thread_philosophers WHERE thread_id = ?",
+        "SELECT philosopher_id FROM agora_thread_philosophers WHERE thread_id = ? ORDER BY rowid",
       )
       .all(parentId) as ThreadPhilosopherRow[];
     const philosopherIds = [
@@ -188,6 +184,19 @@ export async function POST(
     const questionType = parent.question_type ?? "advice";
     const recommendationsEnabled = (parent.recommendations_enabled ?? 0) === 1;
     const followUpId = crypto.randomUUID();
+
+    const parentJob = getAgoraJob(db, parentId);
+    const savedContext: AgoraJobContext | null = parentJob ? JSON.parse(parentJob.context_json) : null;
+    const parentSynthesis = getAgoraSynthesisForThread(db, parentId);
+    const article = parent.article_url
+      ? {
+          url: parent.article_url,
+          title: parent.article_title ?? null,
+          source: parent.article_source ?? null,
+          excerpt: parent.article_excerpt ?? null,
+        }
+      : null;
+
 
     const created = db.transaction(() => {
       if (
@@ -246,56 +255,22 @@ export async function POST(
       for (const philosopherId of philosopherIds) {
         insertPhilosopher.run(followUpId, philosopherId);
       }
+      enqueueAgoraJob(db, followUpId, {
+        version: 1, question: sanitizedQuestion, askedBy: parent.asked_by,
+        questionType, recommendationsEnabled, recommendationHint: null,
+        visibility: parent.visibility ?? "public", userId: parent.user_id ?? null,
+        participants: savedContext?.participants ?? snapshotParticipants(db, philosopherIds), article,
+        parent: { id: parentId, question: parent.question, responses: parentResponses, synthesis: parentSynthesis },
+      });
       return true;
-    })();
+    }).immediate();
     if (!created)
       return NextResponse.json(
         { error: "This conversation already has its one follow-up" },
         { status: 409 },
       );
 
-    const parentSynthesis = getAgoraSynthesisForThread(db, parentId);
-    const article = parent.article_url
-      ? {
-          url: parent.article_url,
-          title: parent.article_title ?? null,
-          source: parent.article_source ?? null,
-          excerpt: parent.article_excerpt ?? null,
-        }
-      : null;
-
-    void runAgoraGeneration({
-      threadId: followUpId,
-      philosopherIds,
-      questionType,
-      recommendationsEnabled,
-      recommendationHint: null,
-      buildResponseSourceMaterial: ({ alreadyRecommended }) =>
-        buildAgoraFollowUpResponseSourceMaterial({
-          parentQuestion: parent.question,
-          askedBy: parent.asked_by,
-          parentResponses,
-          parentSynthesis,
-          followUpQuestion: sanitizedQuestion,
-          questionType,
-          recommendationsAppropriate: recommendationsEnabled,
-          recommendationHint: null,
-          alreadyRecommended,
-          article,
-        }),
-      buildSynthesisSourceMaterial: ({ responses, recommendations }) =>
-        buildAgoraFollowUpSynthesisSourceMaterial({
-          parentQuestion: parent.question,
-          askedBy: parent.asked_by,
-          parentResponses,
-          parentSynthesis,
-          followUpQuestion: sanitizedQuestion,
-          questionType,
-          responses,
-          recommendations,
-          article,
-        }),
-    });
+    void runAgoraGeneration(followUpId);
 
     return NextResponse.json({ threadId: followUpId }, { status: 201 });
   } catch (error) {

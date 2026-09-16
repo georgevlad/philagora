@@ -1,3 +1,4 @@
+import { getAgoraRecovery } from "@/lib/agora-jobs";
 import { getAgoraSynthesisForThread, parseAgoraRecommendation } from "@/lib/agora";
 import { getDb } from "@/lib/db";
 import {
@@ -815,6 +816,7 @@ function buildAgoraFollowUpDetail(
 ): AgoraThreadFollowUp {
   return {
     id: thread.id,
+    recovery: getAgoraRecovery(db, thread.id),
     question: thread.question,
     status: thread.status,
     createdAt: thread.created_at,
@@ -828,7 +830,7 @@ function buildAgoraThreadDetail(
   t: AgoraThreadRow
 ): AgoraThreadDetail {
   const philRows = db
-    .prepare("SELECT philosopher_id FROM agora_thread_philosophers WHERE thread_id = ?")
+    .prepare("SELECT philosopher_id FROM agora_thread_philosophers WHERE thread_id = ? ORDER BY rowid")
     .all(t.id) as AgoraPhilosopherRow[];
   const responses = buildAgoraResponses(db, t.id);
   const synthesis: AgoraSynthesis | null = getAgoraSynthesisForThread(db, t.id);
@@ -840,6 +842,7 @@ function buildAgoraThreadDetail(
 
   return {
     id: t.id,
+    recovery: getAgoraRecovery(db, t.id),
     question: t.question,
     askedBy: t.asked_by,
     status: t.status,

@@ -1,11 +1,13 @@
-/** Only rendered by the local fixture runner in development. */
+/** Only rendered by the local review runners in development. */
 export function LocalReviewBanner() {
   const port = Number(process.env.AGORA_REVIEW_PORT || 3100) + 1;
+  const snapshot = process.env.AGORA_REVIEW_MODE === "snapshot";
+  const title = snapshot ? "Local snapshot review" : "Local test preview";
   return (
-    <aside className="local-review-banner" aria-label="Local test preview">
+    <aside className="local-review-banner" aria-label={title}>
       <div>
-        <strong>Local test preview</strong>
-        <span>Fixed sample answers · No live AI calls</span>
+        <strong>{title}</strong>
+        <span>{snapshot ? "Real saved content · Generation disabled" : "Fixed sample answers · No live AI calls"}</span>
       </div>
       <nav aria-label="Test accounts">
         <a href={`http://127.0.0.1:${port}/login/owner`}>Use test account</a>

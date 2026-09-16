@@ -39,7 +39,7 @@ With the fixture server running, run `npm run test:browser`. Playwright uses ins
 - Public questions, answers and follow-ups are public under the supplied display name, or Anonymous. Account names are not automatically shown. Guest questions remain unowned and cannot be claimed by signing in later.
 - A client-generated UUID becomes the durable thread ID. Network retries reuse it, check ownership, and return the existing thread without restarting generation or spending another question allowance. Quotas are rechecked inside the insertion transaction.
 - Waiting is driven by saved status and response rows. Responses append without replacing previously rendered answers. Long waits use the real creation time. Synthesis and cultural recommendations are displayed when available.
-- A Check for updates action only reloads saved state. There is no automatic resume/regenerate endpoint. Failed or partially completed conversations retain available answers and explain that a fresh question is a separate submission.
+- A Check for updates action only reloads saved state. Phase 4 adds a separate owner/admin recovery action and durable background recovery; see `docs/agora-recovery.md`.
 - A follow-up uses every original participant, original context and audience, and stays in the same reading page. Only the registered owner (or the existing administrator override) can submit it. Retries reconcile the existing follow-up. A second distinct follow-up is rejected. Direct child links return to the original conversation.
 - Thread HTML, polling APIs, metadata, structured data, OG previews, homepage selections and public indexes enforce privacy. Private generation content is omitted from new generation-log entries. Existing historical logs are not changed.
 - Drafts are tab-scoped in session storage with a two-hour expiry, isolated by account, and cleared after submission. Sign-in handoff preserves the guest draft. No question text is placed in navigation URLs.
@@ -93,3 +93,12 @@ The Local test preview banner and account shortcuts remain. Browser screenshots 
 - All 39 distinct browser scenarios passed across the full 36-case regression run and three additional state/accessibility checks. The 13 public-page scenarios were rerun after the final presentation changes and all passed. A transient development reload during an earlier desktop run was resolved by the stable rerun.
 - Browser coverage includes all eight public page types at 320, 390, 768 and 1440px, actual element bounds, 200% root text at 320px, reduced motion, keyboard filters and skip navigation, touch targets, all feed filters, both feed/profile pagination, complete debate phases and synthesis, account ownership, like/bookmark persistence and rollback, sign-out, guest return paths, private access, loading/empty/error recovery, and the unchanged admin palette. Screenshots were reviewed at mobile and desktop sizes.
 - The final local review session starts with fresh isolated fixtures, the visible test banner and working account shortcuts. The normal application database and design-explorations files are untouched. No deployment or paid AI calls were made.
+
+
+## Phase 4: durable Agora recovery
+
+Accepted public questions and whole-group follow-ups now persist SQLite jobs with immutable generation context, leased claims and a three-attempt budget per missing answer/synthesis. Recovery preserves completed content, ownership, audience and the one-follow-up limit. Startup recovery runs without readers; polling remains read-only. Older conversations have conservative, explicit eligibility rules. The admin manual review workflow remains available, with guards against competing writes.
+
+See [agora-recovery.md](agora-recovery.md) for the lifecycle, rate limits, startup behavior, legacy cases, editorial intervention and model-call crash boundary. The issue-in-focus feature remains entirely mocked.
+
+Phase 4 validation: 202 unit tests in 15 files, all 47 distinct browser scenarios across the regression and final recovery rerun, lint, TypeScript and the final production build pass. The existing middleware deprecation warning remains. The fresh review session is at `http://127.0.0.1:3300`; use its test-account shortcut before opening `/agora/review-failed` or `/agora/review-exhausted`. No normal database changes, paid generation or deployment.

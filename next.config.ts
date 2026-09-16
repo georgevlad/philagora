@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
+const snapshotReview =
+  process.env.NODE_ENV !== "production" && process.env.AGORA_REVIEW_MODE === "snapshot";
+
 const nextConfig: NextConfig = {
+  ...(["fixtures", "snapshot"].includes(process.env.AGORA_REVIEW_MODE || "") && process.env.NODE_ENV !== "production"
+    ? { distDir: `.local-review/next-${process.env.AGORA_REVIEW_PORT || "3100"}` } : {}),
   turbopack: {
     root: process.cwd(),
   },
@@ -11,6 +16,23 @@ const nextConfig: NextConfig = {
         hostname: "**",
       },
     ],
+  },
+  async rewrites() {
+    // The snapshot runner serves an explicit error before these routes can
+    // enqueue work or mutate imported conversations. Production is unaffected.
+    if (!snapshotReview) return [];
+    const helperPort = Number(process.env.AGORA_REVIEW_PORT || 3400) + 1;
+    return {
+      beforeFiles: [
+        "/api/agora/suggest",
+        "/api/agora/submit",
+        "/api/agora/:threadId/follow-up",
+        "/api/agora/:threadId/recover",
+      ].map((source) => ({
+        source,
+        destination: `http://127.0.0.1:${helperPort}/generation-disabled`,
+      })),
+    };
   },
   async headers() {
     return [

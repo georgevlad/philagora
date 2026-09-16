@@ -1,3 +1,4 @@
+import { enqueueAgoraJob, snapshotParticipants } from "../src/lib/agora-jobs";
 import { seedPublicPageReview } from "./fixtures/public-page-review";
 import fs from "node:fs";
 import path from "node:path";
@@ -162,6 +163,14 @@ async function main() {
     0,
     1,
   );
+  addThread("review-exhausted", "How can I find steadiness after a setback?", "private", "failed", 0, 1);
+  enqueueAgoraJob(db, "review-exhausted", {
+    version: 1, question: "How can I find steadiness after a setback?", askedBy: "Anonymous",
+    questionType: "advice", recommendationsEnabled: false, recommendationHint: null,
+    visibility: "private", userId: "owner", participants: snapshotParticipants(db, group), article: null, parent: null,
+  });
+  db.prepare("UPDATE agora_jobs SET state = 'exhausted', failure_code = 'generation_interrupted' WHERE thread_id = ?").run("review-exhausted");
+  db.prepare("UPDATE agora_job_steps SET attempts = 3 WHERE thread_id = ? AND step_key = ?").run("review-exhausted", "response:camus");
   for (let i = 0; i < 26; i++)
     db.prepare(
       "INSERT INTO posts (id,philosopher_id,content,thesis,stance,source_type,tag,status,created_at) VALUES (?,?,?,?,?,?,?,'published',?)",
@@ -193,6 +202,7 @@ async function main() {
     ).run(randomUUID(), "review-debate", pid, responseTexts[pid], i);
   }
   seedPublicPageReview(db);
+  db.prepare("UPDATE agora_threads SET ip_address = ? WHERE id = ?").run("fixture-ip", "review-failed");
   let mode = "normal";
   let calls = 0;
   const counters = {
@@ -273,13 +283,14 @@ async function main() {
       russell:
         "Examines the evidence behind your public commitments and the consequences of acting on them.",
     };
+    const requestMode = mode;
     const delay =
-      isClassification || isSuggestion ? 100 : mode === "slow" ? 15000 : 1200;
+      isClassification || isSuggestion ? 100 : requestMode === "slow" ? 15000 : 1200;
     await new Promise((resolve) => setTimeout(resolve, delay));
     const rejected =
       !isClassification &&
       !isSuggestion &&
-      (mode === "failed" || (mode === "partial" && pid !== "marcus-aurelius"));
+      (requestMode === "failed" || (requestMode === "partial" && pid !== "marcus-aurelius") || (requestMode === "synthesis-failed" && !pid));
     const data = isClassification
       ? {
           questionType: "advice",

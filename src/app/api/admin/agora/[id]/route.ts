@@ -1,3 +1,4 @@
+import { agoraEditorialConflict } from "@/lib/agora-jobs";
 import { NextRequest, NextResponse } from "next/server";
 import {
   getAgoraSynthesisForThread,
@@ -175,6 +176,8 @@ export async function PATCH(
       return NextResponse.json({ error: "Thread not found" }, { status: 404 });
     }
 
+    const conflict = agoraEditorialConflict(db, id);
+    if (conflict) return NextResponse.json({ error: conflict }, { status: 409 });
     if (body.status) {
       db.prepare("UPDATE agora_threads SET status = ? WHERE id = ?").run(
         body.status,

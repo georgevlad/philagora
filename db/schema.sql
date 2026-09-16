@@ -124,6 +124,35 @@ CREATE TABLE IF NOT EXISTS agora_threads (
 
 CREATE INDEX IF NOT EXISTS idx_agora_threads_follow_up ON agora_threads(follow_up_to);
 
+-- Accepted public generation jobs. Context is private application data, never a public DTO.
+CREATE TABLE IF NOT EXISTS agora_jobs (
+  thread_id TEXT PRIMARY KEY REFERENCES agora_threads(id) ON DELETE CASCADE,
+  context_json TEXT NOT NULL,
+  state TEXT NOT NULL DEFAULT 'queued' CHECK(state IN ('queued','running','retry_wait','complete','exhausted','blocked')),
+  lease_token TEXT,
+  lease_until INTEGER,
+  next_attempt_at INTEGER NOT NULL DEFAULT 0,
+  failure_code TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_agora_jobs_due ON agora_jobs(state, next_attempt_at, lease_until);
+
+CREATE TABLE IF NOT EXISTS agora_job_steps (
+  thread_id TEXT NOT NULL REFERENCES agora_jobs(thread_id) ON DELETE CASCADE,
+  step_key TEXT NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0 CHECK(attempts BETWEEN 0 AND 3),
+  source_material TEXT,
+  template TEXT,
+  PRIMARY KEY(thread_id, step_key)
+);
+
+CREATE TABLE IF NOT EXISTS agora_recovery_limits (
+  actor_key TEXT PRIMARY KEY,
+  window_start INTEGER NOT NULL,
+  requests INTEGER NOT NULL
+);
+
 -- ── Agora Thread ↔ Philosopher junction ──────────────────────────────
 
 CREATE TABLE IF NOT EXISTS agora_thread_philosophers (

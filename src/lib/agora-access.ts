@@ -24,6 +24,7 @@ export function canFollowUpAgoraThread(
     (identity.type === "admin" ||
       (identity.type === "user" && identity.id === thread.userId)) &&
     thread.status === "complete" &&
+    thread.responses.length === thread.philosophers.length && !!thread.synthesis &&
     !thread.followUpTo &&
     !thread.followUp
   );
@@ -35,4 +36,12 @@ export function isPublicAgoraThread(thread: AgoraThreadDetail): boolean {
     !thread.hiddenFromFeed &&
     thread.status === "complete"
   );
+}
+
+/** Set action permissions only after read access is checked. Never infer guest ownership. */
+export function authorizeAgoraRecovery(thread: AgoraThreadDetail, identity: RequestIdentity) {
+  const owner = identity.type === "admin" || (identity.type === "user" && !!thread.userId && identity.id === thread.userId);
+  for (const round of [thread, thread.followUp]) {
+    if (round?.recovery) round.recovery.canRecover = owner && ["available", "queued", "running", "retry_wait"].includes(round.recovery.state);
+  }
 }

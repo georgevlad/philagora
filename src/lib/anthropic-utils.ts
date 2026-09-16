@@ -2,6 +2,7 @@
  * Shared Anthropic API utilities used by generation-service and news-scout-service.
  */
 
+import { agoraModelCall } from "@/lib/agora-model-call";
 import Anthropic from "@anthropic-ai/sdk";
 import { classifyError, logApiCall } from "@/lib/api-logger";
 
@@ -64,7 +65,7 @@ export async function createMessage(
     .reduce((total, length) => total + length, 0);
 
   try {
-    const response = await client.messages.create(requestParams);
+    const response = await client.messages.create(requestParams, agoraModelCall.getStore() === "durable" ? { maxRetries: 0, timeout: 90_000 } : undefined);
     const latencyMs = Date.now() - start;
     const rawText = response.content
       .filter((block): block is Anthropic.TextBlock => block.type === "text")
@@ -101,7 +102,7 @@ export async function createMessage(
       stopReason: null,
       latencyMs,
       success: false,
-      errorMessage: message,
+      errorMessage: (agoraModelCall.getStore() || caller === "classification") ? "Agora provider request failed" : message,
       errorType: type,
       systemPromptLength: systemLength,
       userMessageLength,

@@ -115,14 +115,21 @@ test("local generation partial failures retain first answer and explain missing 
   await expect(page.locator(".agora-answer")).toHaveCount(1);
   await expect(
     page.getByRole("heading", {
-      name: "Some of the conversation is available.",
+      name: "Continuing this conversation",
     }),
   ).toBeVisible();
-  await expect(page.locator(".agora-wait")).toContainText("could not respond");
-  await expect(page.getByLabel("Your follow-up to the group")).toBeVisible();
+  await expect(page.locator(".agora-wait")).toContainText("Generation was interrupted.");
+  const originalAnswer = await page.locator(".agora-answer").first().innerText();
+  await expect(page.getByLabel("Your follow-up to the group")).toHaveCount(0);
+  const threadId = page.url().split("/").pop();
+  expect((await page.request.post("/api/agora/" + threadId + "/follow-up", { data: { question: "Can we continue before everyone has answered?" } })).status()).toBe(409);
   await request.post(`http://127.0.0.1:${review.stubPort}/mode`, {
     data: { mode: "normal" },
   });
+  await expect(page.locator(".agora-answer")).toHaveCount(3, { timeout: 60000 });
+  await expect(page.locator(".agora-synthesis")).toHaveCount(1);
+  expect(await page.locator(".agora-answer").first().innerText()).toBe(originalAnswer);
+  await expect(page.getByLabel("Your follow-up to the group")).toBeVisible();
 });
 
 test("answer arrival preserves the reading node and keyboard focus", async ({

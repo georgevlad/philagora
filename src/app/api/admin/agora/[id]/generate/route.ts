@@ -1,3 +1,5 @@
+import { withAgoraModelCall } from "@/lib/agora-model-call";
+import { agoraEditorialConflict, getAgoraJob } from "@/lib/agora-jobs";
 import { NextRequest, NextResponse } from "next/server";
 import { buildAgoraResponseSourceMaterial, parseAgoraRecommendation } from "@/lib/agora";
 import { extractArticle } from "@/lib/article-extractor";
@@ -7,6 +9,7 @@ import { generateContent } from "@/lib/generation-service";
 
 interface ThreadRow {
   id: string;
+  visibility?: string;
   question: string;
   asked_by: string;
   question_type?: "advice" | "conceptual" | "debate";
@@ -37,7 +40,7 @@ export async function POST(
 
     const thread = db
       .prepare(
-        `SELECT id, question, asked_by, question_type, recommendations_enabled
+        `SELECT id, question, asked_by, visibility, question_type, recommendations_enabled, article_url, article_title, article_source, article_excerpt
          FROM agora_threads
          WHERE id = ?`
       )
@@ -47,6 +50,10 @@ export async function POST(
       return NextResponse.json({ error: "Thread not found" }, { status: 404 });
     }
 
+    const conflict = agoraEditorialConflict(db, threadId, philosopher_id);
+    if (conflict) return NextResponse.json({ error: conflict }, { status: 409 });
+
+    if (getAgoraJob(db, threadId)) return NextResponse.json({ error: "Use recovery for this durable conversation. Exhausted work requires manual editorial completion." }, { status: 409 });
     const questionType = thread.question_type ?? "advice";
     const recommendationsEnabled = thread.recommendations_enabled === 1;
     let articleWarning: string | null = null;
@@ -73,7 +80,7 @@ export async function POST(
       } else {
         articleWarning = extraction.error;
         console.warn(
-          `Admin Agora: article extraction failed for ${thread.article_url}: ${extraction.error}`
+          "Admin Agora: article extraction failed"
         );
       }
     }
@@ -111,13 +118,13 @@ export async function POST(
       article,
     });
 
-    const outcome = await generateContent(
+    const outcome = await withAgoraModelCall(() => generateContent(
       philosopher_id,
       "agora_response",
       sourceMaterial,
       undefined,
       template
-    );
+    ), false);
 
     // Log to generation_log
     const status = outcome.success ? "generated" : "rejected";
@@ -133,8 +140,8 @@ export async function POST(
       .run(
         philosopher_id,
         outcome.systemPromptId,
-        sourceMaterial,
-        rawOutput,
+        thread.visibility === "private" ? "[Private Agora content omitted]" : sourceMaterial,
+        thread.visibility === "private" ? "[Private Agora content omitted]" : rawOutput,
         status
       );
 
@@ -158,10 +165,10 @@ export async function POST(
       },
       { status: 201 }
     );
-  } catch (error) {
-    console.error("Agora generation failed:", error);
+  } catch {
+    console.error("Admin Agora generation failed");
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Generation failed" },
+      { error: "Generation failed" },
       { status: 500 }
     );
   }

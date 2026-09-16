@@ -2,11 +2,10 @@ import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import {
   buildAgoraClassificationInput,
-  buildAgoraResponseSourceMaterial,
-  buildAgoraSynthesisSourceMaterial,
   sanitizeAgoraQuestion,
   type AgoraGenerationArticle,
 } from "@/lib/agora";
+import { enqueueAgoraJob, snapshotParticipants } from "@/lib/agora-jobs";
 import { runAgoraGeneration } from "@/lib/agora-generation";
 import {
   extractArticle,
@@ -275,7 +274,20 @@ export async function POST(request: NextRequest) {
     const threadId = requestId ?? crypto.randomUUID();
     const validPids = philosopherIds as string[];
 
-    db.transaction(() => {
+    const article: AgoraGenerationArticle | null =
+      articleData && normalizedArticleUrl
+        ? {
+            url: normalizedArticleUrl,
+            title: articleData.title,
+            source: articleData.source,
+            excerpt: articleData.excerpt,
+            content: articleData.content,
+          }
+        : null;
+
+    const insertionReplay = db.transaction(() => {
+      const existing = replay();
+      if (existing) return existing;
       const limitError = agoraQuotaError(
         db,
         userId,
@@ -322,52 +334,17 @@ export async function POST(request: NextRequest) {
       for (const philosopherId of validPids) {
         insertPhilosopher.run(threadId, philosopherId);
       }
-    })();
+      enqueueAgoraJob(db, threadId, {
+        version: 1, question: sanitizedQuestion, askedBy,
+        questionType: classification.questionType,
+        recommendationsEnabled: classification.recommendationsAppropriate,
+        recommendationHint: classification.recommendationHint,
+        visibility, userId, participants: snapshotParticipants(db, validPids), article, parent: null,
+      });
+    }).immediate();
+    if (insertionReplay) return insertionReplay;
 
-    const article: AgoraGenerationArticle | null =
-      articleData && normalizedArticleUrl
-        ? {
-            url: normalizedArticleUrl,
-            title: articleData.title,
-            source: articleData.source,
-            excerpt: articleData.excerpt,
-            content: articleData.content,
-          }
-        : null;
-
-    void runAgoraGeneration({
-      threadId,
-      philosopherIds: validPids,
-      questionType: classification.questionType,
-      recommendationsEnabled: classification.recommendationsAppropriate,
-      recommendationHint: classification.recommendationHint,
-      buildResponseSourceMaterial: ({ alreadyRecommended }) =>
-        buildAgoraResponseSourceMaterial({
-          question: sanitizedQuestion,
-          askedBy,
-          questionType: classification.questionType,
-          recommendationsAppropriate: classification.recommendationsAppropriate,
-          recommendationHint: classification.recommendationHint,
-          alreadyRecommended,
-          article,
-        }),
-      buildSynthesisSourceMaterial: ({ responses, recommendations }) =>
-        buildAgoraSynthesisSourceMaterial({
-          question: sanitizedQuestion,
-          askedBy,
-          questionType: classification.questionType,
-          responses,
-          recommendations,
-          article: article
-            ? {
-                url: article.url,
-                title: article.title,
-                source: article.source,
-                excerpt: article.excerpt,
-              }
-            : null,
-        }),
-    });
+    void runAgoraGeneration(threadId);
 
     return NextResponse.json(
       {

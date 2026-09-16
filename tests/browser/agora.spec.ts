@@ -296,7 +296,7 @@ test("partial failure, slow state and network loss preserve answers", async ({
   await expect(page.locator(".agora-answer")).toHaveCount(1);
   await expect(
     page.getByRole("heading", {
-      name: "Some of the conversation is available.",
+      name: "Continuing this conversation",
     }),
   ).toBeVisible();
   const text = await page.locator(".agora-answer").innerText();
@@ -317,7 +317,7 @@ test("partial failure, slow state and network loss preserve answers", async ({
   ).toHaveCount(0);
   await page.goto("/agora/review-slow");
   await expect(
-    page.getByRole("heading", { name: "This is taking a little longer." }),
+    page.getByText("This older conversation does not have enough saved generation context", { exact: false }),
   ).toBeVisible();
   await request.post(`http://127.0.0.1:${review.stubPort}/mode`, {
     data: { mode: "normal" },

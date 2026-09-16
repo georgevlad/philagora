@@ -1,4 +1,5 @@
 "use client";
+import { AgoraRecoveryControls } from "@/components/agora/AgoraRecoveryControls";
 import {
   useCallback,
   useEffect,
@@ -31,7 +32,7 @@ function mergeResponses(previous: AgoraResponse[], incoming: AgoraResponse[]) {
     ...incoming.filter(
       (r) => !previous.some((p) => p.philosopherId === r.philosopherId),
     ),
-  ];
+  ].sort((a, b) => a.sortOrder - b.sortOrder);
 }
 function mergeThread(
   previous: AgoraThreadDetail | null,
@@ -41,7 +42,7 @@ function mergeThread(
   return {
     ...incoming,
     responses: mergeResponses(previous.responses, incoming.responses),
-    synthesis: incoming.synthesis ?? previous.synthesis,
+    synthesis: previous.synthesis ?? incoming.synthesis,
     followUp: incoming.followUp
       ? {
           ...incoming.followUp,
@@ -50,7 +51,7 @@ function mergeThread(
             incoming.followUp.responses,
           ),
           synthesis:
-            incoming.followUp.synthesis ?? previous.followUp?.synthesis ?? null,
+            previous.followUp?.synthesis ?? incoming.followUp.synthesis ?? null,
         }
       : previous.followUp,
   };
@@ -94,7 +95,7 @@ function Round({
 }: {
   round: Pick<
     AgoraThreadFollowUp,
-    "status" | "responses" | "synthesis" | "createdAt"
+    "id" | "status" | "responses" | "synthesis" | "createdAt" | "recovery"
   >;
   group: Philosopher[];
   onCheck: () => void;
@@ -165,7 +166,7 @@ function Round({
         </article>
       ))}
       {round.synthesis && <Synthesis synthesis={round.synthesis} />}
-      {!settled(round.status) ? (
+      {round.recovery ? <AgoraRecoveryControls id={round.id} recovery={round.recovery} onCheck={onCheck} /> : !settled(round.status) ? (
         <section className="agora-wait">
           <h3>
             {longWait
@@ -288,7 +289,15 @@ export function ThreadPageClient({
       if (!response.ok) throw new Error();
       const data = await response.json();
       if (!mounted.current) return null;
+      const anchor = [...document.querySelectorAll<HTMLElement>(".agora-answer, .agora-synthesis, [aria-label='Conversation recovery']")]
+        .find((element) => element.getBoundingClientRect().bottom > 0);
+      const anchorTop = anchor?.getBoundingClientRect().top;
+      const scrollY = window.scrollY;
       setThread((old) => mergeThread(old, data.detail));
+      requestAnimationFrame(() => {
+        if (anchor?.isConnected && anchorTop !== undefined && Math.abs(window.scrollY - scrollY) < 2)
+          window.scrollBy(0, anchor.getBoundingClientRect().top - anchorTop);
+      });
       setUnavailable(false);
       setCanFollowUp(data.canFollowUp);
       setNetworkError("");
@@ -424,9 +433,15 @@ export function ThreadPageClient({
   const group = thread.philosophers
     .map((id) => philosophers.find((p) => p.id === id))
     .filter((p): p is Philosopher => !!p);
+  const roundState = (round: AgoraThreadDetail | AgoraThreadFollowUp) => {
+    if (round.recovery?.state === "complete") return "Conversation complete.";
+    if (round.recovery?.state === "available") return "Recovery is available for the missing work.";
+    if (["exhausted", "blocked", "unavailable"].includes(round.recovery?.state ?? "")) return "Generation interrupted. Editorial help is needed.";
+    return "Waiting for missing work.";
+  };
   const status = thread.followUp
-    ? `Follow-up: ${thread.followUp.responses.length} of ${group.length} responses. ${settled(thread.followUp.status) ? "Generation has finished." : "Waiting for more."}`
-    : `${thread.responses.length} of ${group.length} responses. ${settled(thread.status) ? "Generation has finished." : "Waiting for more."}`;
+    ? `Follow-up: ${thread.followUp.responses.length} of ${group.length} responses. ${roundState(thread.followUp)}`
+    : `${thread.responses.length} of ${group.length} responses. ${roundState(thread)}`;
   return (
     <AgoraShell>
       <main id="main" className="agora-reading">

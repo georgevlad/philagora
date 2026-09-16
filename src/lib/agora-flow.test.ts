@@ -58,6 +58,10 @@ const owner = {
   email: "owner@test.invalid",
 } as const;
 function complete(id: string) {
+  const group = db.prepare("SELECT philosopher_id FROM agora_thread_philosophers WHERE thread_id = ? ORDER BY rowid").all(id) as { philosopher_id: string }[];
+  for (const [i, p] of group.entries()) db.prepare("INSERT INTO agora_responses (id, thread_id, philosopher_id, posts, sort_order) VALUES (?, ?, ?, ?, ?)").run(randomUUID(), id, p.philosopher_id, JSON.stringify(["A saved response."]), i);
+  db.prepare("INSERT INTO agora_synthesis_v2 (thread_id, sections) VALUES (?, ?)").run(id, JSON.stringify({ tensions: ["A saved synthesis."] }));
+  db.prepare("UPDATE agora_jobs SET state = 'complete' WHERE thread_id = ?").run(id);
   db.prepare("UPDATE agora_threads SET status = 'complete' WHERE id = ?").run(
     id,
   );
@@ -111,6 +115,8 @@ describe("Agora privacy and durable submissions", () => {
       c: 1,
     });
     expect(runAgoraGeneration).toHaveBeenCalledTimes(1);
+    const job = db.prepare("SELECT context_json FROM agora_jobs WHERE thread_id = ?").get(body.request_id) as { context_json: string };
+    expect(JSON.parse(job.context_json)).toMatchObject({ question: body.question, visibility: "private", userId: "owner", participants: body.philosopher_ids.map(id => ({ id })) });
     expect(
       db.prepare("SELECT COUNT(*) c FROM agora_thread_philosophers").get(),
     ).toEqual({ c: 4 });
