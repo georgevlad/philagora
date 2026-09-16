@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import {
+  DOUBLE_RULE,
+  SINGLE_RULE,
+  formatExportDate,
+  sanitizeText,
+  titleCase,
+} from "@/lib/admin-export-text";
 
 interface FeedExportRow {
   content: string;
@@ -13,26 +20,6 @@ interface FeedExportRow {
   philosopher_name: string;
   tradition: string;
   era: string;
-}
-
-const DOUBLE_RULE = "═══════════════════════════════════════════════════════════";
-const SINGLE_RULE = "───────────────────────────────────────────────────────────";
-
-function formatExportDate(date: Date): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
-}
-
-function sanitizeText(value: string | null | undefined): string {
-  return (value ?? "").replace(/\*+/g, "").trim();
-}
-
-function titleCase(value: string): string {
-  if (!value) return "";
-  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 }
 
 function buildPostBlock(post: FeedExportRow, index: number): string {

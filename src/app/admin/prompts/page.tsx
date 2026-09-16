@@ -1,14 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-
-interface Philosopher {
-  id: string;
-  name: string;
-  tradition: string;
-  color: string;
-  initials: string;
-}
+import { formatDateTime } from "@/lib/date-utils";
+import type { Philosopher } from "@/types/admin";
 
 interface SystemPrompt {
   id: number;
@@ -175,21 +169,6 @@ export default function PromptsPage() {
     });
   }
 
-  function formatDate(dateStr: string): string {
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return dateStr;
-    }
-  }
-
   function truncateText(text: string, maxLen: number = 180): string {
     if (text.length <= maxLen) return text;
     return text.slice(0, maxLen).trimEnd() + "\u2026";
@@ -315,7 +294,7 @@ export default function PromptsPage() {
                               v{activePrompt.prompt_version}
                             </span>
                             <span className="text-xs font-mono text-ink-lighter">
-                              {formatDate(activePrompt.created_at)}
+                              {formatDateTime(activePrompt.created_at)}
                             </span>
                           </div>
                           <span className="text-[10px] font-mono font-semibold uppercase tracking-widest text-terracotta">
@@ -428,7 +407,7 @@ export default function PromptsPage() {
                                     v{prompt.prompt_version}
                                   </span>
                                   <span className="text-xs font-mono text-ink-lighter">
-                                    {formatDate(prompt.created_at)}
+                                    {formatDateTime(prompt.created_at)}
                                   </span>
                                   {isActive && (
                                     <span className="text-[10px] font-mono font-semibold uppercase tracking-widest text-terracotta">

@@ -1,4 +1,4 @@
-function parseDateString(value: string): Date | null {
+export function parseDateString(value: string): Date | null {
   const normalized = value.includes("T") ? value : value.replace(" ", "T");
   const withTimezone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(normalized) ? normalized : `${normalized}Z`;
   const date = new Date(withTimezone);

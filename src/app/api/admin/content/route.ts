@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { generateContent } from "@/lib/generation-service";
 import { resolveContentTypeKey } from "@/lib/content-templates";
+
+const GENERATION_STATUSES = ["generated", "approved", "rejected", "published", "pending"];
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,13 +41,15 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const db = getDb();
-
   try {
-    const body = await request.json();
+    const db = getDb();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { philosopher_id, content_type, user_input, content_label } = body;
 
-    if (!philosopher_id || !content_type) {
+    if (typeof philosopher_id !== "string" || !philosopher_id.trim() || typeof content_type !== "string" || !content_type) {
       return NextResponse.json(
         { error: "philosopher_id and content_type are required" },
         { status: 400 }
@@ -68,7 +73,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!user_input?.trim()) {
+    if (typeof user_input !== "string" || !user_input.trim()) {
       return NextResponse.json(
         { error: "user_input (source material) is required" },
         { status: 400 }
@@ -76,7 +81,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Resolve the content type key (news_reaction vs cross_philosopher_reply, etc.)
-    const contentTypeKey = resolveContentTypeKey(content_type, content_label);
+    if (content_label != null && typeof content_label !== "string") {
+      return NextResponse.json({ error: "Invalid content_label" }, { status: 400 });
+    }
+    const contentTypeKey = resolveContentTypeKey(content_type, content_label ?? undefined);
 
     // Call the generation service
     const outcome = await generateContent(
@@ -131,7 +139,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Content generation failed:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Generation failed" },
+      { error: "Content generation failed" },
       { status: 500 }
     );
   }
@@ -141,34 +149,34 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { id, status } = body;
 
-    if (!id || !status) {
+    if (typeof id !== "number" || !Number.isSafeInteger(id) || id < 1 || typeof status !== "string") {
       return NextResponse.json(
         { error: "id and status are required" },
         { status: 400 }
       );
     }
 
-    const validStatuses = [
-      "generated",
-      "approved",
-      "rejected",
-      "published",
-      "pending",
-    ];
-    if (!validStatuses.includes(status)) {
+    if (!GENERATION_STATUSES.includes(status)) {
       return NextResponse.json(
-        { error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
+        { error: `Invalid status. Must be one of: ${GENERATION_STATUSES.join(", ")}` },
         { status: 400 }
       );
     }
 
-    db.prepare("UPDATE generation_log SET status = ? WHERE id = ?").run(
+    const result = db.prepare("UPDATE generation_log SET status = ? WHERE id = ?").run(
       status,
       id
     );
+
+    if (result.changes === 0) {
+      return NextResponse.json({ error: "Generation log entry not found" }, { status: 404 });
+    }
 
     const updated = db
       .prepare("SELECT * FROM generation_log WHERE id = ?")
@@ -192,7 +200,10 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
 
     if (body.action !== "cleanup") {
       return NextResponse.json(
@@ -203,6 +214,13 @@ export async function DELETE(request: NextRequest) {
 
     const days = body.older_than_days ?? 30;
     const statusFilter = body.status_filter ?? "rejected";
+
+    if (typeof days !== "number" || !Number.isSafeInteger(days) || days < 1) {
+      return NextResponse.json({ error: "older_than_days must be a positive integer" }, { status: 400 });
+    }
+    if (typeof statusFilter !== "string" || !GENERATION_STATUSES.includes(statusFilter)) {
+      return NextResponse.json({ error: "Invalid status_filter" }, { status: 400 });
+    }
 
     const result = db
       .prepare(

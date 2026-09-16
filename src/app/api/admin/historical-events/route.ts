@@ -619,7 +619,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Failed to save historical events:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to save historical events" },
+      { error: "Failed to save historical events" },
       { status: 500 }
     );
   }

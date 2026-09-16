@@ -53,6 +53,7 @@ export function useReviewActions({
   }
 
   async function handlePublishItem(item: ReviewItem) {
+    if (busyItemId || bulkPublishing) return;
     if (item.status !== "draft") return;
     setBusyItemId(item.post_id);
     setError(null);
@@ -91,6 +92,7 @@ export function useReviewActions({
   }
 
   async function handleDeleteItem(item: ReviewItem) {
+    if (busyItemId || bulkPublishing) return;
     if (item.status !== "draft") return;
     const dependentReplies = item.type === "news_reaction" ? getDependentReplies(item.post_id) : [];
     const publishedReplies = reviewItems.filter(
@@ -131,6 +133,7 @@ export function useReviewActions({
   }
 
   async function handleRegenerateItem(item: ReviewItem) {
+    if (busyItemId || bulkPublishing) return;
     if (item.status !== "draft") return;
 
     const publishedReplies = reviewItems.filter(
@@ -213,6 +216,7 @@ export function useReviewActions({
   }
 
   async function handleBulkPublish(mode: "all" | "selected") {
+    if (busyItemId || bulkPublishing) return;
     const draftItems = reviewItems.filter((item) => item.status === "draft");
     const itemsToPublish = (
       mode === "all"

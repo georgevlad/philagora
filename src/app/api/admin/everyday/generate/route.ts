@@ -1,3 +1,4 @@
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { bustFeedCache } from "@/lib/feed-cache";
@@ -40,7 +41,7 @@ function normalizeGeneratedPost(data: Record<string, unknown>): GeneratedPostPay
       ? data.thesis.trim()
       : content.split("\n")[0]?.trim().slice(0, 140) ?? "";
   const stance =
-    typeof data.stance === "string" && data.stance in STANCE_CONFIG
+    typeof data.stance === "string" && Object.hasOwn(STANCE_CONFIG, data.stance)
       ? (data.stance as Stance)
       : "observes";
   const tag =
@@ -56,13 +57,12 @@ function normalizeGeneratedPost(data: Record<string, unknown>): GeneratedPostPay
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as {
-      scenario?: string;
-      philosopher_ids?: string[];
-      target_length?: TargetLength;
-    };
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
+    }
 
-    const scenario = body.scenario?.trim() ?? "";
+    const scenario = typeof body.scenario === "string" ? body.scenario.trim() : "";
     if (!scenario) {
       return NextResponse.json({ error: "scenario is required" }, { status: 400 });
     }
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     const targetLength = body.target_length ?? "short";
-    if (!VALID_LENGTHS.includes(targetLength)) {
+    if (typeof targetLength !== "string" || !VALID_LENGTHS.includes(targetLength as TargetLength)) {
       return NextResponse.json(
         { error: "target_length must be short, medium, or long" },
         { status: 400 }
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
         philosopher.id,
         "everyday_reaction",
         scenario,
-        targetLength
+        targetLength as TargetLength
       );
 
       if (!outcome.success) {
@@ -230,7 +230,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : "Failed to generate everyday reactions",
+          "Failed to generate everyday reactions",
       },
       { status: 500 }
     );

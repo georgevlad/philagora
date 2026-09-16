@@ -1,3 +1,4 @@
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -12,10 +13,13 @@ import { POST_STATUSES } from "@/lib/constants";
 export async function PATCH(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { from_status, to_status } = body;
 
-    if (!POST_STATUSES.includes(from_status) || !POST_STATUSES.includes(to_status)) {
+    if (!POST_STATUSES.some((status) => status === from_status) || !POST_STATUSES.some((status) => status === to_status)) {
       return NextResponse.json(
         { error: "Invalid status values" },
         { status: 400 }

@@ -1,3 +1,4 @@
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import type { ArticleCandidateRow, PhilosopherRow } from "@/lib/db-types";
@@ -6,21 +7,11 @@ import {
   generateDailyDraft,
 } from "@/lib/generation-service";
 
-type GenerateQuipBody = {
-  article_id?: unknown;
-  philosopher_id?: unknown;
-};
-
 export async function POST(request: NextRequest) {
   try {
-    let body: GenerateQuipBody;
-    try {
-      body = (await request.json()) as GenerateQuipBody;
-    } catch {
-      return NextResponse.json(
-        { success: false, error: "Request body must be valid JSON" },
-        { status: 400 }
-      );
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ success: false, error: "Request body must be a JSON object" }, { status: 400 });
     }
 
     const articleId =
@@ -108,7 +99,7 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error:
-          error instanceof Error ? error.message : "Failed to generate Glint draft",
+          "Failed to generate Glint draft",
       },
       { status: 500 }
     );

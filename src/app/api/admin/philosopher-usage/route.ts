@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { parseDateString } from "@/lib/date-utils";
 
 interface PhilosopherUsageRow {
   philosopher_id: string;
@@ -61,11 +62,10 @@ export async function GET() {
       if (!usage[row.philosopher_id]) continue;
 
       const lastPostAt = row.last_post_at ?? null;
-      const normalizedLastPostAt = lastPostAt
-        ? new Date(lastPostAt.replace(" ", "T") + "Z").toISOString()
-        : null;
-      const daysSinceLast = normalizedLastPostAt
-        ? Math.floor((now - new Date(normalizedLastPostAt).getTime()) / (1000 * 60 * 60 * 24))
+      const lastPostDate = lastPostAt ? parseDateString(lastPostAt) : null;
+      const normalizedLastPostAt = lastPostDate?.toISOString() ?? null;
+      const daysSinceLast = lastPostDate
+        ? Math.floor((now - lastPostDate.getTime()) / (1000 * 60 * 60 * 24))
         : null;
 
       usage[row.philosopher_id] = {

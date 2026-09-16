@@ -33,6 +33,7 @@ export function ReviewGroup({
   description,
   items,
   busyItemId,
+  actionsDisabled,
   selectedDraftIds,
   onToggleSelection,
   onPublish,
@@ -43,6 +44,7 @@ export function ReviewGroup({
   description: string;
   items: ReviewItem[];
   busyItemId: string | null;
+  actionsDisabled: boolean;
   selectedDraftIds: string[];
   onToggleSelection: (postId: string) => void;
   onPublish: (item: ReviewItem) => Promise<void> | void;
@@ -72,7 +74,7 @@ export function ReviewGroup({
                   <input
                     type="checkbox"
                     checked={selectedDraftIds.includes(item.post_id)}
-                    disabled={!isDraft}
+                    disabled={!isDraft || actionsDisabled}
                     onChange={() => onToggleSelection(item.post_id)}
                     className="mt-1 h-4 w-4 rounded border-border text-terracotta focus:ring-terracotta disabled:opacity-50"
                   />
@@ -148,9 +150,19 @@ export function ReviewGroup({
                       {item.thesis}
                     </p>
                     <div className="rounded-lg border border-border-light bg-white px-4 py-4">
-                      <p className="text-sm text-ink leading-relaxed whitespace-pre-wrap">
-                        {truncate(item.content, 320)}
-                      </p>
+                      {item.content.length > 320 ? (
+                        <details>
+                          <summary className="cursor-pointer text-sm text-ink leading-relaxed">
+                            {truncate(item.content, 320)}
+                            <span className="ml-2 text-xs font-mono text-terracotta">Read full draft</span>
+                          </summary>
+                          <p className="mt-3 text-sm text-ink leading-relaxed whitespace-pre-wrap">
+                            {item.content}
+                          </p>
+                        </details>
+                      ) : (
+                        <p className="text-sm text-ink leading-relaxed whitespace-pre-wrap">{item.content}</p>
+                      )}
                     </div>
                     <div className="mt-3 inline-flex items-center px-2.5 py-1 text-[11px] font-mono tracking-wider uppercase rounded-full border border-border-light bg-white text-ink-lighter">
                       {item.tag}
@@ -161,21 +173,21 @@ export function ReviewGroup({
                 <div className="flex items-center gap-2 shrink-0 lg:pl-4">
                   <button
                     onClick={() => void onPublish(item)}
-                    disabled={!isDraft || isBusy}
+                    disabled={!isDraft || actionsDisabled}
                     className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-mono tracking-wide rounded-full text-white bg-[#276749] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isBusy ? <><Spinner /> Working</> : "Publish"}
                   </button>
                   <button
                     onClick={() => void onRegenerate(item)}
-                    disabled={!isDraft || isBusy}
+                    disabled={!isDraft || actionsDisabled}
                     className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-mono tracking-wide rounded-full border border-border-light text-ink-lighter hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Regenerate
                   </button>
                   <button
                     onClick={() => void onDelete(item)}
-                    disabled={!isDraft || isBusy}
+                    disabled={!isDraft || actionsDisabled}
                     className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-mono tracking-wide rounded-full border border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Delete

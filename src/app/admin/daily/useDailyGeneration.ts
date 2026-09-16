@@ -2,7 +2,6 @@ import { useState } from "react";
 import type React from "react";
 import {
   DEFAULT_CONFIG,
-  parseJson,
   type CandidateArticle,
   type DailyGeneratedItem,
   type DailySummary,
@@ -11,7 +10,7 @@ import {
   type RawCandidateArticle,
   type ReviewItem,
 } from "./types";
-import { pickDiverseArticles } from "./utils";
+import { normalizeCandidate, pickDiverseArticles } from "./utils";
 
 export function useDailyGeneration({
   selectedArticleIds,
@@ -39,15 +38,6 @@ export function useDailyGeneration({
   const [generating, setGenerating] = useState(false);
   const [pipelineRunning, setPipelineRunning] = useState(false);
   const [loadingArticles, setLoadingArticles] = useState(false);
-
-  function normalizeCandidate(article: RawCandidateArticle): CandidateArticle {
-    return {
-      ...article,
-      suggested_philosophers: parseJson<string[]>(article.suggested_philosophers, []),
-      suggested_stances: parseJson<Record<string, string>>(article.suggested_stances, {}),
-      published_posts: article.published_posts ?? [],
-    };
-  }
 
   async function loadCandidates(autoSelectTop = false) {
     setLoadingArticles(true);

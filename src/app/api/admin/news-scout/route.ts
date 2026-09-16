@@ -1,3 +1,4 @@
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { fetchAllFeeds, scoreUnscored } from "@/lib/news-scout-service";
@@ -43,10 +44,13 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { action } = body;
 
-    if (!action || !["fetch", "score", "fetch_and_score"].includes(action)) {
+    if (typeof action !== "string" || !["fetch", "score", "fetch_and_score"].includes(action)) {
       return NextResponse.json(
         { error: "action must be 'fetch', 'score', or 'fetch_and_score'" },
         { status: 400 }
@@ -68,7 +72,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("News scout pipeline failed:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Pipeline failed" },
+      { error: "News scout pipeline failed" },
       { status: 500 }
     );
   }

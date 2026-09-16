@@ -17,8 +17,14 @@ interface ApiLogStatsRow {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const limit = Math.min(Math.max(Number(searchParams.get("limit")) || 50, 1), 200);
-    const offset = Math.max(Number(searchParams.get("offset")) || 0, 0);
+    const parsedLimit = Number(searchParams.get("limit"));
+    const parsedOffset = Number(searchParams.get("offset"));
+    const limit = Number.isFinite(parsedLimit) && parsedLimit !== 0
+      ? Math.min(Math.max(Math.trunc(parsedLimit), 1), 200)
+      : 50;
+    const offset = Number.isFinite(parsedOffset)
+      ? Math.min(Math.max(Math.trunc(parsedOffset), 0), Number.MAX_SAFE_INTEGER)
+      : 0;
     const caller = searchParams.get("caller") || undefined;
     const successOnly = searchParams.get("success");
 
@@ -72,7 +78,13 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const olderThanDays = Math.max(Number(searchParams.get("older_than_days")) || 30, 1);
+    const olderThanDays = Number(searchParams.get("older_than_days") ?? 30);
+    if (!Number.isSafeInteger(olderThanDays) || olderThanDays < 1) {
+      return NextResponse.json(
+        { error: "older_than_days must be a positive integer" },
+        { status: 400 }
+      );
+    }
 
     const db = getDb();
     const result = db

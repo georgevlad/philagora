@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { parseAdminJsonObject } from "@/lib/admin-request";
 
 interface HouseRulesRow {
   id: number;
@@ -43,13 +44,16 @@ export async function POST(request: NextRequest) {
 
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { rules_text, notes } = body as {
       rules_text?: string;
       notes?: string;
     };
 
-    if (!rules_text?.trim()) {
+    if (typeof rules_text !== "string" || !rules_text.trim()) {
       return NextResponse.json(
         { error: "rules_text is required" },
         { status: 400 }
@@ -65,7 +69,7 @@ export async function POST(request: NextRequest) {
         `INSERT INTO house_rules (version, rules_text, is_active, notes)
          VALUES (?, ?, 0, ?)`
       )
-      .run(versionRow.next_version, rules_text.trim(), notes?.trim() ?? "");
+      .run(versionRow.next_version, rules_text.trim(), typeof notes === "string" ? notes.trim() : "");
 
     const created = db
       .prepare("SELECT * FROM house_rules WHERE id = ?")
@@ -87,10 +91,13 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { id, action } = body as { id?: number; action?: string };
 
-    if (!id || !["set_active", "deactivate"].includes(action ?? "")) {
+    if (typeof id !== "number" || !Number.isSafeInteger(id) || id < 1 || !["set_active", "deactivate"].includes(action ?? "")) {
       return NextResponse.json(
         { error: "id and action ('set_active' or 'deactivate') are required" },
         { status: 400 }
@@ -139,10 +146,13 @@ export async function DELETE(request: NextRequest) {
 
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { id } = body as { id?: number };
 
-    if (!id) {
+    if (typeof id !== "number" || !Number.isSafeInteger(id) || id < 1) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
 

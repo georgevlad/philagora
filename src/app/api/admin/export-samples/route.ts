@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import {
+  DOUBLE_RULE,
+  SINGLE_RULE,
+  formatExportDate,
+  sanitizeText,
+  titleCase,
+} from "@/lib/admin-export-text";
 
 interface PhilosopherRow {
   id: string;
@@ -17,26 +24,6 @@ interface PostRow {
   citation_source: string | null;
   citation_url: string | null;
   created_at: string;
-}
-
-const DOUBLE_RULE = "═══════════════════════════════════════════════════════════";
-const SINGLE_RULE = "───────────────────────────────────────────────────────────";
-
-function formatExportDate(date: Date): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
-}
-
-function sanitizeText(value: string | null | undefined): string {
-  return (value ?? "").replace(/\*+/g, "").trim();
-}
-
-function titleCase(value: string): string {
-  if (!value) return "";
-  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 }
 
 function buildPostBlock(post: PostRow, index: number): string {

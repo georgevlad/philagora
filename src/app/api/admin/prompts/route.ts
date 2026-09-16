@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { parseAdminJsonObject } from "@/lib/admin-request";
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,10 +36,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { philosopher_id, system_prompt_text } = body;
 
-    if (!philosopher_id || !system_prompt_text) {
+    if (typeof philosopher_id !== "string" || !philosopher_id.trim() || typeof system_prompt_text !== "string" || !system_prompt_text.trim()) {
       return NextResponse.json(
         { error: "philosopher_id and system_prompt_text are required" },
         { status: 400 }
@@ -87,10 +91,13 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { id, action } = body;
 
-    if (!id || action !== "set_active") {
+    if (typeof id !== "number" || !Number.isSafeInteger(id) || id < 1 || action !== "set_active") {
       return NextResponse.json(
         { error: "id and action ('set_active') are required" },
         { status: 400 }
@@ -138,10 +145,13 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { id } = body;
 
-    if (!id) {
+    if (typeof id !== "number" || !Number.isSafeInteger(id) || id < 1) {
       return NextResponse.json(
         { error: "id is required" },
         { status: 400 }
@@ -163,6 +173,16 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { error: "Cannot delete the active prompt. Set another prompt as active first." },
         { status: 400 }
+      );
+    }
+
+    const referenced = db
+      .prepare("SELECT 1 FROM generation_log WHERE system_prompt_id = ? LIMIT 1")
+      .get(id);
+    if (referenced) {
+      return NextResponse.json(
+        { error: "Cannot delete a prompt used in generation history." },
+        { status: 409 }
       );
     }
 

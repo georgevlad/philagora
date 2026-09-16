@@ -100,10 +100,10 @@ export default function ScoringSettingsPage() {
       }
 
       if ("score_tiers" in data) {
-        setScoringModel(data.scoring_model);
-        setScoreTiers(data.score_tiers);
-        setTensionVocabulary(data.tension_vocabulary);
-        setStanceGuidance(data.stance_guidance);
+        if (key === "scoring_model") setScoringModel(data.scoring_model);
+        if (key === "score_tiers") setScoreTiers(data.score_tiers);
+        if (key === "tension_vocabulary") setTensionVocabulary(data.tension_vocabulary);
+        if (key === "stance_guidance") setStanceGuidance(data.stance_guidance);
       }
 
       setSuccessMessage(successText);

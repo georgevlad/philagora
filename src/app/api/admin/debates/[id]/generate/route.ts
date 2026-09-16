@@ -1,3 +1,4 @@
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { generateContent } from "@/lib/generation-service";
@@ -29,17 +30,20 @@ export async function POST(
   try {
     const db = getDb();
     const { id } = await params;
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
+    }
     const { philosopher_id, phase, target_philosopher_id } = body;
 
-    if (!philosopher_id || !phase) {
+    if (typeof philosopher_id !== "string" || !philosopher_id.trim() || !phase) {
       return NextResponse.json(
         { error: "philosopher_id and phase are required" },
         { status: 400 }
       );
     }
 
-    if (!["opening", "rebuttal"].includes(phase)) {
+    if (phase !== "opening" && phase !== "rebuttal") {
       return NextResponse.json(
         { error: "phase must be 'opening' or 'rebuttal'" },
         { status: 400 }
@@ -58,6 +62,10 @@ export async function POST(
 
     if (!debate) {
       return NextResponse.json({ error: "Debate not found" }, { status: 404 });
+    }
+
+    if (!db.prepare("SELECT 1 FROM debate_philosophers WHERE debate_id = ? AND philosopher_id = ?").get(id, philosopher_id)) {
+      return NextResponse.json({ error: "Philosopher is not in this debate" }, { status: 400 });
     }
 
     let sourceMaterial: string;
@@ -91,7 +99,7 @@ export async function POST(
       // rebuttal
       contentTypeKey = "debate_rebuttal";
 
-      if (!target_philosopher_id) {
+      if (typeof target_philosopher_id !== "string" || !target_philosopher_id.trim()) {
         return NextResponse.json(
           { error: "target_philosopher_id is required for rebuttals" },
           { status: 400 }
@@ -164,7 +172,7 @@ export async function POST(
   } catch (error) {
     console.error("Debate generation failed:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Generation failed" },
+      { error: "Generation failed" },
       { status: 500 }
     );
   }

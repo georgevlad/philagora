@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import type { NewsSource } from "@/lib/news-scout-service";
 
 interface SourceWithCount extends NewsSource {
@@ -53,17 +54,20 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { id, name, feed_url, category } = body;
 
-    if (!id || !name || !feed_url) {
+    if (typeof id !== "string" || !id.trim() || typeof name !== "string" || !name.trim() || typeof feed_url !== "string" || !feed_url.trim()) {
       return NextResponse.json(
         { error: "id, name, and feed_url are required" },
         { status: 400 }
       );
     }
 
-    const cat = VALID_CATEGORIES.includes(category) ? category : "world";
+    const cat = typeof category === "string" && VALID_CATEGORIES.includes(category) ? category : "world";
 
     db.prepare(
       "INSERT INTO news_sources (id, name, feed_url, category) VALUES (?, ?, ?, ?)"
@@ -80,11 +84,11 @@ export async function POST(request: NextRequest) {
     // Handle UNIQUE constraint on feed_url
     if (msg.includes("UNIQUE")) {
       return NextResponse.json(
-        { error: "A source with this feed URL already exists" },
+        { error: "A source with this ID or feed URL already exists" },
         { status: 409 }
       );
     }
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: "Failed to add source" }, { status: 500 });
   }
 }
 
@@ -95,10 +99,13 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { id, is_active, category } = body;
 
-    if (!id) {
+    if (typeof id !== "string" || !id.trim()) {
       return NextResponse.json(
         { error: "id is required" },
         { status: 400 }
@@ -116,12 +123,15 @@ export async function PATCH(request: NextRequest) {
     const values: Array<string | number> = [];
 
     if (is_active !== undefined) {
+      if (typeof is_active !== "boolean" && is_active !== 0 && is_active !== 1) {
+        return NextResponse.json({ error: "is_active must be a boolean or 0/1" }, { status: 400 });
+      }
       fields.push("is_active = ?");
       values.push(is_active ? 1 : 0);
     }
 
     if (category !== undefined) {
-      if (!VALID_CATEGORIES.includes(category)) {
+      if (typeof category !== "string" || !VALID_CATEGORIES.includes(category)) {
         return NextResponse.json(
           { error: "Invalid category" },
           { status: 400 }
@@ -165,19 +175,29 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { id } = body;
 
-    if (!id) {
+    if (typeof id !== "string" || !id.trim()) {
       return NextResponse.json(
         { error: "id is required" },
         { status: 400 }
       );
     }
 
-    // Delete associated candidates first (no ON DELETE CASCADE on this FK)
-    db.prepare("DELETE FROM article_candidates WHERE source_id = ?").run(id);
-    db.prepare("DELETE FROM news_sources WHERE id = ?").run(id);
+    const existing = db.prepare("SELECT id FROM news_sources WHERE id = ?").get(id);
+    if (!existing) {
+      return NextResponse.json({ error: "Source not found" }, { status: 404 });
+    }
+
+    db.transaction(() => {
+      // Delete associated candidates first (no ON DELETE CASCADE on this FK).
+      db.prepare("DELETE FROM article_candidates WHERE source_id = ?").run(id);
+      db.prepare("DELETE FROM news_sources WHERE id = ?").run(id);
+    })();
 
     return NextResponse.json({ deleted: id });
   } catch (error) {

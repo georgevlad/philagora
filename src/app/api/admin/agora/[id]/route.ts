@@ -1,3 +1,4 @@
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { agoraEditorialConflict } from "@/lib/agora-jobs";
 import { NextRequest, NextResponse } from "next/server";
 import {
@@ -167,7 +168,14 @@ export async function PATCH(
   try {
     const db = getDb();
     const { id } = await params;
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
+    }
+
+    if (body.status !== undefined && body.status !== "pending" && body.status !== "in_progress" && body.status !== "complete" && body.status !== "failed") {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
 
     const thread = db
       .prepare("SELECT id FROM agora_threads WHERE id = ?")

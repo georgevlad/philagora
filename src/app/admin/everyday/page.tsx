@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Spinner } from "@/components/Spinner";
 import { STANCE_CONFIG } from "@/lib/constants";
+import { formatDateTime } from "@/lib/date-utils";
 import type { Stance } from "@/lib/types";
 
 type TargetLength = "short" | "medium" | "long";
@@ -73,20 +74,6 @@ const LENGTH_OPTIONS: Array<{ value: TargetLength; label: string }> = [
   { value: "medium", label: "Medium" },
   { value: "long", label: "Long" },
 ];
-
-function formatDateTime(dateStr: string): string {
-  try {
-    return new Date(dateStr).toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return dateStr;
-  }
-}
 
 function getStateTone(state: ResultState) {
   switch (state) {
@@ -475,15 +462,15 @@ export default function EverydayPage() {
         if (!publishPostResponse.ok || !publishLogResponse.ok) {
           throw new Error(`Failed to publish ${item.philosopherName}.`);
         }
-      }
 
-      setResults((current) =>
-        current.map((item) =>
-          item.state === "approved"
-            ? { ...item, state: "published", pendingAction: null }
-            : item
-        )
-      );
+        setResults((current) =>
+          current.map((entry) =>
+            entry.postId === item.postId
+              ? { ...entry, state: "published", pendingAction: null }
+              : entry
+          )
+        );
+      }
       setNotice(
         `Published ${approvedItems.length} approved draft${approvedItems.length === 1 ? "" : "s"}.`
       );

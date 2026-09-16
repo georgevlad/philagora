@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { bustFeedCache } from "@/lib/feed-cache";
 import { isPostSourceType } from "@/lib/historical-events";
 import { POST_STATUSES, STANCE_CONFIG } from "@/lib/constants";
@@ -79,8 +80,8 @@ export async function GET(request: NextRequest) {
               FROM generation_log gl
               WHERE gl.philosopher_id = p.philosopher_id
                 AND gl.mood_register IS NOT NULL
-                AND gl.created_at >= datetime(p.created_at, '-2 minutes')
-                AND gl.created_at <= datetime(p.created_at, '+2 minutes')
+                AND datetime(gl.created_at) >= datetime(p.created_at, '-2 minutes')
+                AND datetime(gl.created_at) <= datetime(p.created_at, '+2 minutes')
               ORDER BY gl.created_at DESC
               LIMIT 1) as mood_register
       FROM posts p
@@ -162,7 +163,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const {
       philosopher_id,
       content,
@@ -181,14 +185,14 @@ export async function POST(request: NextRequest) {
       reply_to,
     } = body;
 
-    if (!philosopher_id || !content) {
+    if (typeof philosopher_id !== "string" || !philosopher_id.trim() || typeof content !== "string" || !content.trim()) {
       return NextResponse.json(
         { error: "philosopher_id and content are required" },
         { status: 400 }
       );
     }
 
-    if (stance && !(String(stance) in STANCE_CONFIG)) {
+    if (stance != null && (typeof stance !== "string" || !Object.hasOwn(STANCE_CONFIG, stance))) {
       return NextResponse.json(
         { error: "Invalid stance provided." },
         { status: 400 }
@@ -253,17 +257,20 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { id, status } = body;
 
-    if (!id || !status) {
+    if (typeof id !== "string" || !id.trim() || typeof status !== "string") {
       return NextResponse.json(
         { error: "id and status are required" },
         { status: 400 }
       );
     }
 
-    if (!POST_STATUSES.includes(status)) {
+    if (!POST_STATUSES.some((validStatus) => validStatus === status)) {
       return NextResponse.json(
         { error: `Invalid status. Must be one of: ${POST_STATUSES.join(", ")}` },
         { status: 400 }
@@ -300,10 +307,13 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { id } = body;
 
-    if (!id) {
+    if (typeof id !== "string" || !id.trim()) {
       return NextResponse.json(
         { error: "id is required" },
         { status: 400 }
@@ -311,8 +321,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     const existing = db
-      .prepare("SELECT id, status FROM posts WHERE id = ?")
-      .get(id) as { id: string; status: string } | undefined;
+      .prepare("SELECT id FROM posts WHERE id = ?")
+      .get(id) as { id: string } | undefined;
 
     if (!existing) {
       return NextResponse.json(
@@ -321,11 +331,11 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Detach any replies that reference this post (orphan them gracefully)
-    db.prepare("UPDATE posts SET reply_to = NULL WHERE reply_to = ?").run(id);
-
-    // Delete the post
-    db.prepare("DELETE FROM posts WHERE id = ?").run(id);
+    db.transaction(() => {
+      // Keep replies intact if deleting their parent fails.
+      db.prepare("UPDATE posts SET reply_to = NULL WHERE reply_to = ?").run(id);
+      db.prepare("DELETE FROM posts WHERE id = ?").run(id);
+    })();
 
     bustFeedCache();
     revalidatePath("/");

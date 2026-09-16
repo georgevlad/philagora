@@ -1,3 +1,4 @@
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { generateSynthesis } from "@/lib/generation-service";
@@ -15,11 +16,7 @@ interface DebatePostRow {
   phase: string;
   philosopher_name: string;
   philosopher_tradition: string;
-  reply_to: string | null;
-}
-
-interface ReplyTargetRow {
-  philosopher_name: string;
+  target_philosopher_name: string | null;
 }
 
 /** POST — Generate or save debate synthesis */
@@ -30,10 +27,14 @@ export async function POST(
   try {
     const db = getDb();
     const { id: debateId } = await params;
-    const body = await request.json();
-    const { action, data } = body;
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
+    }
+    const { action } = body;
+    const data = body.data as Record<string, unknown> | undefined;
 
-    if (!action || !["generate", "save"].includes(action)) {
+    if (action !== "generate" && action !== "save") {
       return NextResponse.json(
         { error: "action must be 'generate' or 'save'" },
         { status: 400 }
@@ -56,10 +57,12 @@ export async function POST(
       // Fetch all debate posts with philosopher info
       const posts = db
         .prepare(
-          `SELECT dp.content, dp.phase, dp.reply_to,
+          `SELECT dp.content, dp.phase, target_philosopher.name as target_philosopher_name,
                   p.name as philosopher_name, p.tradition as philosopher_tradition
            FROM debate_posts dp
            JOIN philosophers p ON dp.philosopher_id = p.id
+           LEFT JOIN debate_posts target_post ON target_post.id = dp.reply_to
+           LEFT JOIN philosophers target_philosopher ON target_philosopher.id = target_post.philosopher_id
            WHERE dp.debate_id = ?
            ORDER BY dp.phase, dp.sort_order`
         )
@@ -92,18 +95,9 @@ export async function POST(
       if (rebuttals.length > 0) {
         sourceMaterial += "=== REBUTTALS ===\n\n";
         for (const post of rebuttals) {
-          // Find who they're rebutting
-          let targetName = "";
-          if (post.reply_to) {
-            const target = db
-              .prepare(
-                `SELECT p.name as philosopher_name FROM debate_posts dp
-                 JOIN philosophers p ON dp.philosopher_id = p.id
-                 WHERE dp.id = ?`
-              )
-              .get(post.reply_to) as ReplyTargetRow | undefined;
-            targetName = target ? ` (rebutting ${target.philosopher_name})` : "";
-          }
+          const targetName = post.target_philosopher_name
+            ? ` (rebutting ${post.target_philosopher_name})`
+            : "";
           sourceMaterial += `### ${post.philosopher_name}${targetName}:\n${post.content}\n\n`;
         }
       }
@@ -144,46 +138,61 @@ export async function POST(
     }
 
     // action === "save"
-    if (!data) {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
       return NextResponse.json(
         { error: "data is required for save action" },
         { status: 400 }
       );
     }
 
-    db.prepare(
-      `UPDATE debates SET
-        synthesis_tensions = ?,
-        synthesis_agreements = ?,
-        synthesis_questions = ?,
-        synthesis_summary_agree = ?,
-        synthesis_summary_diverge = ?,
-        synthesis_summary_unresolved = ?,
-        status = 'complete'
-      WHERE id = ?`
-    ).run(
-      JSON.stringify(data.tensions || []),
-      JSON.stringify(data.agreements || []),
-      JSON.stringify(data.questionsForReflection || []),
-      data.synthesisSummary?.agree || "",
-      data.synthesisSummary?.diverge || "",
-      data.synthesisSummary?.unresolvedQuestion || "",
-      debateId
-    );
-
-    // Update generation_log entry if provided
-    if (data.generation_log_id) {
-      db.prepare("UPDATE generation_log SET status = 'approved' WHERE id = ?").run(
-        data.generation_log_id
-      );
+    for (const field of ["tensions", "agreements", "questionsForReflection"]) {
+      const value = data[field];
+      if (value !== undefined && (!Array.isArray(value) || value.some((item) => typeof item !== "string"))) {
+        return NextResponse.json({ error: `${field} must be an array of strings` }, { status: 400 });
+      }
     }
+    const summary = data.synthesisSummary as Record<string, unknown> | undefined;
+    if (summary !== undefined && (!summary || typeof summary !== "object" || Array.isArray(summary) ||
+        [summary.agree, summary.diverge, summary.unresolvedQuestion].some((value) => value !== undefined && typeof value !== "string"))) {
+      return NextResponse.json({ error: "synthesisSummary must contain text fields" }, { status: 400 });
+    }
+
+    db.transaction(() => {
+      db.prepare(
+        `UPDATE debates SET
+          synthesis_tensions = ?,
+          synthesis_agreements = ?,
+          synthesis_questions = ?,
+          synthesis_summary_agree = ?,
+          synthesis_summary_diverge = ?,
+          synthesis_summary_unresolved = ?,
+          status = 'complete'
+        WHERE id = ?`
+      ).run(
+        JSON.stringify(data.tensions || []),
+        JSON.stringify(data.agreements || []),
+        JSON.stringify(data.questionsForReflection || []),
+        summary?.agree || "",
+        summary?.diverge || "",
+        summary?.unresolvedQuestion || "",
+        debateId
+      );
+
+      // Update generation_log entry if provided
+      if (data.generation_log_id) {
+        db.prepare("UPDATE generation_log SET status = 'approved' WHERE id = ?").run(
+          data.generation_log_id
+        );
+      }
+
+    })();
 
     const updated = db.prepare("SELECT * FROM debates WHERE id = ?").get(debateId);
     return NextResponse.json(updated);
   } catch (error) {
     console.error("Debate synthesis failed:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Synthesis failed" },
+      { error: "Synthesis failed" },
       { status: 500 }
     );
   }

@@ -1,5 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
+import { tmpdir } from "os";
+import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
@@ -8,7 +10,7 @@ export async function GET(request: NextRequest) {
   const denied = requireAdmin(request);
   if (denied) return denied;
 
-  const tempPath = path.join("/tmp", `philagora-backup-${Date.now()}.db`);
+  const tempPath = path.join(tmpdir(), `philagora-backup-${randomUUID()}.db`);
 
   try {
     await getDb().backup(tempPath);

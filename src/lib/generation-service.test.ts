@@ -32,7 +32,8 @@ vi.mock("@/lib/scoring-config", () => ({
   parseScoringModel: (raw?: string) => (raw ? JSON.parse(raw) : "score-model"),
 }));
 
-import { classifyAgoraQuestion } from "@/lib/generation-service";
+import type { ArticleCandidateRow } from "@/lib/db-types";
+import { buildArticleSourceMaterial, classifyAgoraQuestion } from "@/lib/generation-service";
 
 describe("classifyAgoraQuestion", () => {
   beforeEach(() => {
@@ -99,5 +100,27 @@ describe("classifyAgoraQuestion", () => {
       recommendationsAppropriate: false,
       recommendationHint: null,
     });
+  });
+});
+
+
+describe("article source context", () => {
+  it.each(["null", "[]", "42", "{"])("ignores invalid stored suggested stances: %s", (suggestedStances) => {
+    const article = {
+      title: "Review article", source_name: "Example", url: "https://example.com/article",
+      suggested_stances: suggestedStances, primary_tensions: "null",
+    } as ArticleCandidateRow;
+    expect(buildArticleSourceMaterial(article)).toBe(
+      "ARTICLE TITLE: Review article\n\nSOURCE: Example\n\nURL: https://example.com/article",
+    );
+  });
+
+  it("keeps valid stance hints and ignores malformed fields", () => {
+    const article = {
+      title: "Review article", source_name: "Example", url: "https://example.com/article",
+      suggested_stances: '{"plato":"questions","camus":null}', primary_tensions: "[]",
+    } as ArticleCandidateRow;
+    expect(buildArticleSourceMaterial(article)).toContain("SUGGESTED STANCES: plato: questions");
+    expect(buildArticleSourceMaterial(article)).not.toContain("camus");
   });
 });

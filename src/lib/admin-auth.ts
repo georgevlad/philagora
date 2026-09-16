@@ -7,13 +7,13 @@
  *      an HMAC-SHA256 of a fixed string keyed by the password.
  *   3. On every /admin request the middleware re-derives the HMAC and checks
  *      it matches the cookie value.
- *   4. If ADMIN_PASSWORD is not set, admin is open (local-dev convenience).
+ *   4. Outside production, an unset ADMIN_PASSWORD opens admin for local use.
  */
 
 import { createHmac, timingSafeEqual } from "crypto";
-import { ADMIN_COOKIE_NAME, ADMIN_COOKIE_MAX_AGE, HMAC_PAYLOAD } from "./admin-constants";
+import { ADMIN_COOKIE_NAME, ADMIN_COOKIE_MAX_AGE, HMAC_PAYLOAD, isAdminOpen } from "./admin-constants";
 
-export { ADMIN_COOKIE_NAME, ADMIN_COOKIE_MAX_AGE };
+export { ADMIN_COOKIE_NAME, ADMIN_COOKIE_MAX_AGE, isAdminOpen };
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -22,11 +22,6 @@ function deriveToken(): string | null {
   const pw = process.env.ADMIN_PASSWORD;
   if (!pw) return null;
   return createHmac("sha256", pw).update(HMAC_PAYLOAD).digest("hex");
-}
-
-/** Returns true when no password is configured (open admin). */
-export function isAdminOpen(): boolean {
-  return !process.env.ADMIN_PASSWORD;
 }
 
 /** Check a raw password against the env var (timing-safe). */

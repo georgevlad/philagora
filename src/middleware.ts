@@ -4,10 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
  * Middleware protects /admin/* routes (pages AND API) with a password gate.
  *
  * Uses Web Crypto (Edge-compatible) to verify the session cookie.
- * If ADMIN_PASSWORD is not set, admin is open (local-dev convenience).
+ * Outside production, an unset ADMIN_PASSWORD opens admin for local use.
  */
 
-import { ADMIN_COOKIE_NAME, HMAC_PAYLOAD } from "@/lib/admin-constants";
+import { ADMIN_COOKIE_NAME, HMAC_PAYLOAD, isAdminOpen } from "@/lib/admin-constants";
 
 // ── Edge-compatible HMAC ────────────────────────────────────────────
 
@@ -43,22 +43,20 @@ export async function middleware(req: NextRequest) {
   // Skip login page and auth API — they must be accessible without a session
   if (
     pathname === "/admin/login" ||
-    pathname.startsWith("/api/admin/auth") ||
-    pathname.startsWith("/api/auth")
+    pathname === "/api/admin/auth"
   ) {
     return NextResponse.next();
   }
 
   const adminPassword = process.env.ADMIN_PASSWORD;
 
-  // No password configured → admin is open
-  if (!adminPassword) {
+  if (isAdminOpen()) {
     return NextResponse.next();
   }
 
   const cookie = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
 
-  if (cookie) {
+  if (cookie && adminPassword) {
     const expected = await deriveToken(adminPassword);
     if (constantTimeEqual(cookie, expected)) {
       return NextResponse.next();

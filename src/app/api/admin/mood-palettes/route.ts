@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { safeJsonParse } from "@/lib/json-utils";
 import type { MoodRegister } from "@/lib/mood-data";
 import type { Stance } from "@/lib/types";
+import { STANCE_CONFIG } from "@/lib/constants";
 
 interface MoodPaletteRow {
   philosopher_id: string;
@@ -12,20 +14,7 @@ interface MoodPaletteRow {
   is_active: number;
 }
 
-const VALID_STANCES = new Set<Stance>([
-  "challenges",
-  "defends",
-  "reframes",
-  "questions",
-  "warns",
-  "observes",
-  "diagnoses",
-  "provokes",
-  "laments",
-  "quips",
-  "mocks",
-  "recommends",
-]);
+const VALID_STANCES = new Set(Object.keys(STANCE_CONFIG));
 
 function readString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -174,11 +163,10 @@ export async function PUT(request: NextRequest) {
   if (denied) return denied;
 
   try {
-    const body = (await request.json()) as {
-      philosopher_id?: unknown;
-      registers?: unknown;
-      is_active?: unknown;
-    };
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
 
     const philosopherId = readString(body.philosopher_id);
     if (!philosopherId) {
@@ -186,6 +174,10 @@ export async function PUT(request: NextRequest) {
         { error: "philosopher_id is required" },
         { status: 400 }
       );
+    }
+
+    if (body.is_active !== undefined && typeof body.is_active !== "boolean" && body.is_active !== 0 && body.is_active !== 1) {
+      return NextResponse.json({ error: "is_active must be a boolean or 0/1" }, { status: 400 });
     }
 
     const validation = validateRegisters(body.registers ?? []);

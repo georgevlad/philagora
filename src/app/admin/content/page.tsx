@@ -370,7 +370,11 @@ function ContentGenerationPageInner() {
           thesis: data.thesis ?? "",
           stance: data.stance ?? "observes",
           tag: data.tag ?? "",
-          source_type: isArtCommentary ? "art_commentary" : undefined,
+          source_type: isArtCommentary
+            ? "art_commentary"
+            : selectedContentOption.value === "reflection" || selectedContentOption.value === "recommendation"
+              ? "reflection"
+              : "news",
           recommendation_title: data.recommendation_title || undefined,
           recommendation_author: data.recommendation_author || undefined,
           recommendation_medium: data.recommendation_medium || undefined,
@@ -412,19 +416,21 @@ function ContentGenerationPageInner() {
   async function handleReject() {
     if (!preview) return;
     setRejecting(true);
+    setErrorMessage("");
 
     try {
-      await fetch("/api/admin/content", {
+      const response = await fetch("/api/admin/content", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: preview.logEntryId, status: "rejected" }),
       });
 
+      if (!response.ok) throw new Error("Failed to reject the generated content. Please try again.");
+
       setPreview(null);
       fetchLogEntries(selectedPhilosopherId);
     } catch {
-      // Silently clear preview even on failure
-      setPreview(null);
+      setErrorMessage("Failed to reject the generated content. Please try again.");
     } finally {
       setRejecting(false);
     }

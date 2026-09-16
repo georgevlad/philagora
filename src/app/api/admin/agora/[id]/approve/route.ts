@@ -1,3 +1,4 @@
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { agoraEditorialConflict, reconcileAgoraEditorialCompletion } from "@/lib/agora-jobs";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
@@ -10,10 +11,14 @@ export async function POST(
   try {
     const db = getDb();
     const { id: threadId } = await params;
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
+    }
     const { philosopher_id, posts, generation_log_id, recommendation } = body;
 
-    if (!philosopher_id || !Array.isArray(posts) || posts.length === 0) {
+    if (typeof philosopher_id !== "string" || !philosopher_id.trim() || !Array.isArray(posts) || posts.length === 0 ||
+        posts.some((post) => typeof post !== "string" || !post.trim())) {
       return NextResponse.json(
         { error: "philosopher_id and posts (array) are required" },
         { status: 400 }

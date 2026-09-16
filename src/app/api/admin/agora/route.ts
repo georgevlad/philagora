@@ -1,3 +1,4 @@
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { buildAgoraClassificationInput } from "@/lib/agora";
@@ -57,7 +58,10 @@ function normalizeVisibility(value: unknown): AgoraThreadVisibility {
 export async function POST(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
+    }
     const {
       question,
       asked_by,
@@ -68,7 +72,7 @@ export async function POST(request: NextRequest) {
       visibility,
     } = body;
 
-    if (!question?.trim()) {
+    if (typeof question !== "string" || !question.trim()) {
       return NextResponse.json(
         { error: "question is required" },
         { status: 400 }
@@ -80,6 +84,15 @@ export async function POST(request: NextRequest) {
         { error: "At least 2 philosopher_ids are required" },
         { status: 400 }
       );
+    }
+
+    if (philosopher_ids.some((id) => typeof id !== "string" || !id.trim()) ||
+        new Set(philosopher_ids).size !== philosopher_ids.length) {
+      return NextResponse.json({ error: "philosopher_ids must contain unique, non-empty strings" }, { status: 400 });
+    }
+    const knownPhilosopher = db.prepare("SELECT id FROM philosophers WHERE id = ?");
+    if (philosopher_ids.some((id) => !knownPhilosopher.get(id))) {
+      return NextResponse.json({ error: "Unknown philosopher in philosopher_ids" }, { status: 400 });
     }
 
     if (question_type !== undefined && !isAgoraQuestionType(question_type)) {
@@ -98,6 +111,13 @@ export async function POST(request: NextRequest) {
         { error: "recommendations_enabled must be true/false or 1/0" },
         { status: 400 }
       );
+    }
+
+    if (asked_by !== undefined && typeof asked_by !== "string") {
+      return NextResponse.json({ error: "asked_by must be a string" }, { status: 400 });
+    }
+    if (visibility !== undefined && visibility !== "public" && visibility !== "private") {
+      return NextResponse.json({ error: "visibility must be public or private" }, { status: 400 });
     }
 
     const rawArticleUrl = typeof article_url === "string" ? article_url.trim() : "";
@@ -133,16 +153,16 @@ export async function POST(request: NextRequest) {
           }
         : null
     );
-    const threadId = `agora-${Date.now()}`;
+    const threadId = `agora-${crypto.randomUUID()}`;
     const classification: QuestionClassification =
       question_type !== undefined && normalizedRecommendations !== null
         ? {
-            questionType: question_type,
+            questionType: question_type as AgoraQuestionType,
             recommendationsAppropriate: normalizedRecommendations,
             recommendationHint: null,
           }
         : await classifyAgoraQuestion(classificationInput);
-    const finalQuestionType = question_type ?? classification.questionType;
+    const finalQuestionType = isAgoraQuestionType(question_type) ? question_type : classification.questionType;
     const finalRecommendationsEnabled =
       normalizedRecommendations ?? classification.recommendationsAppropriate;
     const finalVisibility = normalizeVisibility(visibility);
@@ -235,7 +255,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Failed to create agora thread:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create thread" },
+      { error: "Failed to create thread" },
       { status: 500 }
     );
   }
@@ -285,10 +305,13 @@ export async function GET() {
 export async function PATCH(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
+    }
     const { id, hidden_from_feed } = body;
 
-    if (!id) {
+    if (typeof id !== "string" || !id.trim()) {
       return NextResponse.json(
         { error: "id is required" },
         { status: 400 }
@@ -333,10 +356,13 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
+    }
     const { id } = body;
 
-    if (!id) {
+    if (typeof id !== "string" || !id.trim()) {
       return NextResponse.json(
         { error: "id is required" },
         { status: 400 }

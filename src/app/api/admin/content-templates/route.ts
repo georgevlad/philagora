@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import type { ContentTemplateRow } from "@/lib/db-types";
 import {
   CONTENT_TEMPLATES,
@@ -102,7 +103,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const {
       template_key,
       instructions,
@@ -113,7 +117,7 @@ export async function POST(request: NextRequest) {
       notes?: string;
     };
 
-    if (!isTemplateKey(template_key ?? null) || !instructions?.trim()) {
+    if (!isTemplateKey(template_key ?? null) || (typeof instructions !== "string" || !instructions.trim())) {
       return NextResponse.json(
         { error: "template_key and instructions are required" },
         { status: 400 }
@@ -133,7 +137,7 @@ export async function POST(request: NextRequest) {
         `INSERT INTO content_templates (template_key, version, instructions, is_active, notes)
          VALUES (?, ?, ?, 0, ?)`
       )
-      .run(template_key, versionRow.next_version, instructions.trim(), notes?.trim() ?? "");
+      .run(template_key, versionRow.next_version, instructions.trim(), typeof notes === "string" ? notes.trim() : "");
 
     const created = db
       .prepare("SELECT * FROM content_templates WHERE id = ?")
@@ -155,10 +159,13 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { id, action } = body as { id?: number; action?: string };
 
-    if (!id || !["set_active", "deactivate"].includes(action ?? "")) {
+    if (typeof id !== "number" || !Number.isSafeInteger(id) || id < 1 || !["set_active", "deactivate"].includes(action ?? "")) {
       return NextResponse.json(
         { error: "id and action ('set_active' or 'deactivate') are required" },
         { status: 400 }
@@ -212,10 +219,13 @@ export async function DELETE(request: NextRequest) {
 
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { id } = body as { id?: number };
 
-    if (!id) {
+    if (typeof id !== "number" || !Number.isSafeInteger(id) || id < 1) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
 

@@ -4,6 +4,7 @@
  */
 
 import { getDb } from "@/lib/db";
+import { safeJsonParse } from "@/lib/json-utils";
 import {
   createMessage,
   getAnthropicClient,
@@ -624,11 +625,19 @@ export function buildArticleSourceMaterialParts(
   article: ArticleCandidateRow,
   philosopherId?: string
 ): { sourceMaterial: string; moodResult: MoodResult | null } {
-  const suggestedStances = parseJson<Record<string, string>>(article.suggested_stances, {});
+  const parsedStances = safeJsonParse<unknown>(article.suggested_stances, {});
+  const suggestedStances: Record<string, string> = parsedStances !== null
+    && typeof parsedStances === "object" && !Array.isArray(parsedStances)
+    ? Object.fromEntries(Object.entries(parsedStances).filter((entry): entry is [string, string] =>
+        typeof entry[1] === "string"))
+    : {};
   const suggestedStanceText = Object.entries(suggestedStances)
     .map(([philosopherId, stance]) => `${philosopherId}: ${stance}`)
     .join(", ");
-  const tensions = parseJson<string[]>(article.primary_tensions, []);
+  const parsedTensions = safeJsonParse<unknown>(article.primary_tensions, []);
+  const tensions = Array.isArray(parsedTensions)
+    ? parsedTensions.filter((value): value is string => typeof value === "string")
+    : [];
   const moodResult = philosopherId
     ? resolveMoodForContentType({
         philosopherId,
@@ -654,15 +663,6 @@ export function buildArticleSourceMaterialParts(
     .join("\n\n");
 
   return { sourceMaterial, moodResult };
-}
-
-function parseJson<T>(raw: string | null | undefined, fallback: T): T {
-  if (!raw) return fallback;
-  try {
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
 }
 
 // ── Synthesis generation (no philosopher persona) ────────────────────

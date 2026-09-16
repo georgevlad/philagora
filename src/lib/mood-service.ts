@@ -170,7 +170,7 @@ export function resolveMoodForCrossReply(
   );
 }
 
-function resolveMoodFromPalette(
+export function resolveMoodFromPalette(
   registers: MoodRegister[],
   tensions: string[],
   stance: string | null,

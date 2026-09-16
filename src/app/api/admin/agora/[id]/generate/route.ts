@@ -1,3 +1,4 @@
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { withAgoraModelCall } from "@/lib/agora-model-call";
 import { agoraEditorialConflict, getAgoraJob } from "@/lib/agora-jobs";
 import { NextRequest, NextResponse } from "next/server";
@@ -28,10 +29,13 @@ export async function POST(
   try {
     const db = getDb();
     const { id: threadId } = await params;
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
+    }
     const { philosopher_id } = body;
 
-    if (!philosopher_id) {
+    if (typeof philosopher_id !== "string" || !philosopher_id.trim()) {
       return NextResponse.json(
         { error: "philosopher_id is required" },
         { status: 400 }
@@ -48,6 +52,10 @@ export async function POST(
 
     if (!thread) {
       return NextResponse.json({ error: "Thread not found" }, { status: 404 });
+    }
+
+    if (!db.prepare("SELECT 1 FROM agora_thread_philosophers WHERE thread_id = ? AND philosopher_id = ?").get(threadId, philosopher_id)) {
+      return NextResponse.json({ error: "Philosopher is not in this conversation" }, { status: 400 });
     }
 
     const conflict = agoraEditorialConflict(db, threadId, philosopher_id);

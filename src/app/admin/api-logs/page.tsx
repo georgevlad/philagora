@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Spinner } from "@/components/Spinner";
+import { parseDateString } from "@/lib/date-utils";
 
 const PAGE_SIZE = 50;
 const CALLER_FILTERS = [
@@ -56,15 +57,10 @@ interface ApiLogResponse {
   offset: number;
 }
 
-function parseLogTimestamp(timestamp: string): Date {
-  return new Date(`${timestamp.replace(" ", "T")}Z`);
-}
-
 function formatRelativeTime(timestamp: string): string {
-  const date = parseLogTimestamp(timestamp);
+  const date = parseDateString(timestamp);
+  if (!date) return timestamp;
   const diffMs = date.getTime() - Date.now();
-
-  if (Number.isNaN(date.getTime())) return timestamp;
 
   const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
   const absSeconds = Math.abs(Math.round(diffMs / 1000));
@@ -101,6 +97,7 @@ export default function ApiLogsPage() {
   const [stats, setStats] = useState<ApiLogStats | null>(null);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
+  const [reloadVersion, setReloadVersion] = useState(0);
   const [callerFilter, setCallerFilter] =
     useState<(typeof CALLER_FILTERS)[number]["value"]>("all");
   const [statusFilter, setStatusFilter] =
@@ -163,7 +160,7 @@ export default function ApiLogsPage() {
     return () => {
       ignore = true;
     };
-  }, [callerFilter, offset, statusFilter]);
+  }, [callerFilter, offset, reloadVersion, statusFilter]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -213,36 +210,7 @@ export default function ApiLogsPage() {
       setOffset(0);
       setExpandedErrors([]);
 
-      const params = new URLSearchParams({
-        limit: String(PAGE_SIZE),
-        offset: "0",
-      });
-
-      if (callerFilter !== "all") {
-        params.set("caller", callerFilter);
-      }
-      if (statusFilter === "success") {
-        params.set("success", "true");
-      } else if (statusFilter === "errors") {
-        params.set("success", "false");
-      }
-
-      const refreshResponse = await fetch(`/api/admin/api-logs?${params.toString()}`);
-      const refreshData = (await refreshResponse.json()) as ApiLogResponse | { error?: string };
-
-      if (!refreshResponse.ok) {
-        throw new Error(
-          "error" in refreshData
-            ? refreshData.error || "Failed to refresh API logs"
-            : "Failed to refresh API logs"
-        );
-      }
-
-      if ("logs" in refreshData) {
-        setLogs(refreshData.logs);
-        setStats(refreshData.stats);
-        setTotal(refreshData.total);
-      }
+      setReloadVersion((current) => current + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to clear old logs");
     } finally {
@@ -451,7 +419,7 @@ export default function ApiLogsPage() {
                         <td className="px-4 py-3 font-mono text-xs text-ink-light align-top">
                           <div>{formatRelativeTime(log.timestamp)}</div>
                           <div className="mt-1 text-[11px] text-ink-lighter">
-                            {parseLogTimestamp(log.timestamp).toLocaleString("en-US")}
+                            {parseDateString(log.timestamp)?.toLocaleString("en-US") ?? log.timestamp}
                           </div>
                         </td>
                         <td className="px-4 py-3 font-mono text-xs text-ink-light align-top">

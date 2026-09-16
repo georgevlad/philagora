@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import type { ArticleCandidate } from "@/lib/news-scout-service";
 
 type CandidateWithUsage = ArticleCandidate & {
@@ -216,18 +217,21 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { id, ids, status } = body as {
       id?: string;
       ids?: string[];
       status?: string;
     };
 
-    const targetIds = Array.isArray(ids)
+    const targetIds = [...new Set(Array.isArray(ids)
       ? ids.filter((candidateId): candidateId is string => typeof candidateId === "string" && candidateId.length > 0)
-      : id
+      : typeof id === "string" && id.length > 0
       ? [id]
-      : [];
+      : [])];
 
     if (targetIds.length === 0 || !status) {
       return NextResponse.json(
@@ -246,13 +250,13 @@ export async function PATCH(request: NextRequest) {
 
     if (targetIds.length > 1) {
       const placeholders = targetIds.map(() => "?").join(",");
-      db.prepare(
+      const result = db.prepare(
         `UPDATE article_candidates
          SET status = ?
          WHERE id IN (${placeholders})`
       ).run(status, ...targetIds);
 
-      return NextResponse.json({ updated: targetIds.length, ids: targetIds, status });
+      return NextResponse.json({ updated: result.changes, ids: targetIds, status });
     }
 
     db.prepare("UPDATE article_candidates SET status = ? WHERE id = ?").run(
@@ -294,10 +298,19 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
 
     if (body.action === "cleanup") {
       const days = body.older_than_days ?? 30;
+      if (typeof days !== "number" || !Number.isSafeInteger(days) || days < 1) {
+        return NextResponse.json(
+          { error: "older_than_days must be a positive integer" },
+          { status: 400 }
+        );
+      }
       const result = db
         .prepare(
           `DELETE FROM article_candidates
@@ -319,7 +332,7 @@ export async function DELETE(request: NextRequest) {
 
     const { id } = body;
 
-    if (!id) {
+    if (typeof id !== "string" || !id.trim()) {
       return NextResponse.json(
         { error: "id is required" },
         { status: 400 }

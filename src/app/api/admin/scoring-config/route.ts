@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import {
   DEFAULT_GENERATION_MODEL,
   DEFAULT_IMAGE_GENERATION_MODEL,
@@ -15,10 +16,8 @@ import {
   parseStanceGuidance,
   parseTensionVocabulary,
   SCORING_CONFIG_KEYS,
-  slugifyTensionLabel,
   type ScoringConfigKey,
   type StanceGuidanceConfig,
-  type TensionVocabularyItem,
 } from "@/lib/scoring-config";
 
 function isAllowedKey(value: string): value is ScoringConfigKey {
@@ -89,20 +88,7 @@ function normalizeValue(key: ScoringConfigKey, value: unknown) {
   }
 
   if (key === "tension_vocabulary") {
-    const normalized = Array.isArray(value)
-      ? value.map((item) => {
-          const typed = item as Partial<TensionVocabularyItem>;
-          const label = typed.label?.trim() ?? "";
-
-          return {
-            id: slugifyTensionLabel(label || typed.id || ""),
-            label,
-            description: typed.description?.trim() ?? "",
-          };
-        })
-      : [];
-
-    return parseTensionVocabulary(JSON.stringify(normalized));
+    return parseTensionVocabulary(JSON.stringify(value));
   }
 
   if (key === "mood_enabled") {
@@ -143,7 +129,10 @@ export async function PUT(request: NextRequest) {
   if (denied) return denied;
 
   try {
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { key, value } = body as { key?: string; value?: unknown };
 
     if (!key || !isAllowedKey(key)) {

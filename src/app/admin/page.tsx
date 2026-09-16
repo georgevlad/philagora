@@ -59,7 +59,7 @@ function getQuickStats() {
     .prepare("SELECT COUNT(*) as count FROM posts WHERE status = 'published'")
     .get() as StatRow;
   const debates = db
-    .prepare("SELECT COUNT(*) as count FROM debates")
+    .prepare("SELECT COUNT(*) as count FROM debates WHERE status = 'complete'")
     .get() as StatRow;
   const threads = db
     .prepare("SELECT COUNT(*) as count FROM agora_threads")

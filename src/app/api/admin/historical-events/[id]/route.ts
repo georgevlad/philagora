@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   createMessage,
   getAnthropicClient,
+  parseJsonValueResponse,
 } from "@/lib/anthropic-utils";
 import { getDb } from "@/lib/db";
 import type { HistoricalEventRow, PhilosopherRow } from "@/lib/db-types";
@@ -23,16 +24,6 @@ function coerceInteger(value: string | number | null | undefined): number | null
     return Number.isInteger(parsed) ? parsed : null;
   }
   return null;
-}
-
-function parseAnthropicJson(raw: string): unknown {
-  const cleaned = raw
-    .trim()
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/```\s*$/i, "")
-    .replace(/,\s*([}\]])/g, "$1");
-
-  return JSON.parse(cleaned);
 }
 
 function extractTextContent(response: { content: Array<{ type: string; text?: string }> }) {
@@ -220,7 +211,7 @@ Order by score descending.`;
       );
 
       const rawOutput = extractTextContent(response);
-      const parsed = parseAnthropicJson(rawOutput);
+      const parsed = parseJsonValueResponse(rawOutput);
 
       if (!Array.isArray(parsed)) {
         return NextResponse.json(

@@ -1,20 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-
-type TemplateKey =
-  | "news_reaction"
-  | "quip"
-  | "timeless_reflection"
-  | "cross_philosopher_reply"
-  | "historical_reaction"
-  | "everyday_reaction"
-  | "cultural_recommendation"
-  | "debate_opening"
-  | "debate_rebuttal"
-  | "agora_response"
-  | "debate_synthesis"
-  | "agora_synthesis";
+import type { ContentTypeKey as TemplateKey } from "@/lib/content-templates";
+import { formatDateTime } from "@/lib/date-utils";
 
 type SelectedSection = TemplateKey | "house_rules";
 
@@ -58,26 +46,13 @@ const TEMPLATE_ITEMS: Array<{ key: TemplateKey; label: string }> = [
   { key: "historical_reaction", label: "Historical Reaction" },
   { key: "everyday_reaction", label: "Everyday Reaction" },
   { key: "cultural_recommendation", label: "Cultural Recommendation" },
+  { key: "art_commentary", label: "Art Commentary" },
   { key: "debate_opening", label: "Debate Opening" },
   { key: "debate_rebuttal", label: "Debate Rebuttal" },
   { key: "agora_response", label: "Agora Response" },
   { key: "debate_synthesis", label: "Debate Synthesis" },
   { key: "agora_synthesis", label: "Agora Synthesis" },
 ];
-
-function formatDate(dateStr: string): string {
-  try {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return dateStr;
-  }
-}
 
 function truncateText(text: string, maxLen: number = 360): string {
   if (text.length <= maxLen) return text;
@@ -581,7 +556,7 @@ export default function TemplatesPage() {
                                 v{version.version}
                               </span>
                               <span className="text-xs font-mono text-ink-lighter">
-                                {formatDate(version.created_at)}
+                                {formatDateTime(version.created_at)}
                               </span>
                               {isActive && (
                                 <span className="text-[10px] font-mono font-semibold uppercase tracking-widest text-terracotta">

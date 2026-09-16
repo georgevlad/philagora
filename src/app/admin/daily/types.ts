@@ -1,5 +1,4 @@
 import { STANCE_CONFIG } from "@/lib/constants";
-import { safeJsonParse } from "@/lib/json-utils";
 
 export type { Philosopher } from "@/types/admin";
 
@@ -145,8 +144,6 @@ export const TOPIC_CLUSTER_LABELS: Record<string, { label: string; color: string
   law_justice: { label: "Law & Justice", color: "bg-indigo-100 text-indigo-800 border-indigo-200" },
   society: { label: "Society", color: "bg-amber-100 text-amber-800 border-amber-200" },
 };
-
-export const parseJson = safeJsonParse;
 
 export function truncate(text: string, max = 220) {
   if (text.length <= max) return text;

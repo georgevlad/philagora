@@ -1,3 +1,4 @@
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { NextRequest, NextResponse } from "next/server";
 import Parser from "rss-parser";
 
@@ -7,7 +8,10 @@ const rssParser = new Parser({
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const feedUrl = typeof body.feed_url === "string" ? body.feed_url.trim() : "";
 
     if (!feedUrl) {

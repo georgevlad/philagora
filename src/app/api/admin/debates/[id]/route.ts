@@ -1,3 +1,4 @@
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 
@@ -75,11 +76,30 @@ export async function PATCH(
   try {
     const db = getDb();
     const { id } = await params;
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
+    }
+
+    if (body.status !== undefined && body.status !== "scheduled" && body.status !== "in_progress" && body.status !== "complete") {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
 
     const debate = db.prepare("SELECT * FROM debates WHERE id = ?").get(id);
     if (!debate) {
       return NextResponse.json({ error: "Debate not found" }, { status: 404 });
+    }
+
+    for (const field of ["synthesis_tensions", "synthesis_agreements", "synthesis_questions"]) {
+      const value = body[field];
+      if (value !== undefined && (!Array.isArray(value) || value.some((item) => typeof item !== "string"))) {
+        return NextResponse.json({ error: `${field} must be an array of strings` }, { status: 400 });
+      }
+    }
+    for (const field of ["synthesis_summary_agree", "synthesis_summary_diverge", "synthesis_summary_unresolved"]) {
+      if (body[field] !== undefined && typeof body[field] !== "string") {
+        return NextResponse.json({ error: `${field} must be a string` }, { status: 400 });
+      }
     }
 
     // Build dynamic update

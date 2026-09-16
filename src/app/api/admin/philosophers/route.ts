@@ -1,5 +1,7 @@
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { bustFeedCache } from "@/lib/feed-cache";
 
 const PHILOSOPHER_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -55,10 +57,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { id, name, tradition, color, initials, bio, era, key_works, core_principles, followers } = body;
 
-    if (!id || !name || !tradition || !era) {
+    if (typeof id !== "string" || !id.trim() || typeof name !== "string" || !name.trim() || typeof tradition !== "string" || !tradition.trim() || typeof era !== "string" || !era.trim()) {
       return NextResponse.json(
         { error: "id, name, tradition, and era are required" },
         { status: 400 }
@@ -114,10 +119,13 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "A valid JSON object is required" }, { status: 400 });
+    }
     const { id, name, tradition, color, initials, bio, era, key_works, core_principles, followers, is_active } = body;
 
-    if (!id) {
+    if (typeof id !== "string" || !id.trim()) {
       return NextResponse.json(
         { error: "Philosopher id is required" },
         { status: 400 }
@@ -154,6 +162,7 @@ export async function PUT(request: NextRequest) {
     );
 
     const updated = db.prepare("SELECT * FROM philosophers WHERE id = ?").get(id);
+    bustFeedCache();
     return NextResponse.json(updated);
   } catch (error) {
     console.error("Failed to update philosopher:", error);

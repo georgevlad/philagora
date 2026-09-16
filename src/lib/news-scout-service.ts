@@ -6,6 +6,7 @@
  */
 
 import type Anthropic from "@anthropic-ai/sdk";
+import { randomUUID } from "node:crypto";
 import Parser from "rss-parser";
 import { getDb } from "@/lib/db";
 import {
@@ -463,7 +464,7 @@ export async function fetchAllFeeds(): Promise<FetchResult> {
         if (!item.link || !item.title) continue;
 
         // Deduplicate: INSERT OR IGNORE on the UNIQUE url constraint
-        const articleId = `article-${Date.now()}-${sourceNewCount}`;
+        const articleId = `article-${randomUUID()}`;
         const description =
           item.contentSnippet || item.content || item.summary || "";
         const pubDate = item.isoDate || item.pubDate || null;
@@ -506,6 +507,9 @@ export async function scoreUnscored(
 ): Promise<ScoreResult> {
   const db = getDb();
   const result: ScoreResult = { scored: 0, errors: [] };
+  if (!Number.isSafeInteger(batchSize) || batchSize < 1) {
+    return { scored: 0, errors: ["Batch size must be a positive integer"] };
+  }
   const scoringPrompt = buildScoringPrompt();
   const modelConfig = db
     .prepare("SELECT value FROM scoring_config WHERE key = 'scoring_model'")
@@ -542,13 +546,14 @@ export async function scoreUnscored(
            ROW_NUMBER() OVER (PARTITION BY ac.source_id ORDER BY ac.pub_date DESC, ac.fetched_at DESC) as rn
          FROM article_candidates ac
          JOIN news_sources ns ON ac.source_id = ns.id
-         WHERE ac.status = 'new'
+         WHERE ac.status = 'new' AND ns.is_active = 1
        )
        SELECT * FROM ranked
        WHERE rn <= ?
-       ORDER BY source_category, source_name, pub_date DESC`
+       ORDER BY rn, source_category, source_name, pub_date DESC
+       LIMIT ?`
     )
-    .all(perSourceLimit) as (ArticleCandidate & { rn: number })[];
+    .all(perSourceLimit, batchSize) as (ArticleCandidate & { rn: number })[];
 
   for (const article of articles) {
     try {

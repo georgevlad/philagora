@@ -24,7 +24,7 @@ function normalizeGeneratedPost(data: Record<string, unknown>): GeneratedPostPay
       ? data.thesis.trim()
       : content.split("\n")[0]?.trim().slice(0, 140) ?? "";
   const stance =
-    typeof data.stance === "string" && data.stance in STANCE_CONFIG
+    typeof data.stance === "string" && Object.hasOwn(STANCE_CONFIG, data.stance)
       ? (data.stance as Stance)
       : "observes";
   const tag =
@@ -182,9 +182,7 @@ export async function POST(
     return NextResponse.json(
       {
         error:
-          error instanceof Error
-            ? error.message
-            : "Failed to generate historical reaction",
+          "Failed to generate historical reaction",
       },
       { status: 500 }
     );

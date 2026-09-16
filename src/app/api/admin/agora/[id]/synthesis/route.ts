@@ -1,3 +1,4 @@
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { withAgoraModelCall } from "@/lib/agora-model-call";
 import { agoraEditorialConflict, getAgoraJob, reconcileAgoraEditorialCompletion } from "@/lib/agora-jobs";
 import { NextRequest, NextResponse } from "next/server";
@@ -43,10 +44,14 @@ export async function POST(
   try {
     const db = getDb();
     const { id: threadId } = await params;
-    const body = await request.json();
-    const { action, data } = body;
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
+    }
+    const { action } = body;
+    const data = body.data as Record<string, unknown> | undefined;
 
-    if (!action || !["generate", "save"].includes(action)) {
+    if (action !== "generate" && action !== "save") {
       return NextResponse.json(
         { error: "action must be 'generate' or 'save'" },
         { status: 400 }
@@ -155,7 +160,7 @@ export async function POST(
     }
 
     // action === "save"
-    if (!data) {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
       return NextResponse.json(
         { error: "data is required for save action" },
         { status: 400 }

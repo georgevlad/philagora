@@ -1,3 +1,4 @@
+import { STANCE_CONFIG } from "@/lib/constants";
 import { safeJsonParse } from "@/lib/json-utils";
 import {
   DEFAULT_MOOD_CONTENT_TYPES,
@@ -271,19 +272,35 @@ export function parseImageGenerationModel(
     : DEFAULT_IMAGE_GENERATION_MODEL;
 }
 
-export function parseScoreTiers(raw: string | undefined): ScoreTierMap {
-  const parsed = safeJsonParse<Partial<Record<ScoreTierKey, Partial<ScoreTierDefinition>>>>(
-    raw,
-    {}
-  );
+function asConfigObject(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
 
-  return {
-    reject: { ...DEFAULT_SCORE_TIERS.reject, ...parsed.reject },
-    low: { ...DEFAULT_SCORE_TIERS.low, ...parsed.low },
-    decent: { ...DEFAULT_SCORE_TIERS.decent, ...parsed.decent },
-    good: { ...DEFAULT_SCORE_TIERS.good, ...parsed.good },
-    excellent: { ...DEFAULT_SCORE_TIERS.excellent, ...parsed.excellent },
-  };
+function isStance(value: unknown): value is Stance {
+  return typeof value === "string" && Object.hasOwn(STANCE_CONFIG, value);
+}
+
+export function parseScoreTiers(raw: string | undefined): ScoreTierMap {
+  const parsed = asConfigObject(safeJsonParse<unknown>(raw, {}));
+  const result = {} as ScoreTierMap;
+
+  for (const key of Object.keys(DEFAULT_SCORE_TIERS) as ScoreTierKey[]) {
+    const tier = asConfigObject(parsed[key]);
+    const normalized = { ...DEFAULT_SCORE_TIERS[key] };
+    if (typeof tier.label === "string") normalized.label = tier.label;
+    if (typeof tier.description === "string") normalized.description = tier.description;
+    for (const bound of ["min", "max"] as const) {
+      const value = tier[bound];
+      if (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100) {
+        normalized[bound] = value;
+      }
+    }
+    result[key] = normalized;
+  }
+
+  return result;
 }
 
 export function slugifyTensionLabel(label: string): string {
@@ -294,24 +311,18 @@ export function slugifyTensionLabel(label: string): string {
 }
 
 export function parseTensionVocabulary(raw: string | undefined): TensionVocabularyItem[] {
-  const parsed = safeJsonParse<Partial<TensionVocabularyItem>[]>(
-    raw,
-    DEFAULT_TENSION_VOCABULARY
-  );
-
-  if (!Array.isArray(parsed)) {
-    return DEFAULT_TENSION_VOCABULARY;
-  }
+  const parsed = safeJsonParse<unknown>(raw, DEFAULT_TENSION_VOCABULARY);
+  if (!Array.isArray(parsed)) return DEFAULT_TENSION_VOCABULARY;
 
   const normalized = parsed
-    .map((item) => {
-      const label = item.label?.trim() ?? "";
-      const id = slugifyTensionLabel(label || item.id || "");
-
+    .map((value) => {
+      const item = asConfigObject(value);
+      const label = typeof item.label === "string" ? item.label.trim() : "";
+      const id = slugifyTensionLabel(label || (typeof item.id === "string" ? item.id : ""));
       return {
         id,
         label,
-        description: item.description?.trim() ?? "",
+        description: typeof item.description === "string" ? item.description.trim() : "",
       };
     })
     .filter((item) => item.id && item.label);
@@ -320,21 +331,20 @@ export function parseTensionVocabulary(raw: string | undefined): TensionVocabula
 }
 
 export function parseStanceGuidance(raw: string | undefined): StanceGuidanceConfig {
-  const parsed = safeJsonParse<Partial<StanceGuidanceConfig>>(
-    raw,
-    DEFAULT_STANCE_GUIDANCE
-  );
+  const parsed = asConfigObject(safeJsonParse<unknown>(raw, {}));
 
   return {
     preferred_friction_pairs: Array.isArray(parsed.preferred_friction_pairs)
       ? parsed.preferred_friction_pairs
-          .filter((pair): pair is [Stance, Stance] => Array.isArray(pair) && pair.length === 2)
+          .filter((pair): pair is [Stance, Stance] =>
+            Array.isArray(pair) && pair.length === 2 && pair.every(isStance))
           .map((pair) => [pair[0], pair[1]])
       : DEFAULT_STANCE_GUIDANCE.preferred_friction_pairs,
     deprioritize: Array.isArray(parsed.deprioritize)
-      ? parsed.deprioritize
+      ? parsed.deprioritize.filter(isStance)
       : DEFAULT_STANCE_GUIDANCE.deprioritize,
-    guidance_text: parsed.guidance_text?.trim() || DEFAULT_STANCE_GUIDANCE.guidance_text,
+    guidance_text: (typeof parsed.guidance_text === "string" && parsed.guidance_text.trim())
+      || DEFAULT_STANCE_GUIDANCE.guidance_text,
   };
 }
 

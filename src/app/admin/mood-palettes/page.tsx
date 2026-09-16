@@ -238,8 +238,8 @@ export default function MoodPalettesPage() {
         throw new Error(data.error || "Failed to save mood settings.");
       }
 
-      setMoodEnabled(data.mood_enabled);
-      setMoodContentTypes(data.mood_content_types);
+      if (key === "mood_enabled") setMoodEnabled(data.mood_enabled);
+      if (key === "mood_content_types") setMoodContentTypes(data.mood_content_types);
       setSuccessMessage(successText);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save mood settings.");

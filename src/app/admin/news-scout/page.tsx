@@ -300,11 +300,11 @@ export default function NewsScoutPage() {
   );
 
   const hasInitialized = useRef(false);
-  const hasCompletedInitialCandidateLoad = useRef(false);
 
   const fetchStats = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/news-scout");
+      if (!res.ok) return;
       const data = await res.json();
       setStats(data.stats);
     } catch {
@@ -357,8 +357,9 @@ export default function NewsScoutPage() {
         limit: "500",
       });
       const res = await fetch(`/api/admin/news-scout/candidates?${params}`);
+      if (!res.ok) return;
       const data = await res.json();
-      setOverviewCandidates(data);
+      if (Array.isArray(data)) setOverviewCandidates(data);
     } catch {
       // overview is non-critical
     }
@@ -410,11 +411,6 @@ export default function NewsScoutPage() {
 
   useEffect(() => {
     if (!hasInitialized.current) return;
-    if (!hasCompletedInitialCandidateLoad.current) {
-      hasCompletedInitialCandidateLoad.current = true;
-      return;
-    }
-
     setListLoading(true);
     fetchCandidates().finally(() => setListLoading(false));
   }, [fetchCandidates]);
@@ -434,7 +430,7 @@ export default function NewsScoutPage() {
   useEffect(() => {
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setGeneratePanelCandidate(null);
+        if (!genInProgress) setGeneratePanelCandidate(null);
         if (!quipGenerating) {
           setQuipModalCandidate(null);
           setQuipModalPhilosopherId(null);
@@ -450,7 +446,7 @@ export default function NewsScoutPage() {
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [quipGenerating]);
+  }, [genInProgress, quipGenerating]);
 
   const runPipeline = async (action: "fetch" | "score" | "fetch_and_score") => {
     setPipelineRunning(true);

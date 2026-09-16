@@ -105,9 +105,9 @@ export default function GenerationSettingsPage() {
       }
 
       if ("generation_model" in data) {
-        setGenerationModel(data.generation_model);
-        setSynthesisModel(data.synthesis_model);
-        setImageGenerationModel(data.image_generation_model);
+        if (key === "generation_model") setGenerationModel(data.generation_model);
+        if (key === "synthesis_model") setSynthesisModel(data.synthesis_model);
+        if (key === "image_generation_model") setImageGenerationModel(data.image_generation_model);
       }
 
       setSuccessMessage(successText);

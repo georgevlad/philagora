@@ -6,6 +6,7 @@ import type {
   StoredPostRow,
 } from "@/lib/db-types";
 import { bustFeedCache } from "@/lib/feed-cache";
+import { safeJsonParse } from "@/lib/json-utils";
 import {
   buildArticleSourceMaterial,
   buildArticleSourceMaterialParts,
@@ -185,7 +186,7 @@ const EVERYDAY_PROMPTS = [
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as DailyGenerateRequest;
+    const body = (await request.json().catch(() => null)) as DailyGenerateRequest;
     const validationError = validateGenerateRequest(body);
     if (validationError) {
       return NextResponse.json({ error: validationError }, { status: 400 });
@@ -220,7 +221,7 @@ export async function POST(request: NextRequest) {
     const newsReactions: DailyGeneratedItem[] = [];
 
     for (const article of selectedArticles) {
-      const suggestedIds = parseJson<string[]>(article.suggested_philosophers, []);
+      const suggestedIds = safeJsonParse<string[]>(article.suggested_philosophers, []);
       const selectedIds = pickReactionPhilosophers({
         allPhilosophers,
         excludedIds,
@@ -583,7 +584,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Daily generation failed:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Daily generation failed" },
+      { error: "Daily generation failed" },
       { status: 500 }
     );
   }
@@ -591,7 +592,7 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const body = (await request.json()) as DailyRegenerateRequest;
+    const body = (await request.json().catch(() => null)) as DailyRegenerateRequest;
     const validationError = validateRegenerateRequest(body);
     if (validationError) {
       return NextResponse.json({ error: validationError }, { status: 400 });
@@ -835,6 +836,11 @@ export async function PATCH(request: NextRequest) {
     );
 
     const newLogId = db.transaction(() => {
+      // Generation may finish after another editor has published or removed the draft.
+      const currentPost = db.prepare("SELECT status FROM posts WHERE id = ?")
+        .get(body.post_id) as { status: string } | undefined;
+      if (currentPost?.status !== "draft") return null;
+
       if (body.type === "news_reaction") {
         const discoveredReplies = findDraftReplies.all(body.post_id) as Array<{ id: string }>;
         const knownReplyIds = new Set(dependentReplies.map((reply) => reply.post_id));
@@ -848,7 +854,7 @@ export async function PATCH(request: NextRequest) {
 
         for (const reply of dependentReplies) {
           const existingReply = db
-            .prepare("SELECT id FROM posts WHERE id = ? AND reply_to = ?")
+            .prepare("SELECT id FROM posts WHERE id = ? AND reply_to = ? AND status = 'draft'")
             .get(reply.post_id, body.post_id) as { id: string } | undefined;
 
           if (!existingReply) continue;
@@ -900,6 +906,13 @@ export async function PATCH(request: NextRequest) {
       return Number(result.lastInsertRowid);
     })();
 
+    if (newLogId === null) {
+      return NextResponse.json(
+        { error: "This post is no longer a draft. Reload before regenerating." },
+        { status: 409 }
+      );
+    }
+
     if ((body.type === "news_reaction" || body.type === "quip") && articleCandidateId) {
       db.prepare("UPDATE article_candidates SET status = 'used' WHERE id = ?").run(articleCandidateId);
     }
@@ -935,7 +948,7 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error("Daily regeneration failed:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Daily regeneration failed" },
+      { error: "Daily regeneration failed" },
       { status: 500 }
     );
   }
@@ -943,7 +956,8 @@ export async function PATCH(request: NextRequest) {
 
 function validateGenerateRequest(body: DailyGenerateRequest | null | undefined): string | null {
   if (!body) return "Request body is required.";
-  if (!Array.isArray(body.article_ids) || body.article_ids.length === 0) {
+  if (!Array.isArray(body.article_ids) || body.article_ids.length === 0 ||
+      body.article_ids.some((id) => typeof id !== "string" || !id.trim())) {
     return "Select at least one article.";
   }
 
@@ -974,8 +988,9 @@ function validateGenerateRequest(body: DailyGenerateRequest | null | undefined):
   if (!isIntegerInRange(everydayScenarios, 0, 4)) {
     return "everyday_scenarios must be between 0 and 4.";
   }
-  if (!Array.isArray(config.excluded_philosophers)) {
-    return "excluded_philosophers must be an array.";
+  if (!Array.isArray(config.excluded_philosophers) ||
+      config.excluded_philosophers.some((id) => typeof id !== "string" || !id.trim())) {
+    return "excluded_philosophers must be an array of philosopher ids.";
   }
   if (!['varied', 'short', 'medium', 'long'].includes(config.length_strategy)) {
     return "length_strategy must be varied, short, medium, or long.";
@@ -984,8 +999,22 @@ function validateGenerateRequest(body: DailyGenerateRequest | null | undefined):
   return null;
 }
 function validateRegenerateRequest(body: DailyRegenerateRequest | null | undefined): string | null {
-  if (!body?.post_id) return "post_id is required.";
-  if (!body.generation_log_id) return "generation_log_id is required.";
+  if (typeof body?.post_id !== "string" || !body.post_id.trim()) return "post_id is required.";
+  if (!Number.isSafeInteger(body.generation_log_id) || body.generation_log_id <= 0) {
+    return "generation_log_id must be a positive integer.";
+  }
+  if (body.dependent_replies !== undefined &&
+      (!Array.isArray(body.dependent_replies) || body.dependent_replies.some((reply) =>
+        !reply || typeof reply.post_id !== "string" || !reply.post_id.trim() ||
+        (reply.generation_log_id !== undefined &&
+          (!Number.isSafeInteger(reply.generation_log_id) || reply.generation_log_id <= 0))))) {
+    return "dependent_replies must contain valid post ids and generation log ids.";
+  }
+  for (const value of [body.article_candidate_id, body.reply_to_post_id, body.prompt_seed]) {
+    if (value !== undefined && (typeof value !== "string" || !value.trim())) {
+      return "Article ids, reply ids, and prompt seeds must be non-empty strings.";
+    }
+  }
   if (!['news_reaction', 'cross_reply', 'timeless_reflection', 'quip', 'cultural_recommendation', 'art_commentary', 'everyday_scenario'].includes(body.type)) {
     return "type must be news_reaction, cross_reply, timeless_reflection, quip, cultural_recommendation, art_commentary, or everyday_scenario.";
   }
@@ -1394,15 +1423,6 @@ function pickEverydayPrompt(args: {
 
   const anyPool = EVERYDAY_PROMPTS.filter((prompt) => !args.promptsUsedThisRun.has(prompt));
   return pickRandom(anyPool);
-}
-
-function parseJson<T>(raw: string | null | undefined, fallback: T): T {
-  if (!raw) return fallback;
-  try {
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
 }
 
 function shuffle<T>(items: T[]): T[] {

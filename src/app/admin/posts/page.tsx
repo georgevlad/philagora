@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } f
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { BookIcon, BookmarkIcon, HeartIcon, ReplyArrowIcon, ReplyIcon } from "@/components/Icons";
 import { STANCE_CONFIG } from "@/lib/constants";
+import { formatDateTime } from "@/lib/date-utils";
 import {
   FEED_CONTENT_TABS,
   normalizeFeedContentType,
@@ -99,20 +100,6 @@ function buildPageList(currentPage: number, totalPages: number): number[] {
   }
 
   return pages;
-}
-
-function formatCreatedAt(value: string): string {
-  try {
-    return new Date(value).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return value;
-  }
 }
 
 function AdminPostsPageInner() {
@@ -501,7 +488,7 @@ function AdminPostsPageInner() {
                           )}
                         </div>
                         <span className="text-[11px] font-mono text-ink-lighter">
-                          {formatCreatedAt(post.created_at)}
+                          {formatDateTime(post.created_at)}
                         </span>
                       </div>
                     </div>

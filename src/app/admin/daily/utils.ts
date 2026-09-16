@@ -1,4 +1,14 @@
-import type { CandidateArticle } from "./types";
+import { safeJsonParse } from "@/lib/json-utils";
+import type { CandidateArticle, RawCandidateArticle } from "./types";
+
+export function normalizeCandidate(article: RawCandidateArticle): CandidateArticle {
+  return {
+    ...article,
+    suggested_philosophers: safeJsonParse<string[]>(article.suggested_philosophers, []),
+    suggested_stances: safeJsonParse<Record<string, string>>(article.suggested_stances, {}),
+    published_posts: article.published_posts ?? [],
+  };
+}
 
 export const UNCATEGORIZED_CLUSTER = "__uncategorized";
 

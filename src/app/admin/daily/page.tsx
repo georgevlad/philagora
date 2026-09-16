@@ -6,7 +6,6 @@ import {
   DEFAULT_CONFIG,
   LENGTH_OPTIONS,
   TOPIC_CLUSTER_LABELS,
-  parseJson,
   type CandidateArticle,
   type DailySummary,
   type Philosopher,
@@ -16,7 +15,7 @@ import {
   type ReviewItem,
 } from "./types";
 import { ReviewGroup, SummaryTile } from "./ReviewGroup";
-import { getTopicClusterKey, pickDiverseArticles } from "./utils";
+import { getTopicClusterKey, normalizeCandidate, pickDiverseArticles } from "./utils";
 import { useDailyGeneration } from "./useDailyGeneration";
 import { useReviewActions } from "./useReviewActions";
 
@@ -117,15 +116,6 @@ export default function DailyContentPage() {
     };
   }, []);
 
-
-  function normalizeCandidate(article: RawCandidateArticle): CandidateArticle {
-    return {
-      ...article,
-      suggested_philosophers: parseJson<string[]>(article.suggested_philosophers, []),
-      suggested_stances: parseJson<Record<string, string>>(article.suggested_stances, {}),
-      published_posts: article.published_posts ?? [],
-    };
-  }
 
   function updateNumberConfig(
     key: "reactions_per_article" | "cross_replies" | "timeless_reflections" | "quips" | "cultural_recommendations" | "art_commentaries" | "everyday_scenarios",
@@ -700,7 +690,7 @@ export default function DailyContentPage() {
             </div>
             <button
               onClick={handleGenerateDailyFeed}
-              disabled={generating || selectedArticleIds.length === 0}
+              disabled={generating || bulkPublishing || busyItemId !== null || selectedArticleIds.length === 0}
               className="inline-flex items-center justify-center gap-2 bg-terracotta hover:bg-terracotta-light disabled:opacity-50 disabled:cursor-not-allowed text-white font-body font-medium text-sm px-6 py-3 rounded-full shadow-sm hover:shadow transition-all"
             >
               {generating ? <><Spinner /> Generating daily content...</> : "Generate Daily Feed"}
@@ -734,14 +724,14 @@ export default function DailyContentPage() {
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => void handleBulkPublish("selected")}
-                disabled={bulkPublishing || draftItems.filter((item) => selectedDraftIds.includes(item.post_id)).length === 0}
+                disabled={bulkPublishing || generating || busyItemId !== null || draftItems.filter((item) => selectedDraftIds.includes(item.post_id)).length === 0}
                 className="inline-flex items-center gap-2 px-4 py-2 text-xs font-mono tracking-wide rounded-full border border-border-light text-ink-lighter hover:bg-parchment-dark/30 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {bulkPublishing ? <><Spinner /> Publishing...</> : `Publish Selected (${draftItems.filter((item) => selectedDraftIds.includes(item.post_id)).length})`}
               </button>
               <button
                 onClick={() => void handleBulkPublish("all")}
-                disabled={bulkPublishing || draftItems.length === 0}
+                disabled={bulkPublishing || generating || busyItemId !== null || draftItems.length === 0}
                 className="inline-flex items-center gap-2 bg-terracotta hover:bg-terracotta-light disabled:opacity-50 disabled:cursor-not-allowed text-white font-body font-medium text-sm px-5 py-2.5 rounded-full shadow-sm hover:shadow transition-all"
               >
                 {bulkPublishing ? <><Spinner /> Publishing...</> : "Publish All"}
@@ -768,6 +758,7 @@ export default function DailyContentPage() {
               description="Article-led reactions drafted from the selected news set."
               items={newsReactionItems}
               busyItemId={busyItemId}
+              actionsDisabled={bulkPublishing || generating || busyItemId !== null}
               selectedDraftIds={selectedDraftIds}
               onToggleSelection={toggleDraftSelection}
               onPublish={handlePublishItem}
@@ -779,6 +770,7 @@ export default function DailyContentPage() {
               description="Second-order friction pulled from the sharpest reactions."
               items={crossReplyItems}
               busyItemId={busyItemId}
+              actionsDisabled={bulkPublishing || generating || busyItemId !== null}
               selectedDraftIds={selectedDraftIds}
               onToggleSelection={toggleDraftSelection}
               onPublish={handlePublishItem}
@@ -790,6 +782,7 @@ export default function DailyContentPage() {
               description="Short, cutting headline reactions pulled from the same article set."
               items={quipItems}
               busyItemId={busyItemId}
+              actionsDisabled={bulkPublishing || generating || busyItemId !== null}
               selectedDraftIds={selectedDraftIds}
               onToggleSelection={toggleDraftSelection}
               onPublish={handlePublishItem}
@@ -801,6 +794,7 @@ export default function DailyContentPage() {
               description="Standalone reflections to keep the day&apos;s feed from becoming news-only."
               items={timelessItems}
               busyItemId={busyItemId}
+              actionsDisabled={bulkPublishing || generating || busyItemId !== null}
               selectedDraftIds={selectedDraftIds}
               onToggleSelection={toggleDraftSelection}
               onPublish={handlePublishItem}
@@ -812,6 +806,7 @@ export default function DailyContentPage() {
               description="Prompt-led recommendations that route films, books, and albums through each philosopher&apos;s worldview."
               items={recommendationItems}
               busyItemId={busyItemId}
+              actionsDisabled={bulkPublishing || generating || busyItemId !== null}
               selectedDraftIds={selectedDraftIds}
               onToggleSelection={toggleDraftSelection}
               onPublish={handlePublishItem}
@@ -823,6 +818,7 @@ export default function DailyContentPage() {
               description="Philosopher-as-museum-visitor: philosophical reactions to classical artworks."
               items={artCommentaryItems}
               busyItemId={busyItemId}
+              actionsDisabled={bulkPublishing || generating || busyItemId !== null}
               selectedDraftIds={selectedDraftIds}
               onToggleSelection={toggleDraftSelection}
               onPublish={handlePublishItem}
@@ -834,6 +830,7 @@ export default function DailyContentPage() {
               description="The Examined Life: philosophers react to mundane situations."
               items={everydayItems}
               busyItemId={busyItemId}
+              actionsDisabled={bulkPublishing || generating || busyItemId !== null}
               selectedDraftIds={selectedDraftIds}
               onToggleSelection={toggleDraftSelection}
               onPublish={handlePublishItem}

@@ -1,3 +1,4 @@
+import { parseAdminJsonObject } from "@/lib/admin-request";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
@@ -27,7 +28,10 @@ function optionalText(value: unknown): string | null {
 export async function POST(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
+    }
     const {
       title,
       trigger_article_title,
@@ -57,10 +61,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (philosopher_ids.some((id) => typeof id !== "string" || !id.trim()) ||
+        new Set(philosopher_ids).size !== philosopher_ids.length) {
+      return NextResponse.json({ error: "philosopher_ids must contain unique, non-empty strings" }, { status: 400 });
+    }
+    const knownPhilosopher = db.prepare("SELECT id FROM philosophers WHERE id = ?");
+    if (philosopher_ids.some((id) => !knownPhilosopher.get(id))) {
+      return NextResponse.json({ error: "Unknown philosopher in philosopher_ids" }, { status: 400 });
+    }
+
     const warnings =
       !cleanEditorialContext && !cleanTriggerTitle ? [MINIMAL_SOURCE_MATERIAL_WARNING] : [];
 
-    const debateId = `debate-${Date.now()}`;
+    const debateId = `debate-${crypto.randomUUID()}`;
 
     db.transaction(() => {
       db.prepare(
@@ -104,7 +117,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Failed to create debate:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create debate" },
+      { error: "Failed to create debate" },
       { status: 500 }
     );
   }
@@ -148,10 +161,13 @@ export async function GET() {
 export async function DELETE(request: NextRequest) {
   try {
     const db = getDb();
-    const body = await request.json();
+    const body = await parseAdminJsonObject(request);
+    if (!body) {
+      return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
+    }
     const { id } = body;
 
-    if (!id) {
+    if (typeof id !== "string" || !id.trim()) {
       return NextResponse.json(
         { error: "id is required" },
         { status: 400 }
