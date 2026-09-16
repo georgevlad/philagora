@@ -25,8 +25,8 @@ export function PhilosopherLink({
           size="sm"
         />
       </span>
-      <span>
-        {name}
+      <span className="public-person-copy">
+        <span className="public-person-name">{name}</span>
         {detail && <small>{detail}</small>}
       </span>
     </Link>

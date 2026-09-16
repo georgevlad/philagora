@@ -158,15 +158,17 @@ export default async function HomePage({
               A shared problem. A limited budget. Different ideas of what we owe
               each other.
             </p>
-            <p className="agora-meta agora-issue-path">
-              The situation → Possible responses → The unresolved choice
-            </p>
+            <ol className="agora-issue-path" aria-label="Inside the sample briefing">
+              <li>The situation</li>
+              <li>Possible responses</li>
+              <li>The unresolved choice</li>
+            </ol>
             <p className="agora-meta">
               Marcus Aurelius · Hannah Arendt · Bertrand Russell
             </p>
             <p className="agora-notice">
-              Illustrative issue, briefing and responses. The
-              contextual-question workflow is also a preview.
+              This entire feature is a sample: the issue, briefing, responses
+              and question workflow.
             </p>
             <div className="agora-actions">
               <Link className="agora-outline" href="/preview/issue-in-focus">
@@ -212,7 +214,7 @@ export default async function HomePage({
               <h2>From the feed</h2>
               <Link href="/feed">The full feed →</Link>
             </div>
-            {posts.map((p) => (
+            {posts.slice(0, 2).map((p) => (
               <article className="agora-feed-excerpt" key={p.id}>
                 <p className="agora-meta">
                   {p.philosopherName} · {p.stance}
@@ -222,11 +224,13 @@ export default async function HomePage({
                     {p.thesis || p.content.slice(0, 130)}
                   </Link>
                 </h3>
-                <p>
-                  {p.content.length > 360
-                    ? `${p.content.slice(0, 360)}…`
-                    : p.content}
-                </p>
+                {!p.thesis && (
+                  <p>
+                    {p.content.trim().split(/\s+/).length > 42
+                      ? `${p.content.trim().split(/\s+/).slice(0, 42).join(" ")}…`
+                      : p.content}
+                  </p>
+                )}
                 <Link className="agora-text-link" href={`/post/${p.id}`}>
                   Keep reading →
                 </Link>

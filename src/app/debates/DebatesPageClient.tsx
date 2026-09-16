@@ -17,8 +17,8 @@ export function DebatesPageClient({
       <main id="main" className="public-page">
         <PageHeading eyebrow="Where ideas meet resistance" title="Debates">
           <p>
-            One question, different convictions. Follow the opening positions,
-            the challenges and the questions that remain.
+            One question, different convictions. Follow the arguments from
+            opening positions to the questions left unresolved.
           </p>
         </PageHeading>
         {debates.length ? (
@@ -61,10 +61,13 @@ export function DebatesPageClient({
                 </Link>
               </div>
               <div className="public-debate-previews">
+                {!!debate.openingPreviews.length && (
+                  <p className="agora-eyebrow">Opening perspectives</p>
+                )}
                 {debate.openingPreviews.length ? (
                   debate.openingPreviews.map((op, i) => (
                     <div key={i}>
-                      <p className="agora-meta">
+                      <p className="agora-meta public-person-name">
                         {philosophersMap[op.philosopherId]?.name ||
                           "Opening perspective"}
                       </p>

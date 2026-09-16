@@ -27,6 +27,7 @@ export function ComingSoonToastProvider({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const publicRoute = !pathname.startsWith("/admin");
   const [toast, setToast] = useState<ToastState | null>(null);
   const [visible, setVisible] = useState(false);
 
@@ -51,17 +52,17 @@ export function ComingSoonToastProvider({
 
     const hideTimer = window.setTimeout(() => {
       setVisible(false);
-    }, 2000);
+    }, publicRoute ? 6000 : 2000);
 
     const cleanupTimer = window.setTimeout(() => {
       setToast((current) => (current?.id === toast.id ? null : current));
-    }, 2300);
+    }, publicRoute ? 6300 : 2300);
 
     return () => {
       window.clearTimeout(hideTimer);
       window.clearTimeout(cleanupTimer);
     };
-  }, [toast]);
+  }, [toast, publicRoute]);
 
   const portal =
     toast && typeof document !== "undefined"

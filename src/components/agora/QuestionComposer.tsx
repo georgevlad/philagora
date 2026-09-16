@@ -359,9 +359,14 @@ export function QuestionComposer({
     >
       <form onSubmit={submit}>
         <div className="agora-question-box">
-          <label className="sr-only" htmlFor="question">
-            Your question for the philosophers
-          </label>
+          <div className="agora-question-label">
+            <label htmlFor="question">
+              Your question<span className="sr-only"> for the philosophers</span>
+            </label>
+            <span id="question-count" className="agora-count">
+              {draft.question.length}/500
+            </span>
+          </div>
           <textarea
             ref={field}
             id="question"
@@ -414,13 +419,10 @@ export function QuestionComposer({
               </button>
             )}
           </div>
-          <p id="question-count" className="agora-count">
-            {draft.question.length}/500
-          </p>
         </div>
         <p id="question-privacy" className="agora-meta agora-privacy">
           {draft.visibility === "private"
-            ? "Private to your account; not shown in the public Agora. Sign-in is required. Philagora administrators can access conversations."
+            ? "Private to your account, with access for Philagora administrators. Not shown in the public Agora. Sign-in is required."
             : `Your question, answers and any follow-up are public, shown as ${draft.askedBy.trim() || "Anonymous"}. Your account name is not displayed automatically.`}
           {!session?.user && draft.visibility === "public" && (
             <>
@@ -452,7 +454,7 @@ export function QuestionComposer({
             aria-busy={suggesting}
           >
             <p className="agora-eyebrow">
-              Your question → Your group → The conversation
+              Next, choose your perspectives
             </p>
             <h2 id="group-heading" ref={groupHeading} tabIndex={-1}>
               {suggesting
@@ -463,7 +465,7 @@ export function QuestionComposer({
               {suggesting
                 ? "We’re matching your question with different ways of thinking. Nothing has been submitted yet."
                 : draft.review?.error ||
-                  "A suggested group for your question. Keep it or adjust it below."}
+                  "A suggested group for your question. Choose 2–4 thinkers."}
             </p>
             {!suggesting && (
               <>
@@ -555,8 +557,8 @@ export function QuestionComposer({
                     : "."}
                 </p>
                 <p className="agora-meta">
-                  Your follow-up will go to this entire group. Answers are
-                  followed by a synthesis when available.
+                  Each thinker responds, followed by a synthesis when available.
+                  A follow-up goes to the whole group.
                 </p>
                 <div className="agora-group-submit">
                   {needsSignIn && !isPending ? (

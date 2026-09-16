@@ -115,8 +115,8 @@
 }
 .agora-home-hero {
   display: grid;
-  grid-template-columns: 0.9fr 1.25fr;
-  gap: 64px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.25fr);
+  gap: 48px;
   padding: 40px 0 35px;
   align-items: start;
 }
@@ -282,8 +282,8 @@
 }
 .agora-thinker-picker {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 8px;
   margin-top: 10px;
 }
 .agora-thinker-picker label {
@@ -339,8 +339,8 @@
 }
 .agora-feature-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 48px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 40px;
   padding: 28px 0 32px;
   border-top: 1px solid var(--ink);
 }
@@ -349,7 +349,7 @@
 }
 .agora-feature-grid > section + section {
   border-left: 1px solid var(--line);
-  padding-left: 40px;
+  padding-left: 32px;
 }
 .agora-section-heading {
   display: flex;
@@ -388,10 +388,7 @@
   gap: 24px;
 }
 .agora-excerpts article {
-  display: grid;
-  grid-template-columns: 132px 1fr;
-  gap: 20px;
-  align-items: start;
+  display: block;
 }
 .agora-person {
   display: flex;
@@ -408,6 +405,8 @@
   font-size: 1.0625rem;
   line-height: 1.75;
   white-space: pre-line;
+  margin-top: 10px;
+  max-width: 60ch;
 }
 .agora-badge {
   display: inline-block;
@@ -427,6 +426,18 @@
 }
 .agora-issue-path {
   margin: 20px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  list-style: none;
+}
+.agora-issue-path li:not(:last-child)::after {
+  content: "→";
+  padding-left: 12px;
+  color: var(--clay);
 }
 .agora-notice {
   background: var(--soft);
@@ -449,22 +460,24 @@
 }
 .agora-question-list {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
   gap: 24px;
 }
 .agora-question-list > a {
   display: block;
-  padding: 8px 0 16px;
+  padding: 8px 0 24px;
+  border-bottom: 1px solid var(--line);
 }
 .agora-question-list h3 {
-  font-size: 1.375rem;
+  font-size: 1.25rem;
   line-height: 1.45;
   margin-bottom: 10px;
+  letter-spacing: -0.015em;
 }
 .agora-reading-grid {
   display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: 60px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 48px;
   padding: 32px 0 48px;
   border-top: 1px solid var(--ink);
 }
@@ -475,14 +488,20 @@
 }
 .agora-feed-excerpt h3,
 .agora-debate-preview h3 {
-  font-size: 1.75rem;
+  font-size: 1.625rem;
   line-height: 1.35;
   margin: 10px 0 16px;
+}
+.agora-feed-excerpt h3 {
+  font-size: 1.375rem;
+  line-height: 1.5;
+  letter-spacing: -0.015em;
 }
 .agora-feed-excerpt > p:not(.agora-meta),
 .agora-debate-preview > p:not(.agora-meta, .agora-eyebrow) {
   font-family: var(--font-lora), serif;
   margin-block: 14px;
+  line-height: 1.8;
 }
 .agora-debate-preview {
   background: var(--soft);
@@ -639,12 +658,13 @@
   padding: 24px 0;
   border-bottom: 1px solid var(--line);
 }
-.agora-answer > p {
+.agora-answer > p:not(.agora-meta) {
   font-family: var(--font-lora), serif;
   font-size: 1.125rem;
   line-height: 1.8;
   margin: 16px 0 0;
   white-space: pre-wrap;
+  max-width: 65ch;
 }
 .agora-synthesis {
   background: var(--soft);
@@ -652,17 +672,29 @@
   padding: 24px;
   margin: 24px 0;
 }
-.agora-synthesis p:not(.agora-eyebrow) {
+.agora-synthesis p:not(.agora-eyebrow),
+.agora-synthesis li {
   font-family: var(--font-lora), serif;
   font-size: 1.0625rem;
   line-height: 1.8;
   margin-top: 12px;
+  white-space: pre-wrap;
+}
+.agora-synthesis ul {
+  list-style: disc;
+  padding-left: 1.2em;
+}
+.agora-synthesis li {
+  padding-left: 0.25em;
+}
+.agora-synthesis li::marker {
+  color: var(--clay);
 }
 .agora-synthesis h4 {
   font-family: var(--font-dm-sans), sans-serif;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  margin-top: 20px;
+  margin-top: 24px;
 }
 .agora-wait {
   padding: 24px;
@@ -826,7 +858,7 @@
     padding: 20px 0;
   }
   .agora-question-list > a + a {
-    border-top: 1px solid var(--line);
+    border-top: 0;
   }
   .agora-question-list h3 {
     font-size: 1.25rem;
@@ -835,9 +867,6 @@
     margin-top: 24px;
     padding-top: 24px;
     border-top: 1px solid var(--line);
-  }
-  .agora-feed-excerpt h3 {
-    font-size: 1.5rem;
   }
   .agora-debate-preview {
     padding: 20px;
@@ -848,7 +877,7 @@
   .agora-reading {
     padding: 20px 20px 40px;
   }
-  .agora-answer > p {
+  .agora-answer > p:not(.agora-meta) {
     font-size: 1.0625rem;
   }
   .agora-wait,
@@ -981,6 +1010,260 @@
   gap: 8px 16px;
   align-items: center;
   margin-top: 14px;
+}
+
+/* The question and its audience stay together as the group is refined. */
+.agora-home-hero > div {
+  min-width: 0;
+}
+.agora-home-hero > div > .agora-meta {
+  max-width: 38ch;
+}
+.agora-question-box:focus-within {
+  border-color: var(--clay);
+  box-shadow: 0 0 0 1px #a34e3614;
+}
+.agora-question-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 16px 18px 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+.agora-question-label label {
+  font-weight: 600;
+}
+.agora-question-label .agora-count {
+  padding: 0;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.agora-question-box textarea {
+  min-height: 110px;
+  padding-top: 10px;
+  padding-bottom: 16px;
+}
+.agora-question-box .agora-composer-actions {
+  border-top: 1px solid var(--soft);
+  padding: 10px 12px;
+}
+.agora-visibility label {
+  border: 1px solid transparent;
+}
+.agora-visibility label:has(input:checked) {
+  border-color: var(--line);
+  font-weight: 600;
+}
+.agora-privacy {
+  margin-top: 12px;
+}
+.agora-options summary {
+  font-size: 0.875rem;
+}
+.agora-options summary::marker,
+.agora-my-threads summary::marker {
+  color: var(--clay);
+}
+.agora-options[open] {
+  padding-bottom: 16px;
+}
+.agora-options > .agora-meta {
+  margin-top: 8px;
+}
+.agora-thinker-picker label {
+  min-width: 0;
+  padding: 12px;
+  cursor: pointer;
+}
+.agora-thinker-picker label > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.agora-thinker-picker label:has(input:disabled):not(:has(input:checked)),
+.agora-suggested-group label:has(input:disabled):not(:has(input:checked)) {
+  color: var(--muted);
+  border-style: dashed;
+  cursor: default;
+}
+.agora-thinker-picker label:hover:has(input:not(:disabled)),
+.agora-suggested-group label:hover:has(input:not(:disabled)) {
+  background: var(--soft);
+}
+.agora-thinker-picker label:has(input:focus-visible),
+.agora-suggested-group label:has(input:focus-visible) {
+  outline: 2px solid var(--clay);
+  outline-offset: 3px;
+}
+.agora-selected-group {
+  padding-top: 14px;
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+}
+.agora-selected-group + .agora-meta {
+  margin-top: 8px;
+}
+.agora-group-submit {
+  margin-top: 20px;
+}
+.agora-group-review h2 {
+  max-width: 26ch;
+}
+.agora-suggestions > span {
+  flex-basis: 100%;
+}
+.agora-resume {
+  gap: 0 20px;
+}
+.agora-my-threads[open] {
+  margin-bottom: 8px;
+}
+.agora-my-threads > a {
+  gap: 5px;
+}
+.agora-my-threads > a > span {
+  font-family: var(--font-lora), Georgia, serif;
+  line-height: 1.55;
+}
+.agora-my-threads small {
+  font-size: 0.8125rem;
+}
+
+/* Full saved answers use a quieter measure than the homepage previews. */
+.agora-conversation {
+  max-width: 780px;
+}
+.agora-thread-heading > .agora-meta {
+  max-width: 68ch;
+}
+.agora-group > p {
+  font-weight: 500;
+}
+.agora-group small {
+  margin-top: 4px;
+}
+.agora-round-nav button {
+  margin-left: auto;
+  text-align: left;
+}
+.agora-share-status:empty {
+  margin: 0;
+}
+.agora-answer {
+  padding: 28px 0 32px;
+}
+.agora-answer .agora-person,
+.agora-excerpts .agora-person {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
+}
+.agora-answer > p:not(.agora-meta) + p {
+  margin-top: 24px;
+}
+.agora-synthesis > h3 {
+  margin-top: 8px;
+}
+.agora-synthesis > div + div {
+  margin-top: 24px;
+  padding-top: 1px;
+  border-top: 1px solid var(--line);
+}
+.agora-recommendation {
+  border-left: 2px solid var(--line);
+  padding: 16px 20px;
+  line-height: 1.75;
+}
+.agora-recommendation h4 {
+  line-height: 1.5;
+}
+.agora-wait .agora-actions {
+  margin-top: 16px;
+}
+.agora-wait > p:empty {
+  display: none;
+}
+.agora-followup-composer > p:not(.agora-eyebrow),
+.agora-conversation-end > p {
+  color: var(--muted);
+  max-width: 64ch;
+}
+.agora-followup-composer form {
+  margin-top: 24px;
+}
+.agora-followup-composer .agora-meta {
+  margin-top: 10px;
+}
+.agora-followup-composer .agora-composer-actions {
+  padding: 16px 0 0;
+}
+.agora-preview-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-top: 16px;
+}
+.agora-preview-composer .agora-notice > p {
+  margin-top: 8px;
+  white-space: pre-wrap;
+}
+@media (min-width: 761px) and (max-width: 960px) {
+  .agora-home-hero {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 28px 0;
+  }
+  .agora-home-hero h1 {
+    font-size: 2.5rem;
+    margin: 8px 0 12px;
+  }
+  .agora-home-hero > div > .agora-meta {
+    max-width: none;
+  }
+  .agora-desktop-break {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .agora-home-hero > div > .agora-meta {
+    max-width: 46ch;
+  }
+  .agora-question-label {
+    padding: 14px 16px 0;
+  }
+  .agora-question-box textarea {
+    padding-inline: 16px;
+  }
+  .agora-answer {
+    padding: 24px 0 28px;
+  }
+  .agora-reading .agora-round-heading {
+    gap: 4px 16px;
+  }
+  .agora-reading .agora-round-heading h2 {
+    margin-bottom: 4px;
+  }
+}
+@media (max-width: 480px) {
+  .agora-home-hero h1 {
+    max-width: 15ch;
+  }
+  .agora-round-nav {
+    gap: 4px 20px;
+  }
+  .agora-round-nav button {
+    margin-left: 0;
+  }
+  .agora-preview-actions .agora-button {
+    width: 100%;
+  }
+  .agora-question-label {
+    flex-wrap: wrap;
+  }
 }
 .local-review-banner {
   background: #f0eee8;

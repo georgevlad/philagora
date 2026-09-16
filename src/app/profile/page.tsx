@@ -60,13 +60,13 @@ export default async function ProfilePage() {
   const userQuestions = getUserAgoraThreads(identity.id);
   const bookmarkedPosts = getBookmarkedPosts(identity.id);
   const likedPosts = getLikedPosts(identity.id);
-  const displayName = user.name || "Philosopher";
+  const displayName = user.name || "Your account";
   const initials = getInitials(user.name || user.email);
 
   return (
     <AgoraShell>
       <main id="main" className="public-page public-reading">
-        <PageHeading eyebrow="Your corner of the Agora" title="Your profile">
+        <PageHeading eyebrow="Your conversations & reading" title="Your profile">
           <p>A place to return to your questions and the ideas you’ve saved.</p>
         </PageHeading>
         <div className="public-account">
@@ -77,7 +77,7 @@ export default async function ProfilePage() {
               {initials}
             </span>
           )}
-          <div>
+          <div className="public-account-details">
             <p>{displayName}</p>
             <p className="agora-meta">{user.email}</p>
           </div>
@@ -86,7 +86,7 @@ export default async function ProfilePage() {
         <p className="agora-notice">
           This page is visible only to you. Each conversation keeps its own
           audience: public questions, answers and follow-ups remain public under
-          the name supplied when asking.
+          the display name supplied when asking, or Anonymous.
         </p>
         <nav className="public-round-nav" aria-label="Your library">
           <a href="#questions">My Questions</a>

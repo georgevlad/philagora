@@ -1,16 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import type { FeedPost } from "@/lib/types";
 import { PhilosopherLink } from "./public/PhilosopherLink";
 import { SourceCitation } from "./public/SourceCitation";
-import { BookmarkIcon, HeartIcon, ReplyIcon } from "./Icons";
+import { BookmarkIcon, HeartIcon } from "./Icons";
 import { POST_CONTENT_TRUNCATE_LIMIT } from "@/lib/constants";
 import { timeAgo } from "@/lib/date-utils";
-import { showComingSoon, showToast } from "./ComingSoonToast";
+import { showToast } from "./ComingSoonToast";
 import { useSession } from "@/lib/auth-client";
 
 function ActionButton({
@@ -33,11 +33,17 @@ function ActionButton({
       type="button"
       onClick={onClick}
       aria-label={label}
+      title={label}
       aria-pressed={active}
       disabled={pending}
     >
-      {icon}
-      {count !== undefined && <span>{count}</span>}
+      <span className="public-action-icon" aria-hidden="true">
+        {icon}
+      </span>
+      <span>{label}</span>
+      {count !== undefined && (
+        <span className="public-action-count" aria-hidden="true">{count}</span>
+      )}
     </button>
   );
 }
@@ -67,7 +73,10 @@ export function PostCard({
   isNew?: boolean;
   compact?: boolean;
 }) {
+  const contentId = useId();
   const [showAll, setShowAll] = useState(false);
+  const [failedThumbnail, setFailedThumbnail] = useState<string>();
+  const [failedArtwork, setFailedArtwork] = useState<string>();
   const isAphorism =
     post.tag === "Practical Wisdom" || post.tag === "Timeless Wisdom";
   const isQuip = post.tag === "Glint";
@@ -133,27 +142,33 @@ export function PostCard({
           showImage={!isArt && !isHistorical}
         />
       )}
-      {isHistorical && post.thumbnailUrl && (
+      {isHistorical && post.thumbnailUrl && failedThumbnail !== post.thumbnailUrl && (
         <div className="public-source-image">
           <Image
             src={post.thumbnailUrl}
             alt={post.citation?.title || "Historical event"}
             fill
             sizes="(max-width: 760px) 100vw, 720px"
+            onError={() => setFailedThumbnail(post.thumbnailUrl)}
           />
         </div>
       )}
       {isArt && post.citation?.imageUrl && (
         <figure>
-          <div className="public-artwork">
-            <Image
-              src={post.citation.imageUrl}
-              alt={post.citation.title || "Artwork"}
-              fill
-              sizes="(max-width: 760px) 100vw, 720px"
-              unoptimized
-            />
-          </div>
+          {failedArtwork === post.citation.imageUrl ? (
+            <p className="public-artwork-unavailable">Artwork image unavailable.</p>
+          ) : (
+            <div className="public-artwork">
+              <Image
+                src={post.citation.imageUrl}
+                alt={post.citation.title || "Artwork"}
+                fill
+                sizes="(max-width: 760px) 100vw, 720px"
+                unoptimized
+                onError={() => setFailedArtwork(post.citation?.imageUrl)}
+              />
+            </div>
+          )}
           <figcaption className="agora-meta">
             {post.citation.title} · {post.citation.source}
           </figcaption>
@@ -168,23 +183,17 @@ export function PostCard({
           <p>{post.eventContext}</p>
         </details>
       )}
-      <div className="public-prose">{parseInlineFormatting(content)}</div>
-      {truncate && (
+      <div className="public-prose" id={contentId}>
+        {parseInlineFormatting(content)}
+      </div>
+      {!expanded && post.content.length > POST_CONTENT_TRUNCATE_LIMIT + 50 && !isQuip && (
         <button
           className="agora-text-link"
-          aria-expanded={false}
-          onClick={() => setShowAll(true)}
+          aria-expanded={showAll}
+          aria-controls={contentId}
+          onClick={() => setShowAll(!showAll)}
         >
-          Read more
-        </button>
-      )}
-      {!expanded && showAll && (
-        <button
-          className="agora-text-link"
-          aria-expanded={true}
-          onClick={() => setShowAll(false)}
-        >
-          Show less
+          {showAll ? "Show less" : "Read more"}
         </button>
       )}
       {post.recommendationTitle && (
@@ -207,18 +216,19 @@ export function PostCard({
           )}
         </aside>
       )}
+      {(post.stance || post.tag) && (
+        <p className="agora-meta public-post-topics">
+          {[post.stance, post.tag].filter(Boolean).join(" · ")}
+        </p>
+      )}
       <footer className="public-post-footer">
-        <span className="agora-meta">
-          {post.stance}
-          {post.tag ? ` · ${post.tag}` : ""}
-        </span>
+        {!expanded && (
+          <Link className="agora-text-link" href={`/post/${post.id}`}>
+            Open post <span aria-hidden="true">→</span>
+          </Link>
+        )}
         <ActionButtons post={post} />
       </footer>
-      {!expanded && (
-        <Link className="agora-text-link" href={`/post/${post.id}`}>
-          Open post →
-        </Link>
-      )}
     </article>
   );
 }
@@ -377,12 +387,7 @@ function ActionButtons({ post }: { post: FeedPost }) {
   }
 
   return (
-    <div className="public-post-actions">
-      <ActionButton
-        label="Reply"
-        icon={<ReplyIcon />}
-        onClick={() => showComingSoon("Replies")}
-      />
+    <div className="public-post-actions" role="group" aria-label="Post actions">
       <ActionButton
         label="Like"
         pending={likePending || sessionPending}

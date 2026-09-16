@@ -48,7 +48,8 @@ export function IssueQuestionPreview() {
           }}
           placeholder="What would you ask about this issue?"
         />
-        <fieldset className="agora-visibility">
+        <div className="agora-preview-actions">
+          <fieldset className="agora-visibility">
           <legend className="sr-only">Sample question visibility</legend>
           {["private", "public"].map((v) => (
             <label key={v}>
@@ -61,10 +62,11 @@ export function IssueQuestionPreview() {
               {v === "private" ? "Private" : "Public"}
             </label>
           ))}
-        </fieldset>
-        <button className="agora-button" disabled={question.trim().length < 10}>
-          Preview contextual question →
-        </button>
+          </fieldset>
+          <button className="agora-button" disabled={question.trim().length < 10}>
+            Preview contextual question →
+          </button>
+        </div>
       </form>
       {preview && (
         <div className="agora-notice" role="status">

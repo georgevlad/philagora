@@ -1,0 +1,200 @@
+/* Shared public chrome only. Legacy/admin styles keep their existing tokens. */
+.agora-design {
+  --color-border: var(--line);
+  -webkit-tap-highlight-color: #a34e3620;
+}
+.agora-design :where(a, button, input, textarea, select, summary):focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 4px;
+}
+.agora-design :where(a, button, summary) {
+  touch-action: manipulation;
+}
+.agora-design :where(a, button) {
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+.agora-design :where(button, input, textarea, select) {
+  font-family: var(--font-dm-sans), sans-serif;
+}
+.agora-design :where(textarea, input)::placeholder {
+  color: #74756c;
+  opacity: 1;
+}
+.agora-design :where(section[id], article[id], form[id], h1[id], h2[id]) {
+  scroll-margin-top: 24px;
+}
+.agora-design .agora-header {
+  max-width: 1240px;
+  gap: 24px;
+  padding-block: 14px;
+}
+.agora-design .agora-brand {
+  letter-spacing: 0.12em;
+}
+.agora-design .agora-header nav {
+  gap: 8px 24px;
+  line-height: 1.4;
+}
+.agora-design .agora-header nav a {
+  position: relative;
+  padding-block: 10px;
+}
+.agora-design .agora-header nav a[aria-current="page"] {
+  font-weight: 600;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 8px;
+}
+.agora-design .agora-header nav a:last-child {
+  padding-inline: 14px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.agora-design .agora-header nav a:last-child:hover {
+  background: var(--soft);
+}
+.agora-design .agora-button,
+.agora-design .agora-outline {
+  max-width: 100%;
+  gap: 8px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+.agora-design .agora-outline:hover:not(:disabled) {
+  background: var(--soft);
+  border-color: #9b9c91;
+  color: var(--ink);
+}
+.agora-design .agora-button:disabled:hover {
+  background: var(--clay);
+}
+.agora-design .agora-text-link:hover {
+  text-decoration: underline;
+}
+.agora-design .agora-footer {
+  align-items: start;
+  padding-top: 32px;
+  padding-bottom: 32px;
+  gap: 20px 32px;
+}
+.agora-design .agora-footer > div > p {
+  margin-top: 4px;
+}
+.agora-design .agora-footer > p {
+  max-width: 42ch;
+  padding-top: 8px;
+}
+.agora-design .agora-footer nav {
+  gap: 8px 20px;
+}
+.agora-design .agora-footer nav a:hover {
+  text-decoration: underline;
+}
+.agora-design .agora-sign-in {
+  max-width: 600px;
+  min-height: min(640px, 70vh);
+  padding-block: 64px;
+}
+.agora-design .public-sign-in-panel {
+  width: 100%;
+  border-top: 2px solid var(--clay);
+  padding-top: 28px;
+}
+.agora-design .public-sign-in-intro h1 {
+  font-size: clamp(2rem, 4vw, 2.5rem);
+  line-height: 1.2;
+  margin: 14px 0 20px;
+}
+.agora-design .public-sign-in-intro > p:not(.agora-eyebrow) {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  margin-top: 14px;
+}
+.agora-design .public-sign-in-intro > p.agora-meta {
+  font-size: 0.9375rem;
+}
+.agora-design .public-sign-in-action {
+  margin-top: 28px;
+}
+.agora-design .public-google-button {
+  width: 100%;
+  background: #fff;
+  font-size: 1rem;
+  min-height: 52px;
+  gap: 12px;
+}
+.agora-design .public-google-button svg {
+  flex: 0 0 auto;
+}
+.agora-design .public-sign-in-guest {
+  margin-top: 14px;
+  text-align: center;
+}
+.agora-design .public-account {
+  padding: 8px 0 16px;
+  gap: 14px;
+}
+.agora-design .public-account-details {
+  flex: 1 1 200px;
+}
+.agora-design .public-account-details > p:first-child {
+  font-weight: 500;
+}
+.agora-design .public-sign-out {
+  max-width: 100%;
+}
+.agora-design .public-sign-out .agora-error {
+  max-width: 32ch;
+}
+.agora-design .public-question {
+  transition: border-color 140ms ease;
+}
+.agora-design .public-question:hover h3 {
+  color: var(--clay-dark);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+.public-toast {
+  box-shadow: 0 8px 28px #28292320;
+}
+@media (max-width: 760px) {
+  .agora-design .agora-header {
+    gap: 4px 20px;
+    padding-block: 10px;
+  }
+  .agora-design .agora-header nav {
+    gap: 4px 20px;
+  }
+  .agora-design .agora-sign-in {
+    padding-block: 36px 48px;
+    min-height: 0;
+  }
+  .agora-design .agora-footer {
+    gap: 20px;
+  }
+}
+@media (max-width: 480px) {
+  .agora-design .agora-header nav {
+    column-gap: 8px;
+  }
+  .agora-design .agora-header nav a:last-child {
+    border: 0;
+    padding-inline: 0;
+  }
+  .agora-design .agora-footer {
+    flex-direction: column;
+  }
+  .agora-design .agora-footer > p {
+    padding-top: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .agora-design .agora-button,
+  .agora-design .agora-outline,
+  .agora-design .public-question,
+  .public-toast {
+    transition: none !important;
+  }
+}

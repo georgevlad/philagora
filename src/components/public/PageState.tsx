@@ -16,7 +16,7 @@ export function EmptyState({
     <div className="public-empty">
       <h2>{title}</h2>
       {children && <p>{children}</p>}
-      {href && (
+      {href && action && (
         <Link className="agora-text-link" href={href}>
           {action} →
         </Link>

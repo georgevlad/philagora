@@ -22,7 +22,7 @@ export function SignOutButton() {
     }
   }
   return (
-    <div>
+    <div className="public-sign-out">
       <button
         type="button"
         className="agora-outline"

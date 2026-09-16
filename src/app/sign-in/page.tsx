@@ -39,31 +39,28 @@ export default function SignInPage() {
   return (
     <AgoraShell>
       <main id="main" className="agora-reading agora-sign-in">
-        <div className="w-full max-w-sm">
-          <div className="mb-10 text-center">
-            <Link className="agora-brand" href="/">
-              PHILAGORA <span aria-hidden="true">φ</span>
-            </Link>
-          </div>
-
-          <div className="agora-wait">
-            <h1 className="mb-2 text-center font-serif text-xl font-semibold text-ink">
+        <div className="public-sign-in-panel">
+          <div className="public-sign-in-intro">
+            <p className="agora-eyebrow">A place for your questions</p>
+            <h1>
               Join the conversation
             </h1>
-            <p className="mb-3 text-center text-base font-body text-ink-light leading-[1.6]">
-              Ask the philosophers your own questions — publicly or privately —
-              and get a structured debate with editorial synthesis.
+            <p>
+              Ask a question, hear different perspectives, and continue with a
+              follow-up to the group.
             </p>
-            <p className="mb-8 text-center text-base font-body text-ink-lighter leading-[1.55]">
-              You can also save threads, bookmark posts, and build your own
-              reading history.
+            <p className="agora-meta">
+              Sign in to ask privately, return to your conversations, and bookmark
+              posts for later.
             </p>
-
+          </div>
+          <div className="public-sign-in-action">
             <button
               type="button"
               onClick={handleGoogleSignIn}
               disabled={busy}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-white px-4 py-3 text-sm font-body font-medium text-ink shadow-sm transition-all duration-200 hover:border-border-light hover:shadow-md active:scale-[0.99]"
+              aria-busy={busy}
+              className="agora-outline public-google-button"
             >
               <svg
                 width="18"
@@ -91,13 +88,13 @@ export default function SignInPage() {
               {busy ? "Opening Google…" : "Continue with Google"}
             </button>
             {error && (
-              <p className="mt-4 text-sm text-red-700" role="alert">
+              <p className="agora-error" role="alert">
                 {error}
               </p>
             )}
           </div>
 
-          <p className="mt-6 text-center">
+          <p className="public-sign-in-guest">
             <Link href="/" className="agora-text-link">
               &larr; Explore without signing in
             </Link>

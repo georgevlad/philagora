@@ -109,6 +109,9 @@ export default async function PhilosopherProfileDynamic({
           <p className="agora-meta">
             An AI interpretation, informed by their writings and ideas.
           </p>
+          <a href="#recent-posts-title" className="agora-text-link public-profile-jump">
+            Read recent posts <span aria-hidden="true">↓</span>
+          </a>
         </header>
         <div className="public-columns">
           <div>

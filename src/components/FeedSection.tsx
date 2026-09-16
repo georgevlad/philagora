@@ -225,11 +225,18 @@ export function FeedSection({
       ) : (
         <EmptyState
           title={buildEmptyStateMessage(contentType, philosopherName)}
-          href={philosopherId ? `/philosophers/${philosopherId}` : "/feed"}
-          action="View all posts"
+          href={
+            contentType === "all"
+              ? "/#ask"
+              : philosopherId
+                ? `/philosophers/${philosopherId}`
+                : "/feed"
+          }
+          action={contentType === "all" ? "Ask the philosophers" : "View all posts"}
         >
-          Published posts will appear here. You can explore another filter in
-          the meantime.
+          {contentType === "all"
+            ? "Published posts will appear here."
+            : "Try another filter, or return to all posts."}
         </EmptyState>
       )}
     </div>

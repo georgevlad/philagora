@@ -14,8 +14,8 @@ export function PageError({ reset }: { reset: () => void }) {
           <p className="agora-eyebrow">Page unavailable</p>
           <h1>This page couldn’t load.</h1>
           <p>
-            Please try loading it again. Your saved questions, likes and
-            bookmarks remain in your account.
+            Please try loading it again. Your saved conversations, likes and
+            bookmarks are unchanged.
           </p>
           <div className="agora-actions">
             <button

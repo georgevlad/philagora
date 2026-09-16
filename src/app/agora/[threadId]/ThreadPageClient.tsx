@@ -70,14 +70,16 @@ function Synthesis({ synthesis }: { synthesis: AgoraSynthesis }) {
   };
   return (
     <section className="agora-synthesis">
-      <p className="agora-eyebrow">The conversation, brought together</p>
+      <p className="agora-eyebrow">Synthesis</p>
       <h3>A few things to sit with</h3>
       {Object.entries(synthesis.sections).map(([key, value]) =>
         value?.length ? (
           <div key={key}>
             <h4>{labels[key] ?? key}</h4>
             {Array.isArray(value) ? (
-              value.map((text, i) => <p key={i}>{text}</p>)
+              <ul>
+                {value.map((text, i) => <li key={i}>{text}</li>)}
+              </ul>
             ) : (
               <p>{value}</p>
             )}
@@ -444,7 +446,7 @@ export function ThreadPageClient({
     : `${thread.responses.length} of ${group.length} responses. ${roundState(thread)}`;
   return (
     <AgoraShell>
-      <main id="main" className="agora-reading">
+      <main id="main" className="agora-reading agora-conversation">
         <div className="agora-thread-top">
           <Link className="agora-text-link" href="/">
             ← Back to the Agora
@@ -456,7 +458,7 @@ export function ThreadPageClient({
           </span>
         </div>
         <header className="agora-thread-heading">
-          <p className="agora-eyebrow">Your question, different perspectives</p>
+          <p className="agora-eyebrow">A question, different perspectives</p>
           <h1>{thread.question}</h1>
           <p className="agora-meta">
             Asked by {thread.askedBy}.{" "}
@@ -509,7 +511,7 @@ export function ThreadPageClient({
             ? "Synthesis is available."
             : ""}
         </p>
-        <p className="agora-meta" role="status">
+        <p className="agora-meta agora-share-status" role="status">
           {shareNote}
         </p>
         {networkError && (
@@ -554,8 +556,8 @@ export function ThreadPageClient({
             <p className="agora-eyebrow">Stay with the question</p>
             <h2>What would you ask them next?</h2>
             <p>
-              One follow-up to the whole original group. They’ll have your first
-              question, the responses and synthesis for context.
+              Add context, challenge an idea, or ask for something more concrete.
+              One follow-up goes to the whole group, with this conversation for context.
             </p>
             <form onSubmit={submitFollowUp}>
               <label className="agora-field-label" htmlFor="follow-up-question">
@@ -564,6 +566,7 @@ export function ThreadPageClient({
               <textarea
                 id="follow-up-question"
                 rows={4}
+                placeholder="What feels unresolved?"
                 maxLength={500}
                 value={followUp}
                 disabled={busy || uncertain}
@@ -575,7 +578,7 @@ export function ThreadPageClient({
                     uncertain: false,
                   });
                 }}
-                aria-describedby="follow-up-privacy follow-up-error"
+                aria-describedby="follow-up-privacy follow-up-count follow-up-error"
               />
               <p id="follow-up-privacy" className="agora-meta">
                 {thread.visibility === "public"
@@ -583,7 +586,7 @@ export function ThreadPageClient({
                   : "The follow-up stays private to your account, with administrator access."}
               </p>
               <div className="agora-composer-actions">
-                <span className="agora-meta">{followUp.length}/500</span>
+                <span id="follow-up-count" className="agora-meta">{followUp.length}/500</span>
                 <button
                   className="agora-button"
                   disabled={busy || followUp.trim().length < 10}

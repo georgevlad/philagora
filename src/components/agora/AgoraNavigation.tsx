@@ -17,6 +17,7 @@ export function AgoraNavigation() {
           href={href}
           aria-current={
             pathname === href ||
+            (href === "/agora" && pathname === "/") ||
             pathname.startsWith(`${href}/`) ||
             (href === "/feed" && pathname.startsWith("/post/"))
               ? "page"

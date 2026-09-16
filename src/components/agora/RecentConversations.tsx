@@ -50,7 +50,7 @@ export function RecentConversations({ viewerKey }: { viewerKey: string }) {
             <Link key={t.id} href={`/agora/${t.id}`}>
               <span>{t.question}</span>
               <small>
-                {t.visibility} ·{" "}
+                {t.visibility === "private" ? "Private" : "Public"} ·{" "}
                 {t.status === "complete"
                   ? "Answers available"
                   : t.status === "failed"

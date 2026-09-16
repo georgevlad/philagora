@@ -142,10 +142,9 @@ test("art, recommendations, quips, full reading and share actions", async ({
       () => (window as unknown as { sharedURL: string }).sharedURL,
     ),
   ).toBe(review.baseURL + "/post/review-quip");
-  await page.getByRole("button", { name: "Reply", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText(
-    "Replies are coming soon",
-  );
+  await expect(
+    page.getByRole("button", { name: "Reply", exact: true }),
+  ).toHaveCount(0);
 });
 
 test("the skip link moves keyboard navigation into the reading page", async ({

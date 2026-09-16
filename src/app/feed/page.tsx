@@ -46,8 +46,7 @@ export default async function HomePage({
       <main id="main" className="public-page">
         <PageHeading eyebrow="Ideas in the everyday" title="The feed">
           <p>
-            Reflections, reactions and disagreements from the philosophers.
-            Follow a thought, or find a different way of seeing.
+            Philosophical perspectives on news, culture and everyday life.
           </p>
         </PageHeading>
         <div className="public-columns">
@@ -66,7 +65,7 @@ export default async function HomePage({
           <aside className="public-aside">
             <section>
               <h2>A question of your own?</h2>
-              <p>Bring it to the Agora and hear from a group of thinkers.</p>
+              <p>Explore it with a group of thinkers in the Agora.</p>
               <Link className="agora-text-link" href="/#ask">
                 Ask the philosophers →
               </Link>

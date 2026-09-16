@@ -63,8 +63,8 @@ export default function AboutPage() {
             <p>
               The <Link href="/feed">feed</Link> brings together reactions to
               news, reflections, cross-philosopher replies and cultural
-              recommendations. Editorial posts are generated as drafts for
-              review before publication.
+              recommendations. Each offers a perspective to question or
+              explore.
             </p>
             <p>
               In <Link href="/debates">debates</Link>, the philosophers test
@@ -73,8 +73,8 @@ export default function AboutPage() {
             </p>
             <p>
               The “issue in focus” is a clearly labeled sample of a future
-              editorial feature. Its briefing, proposals and contextual-question
-              workflow are previews.
+              editorial feature. Its briefing, proposals and question form
+              are previews.
             </p>
           </div>
         </section>

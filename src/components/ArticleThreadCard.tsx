@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { PostCard } from "./PostCard";
 import { SourceCitation } from "./public/SourceCitation";
 import type { FeedPost } from "@/lib/types";
@@ -9,6 +9,7 @@ export function ArticleThreadCard({ posts }: { posts: FeedPost[] }) {
   const replies = posts.filter((p) => p.replyTo);
   const citation = reactions[0]?.citation || posts[0]?.citation;
   const [showReplies, setShowReplies] = useState(replies.length <= 1);
+  const repliesId = useId();
   const tensionPair = findTensionPair(reactions);
   if (!citation)
     return (
@@ -46,16 +47,18 @@ export function ArticleThreadCard({ posts }: { posts: FeedPost[] }) {
           <button
             className="agora-text-link"
             aria-expanded={showReplies}
+            aria-controls={repliesId}
             onClick={() => setShowReplies(!showReplies)}
           >
             {showReplies
               ? "Hide replies"
               : `Show ${replies.length} ${replies.length === 1 ? "reply" : "replies"}`}
           </button>
-          {showReplies &&
-            replies.map((post) => (
+          <div id={repliesId} className="public-cluster-replies">
+            {showReplies && replies.map((post) => (
               <PostCard key={post.id} post={post} compact />
             ))}
+          </div>
         </>
       )}
     </section>

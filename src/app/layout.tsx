@@ -15,6 +15,7 @@ import { buildOrganizationSchema, buildWebSiteSchema } from "@/lib/seo/schema";
 import "./globals.css";
 import "./agora-design.css";
 import "./public-design.css";
+import "./public-shell.css";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
