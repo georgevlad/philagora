@@ -1,6 +1,7 @@
 "use client";
+import { useUnsavedChanges } from "@/components/admin/AdminUI";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { formatDateTime } from "@/lib/date-utils";
 import type { Philosopher } from "@/types/admin";
 
@@ -19,6 +20,7 @@ export default function PromptsPage() {
     useState<Philosopher | null>(null);
   const [prompts, setPrompts] = useState<SystemPrompt[]>([]);
   const [newPromptText, setNewPromptText] = useState("");
+  const confirmDiscard = useUnsavedChanges(!!newPromptText.trim());
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [loadingPhilosophers, setLoadingPhilosophers] = useState(true);
   const [loadingPrompts, setLoadingPrompts] = useState(false);
@@ -47,8 +49,11 @@ export default function PromptsPage() {
     fetchPhilosophers();
   }, []);
 
+  const promptsRequest = useRef(0);
+
   // Fetch prompts when philosopher changes
   const fetchPrompts = useCallback(async (philosopherId: string) => {
+    const request = ++promptsRequest.current;
     setLoadingPrompts(true);
     setError(null);
     try {
@@ -57,6 +62,7 @@ export default function PromptsPage() {
       );
       if (!res.ok) throw new Error("Failed to fetch prompts");
       const data = await res.json();
+      if (request !== promptsRequest.current) return;
       const list: SystemPrompt[] = Array.isArray(data)
         ? data
         : data.prompts ?? [];
@@ -64,15 +70,16 @@ export default function PromptsPage() {
       setPrompts(list);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to load prompts"
+        request === promptsRequest.current ? (err instanceof Error ? err.message : "Failed to load prompts") : null
       );
-      setPrompts([]);
+      if (request === promptsRequest.current) setPrompts([]);
     } finally {
-      setLoadingPrompts(false);
+      if (request === promptsRequest.current) setLoadingPrompts(false);
     }
   }, []);
 
-  function handleSelectPhilosopher(p: Philosopher) {
+  async function handleSelectPhilosopher(p: Philosopher) {
+    if (saving || activating || deletingId || !await confirmDiscard()) return;
     setSelectedPhilosopher(p);
     setNewPromptText("");
     setExpandedIds(new Set());
@@ -336,7 +343,7 @@ export default function PromptsPage() {
                       Create New Version
                     </h3>
                     <div className="rounded-xl border border-border bg-white/40 p-5">
-                      <textarea
+                      <textarea disabled={saving || !!activating || !!deletingId} aria-label="New persona prompt version"
                         value={newPromptText}
                         onChange={(e) => setNewPromptText(e.target.value)}
                         placeholder={`Enter the system prompt for ${selectedPhilosopher.name}...\n\nThis defines the philosopher's voice, personality, style, and constraints when generating content.`}

@@ -1,6 +1,9 @@
 ﻿"use client";
+import { AdminField } from "@/components/admin/AdminUI";
+import { useAdminQueryState } from "@/components/admin/useAdminQueryState";
+import { AdminNotice, AdminStatus } from "@/components/admin/AdminUI";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { Spinner } from "@/components/Spinner";
 import {
   DEFAULT_CONFIG,
@@ -19,7 +22,7 @@ import { getTopicClusterKey, normalizeCandidate, pickDiverseArticles } from "./u
 import { useDailyGeneration } from "./useDailyGeneration";
 import { useReviewActions } from "./useReviewActions";
 
-export default function DailyContentPage() {
+function DailyWorkspace() {
   const [philosophers, setPhilosophers] = useState<Philosopher[]>([]);
   const [articles, setArticles] = useState<CandidateArticle[]>([]);
   const [philosopherUsage, setPhilosopherUsage] = useState<Record<string, PhilosopherUsage>>({});
@@ -32,6 +35,12 @@ export default function DailyContentPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [selectedDraftIds, setSelectedDraftIds] = useState<string[]>([]);
+  const [runId, setRunId] = useAdminQueryState<string>("run", "");
+  const [stage, setStage] = useState(runId ? 3 : 1);
+  const [runs, setRuns] = useState<Array<{ id: string; status: string; created_at: string }>>([]);
+  const [runStatus, setRunStatus] = useState("");
+  const [runNotice, setRunNotice] = useState("");
+  const [runReload, setRunReload] = useState(0);
 
   const {
     busyItemId,
@@ -67,7 +76,32 @@ export default function DailyContentPage() {
     setPipelineResult,
     setError,
     setNotice,
+    onRunStarted: (id) => { setRunId(id); setStage(3); },
   });
+
+  useEffect(() => {
+    let live = true;
+    fetch("/api/admin/daily-runs").then((response) => response.ok ? response.json() : []).then((items) => { if (live) setRuns(items); }).catch(() => {});
+    return () => { live = false; };
+  }, [generating, runReload]);
+
+  useEffect(() => {
+    if (!runId || busyItemId || bulkPublishing) return;
+    let live = true; let timer: ReturnType<typeof setTimeout>;
+    async function loadRun() {
+      try {
+        const response = await fetch('/api/admin/daily-runs?id=' + encodeURIComponent(runId));
+        if (!live) return;
+        if (!response.ok) { if (generating) { timer = setTimeout(loadRun, 3000); return; } throw new Error("Could not load this saved run."); }
+        const run = await response.json(); if (!live) return;
+        setRunStatus(run.status); setReviewItems(run.items); setSummary(run.summary);
+        setRunNotice(run.error || (run.stalled ? "This run has had no recent progress. Its completed drafts are safe below. A server restart may have interrupted the remaining work." : run.status === "running" ? "Generation is in progress. Completed drafts appear here automatically; reloading does not repeat AI calls." : "Saved run loaded. Post content and publishing status are up to date."));
+        if (run.status === "running" && !run.stalled) timer = setTimeout(loadRun, 5000);
+      } catch (err) { if (live) setRunNotice(err instanceof Error ? err.message : "Could not load run."); }
+    }
+    void loadRun();
+    return () => { live = false; clearTimeout(timer); };
+  }, [runId, runReload, generating, busyItemId, bulkPublishing]);
 
   useEffect(() => {
     let cancelled = false;
@@ -238,18 +272,24 @@ export default function DailyContentPage() {
   const everydayItems = reviewItems.filter((item) => item.type === "everyday_scenario");
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+    <div className="space-y-5">
       <div>
         <p className="text-xs font-mono uppercase tracking-[0.35em] text-terracotta/70 mb-2">
           Editorial Workflow
         </p>
-        <h1 className="font-serif text-3xl font-bold text-ink">Daily Content Generator</h1>
+        <h1 className="font-serif text-3xl font-bold text-ink">Daily Planner</h1>
         <p className="text-sm text-ink-lighter mt-2 max-w-3xl">
           Generate a balanced day&apos;s feed in one workflow: fetch news, select angles,
           draft reactions, create replies, and publish when the mix feels right.
         </p>
       </div>
 
+      <div className="admin-toolbar">
+        <div className="admin-field flex-1"><label htmlFor="daily-saved-run">Saved generation runs</label><select id="daily-saved-run" value={runId} disabled={generating || bulkPublishing || !!busyItemId} onChange={(event) => { setSelectedDraftIds([]); setRunId(event.target.value); setStage(event.target.value ? 3 : 1); if (!event.target.value) { setReviewItems([]); setSummary(null); setRunNotice(""); setRunStatus(""); } }}><option value="">New plan</option>{runId && !runs.some((run) => run.id === runId) && <option value={runId}>Current run</option>}{runs.map((run) => <option key={run.id} value={run.id}>{new Date(run.created_at).toLocaleString()} · {run.status}</option>)}</select></div>
+        {runStatus && <AdminStatus status={runStatus} />}<button className="admin-button" onClick={() => setRunReload((value) => value + 1)}>Refresh run</button>
+      </div>
+      <div className="admin-section-nav"><div className="admin-tabs" role="tablist" aria-label="Daily workflow">{[[1, "1. Select sources"], [2, "2. Configure mix"], [3, "3. Review drafts"]].map(([value, label]) => <button key={value} role="tab" aria-selected={stage === value} disabled={!!runId && value !== 3} onClick={() => setStage(Number(value))}>{label}</button>)}</div></div>
+      {stage === 3 && runNotice && <AdminNotice>{runNotice}</AdminNotice>}
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
@@ -262,7 +302,7 @@ export default function DailyContentPage() {
         </div>
       )}
 
-      <section className="rounded-xl border border-border bg-white shadow-sm overflow-hidden">
+      <section hidden={stage !== 1} className="admin-step-content rounded-xl border border-border bg-white shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-border bg-parchment-dark/20 flex items-center justify-between gap-4">
           <div>
             <p className="text-xs font-mono uppercase tracking-[0.3em] text-ink-lighter mb-1">Step 1</p>
@@ -488,7 +528,7 @@ export default function DailyContentPage() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-border bg-white shadow-sm overflow-hidden">
+      <section hidden={stage !== 2} className="admin-step-content rounded-xl border border-border bg-white shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-border bg-parchment-dark/20">
           <p className="text-xs font-mono uppercase tracking-[0.3em] text-ink-lighter mb-1">Step 2</p>
           <h2 className="font-serif text-lg font-bold text-ink">Configuration</h2>
@@ -502,43 +542,40 @@ export default function DailyContentPage() {
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                  <AdminField label={<>
                     Reactions per article
-                  </label>
-                  <input
+                  </>} labelClassName="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"><input
                     type="number"
                     min={1}
                     max={3}
                     value={config.reactions_per_article}
                     onChange={(event) => updateNumberConfig("reactions_per_article", event.target.value)}
                     className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-                  />
+                  /></AdminField>
                 </div>
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                  <AdminField label={<>
                     Cross-philosopher replies
-                  </label>
-                  <input
+                  </>} labelClassName="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"><input
                     type="number"
                     min={0}
                     max={3}
                     value={config.cross_replies}
                     onChange={(event) => updateNumberConfig("cross_replies", event.target.value)}
                     className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-                  />
+                  /></AdminField>
                 </div>
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                  <AdminField label={<>
                     Glints
-                  </label>
-                  <input
+                  </>} labelClassName="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"><input
                     type="number"
                     min={0}
                     max={4}
                     value={config.quips}
                     onChange={(event) => updateNumberConfig("quips", event.target.value)}
                     className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-                  />
+                  /></AdminField>
                 </div>
               </div>
             </div>
@@ -549,56 +586,52 @@ export default function DailyContentPage() {
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                  <AdminField label={<>
                     Timeless reflections
-                  </label>
-                  <input
+                  </>} labelClassName="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"><input
                     type="number"
                     min={0}
                     max={4}
                     value={config.timeless_reflections}
                     onChange={(event) => updateNumberConfig("timeless_reflections", event.target.value)}
                     className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-                  />
+                  /></AdminField>
                 </div>
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                  <AdminField label={<>
                     Cultural recommendations
-                  </label>
-                  <input
+                  </>} labelClassName="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"><input
                     type="number"
                     min={0}
                     max={4}
                     value={config.cultural_recommendations}
                     onChange={(event) => updateNumberConfig("cultural_recommendations", event.target.value)}
                     className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-                  />
+                  /></AdminField>
                 </div>
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                  <AdminField label={<>
                     Art commentaries
-                  </label>
-                  <input
+                  </>} labelClassName="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"><input
                     type="number"
                     min={0}
                     max={4}
                     value={config.art_commentaries}
                     onChange={(event) => updateNumberConfig("art_commentaries", event.target.value)}
                     className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-                  />
+                  /></AdminField>
                 </div>
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                  <AdminField label={<>
                     Everyday scenarios
-                  </label>
-                  <input
+                  </>} labelClassName="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"><input
                     type="number"
                     min={0}
                     max={4}
                     value={config.everyday_scenarios}
                     onChange={(event) => updateNumberConfig("everyday_scenarios", event.target.value)}
                     className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-                  />
+                  /></AdminField>
                 </div>
               </div>
             </div>
@@ -699,6 +732,8 @@ export default function DailyContentPage() {
         </div>
       </section>
 
+      {stage === 1 && <div className="admin-save-bar"><span>{selectedArticleIds.length} sources selected</span><button className="admin-button admin-button-primary" disabled={!selectedArticleIds.length} onClick={() => setStage(2)}>Continue to configuration →</button></div>}
+      {stage === 3 && !runId && !reviewItems.length && <div className="admin-empty">Choose sources and generate a plan, or open a saved run above.</div>}
       {generating && (
         <section className="rounded-xl border border-border bg-white shadow-sm px-6 py-10 text-center">
           <Spinner className="h-6 w-6 mx-auto mb-3 text-terracotta" />
@@ -710,10 +745,10 @@ export default function DailyContentPage() {
       )}
 
       {(summary || reviewItems.length > 0) && (
-        <section className="rounded-xl border border-border bg-white shadow-sm overflow-hidden">
+        <section hidden={stage !== 3} className="admin-step-content rounded-xl border border-border bg-white shadow-sm overflow-hidden">
           <div className="px-6 py-5 border-b border-border bg-parchment-dark/20 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-xs font-mono uppercase tracking-[0.3em] text-ink-lighter mb-1">Step 4</p>
+              <p className="text-xs text-ink-lighter mb-1">Draft review</p>
               <h2 className="font-serif text-lg font-bold text-ink">Review & Publish</h2>
               {summary && (
                 <p className="text-sm text-ink-lighter mt-1">
@@ -740,7 +775,7 @@ export default function DailyContentPage() {
           </div>
 
           {summary && (
-            <div className="px-6 py-5 border-b border-border grid grid-cols-1 md:grid-cols-2 xl:grid-cols-8 gap-4 bg-parchment/50">
+            <div className="px-6 py-5 border-b border-border admin-summary-grid grid gap-4 bg-parchment/50">
               <SummaryTile label="News reactions" value={summary.news_reactions} />
               <SummaryTile label="Cross replies" value={summary.cross_replies} />
               <SummaryTile label="Glints" value={summary.quips} />
@@ -854,3 +889,5 @@ export default function DailyContentPage() {
     </div>
   );
 }
+
+export default function DailyContentPage() { return <Suspense fallback={<p>Loading planner…</p>}><DailyWorkspace /></Suspense>; }

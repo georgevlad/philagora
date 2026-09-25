@@ -359,3 +359,17 @@ CREATE TABLE IF NOT EXISTS _schema_meta (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+-- Editorial run checkpoints retain generated drafts and their review context.
+CREATE TABLE IF NOT EXISTS admin_generation_runs (
+  id TEXT PRIMARY KEY,
+  status TEXT NOT NULL DEFAULT 'running' CHECK(status IN ('running', 'complete', 'partial', 'failed')),
+  config_json TEXT NOT NULL,
+  article_ids_json TEXT NOT NULL,
+  items_json TEXT NOT NULL DEFAULT '[]',
+  summary_json TEXT,
+  error TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_admin_generation_runs_created ON admin_generation_runs(created_at DESC);

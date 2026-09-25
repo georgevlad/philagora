@@ -1,4 +1,5 @@
 "use client";
+import { AdminField } from "@/components/admin/AdminUI";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Spinner } from "@/components/Spinner";
@@ -418,23 +419,21 @@ export default function RSSSourcesPage() {
           <div className="border-b border-border bg-parchment-dark/10 px-6 py-5">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div>
-                <label className="mb-2 block text-xs font-mono uppercase tracking-wider text-ink-lighter">
+                <AdminField label={<>
                   Display Name
-                </label>
-                <input
+                </>} labelClassName="mb-2 block text-xs font-mono uppercase tracking-wider text-ink-lighter"><input
                   type="text"
                   placeholder="MIT Technology Review"
                   value={newSource.name}
                   onChange={(event) => handleNewSourceNameChange(event.target.value)}
                   className="w-full rounded-lg border border-border bg-parchment px-3 py-2.5 text-sm font-body text-ink focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/40"
-                />
+                /></AdminField>
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-mono uppercase tracking-wider text-ink-lighter">
+                <AdminField label={<>
                   Slug ID
-                </label>
-                <input
+                </>} labelClassName="mb-2 block text-xs font-mono uppercase tracking-wider text-ink-lighter"><input
                   type="text"
                   placeholder="mit-technology-review"
                   value={newSource.id}
@@ -443,7 +442,7 @@ export default function RSSSourcesPage() {
                     setNewSource((current) => ({ ...current, id: slugifySourceId(event.target.value) }));
                   }}
                   className="w-full rounded-lg border border-border bg-parchment px-3 py-2.5 text-sm font-body text-ink focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/40"
-                />
+                /></AdminField>
                 <p className="mt-2 text-[11px] font-mono text-ink-lighter">
                   Auto-generated from the display name until you edit it manually.
                 </p>
@@ -476,10 +475,9 @@ export default function RSSSourcesPage() {
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-mono uppercase tracking-wider text-ink-lighter">
+                <AdminField label={<>
                   Category
-                </label>
-                <select
+                </>} labelClassName="mb-2 block text-xs font-mono uppercase tracking-wider text-ink-lighter"><select
                   value={newSource.category}
                   onChange={(event) =>
                     setNewSource((current) => ({ ...current, category: event.target.value }))
@@ -491,7 +489,7 @@ export default function RSSSourcesPage() {
                       {formatCategoryLabel(category)}
                     </option>
                   ))}
-                </select>
+                </select></AdminField>
               </div>
 
               <div className="flex items-end justify-end">

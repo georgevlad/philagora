@@ -1,6 +1,8 @@
 "use client";
+import { AdminField } from "@/components/admin/AdminUI";
+import { useUnsavedChanges } from "@/components/admin/AdminUI";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { Philosopher, PhiloState } from "@/types/admin";
 import { DEBATE_STATUS_COLORS } from "@/lib/constants";
 import { formatDate } from "@/lib/date-utils";
@@ -52,6 +54,8 @@ export default function DebateWorkshopPage() {
   // ── Wizard state ──────────────────────────────────────────────────────
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [debateId, setDebateId] = useState<string | null>(null);
+  const [workspaceView, setWorkspaceView] = useState<"list" | "work">("list");
+  const [listSearch, setListSearch] = useState("");
 
   // Step 1: Setup
   const [title, setTitle] = useState("");
@@ -78,6 +82,8 @@ export default function DebateWorkshopPage() {
   const [savingSynthesis, setSavingSynthesis] = useState(false);
 
   // ── Selected philosopher objects (in order) ──────────────────────────
+  const workshopBusy = creating || savingSynthesis || synthesisState === "generating" || Object.values(openings).some((item) => item.status === "generating") || Object.values(rebuttals).some((item) => item.status === "generating");
+  const confirmLeave = useUnsavedChanges(workspaceView === "work" && (workshopBusy || Object.values(openings).some((item) => item.status === "preview") || Object.values(rebuttals).some((item) => item.status === "preview") || synthesisState === "preview" || (!debateId && ([title, articleTitle, articleSource, articleUrl, editorialContext].some((value) => !!value.trim()) || selectedIds.length > 0))));
   const selectedPhilosophers = selectedIds
     .map((id) => philosophers.find((p) => p.id === id))
     .filter(Boolean) as Philosopher[];
@@ -124,15 +130,22 @@ export default function DebateWorkshopPage() {
   }
 
   // ── Resume an existing debate ─────────────────────────────────────────
+  const resumeRequest = useRef(0);
+  const [loadingWorkshop, setLoadingWorkshop] = useState(false);
   const resumeDebate = useCallback(
     async (id: string) => {
+      const request = ++resumeRequest.current;
+      setLoadingWorkshop(true);
       setError("");
       try {
         const res = await fetch(`/api/admin/debates/${id}`);
         if (!res.ok) throw new Error("Failed to load debate");
         const data = await res.json();
 
+        if (request !== resumeRequest.current) return;
         setDebateId(id);
+        setWorkspaceView("work");
+        window.history.replaceState(null, "", '/admin/debates?id=' + encodeURIComponent(id));
         setTitle(data.debate.title);
         setArticleTitle(data.debate.trigger_article_title || "");
         setArticleSource(data.debate.trigger_article_source || "");
@@ -219,11 +232,15 @@ export default function DebateWorkshopPage() {
           setStep(2);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load debate");
+        if (request === resumeRequest.current) setError(err instanceof Error ? err.message : "Failed to load debate");
+      } finally {
+        if (request === resumeRequest.current) setLoadingWorkshop(false);
       }
     },
     []
   );
+
+  useEffect(() => { const selectedId = new URLSearchParams(window.location.search).get("id"); if (selectedId) void resumeDebate(selectedId); }, [resumeDebate]);
 
   // ── Step 1: Create debate ─────────────────────────────────────────────
   async function handleCreateDebate() {
@@ -257,6 +274,7 @@ export default function DebateWorkshopPage() {
       }
       const data = await res.json();
       setDebateId(data.debate.id);
+      window.history.replaceState(null, "", '/admin/debates?id=' + encodeURIComponent(data.debate.id));
 
       // Initialize openings state
       const init: Record<string, PhiloState> = {};
@@ -523,7 +541,7 @@ export default function DebateWorkshopPage() {
               <span className="font-serif font-bold text-ink text-sm">{philosopher.name}</span>
               <span
                 className="ml-2 text-[11px] font-mono px-2 py-0.5 rounded"
-                style={{ backgroundColor: `${philosopher.color}15`, color: philosopher.color }}
+                data-admin-tag=""
               >
                 {philosopher.tradition}
               </span>
@@ -610,12 +628,17 @@ export default function DebateWorkshopPage() {
         </p>
       </div>
 
+      <div className="admin-toolbar">
+        {workspaceView === "list" ? <><div className="admin-field flex-1"><label htmlFor="workshop-search">Search debates</label><input id="workshop-search" value={listSearch} onChange={(event) => setListSearch(event.target.value)} placeholder="Search by topic…" /></div><button disabled={loadingWorkshop} className="admin-button admin-button-primary" onClick={() => { setDebateId(null); setStep(1); setTitle(""); setArticleTitle(""); setArticleSource(""); setArticleUrl(""); setEditorialContext(""); setSelectedIds([]); setOpenings({}); setRebuttals({}); setSynthesisState("pending"); setSynthesisData(null); setWorkspaceView("work"); window.history.replaceState(null, "", '/admin/debates'); }}>New debate</button></>
+          : <><button className="admin-button" disabled={workshopBusy} onClick={async () => { if (await confirmLeave()) { setWorkspaceView("list"); window.history.replaceState(null, "", '/admin/debates'); } }}>← All debates</button><span className="ml-auto text-sm text-ink-lighter">{workshopBusy ? "Generation in progress…" : debateId ? "Saved workshop · resume from this URL" : "New workshop"}</span></>}
+      </div>
+      <div hidden={workspaceView !== "list"}>
       {/* Existing debates */}
       {existingDebates.length > 0 && (
         <div className="mb-8">
           <h2 className="font-serif text-lg font-bold text-ink mb-3">Existing Debates</h2>
           <div className="space-y-3">
-            {existingDebates.map((d) => (
+            {existingDebates.filter((d) => d.title.toLowerCase().includes(listSearch.toLowerCase())).map((d) => (
               <div
                 key={d.id}
                 className={`w-full bg-white border rounded-xl px-6 py-4 transition-colors ${
@@ -624,6 +647,7 @@ export default function DebateWorkshopPage() {
               >
                 <div className="flex items-center justify-between">
                   <button
+                    disabled={loadingWorkshop}
                     onClick={() => resumeDebate(d.id)}
                     className="flex-1 text-left hover:opacity-70 transition-opacity min-w-0"
                   >
@@ -683,6 +707,9 @@ export default function DebateWorkshopPage() {
         </div>
       )}
 
+      {existingDebates.length === 0 && <div className="admin-empty">No debates yet. Create one to get started.</div>}
+      </div>
+      <div hidden={workspaceView !== "work"}>
       {/* Step indicator */}
       {debateId && (
         <div className="mb-6 flex items-center gap-2">
@@ -747,7 +774,7 @@ export default function DebateWorkshopPage() {
                 <h3 className="text-xs font-mono uppercase tracking-wider text-ink-lighter mb-1.5">
                   Editorial context
                 </h3>
-                <textarea
+                <textarea aria-label="Editorial context"
                   value={editorialContext}
                   readOnly
                   rows={6}
@@ -767,16 +794,15 @@ export default function DebateWorkshopPage() {
           <div className="px-6 py-6 space-y-6">
             {/* Title */}
             <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+              <AdminField label={<>
                 Debate Title
-              </label>
-              <input
+              </>} labelClassName="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"><input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder='e.g. "Can Suffering Have Meaning?"'
                 className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-              />
+              /></AdminField>
             </div>
 
             {/* Trigger source */}
@@ -791,40 +817,37 @@ export default function DebateWorkshopPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                  <AdminField label={<>
                     Article Title
-                  </label>
-                  <input
+                  </>} labelClassName="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"><input
                     type="text"
                     value={articleTitle}
                     onChange={(e) => setArticleTitle(e.target.value)}
                     placeholder="Title of the trigger article"
                     className="w-full rounded-lg border border-border bg-parchment-dark/40 px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-                  />
+                  /></AdminField>
                 </div>
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                  <AdminField label={<>
                     Source
-                  </label>
-                  <input
+                  </>} labelClassName="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"><input
                     type="text"
                     value={articleSource}
                     onChange={(e) => setArticleSource(e.target.value)}
                     placeholder="e.g. The New York Times"
                     className="w-full rounded-lg border border-border bg-parchment-dark/40 px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-                  />
+                  /></AdminField>
                 </div>
                 <div>
-                  <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                  <AdminField label={<>
                     URL
-                  </label>
-                  <input
+                  </>} labelClassName="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"><input
                     type="url"
                     value={articleUrl}
                     onChange={(e) => setArticleUrl(e.target.value)}
                     placeholder="https://..."
                     className="w-full rounded-lg border border-border bg-parchment-dark/40 px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-                  />
+                  /></AdminField>
                 </div>
               </div>
             </div>
@@ -1156,6 +1179,7 @@ POSSIBLE PULL-QUOTE ANGLES
           No debates yet. Create your first one above.
         </p>
       )}
+      </div>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { useAdminConfirm } from "@/components/admin/AdminUI";
 import { useState } from "react";
 import type React from "react";
 import { publishPriority, type DailyGeneratedItem, type DraftStatus, type ReviewItem } from "./types";
@@ -17,6 +18,7 @@ export function useReviewActions({
   setError: (msg: string | null) => void;
   setNotice: (msg: string | null) => void;
 }) {
+  const confirm = useAdminConfirm();
   const [busyItemId, setBusyItemId] = useState<string | null>(null);
   const [bulkPublishing, setBulkPublishing] = useState(false);
 
@@ -37,19 +39,20 @@ export function useReviewActions({
     });
     if (!postResponse.ok) throw new Error(`Failed to publish ${item.philosopher_name}.`);
 
-    const logResponse = await fetch("/api/admin/content", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: item.generation_log_id, status: "published" }),
-    });
-    if (!logResponse.ok) throw new Error(`Failed to update the generation log for ${item.philosopher_name}.`);
-
     setReviewItems((current) =>
       current.map((entry) =>
         entry.post_id === item.post_id ? { ...entry, status: "published" } : entry
       )
     );
     setSelectedDraftIds((current) => current.filter((id) => id !== item.post_id));
+    const logResponse = await fetch("/api/admin/content", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: item.generation_log_id, status: "published" }),
+    });
+    if (!logResponse.ok) throw new Error(`The post was published, but its generation log could not be updated.`);
+
+
   }
 
   async function handlePublishItem(item: ReviewItem) {
@@ -76,19 +79,20 @@ export function useReviewActions({
     });
     if (!postResponse.ok) throw new Error(`Failed to delete ${item.philosopher_name}.`);
 
-    const logResponse = await fetch("/api/admin/content", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: item.generation_log_id, status: "rejected" }),
-    });
-    if (!logResponse.ok) throw new Error(`Failed to update the generation log for ${item.philosopher_name}.`);
-
     setReviewItems((current) =>
       current.map((entry) =>
         entry.post_id === item.post_id ? { ...entry, status: "deleted" } : entry
       )
     );
     setSelectedDraftIds((current) => current.filter((id) => id !== item.post_id));
+    const logResponse = await fetch("/api/admin/content", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: item.generation_log_id, status: "rejected" }),
+    });
+    if (!logResponse.ok) throw new Error(`The post was deleted, but its generation log could not be updated.`);
+
+
   }
 
   async function handleDeleteItem(item: ReviewItem) {
@@ -106,11 +110,7 @@ export function useReviewActions({
       return;
     }
     const itemsToDelete = [...dependentReplies, item];
-    const confirmed = window.confirm(
-      dependentReplies.length > 0
-        ? `Delete this reaction and its ${dependentReplies.length} dependent repl${dependentReplies.length === 1 ? "y" : "ies"}?`
-        : "Delete this draft?"
-    );
+    const confirmed = await confirm({ title: "Delete drafts permanently?", description: dependentReplies.length > 0 ? `This deletes the reaction and its ${dependentReplies.length} dependent replies. This cannot be undone.` : "This permanently deletes the draft. This cannot be undone.", confirmLabel: "Delete permanently", destructive: true });
     if (!confirmed) return;
 
     setBusyItemId(item.post_id);
@@ -229,6 +229,7 @@ export function useReviewActions({
       return;
     }
 
+    if (!await confirm({ title: `Publish ${itemsToPublish.length} drafts?`, description: "These drafts will become visible on the public feed.", confirmLabel: `Publish ${itemsToPublish.length} drafts` })) return;
     setBulkPublishing(true);
     setError(null);
 

@@ -11,7 +11,7 @@ export type DailyItemType =
   | "art_commentary"
   | "everyday_scenario";
 export type LengthStrategy = "varied" | "short" | "medium" | "long";
-export type DraftStatus = "draft" | "published" | "deleted";
+export type DraftStatus = "draft" | "approved" | "published" | "archived" | "deleted";
 
 export interface RawCandidateArticle {
   id: string;
@@ -122,6 +122,8 @@ export const DEFAULT_CONFIG = {
 
 export const ITEM_STATUS_CLASSES: Record<DraftStatus, string> = {
   draft: "bg-blue-100 text-blue-800",
+  approved: "bg-blue-100 text-blue-800",
+  archived: "bg-gray-100 text-gray-700",
   published: "bg-green-100 text-green-800",
   deleted: "bg-red-100 text-red-800",
 };

@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { AdminDialog, useUnsavedChanges } from "@/components/admin/AdminUI";
+import { useAdminQueryState } from "@/components/admin/useAdminQueryState";
 import { Spinner } from "@/components/Spinner";
 import { formatDate } from "@/lib/date-utils";
 import { safeJsonParse } from "@/lib/json-utils";
@@ -226,7 +228,7 @@ function buildPaginationItems(
   return items;
 }
 
-export default function NewsScoutPage() {
+function NewsScoutWorkspace() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [candidates, setCandidates] = useState<CandidateWithUsage[]>([]);
   const [overviewCandidates, setOverviewCandidates] = useState<
@@ -242,12 +244,15 @@ export default function NewsScoutPage() {
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [statusFilter, setStatusFilter] = useState("scored");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [minScoreFilter, setMinScoreFilter] = useState("60");
+  const [statusFilter, setStatusFilter] = useAdminQueryState<string>("tab", "scored");
+  const [categoryFilter, setCategoryFilter] = useAdminQueryState<string>("category", "all");
+  const [minScoreFilter, setMinScoreFilter] = useAdminQueryState<string>("min_score", "60");
   const [sortOrder, setSortOrder] =
-    useState<(typeof SORT_OPTIONS)[number]["value"]>("score");
-  const [currentPage, setCurrentPage] = useState(1);
+    useAdminQueryState<(typeof SORT_OPTIONS)[number]["value"]>("sort", "score");
+  const [currentPage, setCurrentPage] = useAdminQueryState<number>("page", 1);
+  const [search, setSearch] = useAdminQueryState<string>("q", "");
+  const [usage, setUsage] = useAdminQueryState<string>("usage", "all");
+  const requestSequence = useRef(0);
   const [candidatePagination, setCandidatePagination] = useState({
     total: 0,
     page: 1,
@@ -299,6 +304,7 @@ export default function NewsScoutPage() {
     null
   );
 
+  useUnsavedChanges(genInProgress || quipGenerating);
   const hasInitialized = useRef(false);
 
   const fetchStats = useCallback(async () => {
@@ -313,14 +319,17 @@ export default function NewsScoutPage() {
   }, []);
 
   const fetchCandidates = useCallback(async () => {
+    const requestId = ++requestSequence.current;
     try {
       const params = new URLSearchParams();
-      if (statusFilter !== "all") params.set("status", statusFilter);
+      params.set("status", statusFilter);
       if (categoryFilter !== "all") params.set("category", categoryFilter);
       if (minScoreFilter && statusFilter === "scored") {
         params.set("min_score", minScoreFilter);
       }
       params.set("sort", sortOrder);
+      if (search) params.set("q", search);
+      if (usage !== "all") params.set("usage", usage);
       params.set("page", String(currentPage));
       params.set("page_size", String(NEWS_SCOUT_PAGE_SIZE));
 
@@ -334,6 +343,7 @@ export default function NewsScoutPage() {
         );
       }
 
+      if (requestId !== requestSequence.current) return;
       setCandidates(data.items);
       setCandidatePagination({
         total: data.total,
@@ -346,9 +356,9 @@ export default function NewsScoutPage() {
       }
       setError(null);
     } catch {
-      setError("Failed to fetch candidates");
+      if (requestId === requestSequence.current) setError("Failed to fetch candidates");
     }
-  }, [categoryFilter, currentPage, minScoreFilter, sortOrder, statusFilter]);
+  }, [categoryFilter, currentPage, minScoreFilter, sortOrder, statusFilter, search, usage, setCurrentPage]);
 
   const fetchOverviewCandidates = useCallback(async () => {
     try {
@@ -430,14 +440,7 @@ export default function NewsScoutPage() {
   useEffect(() => {
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        if (!genInProgress) setGeneratePanelCandidate(null);
-        if (!quipGenerating) {
-          setQuipModalCandidate(null);
-          setQuipModalPhilosopherId(null);
-          setQuipGenerating(false);
-          setQuipError(null);
-          setQuipSuccessPostId(null);
-        }
+
         setDangerMenuOpen(false);
         setCleanupConfirm(false);
         setClearAllConfirm(false);
@@ -446,7 +449,7 @@ export default function NewsScoutPage() {
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [genInProgress, quipGenerating]);
+  }, []);
 
   const runPipeline = async (action: "fetch" | "score" | "fetch_and_score") => {
     setPipelineRunning(true);
@@ -816,7 +819,7 @@ export default function NewsScoutPage() {
 
   return (
     <>
-      <div className="space-y-8 pb-24">
+      <div className="space-y-4 pb-24">
         <div>
           <h1 className="font-serif text-2xl font-bold text-ink">News Scout</h1>
           <p className="mt-1 text-sm font-body text-ink-light">
@@ -864,6 +867,7 @@ export default function NewsScoutPage() {
           </div>
         )}
 
+        <details className="admin-panel"><summary className="cursor-pointer px-5 py-3 font-medium">Pipeline overview · {stats?.total ?? 0} articles · {stats?.scored ?? 0} scored · {stats?.approved ?? 0} approved</summary><div className="p-4 space-y-4">
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
           {[
             {
@@ -949,6 +953,8 @@ export default function NewsScoutPage() {
             </div>
           </div>
         </div>
+
+        </div></details>
 
         <div className="relative overflow-visible rounded-xl border border-border bg-white shadow-sm">
           <div className="flex flex-wrap items-center gap-3 px-6 py-5">
@@ -1119,7 +1125,9 @@ export default function NewsScoutPage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <select
+              <input aria-label="Search articles" placeholder="Search article titles…" value={search} onChange={(event) => { setSearch(event.target.value); setCurrentPage(1); }} className="px-3 py-2 flex-1" />
+              <select aria-label="Post usage" value={usage} onChange={(event) => { setUsage(event.target.value); setCurrentPage(1); }} className="px-3 py-2"><option value="all">All usage</option><option value="unused">No posts yet</option></select>
+              <select aria-label="Article category"
                 value={categoryFilter}
                 onChange={(event) => {
                   setCategoryFilter(event.target.value);
@@ -1136,7 +1144,7 @@ export default function NewsScoutPage() {
                 ))}
               </select>
 
-              <select
+              <select aria-label="Minimum score"
                 value={minScoreFilter}
                 onChange={(event) => {
                   setMinScoreFilter(event.target.value);
@@ -1151,7 +1159,7 @@ export default function NewsScoutPage() {
                 ))}
               </select>
 
-              <select
+              <select aria-label="Sort articles"
                 value={sortOrder}
                 onChange={(event) => {
                   setSortOrder(
@@ -1354,7 +1362,7 @@ export default function NewsScoutPage() {
                                 {stance && stanceStyle && (
                                   <span
                                     className="mt-1 text-[9px] font-mono uppercase tracking-wide"
-                                    style={{ color: stanceStyle.color }}
+                                    style={{ color: "var(--admin-accent)" }}
                                   >
                                     {STANCE_SHORT_LABELS[stance]}
                                   </span>
@@ -1559,11 +1567,7 @@ export default function NewsScoutPage() {
                                     {stanceStyle && stance && (
                                       <span
                                         className="rounded-full px-2 py-0.5 text-[11px] font-mono"
-                                        style={{
-                                          backgroundColor: stanceStyle.bg,
-                                          color: stanceStyle.color,
-                                          border: `1px solid ${stanceStyle.border}`,
-                                        }}
+                                        data-admin-tag=""
                                       >
                                         {STANCE_CONFIG[stance].label}
                                       </span>
@@ -1668,10 +1672,10 @@ export default function NewsScoutPage() {
                                         return meta ? (
                                           <span
                                             key={philosopherId}
-                                            className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-dashed text-[9px] font-bold opacity-40"
+                                            className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-dashed text-[9px] font-bold"
                                             style={{
-                                              borderColor: meta.color,
-                                              color: meta.color,
+                                              borderColor: "var(--admin-control-border)",
+                                              color: "var(--admin-muted)",
                                             }}
                                             title={`${meta.name} - not yet generated`}
                                           >
@@ -1859,22 +1863,31 @@ export default function NewsScoutPage() {
         </div>
       )}
 
-      {quipModalCandidate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
-          <button
-            type="button"
-            onClick={closeQuipModal}
-            disabled={quipGenerating}
-            className="absolute inset-0 bg-black/40 disabled:cursor-not-allowed"
-            aria-label="Close Glint modal"
-          />
-
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="glint-modal-title"
-            className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-parchment shadow-2xl"
-          >
+      {quipModalCandidate && <AdminDialog open title="Generate a Glint" wide busy={quipGenerating} onClose={closeQuipModal} footer={!quipSuccessPostId && <div className="flex justify-end gap-3 w-full">
+                    <button
+                      type="button"
+                      onClick={closeQuipModal}
+                      disabled={quipGenerating}
+                      className="rounded-lg border border-border bg-white/70 px-4 py-2 text-sm font-body text-ink-light transition-colors hover:bg-white hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleGenerateQuip}
+                      disabled={!quipModalPhilosopherId || quipGenerating}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-terracotta px-4 py-2 text-sm font-body font-medium text-white shadow-sm transition-colors hover:bg-terracotta-light disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {quipGenerating ? (
+                        <>
+                          <Spinner className="h-4 w-4 text-white" />
+                          Generating Glint...
+                        </>
+                      ) : (
+                        "Generate Glint"
+                      )}
+                    </button>
+                  </div>}>
             <div className="border-b border-border bg-parchment-dark/40 px-5 py-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
@@ -1892,14 +1905,7 @@ export default function NewsScoutPage() {
                     {quipModalCandidate.source_name}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={closeQuipModal}
-                  disabled={quipGenerating}
-                  className="rounded-full border border-border bg-white/70 px-3 py-1 text-sm font-mono text-ink-lighter transition-colors hover:bg-white hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  X
-                </button>
+
               </div>
             </div>
 
@@ -1918,7 +1924,7 @@ export default function NewsScoutPage() {
                   </p>
                   <div className="mt-5 flex flex-wrap items-center gap-3">
                     <Link
-                      href="/admin/posts"
+                      href={`/admin/posts?post=${encodeURIComponent(quipSuccessPostId)}`}
                       className="inline-flex items-center justify-center rounded-lg bg-terracotta px-4 py-2 text-sm font-body font-medium text-white shadow-sm transition-colors hover:bg-terracotta-light"
                     >
                       Review draft
@@ -1991,47 +1997,48 @@ export default function NewsScoutPage() {
                     </div>
                   )}
 
-                  <div className="mt-5 flex flex-col-reverse gap-3 border-t border-border pt-4 sm:flex-row sm:justify-end">
-                    <button
-                      type="button"
-                      onClick={closeQuipModal}
-                      disabled={quipGenerating}
-                      className="rounded-lg border border-border bg-white/70 px-4 py-2 text-sm font-body text-ink-light transition-colors hover:bg-white hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleGenerateQuip}
-                      disabled={!quipModalPhilosopherId || quipGenerating}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-terracotta px-4 py-2 text-sm font-body font-medium text-white shadow-sm transition-colors hover:bg-terracotta-light disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {quipGenerating ? (
-                        <>
-                          <Spinner className="h-4 w-4 text-white" />
-                          Generating Glint...
-                        </>
-                      ) : (
-                        "Generate Glint"
-                      )}
-                    </button>
-                  </div>
+
                 </>
               )}
             </div>
-          </div>
-        </div>
-      )}
+      </AdminDialog>}
 
-      {generatePanelCandidate && (
-        <div className="fixed inset-0 z-40">
-          <button
-            onClick={closeGeneratePanel}
-            className="absolute inset-0 bg-black/40"
-            aria-label="Close generate panel"
-          />
-
-          <div className="absolute right-0 top-0 z-50 flex h-screen w-full max-w-xl flex-col border-l border-border bg-parchment shadow-2xl">
+      {generatePanelCandidate && <AdminDialog open title="Generate reactions" wide busy={genInProgress} onClose={closeGeneratePanel} footer={<div className="w-full">
+              {genSummary && genResults.length > 0 && genResults.some((result) => result.success) ? (
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+                    <p className="text-sm font-body text-green-800">
+                      Generated {genSummary.total_drafts} draft{genSummary.total_drafts !== 1 ? "s" : ""}
+                      {genSummary.cross_replies > 0 && ` (including ${genSummary.cross_replies} cross-reply)`}
+                      {genSummary.quips > 0 && ` and ${genSummary.quips} quip`}
+                    </p>
+                  </div>
+                  <Link
+                    href="/admin/posts"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-terracotta px-4 py-3 text-sm font-body font-medium text-white shadow-sm transition-colors hover:bg-terracotta-light"
+                  >
+                    Review & Publish Drafts -&gt;
+                  </Link>
+                </div>
+              ) : (
+                <button
+                  onClick={() => handleBulkGenerate(generatePanelCandidate)}
+                  disabled={genInProgress || selectedGenPhilosophers.length === 0}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-terracotta px-4 py-3 text-sm font-body font-medium text-white shadow-sm transition-colors hover:bg-terracotta-light disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {genInProgress ? (
+                    <>
+                      <Spinner className="h-4 w-4 text-white" />
+                      Generating drafts...
+                    </>
+                  ) : (
+                    `Generate for ${selectedGenPhilosophers.length} philosopher${
+                      selectedGenPhilosophers.length !== 1 ? "s" : ""
+                    }`
+                  )}
+                </button>
+              )}
+            </div>}>
             <div className="border-b border-border bg-parchment-dark/40 px-6 py-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -2051,12 +2058,7 @@ export default function NewsScoutPage() {
                     )}
                   </div>
                 </div>
-                <button
-                  onClick={closeGeneratePanel}
-                  className="rounded-full border border-border bg-white/70 px-3 py-1 text-sm font-mono text-ink-lighter transition-colors hover:bg-white hover:text-ink"
-                >
-                  X
-                </button>
+
               </div>
 
               {generatePanelCandidate.philosophical_entry_point && (
@@ -2104,11 +2106,7 @@ export default function NewsScoutPage() {
                         {stance && stanceStyle && (
                           <span
                             className="rounded-full px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide"
-                            style={{
-                              backgroundColor: stanceStyle.bg,
-                              color: stanceStyle.color,
-                              border: `1px solid ${stanceStyle.border}`,
-                            }}
+                            data-admin-tag=""
                           >
                             {STANCE_CONFIG[stance].label}
                           </span>
@@ -2170,11 +2168,7 @@ export default function NewsScoutPage() {
                             {suggestedStance && stanceStyle && (
                               <span
                                 className="mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide"
-                                style={{
-                                  backgroundColor: stanceStyle.bg,
-                                  color: stanceStyle.color,
-                                  border: `1px solid ${stanceStyle.border}`,
-                                }}
+                                data-admin-tag=""
                               >
                                 {STANCE_CONFIG[suggestedStance].label}
                               </span>
@@ -2325,45 +2319,10 @@ export default function NewsScoutPage() {
               ) : null}
             </div>
 
-            <div className="border-t border-border bg-white/80 px-6 py-4">
-              {genSummary && genResults.length > 0 && genResults.some((result) => result.success) ? (
-                <div className="space-y-3">
-                  <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3">
-                    <p className="text-sm font-body text-green-800">
-                      Generated {genSummary.total_drafts} draft{genSummary.total_drafts !== 1 ? "s" : ""}
-                      {genSummary.cross_replies > 0 && ` (including ${genSummary.cross_replies} cross-reply)`}
-                      {genSummary.quips > 0 && ` and ${genSummary.quips} quip`}
-                    </p>
-                  </div>
-                  <Link
-                    href="/admin/posts"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-terracotta px-4 py-3 text-sm font-body font-medium text-white shadow-sm transition-colors hover:bg-terracotta-light"
-                  >
-                    Review & Publish Drafts -&gt;
-                  </Link>
-                </div>
-              ) : (
-                <button
-                  onClick={() => handleBulkGenerate(generatePanelCandidate)}
-                  disabled={genInProgress || selectedGenPhilosophers.length === 0}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-terracotta px-4 py-3 text-sm font-body font-medium text-white shadow-sm transition-colors hover:bg-terracotta-light disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {genInProgress ? (
-                    <>
-                      <Spinner className="h-4 w-4 text-white" />
-                      Generating drafts...
-                    </>
-                  ) : (
-                    `Generate for ${selectedGenPhilosophers.length} philosopher${
-                      selectedGenPhilosophers.length !== 1 ? "s" : ""
-                    }`
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+
+      </AdminDialog>}
     </>
   );
 }
+
+export default function NewsScoutPage() { return <Suspense fallback={<p>Loading News Scout…</p>}><NewsScoutWorkspace /></Suspense>; }

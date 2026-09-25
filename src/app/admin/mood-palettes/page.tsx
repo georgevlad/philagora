@@ -1,4 +1,5 @@
 "use client";
+import { AdminField } from "@/components/admin/AdminUI";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -576,10 +577,9 @@ export default function MoodPalettesPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4 items-end">
               <div>
-                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                <AdminField label={<>
                   Philosopher
-                </label>
-                <select
+                </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><select
                   value={selectedPhilosopherId}
                   onChange={(event) => setSelectedPhilosopherId(event.target.value)}
                   className={INPUT_CLASSES}
@@ -589,7 +589,7 @@ export default function MoodPalettesPage() {
                       {philosopher.name}
                     </option>
                   ))}
-                </select>
+                </select></AdminField>
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border-light bg-parchment/40 px-4 py-3">
@@ -652,34 +652,32 @@ export default function MoodPalettesPage() {
 
                     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                       <div>
-                        <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                        <AdminField label={<>
                           Name
-                        </label>
-                        <input
+                        </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                           type="text"
                           value={register.name}
                           onChange={(event) =>
                             updateRegister(index, "name", event.target.value)
                           }
                           className={INPUT_CLASSES}
-                        />
+                        /></AdminField>
                         <p className={HELPER_TEXT_CLASSES}>
                           Short evocative label (e.g. &quot;cold fury&quot;, &quot;dry amusement&quot;)
                         </p>
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                        <AdminField label={<>
                           Directive
-                        </label>
-                        <textarea
+                        </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><textarea
                           value={register.directive}
                           onChange={(event) =>
                             updateRegister(index, "directive", event.target.value)
                           }
                           rows={2}
                           className={TEXTAREA_CLASSES}
-                        />
+                        /></AdminField>
                         <p className={HELPER_TEXT_CLASSES}>
                           Second-person instruction describing how the philosopher feels - not how
                           they should write. Keep under 15 words.
@@ -687,17 +685,16 @@ export default function MoodPalettesPage() {
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                        <AdminField label={<>
                           Tensions
-                        </label>
-                        <input
+                        </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                           type="text"
                           value={joinCommaSeparated(register.tensions)}
                           onChange={(event) =>
                             updateRegister(index, "tensions", event.target.value)
                           }
                           className={INPUT_CLASSES}
-                        />
+                        /></AdminField>
                         <p className={HELPER_TEXT_CLASSES}>
                           Comma-separated tension IDs from the scoring vocabulary (e.g.
                           freedom_vs_order, truth_vs_power). Leave empty if this register isn&apos;t
@@ -706,17 +703,16 @@ export default function MoodPalettesPage() {
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                        <AdminField label={<>
                           Stances
-                        </label>
-                        <input
+                        </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                           type="text"
                           value={joinCommaSeparated(register.stances)}
                           onChange={(event) =>
                             updateRegister(index, "stances", event.target.value)
                           }
                           className={INPUT_CLASSES}
-                        />
+                        /></AdminField>
                         <p className={HELPER_TEXT_CLASSES}>
                           Comma-separated stance values that trigger this register (e.g.
                           challenges, reframes, diagnoses).
@@ -724,17 +720,16 @@ export default function MoodPalettesPage() {
                       </div>
 
                       <div className="col-span-full">
-                        <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                        <AdminField label={<>
                           Clusters
-                        </label>
-                        <input
+                        </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                           type="text"
                           value={joinCommaSeparated(register.clusters)}
                           onChange={(event) =>
                             updateRegister(index, "clusters", event.target.value)
                           }
                           className={INPUT_CLASSES}
-                        />
+                        /></AdminField>
                         <p className={HELPER_TEXT_CLASSES}>
                           Comma-separated topic clusters (e.g. geopolitics, technology, science,
                           economics, culture, environment, health, law_justice, society,
@@ -806,10 +801,9 @@ export default function MoodPalettesPage() {
           <div className="p-5 space-y-5">
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
               <div>
-                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                <AdminField label={<>
                   Philosopher
-                </label>
-                <select
+                </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><select
                   value={selectedPhilosopherId}
                   onChange={(event) => setSelectedPhilosopherId(event.target.value)}
                   className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
@@ -819,27 +813,25 @@ export default function MoodPalettesPage() {
                       {philosopher.name}
                     </option>
                   ))}
-                </select>
+                </select></AdminField>
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                <AdminField label={<>
                   Tensions
-                </label>
-                <input
+                </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                   type="text"
                   value={testTensions}
                   onChange={(event) => setTestTensions(event.target.value)}
                   placeholder="freedom_vs_order, truth_vs_power"
                   className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
-                />
+                /></AdminField>
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                <AdminField label={<>
                   Stance
-                </label>
-                <select
+                </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><select
                   value={testStance}
                   onChange={(event) => setTestStance(event.target.value)}
                   className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
@@ -850,14 +842,13 @@ export default function MoodPalettesPage() {
                       {config.label}
                     </option>
                   ))}
-                </select>
+                </select></AdminField>
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                <AdminField label={<>
                   Topic Cluster
-                </label>
-                <select
+                </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><select
                   value={testTopicCluster}
                   onChange={(event) => setTestTopicCluster(event.target.value)}
                   className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
@@ -868,7 +859,7 @@ export default function MoodPalettesPage() {
                       {option.label}
                     </option>
                   ))}
-                </select>
+                </select></AdminField>
               </div>
             </div>
 

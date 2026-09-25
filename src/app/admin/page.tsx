@@ -128,14 +128,14 @@ export default function AdminDashboard() {
       label: "Unscored Articles",
       value: actions.unscored,
       icon: "📰",
-      href: "/admin/news-scout",
+      href: "/admin/news-scout?tab=new",
       color: "amber" as const,
     },
     {
       label: "Approved, No Posts",
       value: actions.approvedNoPosts,
       icon: "✍️",
-      href: "/admin/news-scout?tab=approved",
+      href: "/admin/news-scout?tab=approved&usage=unused",
       color: "amber" as const,
     },
     {

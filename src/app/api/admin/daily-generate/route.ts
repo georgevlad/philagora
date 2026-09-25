@@ -27,6 +27,7 @@ import type { Stance } from "@/lib/types";
 type LengthStrategy = "varied" | TargetLength;
 
 interface DailyGenerateRequest {
+  run_id?: string;
   article_ids: string[];
   config: {
     reactions_per_article: number;
@@ -185,6 +186,7 @@ const EVERYDAY_PROMPTS = [
 ];
 
 export async function POST(request: NextRequest) {
+  let runId: string | null = null;
   try {
     const body = (await request.json().catch(() => null)) as DailyGenerateRequest;
     const validationError = validateGenerateRequest(body);
@@ -215,10 +217,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (body.run_id !== undefined && (typeof body.run_id !== "string" || !/^[a-zA-Z0-9-]{1,80}$/.test(body.run_id))) return NextResponse.json({ error: "Invalid run ID" }, { status: 400 });
+    const requestedId = body.run_id ?? crypto.randomUUID();
+    if (db.prepare("SELECT id FROM admin_generation_runs WHERE id = ?").get(requestedId)) return NextResponse.json({ error: "This run already exists. Open its saved review instead of generating it again.", run_id: requestedId }, { status: 409 });
+    const now = new Date().toISOString();
+    db.prepare("INSERT INTO admin_generation_runs (id, config_json, article_ids_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").run(requestedId, JSON.stringify(config), JSON.stringify(body.article_ids), now, now);
+    runId = requestedId;
     const usedPhilosopherIds = new Set<string>();
     const errors: string[] = [];
     const generated: DailyGeneratedItem[] = [];
     const newsReactions: DailyGeneratedItem[] = [];
+    const checkpoint = (item: DailyGeneratedItem) => {
+      generated.push(item);
+      // Keep regenerated metadata if an editor changed an already completed item.
+      const saved = db.prepare("SELECT items_json FROM admin_generation_runs WHERE id = ?").get(runId) as { items_json: string };
+      const savedItems = safeJsonParse<DailyGeneratedItem[]>(saved.items_json, []);
+      for (let index = 0; index < generated.length; index++) {
+        const newer = savedItems.find((entry) => entry.post_id === generated[index].post_id && entry.generation_log_id > generated[index].generation_log_id);
+        if (newer) generated[index] = newer;
+      }
+      db.prepare("UPDATE admin_generation_runs SET items_json = ?, summary_json = ?, updated_at = ? WHERE id = ?").run(JSON.stringify(generated), JSON.stringify(buildSummary(generated, errors)), new Date().toISOString(), runId);
+    };
 
     for (const article of selectedArticles) {
       const suggestedIds = safeJsonParse<string[]>(article.suggested_philosophers, []);
@@ -262,7 +281,7 @@ export async function POST(request: NextRequest) {
         }
 
         usedPhilosopherIds.add(philosopher.id);
-        generated.push(item.data);
+        checkpoint(item.data);
         newsReactions.push(item.data);
         articleSucceeded = true;
         await sleep(500);
@@ -330,7 +349,7 @@ export async function POST(request: NextRequest) {
       }
 
       usedPhilosopherIds.add(respondingPhilosopher.id);
-      generated.push(item.data);
+      checkpoint(item.data);
       await sleep(500);
     }
 
@@ -377,7 +396,7 @@ export async function POST(request: NextRequest) {
 
       usedPhilosopherIds.add(philosopher.id);
       quipArticleIdsUsed.add(article.id);
-      generated.push(item.data);
+      checkpoint(item.data);
       db.prepare("UPDATE article_candidates SET status = 'used' WHERE id = ?").run(article.id);
       await sleep(500);
     }
@@ -420,7 +439,7 @@ export async function POST(request: NextRequest) {
 
       promptsUsedThisRun.add(promptSeed);
       usedPhilosopherIds.add(philosopher.id);
-      generated.push(item.data);
+      checkpoint(item.data);
       await sleep(500);
     }
 
@@ -462,7 +481,7 @@ export async function POST(request: NextRequest) {
 
       recPromptsUsedThisRun.add(promptSeed);
       usedPhilosopherIds.add(philosopher.id);
-      generated.push(item.data);
+      checkpoint(item.data);
       await sleep(500);
     }
 
@@ -517,7 +536,7 @@ export async function POST(request: NextRequest) {
 
         artPromptsUsedThisRun.add(promptSeed);
         usedPhilosopherIds.add(philosopher.id);
-        generated.push(item.data);
+        checkpoint(item.data);
         await sleep(500);
       }
     }
@@ -569,20 +588,23 @@ export async function POST(request: NextRequest) {
 
         everydayPromptsUsedThisRun.add(promptSeed);
         usedPhilosopherIds.add(philosopher.id);
-        generated.push(item.data);
+        checkpoint(item.data);
         await sleep(500);
       }
     }
 
     bustFeedCache();
 
+    db.prepare("UPDATE admin_generation_runs SET status = ?, summary_json = ?, updated_at = ? WHERE id = ?").run(errors.length ? "partial" : "complete", JSON.stringify(buildSummary(generated, errors)), new Date().toISOString(), runId);
     return NextResponse.json({
+      run_id: runId,
       success: generated.length > 0,
       summary: buildSummary(generated, errors),
       generated,
     });
   } catch (error) {
     console.error("Daily generation failed:", error);
+    if (runId) getDb().prepare("UPDATE admin_generation_runs SET status = ?, error = ?, updated_at = ? WHERE id = ?").run("failed", "Generation was interrupted. Completed drafts are available in this run.", new Date().toISOString(), runId);
     return NextResponse.json(
       { error: "Daily generation failed" },
       { status: 500 }
@@ -903,7 +925,16 @@ export async function PATCH(request: NextRequest) {
         body.post_id
       );
 
-      return Number(result.lastInsertRowid);
+      const generationLogId = Number(result.lastInsertRowid);
+      const runs = db.prepare("SELECT id, items_json FROM admin_generation_runs WHERE EXISTS (SELECT 1 FROM json_each(items_json) WHERE json_extract(value, '$.post_id') = ?)").all(body.post_id) as Array<{ id: string; items_json: string }>;
+      for (const run of runs) {
+        const items = safeJsonParse<DailyGeneratedItem[]>(run.items_json, []).map((item) => item.post_id === body.post_id ? {
+          ...item, ...normalized, generation_log_id: generationLogId, prompt_seed: promptSeed,
+          length: body.length, mood_register: moodRegister ?? undefined,
+        } : item);
+        db.prepare("UPDATE admin_generation_runs SET items_json = ? WHERE id = ?").run(JSON.stringify(items), run.id);
+      }
+      return generationLogId;
     })();
 
     if (newLogId === null) {
@@ -1446,5 +1477,4 @@ function isIntegerInRange(value: number, min: number, max: number) {
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
 

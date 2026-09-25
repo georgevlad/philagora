@@ -76,6 +76,16 @@ export async function GET(request: NextRequest) {
     const conditions: string[] = [];
     const params: (string | number)[] = [];
 
+    const search = searchParams.get("q")?.trim().slice(0, 200);
+    if (search) {
+      conditions.push("(ac.title LIKE ? ESCAPE '\\' OR ns.name LIKE ? ESCAPE '\\')");
+      const query = `%${search.replace(/[\\%_]/g, "\\$&")}%`;
+      params.push(query, query);
+    }
+    if (searchParams.get("usage") === "unused") {
+      conditions.push("NOT EXISTS (SELECT 1 FROM posts p WHERE p.citation_url = ac.url AND p.status IN ('draft', 'approved', 'published'))");
+    }
+
     if (status && status !== "all") {
       conditions.push("ac.status = ?");
       params.push(status);

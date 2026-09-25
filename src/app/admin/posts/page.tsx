@@ -1,768 +1,864 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import Link from "next/link";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { BookIcon, BookmarkIcon, HeartIcon, ReplyArrowIcon, ReplyIcon } from "@/components/Icons";
+import {
+  AdminNotice,
+  AdminStatus,
+  useAdminConfirm,
+  useUnsavedChanges,
+} from "@/components/admin/AdminUI";
 import { STANCE_CONFIG } from "@/lib/constants";
 import { formatDateTime } from "@/lib/date-utils";
-import {
-  FEED_CONTENT_TABS,
-  normalizeFeedContentType,
-  type FeedContentType,
-} from "@/lib/feed-utils";
-import type { Stance } from "@/lib/types";
+import { FEED_CONTENT_TABS } from "@/lib/feed-utils";
 import type { Philosopher } from "@/types/admin";
 
-type PostStatus = "draft" | "approved" | "published" | "archived";
-
+type Status = "draft" | "approved" | "published" | "archived";
 interface AdminPost {
   id: string;
   philosopher_id: string;
+  philosopher_name: string;
   content: string;
   thesis: string;
-  stance: Stance;
+  stance: string;
   tag: string;
+  status: Status;
+  created_at: string;
+  updated_at: string;
   citation_title: string | null;
   citation_source: string | null;
   citation_url: string | null;
+  recommendation_title: string | null;
+  recommendation_author: string | null;
+  recommendation_medium: string | null;
   reply_to: string | null;
-  likes: number;
-  replies: number;
-  bookmarks: number;
-  status: PostStatus;
-  created_at: string;
-  mood_register: string | null;
+  source_type: string;
 }
-
-interface AdminPostsListResponse {
+interface PostList {
   items: AdminPost[];
   total: number;
   page: number;
   totalPages: number;
   availableTags: string[];
-  approvedCount: number;
 }
+const editFields = [
+  "thesis",
+  "content",
+  "stance",
+  "tag",
+  "citation_title",
+  "citation_source",
+  "citation_url",
+  "recommendation_title",
+  "recommendation_author",
+  "recommendation_medium",
+] as const;
+const toEdit = (post: AdminPost) =>
+  Object.fromEntries(editFields.map((key) => [key, post[key] ?? ""])) as Record<
+    (typeof editFields)[number],
+    string
+  >;
 
-const POSTS_PER_PAGE = 50;
-
-const STATUS_CONFIG: Record<PostStatus, { label: string; bg: string; text: string; border: string }> = {
-  draft: { label: "Draft", bg: "#E2E8F0", text: "#4A5568", border: "#CBD5E0" },
-  approved: { label: "Approved", bg: "#BEE3F8", text: "#2A4365", border: "#90CDF4" },
-  published: { label: "Published", bg: "#C6F6D5", text: "#276749", border: "#9AE6B4" },
-  archived: { label: "Archived", bg: "#FED7D7", text: "#9B2C2C", border: "#FEB2B2" },
-};
-
-const STATUS_TRANSITIONS: Record<PostStatus, PostStatus | null> = {
-  draft: "approved",
-  approved: "published",
-  published: null,
-  archived: null,
-};
-
-const TRANSITION_LABELS: Record<PostStatus, string> = {
-  draft: "Approve",
-  approved: "Publish",
-  published: "",
-  archived: "",
-};
-
-const KNOWN_TAGS = [
-  "Ethical Analysis",
-  "Political Commentary",
-  "Metaphysical Reflection",
-  "Practical Wisdom",
-  "Timeless Wisdom",
-  "Cross-Philosopher Reply",
-  "Existential Reflection",
-  "Psychological Insight",
-];
-
-function parseStatus(value: string | null): PostStatus | "" {
-  if (value === "draft" || value === "approved" || value === "published" || value === "archived") {
-    return value;
-  }
-
-  return "";
-}
-
-function parsePage(value: string | null): number {
-  const parsed = value ? Number.parseInt(value, 10) : 1;
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
-}
-
-function buildPageList(currentPage: number, totalPages: number): number[] {
-  const start = Math.max(1, currentPage - 2);
-  const end = Math.min(totalPages, currentPage + 2);
-  const pages: number[] = [];
-
-  for (let page = start; page <= end; page += 1) {
-    pages.push(page);
-  }
-
-  return pages;
-}
-
-function AdminPostsPageInner() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const [posts, setPosts] = useState<AdminPost[]>([]);
-  const [philosophers, setPhilosophers] = useState<Philosopher[]>([]);
-  const [totalPosts, setTotalPosts] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [approvedCount, setApprovedCount] = useState(0);
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [bulkUpdating, setBulkUpdating] = useState(false);
-
-  const [filterPhilosopher, setFilterPhilosopher] = useState(() => searchParams.get("philosopher") ?? "");
-  const [filterStatus, setFilterStatus] = useState<PostStatus | "">(() => parseStatus(searchParams.get("status")));
-  const [filterTag, setFilterTag] = useState(() => searchParams.get("tag") ?? "");
-  const [filterCategory, setFilterCategory] = useState<FeedContentType>(() =>
-    normalizeFeedContentType(searchParams.get("category"))
-  );
-  const [currentPage, setCurrentPage] = useState(() => parsePage(searchParams.get("page")));
-
+function PostEditor({
+  initial,
+  onSaved,
+  onDirty,
+  onBusy,
+  onClose,
+  onStep,
+  previous,
+  next,
+}: {
+  initial: AdminPost;
+  onSaved: (post: AdminPost) => void;
+  onDirty: (value: boolean) => void;
+  onBusy: (value: boolean) => void;
+  onClose: () => void;
+  onStep: (direction: number) => void;
+  previous: boolean;
+  next: boolean;
+}) {
+  const [post, setPost] = useState(initial);
+  const [values, setValues] = useState(() => toEdit(initial));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState("");
+  const [preview, setPreview] = useState(false);
+  const confirm = useAdminConfirm();
+  const dirty = JSON.stringify(values) !== JSON.stringify(toEdit(post));
   useEffect(() => {
-    async function loadPhilosophers() {
-      try {
-        const response = await fetch("/api/admin/philosophers");
-        if (!response.ok) {
-          return;
-        }
-
-        setPhilosophers((await response.json()) as Philosopher[]);
-      } catch {
-        // Ignore secondary metadata failures.
-      }
+    onDirty(dirty);
+    return () => onDirty(false);
+  }, [dirty, onDirty]);
+  useEffect(() => {
+    onBusy(busy);
+    return () => onBusy(false);
+  }, [busy, onBusy]);
+  const update = (key: (typeof editFields)[number], value: string) => {
+    setValues((current) => ({ ...current, [key]: value }));
+    setSaved("");
+  };
+  async function save(status?: Status) {
+    if (!values.content.trim()) {
+      setError("Enter the post content before saving.");
+      return;
     }
-
-    void loadPhilosophers();
-  }, []);
-
-  useEffect(() => {
-    setFilterPhilosopher(searchParams.get("philosopher") ?? "");
-    setFilterStatus(parseStatus(searchParams.get("status")));
-    setFilterTag(searchParams.get("tag") ?? "");
-    setFilterCategory(normalizeFeedContentType(searchParams.get("category")));
-    setCurrentPage(parsePage(searchParams.get("page")));
-  }, [searchParams]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-
-    if (filterPhilosopher) params.set("philosopher", filterPhilosopher);
-    else params.delete("philosopher");
-
-    if (filterStatus) params.set("status", filterStatus);
-    else params.delete("status");
-
-    if (filterTag) params.set("tag", filterTag);
-    else params.delete("tag");
-
-    if (filterCategory !== "all") params.set("category", filterCategory);
-    else params.delete("category");
-
-    if (currentPage > 1) params.set("page", String(currentPage));
-    else params.delete("page");
-
-    const nextQuery = params.toString();
-    const currentQuery = searchParams.toString();
-
-    if (nextQuery !== currentQuery) {
-      router.replace(`${pathname}${nextQuery ? `?${nextQuery}` : ""}`, { scroll: false });
-    }
-  }, [
-    currentPage,
-    filterCategory,
-    filterPhilosopher,
-    filterStatus,
-    filterTag,
-    pathname,
-    router,
-    searchParams,
-  ]);
-
-  const fetchPosts = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const params = new URLSearchParams({
-        page: String(currentPage),
-        page_size: String(POSTS_PER_PAGE),
-      });
-
-      if (filterPhilosopher) params.set("philosopher", filterPhilosopher);
-      if (filterStatus) params.set("status", filterStatus);
-      if (filterTag) params.set("tag", filterTag);
-      if (filterCategory !== "all") params.set("category", filterCategory);
-
-      const response = await fetch(`/api/admin/posts?${params.toString()}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch posts (${response.status})`);
-      }
-
-      const data = (await response.json()) as AdminPostsListResponse;
-      setPosts(data.items);
-      setTotalPosts(data.total);
-      setTotalPages(data.totalPages);
-      setApprovedCount(data.approvedCount);
-      setAvailableTags(data.availableTags);
-
-      if (data.page !== currentPage) {
-        setCurrentPage(data.page);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load posts");
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage, filterCategory, filterPhilosopher, filterStatus, filterTag]);
-
-  useEffect(() => {
-    void fetchPosts();
-  }, [fetchPosts]);
-
-  async function handleStatusChange(postId: string, newStatus: PostStatus) {
-    setUpdatingId(postId);
+    if (
+      (status === "published" || (!status && post.status === "published")) &&
+      !(await confirm({
+        title: status ? "Publish this post?" : "Update the published post?",
+        description:
+          "The full content shown in this editor will be visible on the public feed.",
+        confirmLabel: status ? "Publish post" : "Save published changes",
+      }))
+    )
+      return;
+    setBusy(true);
+    setError("");
+    setSaved("");
     try {
       const response = await fetch("/api/admin/posts", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: postId, status: newStatus }),
+        body: JSON.stringify({
+          id: post.id,
+          ...values,
+          ...(status ? { status } : {}),
+          expected_updated_at: post.updated_at,
+        }),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to update status");
-      }
-
-      await fetchPosts();
-    } catch {
-      setError("Failed to update post status. Please try again.");
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(
+          data.error ?? "Could not save the post. Your edits are still here.",
+        );
+      const updated = { ...post, ...data } as AdminPost;
+      setPost(updated);
+      setValues(toEdit(updated));
+      onSaved(updated);
+      setSaved(status ? `Post ${status}.` : "Changes saved.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save the post.");
     } finally {
-      setUpdatingId(null);
+      setBusy(false);
     }
   }
-
-  async function handleDelete(postId: string) {
-    setDeletingId(postId);
+  async function remove() {
+    if (
+      !(await confirm({
+        title: "Delete this post permanently?",
+        description:
+          "This cannot be undone. Replies will remain but will no longer link to this post. Archive instead to keep a recoverable copy.",
+        confirmLabel: "Delete permanently",
+        destructive: true,
+      }))
+    )
+      return;
+    setBusy(true);
+    setError("");
     try {
       const response = await fetch("/api/admin/posts", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: postId }),
+        body: JSON.stringify({ id: post.id }),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete post");
-      }
-
-      setConfirmDeleteId(null);
-      await fetchPosts();
-    } catch {
-      setError("Failed to delete post. Please try again.");
+      if (!response.ok) throw new Error("Could not delete this post.");
+      onDirty(false);
+      onSaved({ ...post, id: "" });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not delete this post.",
+      );
     } finally {
-      setDeletingId(null);
+      setBusy(false);
     }
   }
+  function field(
+    key: (typeof editFields)[number],
+    label: string,
+    multiline = false,
+  ) {
+    return (
+      <div className="admin-field">
+        <label htmlFor={`post-${key}`}>{label}</label>
+        {multiline ? (
+          <textarea
+            id={`post-${key}`}
+            value={values[key]}
+            onChange={(event) => update(key, event.target.value)}
+            required
+            rows={12}
+          />
+        ) : (
+          <input
+            id={`post-${key}`}
+            value={values[key]}
+            onChange={(event) => update(key, event.target.value)}
+            type={key === "citation_url" ? "url" : "text"}
+          />
+        )}
+      </div>
+    );
+  }
+  return (
+    <section
+      className="admin-panel admin-review-editor"
+      aria-label="Post editor"
+    >
+      <header className="admin-panel-header">
+        <div>
+          <strong>{post.philosopher_name}</strong>
+          <div className="mt-1">
+            <AdminStatus status={post.status} />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            className="admin-button"
+            onClick={() => onStep(-1)}
+            disabled={!previous || busy}
+            aria-label="Previous post"
+          >
+            ←
+          </button>
+          <button
+            className="admin-button"
+            onClick={() => onStep(1)}
+            disabled={!next || busy}
+            aria-label="Next post"
+          >
+            →
+          </button>
+          <button
+            className="admin-button"
+            onClick={onClose}
+            disabled={busy}
+            aria-label="Close post editor"
+          >
+            ×
+          </button>
+        </div>
+      </header>
+      <fieldset disabled={busy} className="admin-editor-body">
+        {error && <AdminNotice error>{error}</AdminNotice>}
+        {saved && <AdminNotice>{saved}</AdminNotice>}
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-ink-lighter">
+            {formatDateTime(post.created_at)}
+          </span>
+          <button className="admin-button" onClick={() => setPreview(!preview)}>
+            {preview ? "Edit content" : "Read preview"}
+          </button>
+        </div>
+        {preview ? (
+          <div className="space-y-4">
+            <h2 className="text-xl">{values.thesis}</h2>
+            <p className="admin-post-reading whitespace-pre-wrap font-body">
+              {values.content}
+            </p>
+          </div>
+        ) : (
+          <>
+            {field("thesis", "Thesis / headline")}
+            {field("content", "Full post content", true)}
+            <div className="admin-split-fields">
+              <div className="admin-field">
+                <label htmlFor="post-stance">Stance</label>
+                <select
+                  id="post-stance"
+                  value={values.stance}
+                  onChange={(event) => update("stance", event.target.value)}
+                >
+                  {Object.entries(STANCE_CONFIG).map(([key, value]) => (
+                    <option key={key} value={key}>
+                      {value.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {field("tag", "Editorial tag")}
+            </div>
+          </>
+        )}
+        {post.reply_to && (
+          <p className="text-sm">
+            Reply to{" "}
+            <Link
+              className="underline text-terracotta"
+              href={`/admin/posts?post=${encodeURIComponent(post.reply_to)}`}
+            >
+              view parent post
+            </Link>
+          </p>
+        )}
+        <details>
+          <summary className="cursor-pointer font-medium">
+            Source & citation
+          </summary>
+          <div className="mt-4 grid gap-3">
+            {field("citation_title", "Source title")}
+            {field("citation_source", "Publication / author")}
+            {field("citation_url", "Source URL")}
+            {values.citation_url &&
+              /^https?:\/\//.test(values.citation_url) && (
+                <a
+                  href={values.citation_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-terracotta underline"
+                >
+                  Open source ↗
+                </a>
+              )}
+          </div>
+        </details>
+        {(post.recommendation_title || post.stance === "recommends") && (
+          <details>
+            <summary className="cursor-pointer font-medium">
+              Recommendation details
+            </summary>
+            <div className="mt-4 grid gap-3">
+              {field("recommendation_title", "Title")}
+              {field("recommendation_author", "Creator")}
+              {field("recommendation_medium", "Medium")}
+            </div>
+          </details>
+        )}
+        <details>
+          <summary className="cursor-pointer text-ink-lighter">
+            More actions
+          </summary>
+          <div className="mt-3 flex gap-2">
+            <button
+              className="admin-button"
+              disabled={busy || dirty}
+              onClick={() =>
+                void save(post.status === "archived" ? "draft" : "archived")
+              }
+            >
+              {post.status === "archived"
+                ? "Restore to drafts"
+                : "Archive post"}
+            </button>
+            <button
+              className="admin-button admin-button-danger"
+              disabled={busy}
+              onClick={() => void remove()}
+            >
+              Delete permanently
+            </button>
+          </div>
+          {dirty && (
+            <p className="mt-2 text-xs">
+              Save or discard your edits before archiving.
+            </p>
+          )}
+        </details>
+      </fieldset>
+      <footer className="admin-panel-footer">
+        <span className="text-xs text-ink-lighter" role="status">
+          {busy ? "Saving…" : dirty ? "Unsaved changes" : "All changes saved"}
+        </span>
+        <div className="flex gap-2">
+          <button
+            className="admin-button"
+            disabled={busy || !dirty}
+            onClick={() => {
+              setValues(toEdit(post));
+              setError("");
+            }}
+          >
+            Discard
+          </button>
+          <button
+            className="admin-button"
+            disabled={busy || !dirty}
+            onClick={() => void save()}
+          >
+            Save changes
+          </button>
+          {post.status === "draft" && (
+            <button
+              className="admin-button admin-button-primary"
+              disabled={busy}
+              onClick={() => void save("approved")}
+            >
+              {dirty ? "Save & approve" : "Approve"}
+            </button>
+          )}
+          {post.status === "approved" && (
+            <button
+              className="admin-button admin-button-primary"
+              disabled={busy}
+              onClick={() => void save("published")}
+            >
+              {dirty ? "Save & publish" : "Publish"}
+            </button>
+          )}
+        </div>
+      </footer>
+    </section>
+  );
+}
 
-  async function handleBulkPublish() {
-    if (!confirm("Publish all approved posts? This will make them visible on the public feed.")) {
+function PostsWorkspace() {
+  const params = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const query = params.toString();
+  const [data, setData] = useState<PostList>({
+    items: [],
+    total: 0,
+    page: 1,
+    totalPages: 1,
+    availableTags: [],
+  });
+  const [philosophers, setPhilosophers] = useState<Philosopher[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [active, setActive] = useState<AdminPost | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [revision, setRevision] = useState(0);
+  const [search, setSearch] = useState(params.get("q") ?? "");
+  const [editorBusy, setEditorBusy] = useState(false);
+  const confirmDiscard = useUnsavedChanges(dirty || editorBusy);
+  const confirm = useAdminConfirm();
+  const currentRequest = useRef(0);
+  const selectedId = params.get("post");
+  useEffect(() => {
+    let live = true;
+    fetch("/api/admin/philosophers")
+      .then((response) => (response.ok ? response.json() : []))
+      .then((items) => {
+        if (live) setPhilosophers(items);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+  useEffect(() => {
+    setSearch(new URLSearchParams(query).get("q") ?? "");
+  }, [query]);
+  useEffect(() => {
+    const requestId = ++currentRequest.current;
+    const controller = new AbortController();
+    const filters = new URLSearchParams(query);
+    filters.delete("post");
+    filters.set("page_size", "25");
+    setLoading(true);
+    setError("");
+    fetch(`/api/admin/posts?${filters}`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Could not load posts. Try again.");
+        const result = (await response.json()) as PostList;
+        if (requestId !== currentRequest.current) return;
+        setData(result);
+        setSelected((ids) =>
+          ids.filter((id) => result.items.some((item) => item.id === id)),
+        );
+      })
+      .catch((err) => {
+        if (!controller.signal.aborted) setError(err.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted && requestId === currentRequest.current)
+          setLoading(false);
+      });
+    return () => controller.abort();
+  }, [query, revision]);
+  useEffect(() => {
+    if (!selectedId) {
+      setActive(null);
       return;
     }
-
-    setBulkUpdating(true);
+    const controller = new AbortController();
+    setActive(null);
+    fetch(`/api/admin/posts?id=${encodeURIComponent(selectedId)}`, {
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Could not open this post.");
+        const items = (await response.json()) as AdminPost[];
+        if (!controller.signal.aborted) {
+          setActive(items[0] ?? null);
+          if (!items.length) setError("This post no longer exists.");
+        }
+      })
+      .catch((err) => {
+        if (!controller.signal.aborted) setError(err.message);
+      });
+    return () => controller.abort();
+  }, [selectedId]);
+  async function navigate(updates: Record<string, string>, resetPage = true) {
+    if (busy || editorBusy || !(await confirmDiscard())) return;
+    if (updates.post === selectedId) return;
+    setDirty(false);
+    const next = new URLSearchParams(query);
+    for (const [key, value] of Object.entries(updates)) {
+      if (value) next.set(key, value);
+      else next.delete(key);
+    }
+    if (resetPage) {
+      next.delete("page");
+      next.delete("post");
+      setSelected([]);
+    }
+    router.replace(`${pathname}${next.size ? `?${next}` : ""}`, {
+      scroll: false,
+    });
+  }
+  const onSaved = useCallback(
+    (post: AdminPost) => {
+      setDirty(false);
+      setRevision((value) => value + 1);
+      if (!post.id) {
+        setActive(null);
+        const next = new URLSearchParams(query);
+        next.delete("post");
+        router.replace(`${pathname}?${next}`, { scroll: false });
+        setNotice("Post deleted.");
+      } else setActive(post);
+    },
+    [pathname, query, router],
+  );
+  const selectedPosts = data.items.filter((post) => selected.includes(post.id));
+  async function bulk(from: Status, to: Status) {
+    const ids = selectedPosts
+      .filter((post) => post.status === from)
+      .map((post) => post.id);
+    if (editorBusy || !ids.length || !(await confirmDiscard())) return;
+    if (
+      !(await confirm({
+        title: `${to === "published" ? "Publish" : "Approve"} ${ids.length} selected posts?`,
+        description:
+          to === "published"
+            ? `Only these ${ids.length} selected approved posts will become visible on the public feed. Other posts will not change.`
+            : `Only these ${ids.length} selected drafts will move to Approved. They will not be published.`,
+        confirmLabel: `${to === "published" ? "Publish" : "Approve"} ${ids.length} posts`,
+      }))
+    )
+      return;
+    setBusy(true);
+    setError("");
     try {
       const response = await fetch("/api/admin/posts/bulk", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from_status: "approved", to_status: "published" }),
+        body: JSON.stringify({ ids, from_status: from, to_status: to }),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to bulk publish");
-      }
-
-      await fetchPosts();
-    } catch {
-      setError("Failed to bulk publish posts.");
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Bulk update failed.");
+      setNotice(
+        `${result.updated} of ${ids.length} selected posts ${to}.${result.updated < ids.length ? " Some posts changed status in another session; review the refreshed list." : ""}`,
+      );
+      setSelected([]);
+      setDirty(false);
+      setActive(null);
+      const next = new URLSearchParams(query);
+      next.delete("post");
+      router.replace(`${pathname}?${next}`, { scroll: false });
+      setRevision((value) => value + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Bulk update failed.");
     } finally {
-      setBulkUpdating(false);
+      setBusy(false);
     }
   }
-
-  const tagOptions = useMemo(
-    () => Array.from(new Set([...KNOWN_TAGS, ...availableTags])).sort(),
-    [availableTags]
-  );
-
-  const philosopherMap = useMemo(
-    () => new Map(philosophers.map((philosopher) => [philosopher.id, philosopher])),
-    [philosophers]
-  );
-
-  const visiblePages = useMemo(() => buildPageList(currentPage, totalPages), [currentPage, totalPages]);
-  const rangeStart = totalPosts === 0 ? 0 : (currentPage - 1) * POSTS_PER_PAGE + 1;
-  const rangeEnd = totalPosts === 0 ? 0 : Math.min(currentPage * POSTS_PER_PAGE, totalPosts);
-
-  function resetFilters() {
-    setFilterPhilosopher("");
-    setFilterStatus("");
-    setFilterTag("");
-    setFilterCategory("all");
-    setCurrentPage(1);
-  }
-
+  const position = data.items.findIndex((post) => post.id === active?.id);
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-serif text-2xl font-bold text-ink">Posts</h1>
-        <p className="mt-1 text-sm font-body text-ink-lighter">
-          Manage philosopher posts. Filter, review, and transition statuses.
-        </p>
-      </div>
-
-      <div className="sticky top-0 z-10 mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-border-light bg-parchment-dark/50 p-5">
-        <FilterSelect
-          label="Philosopher"
-          value={filterPhilosopher}
-          onChange={(value) => {
-            setFilterPhilosopher(value);
-            setCurrentPage(1);
-          }}
+      <header className="admin-page-header">
+        <div>
+          <h1>Posts</h1>
+          <p>Review the full text, make edits, and publish with confidence.</p>
+        </div>
+        <Link
+          className="admin-button admin-button-primary"
+          href="/admin/content"
         >
-          <option value="">All Philosophers</option>
-          {philosophers.map((philosopher) => (
-            <option key={philosopher.id} value={philosopher.id}>
-              {philosopher.name}
-            </option>
-          ))}
-        </FilterSelect>
-
-        <FilterSelect
-          label="Status"
-          value={filterStatus}
-          onChange={(value) => {
-            setFilterStatus(value as PostStatus | "");
-            setCurrentPage(1);
-          }}
-        >
-          <option value="">All Statuses</option>
-          <option value="draft">Draft</option>
-          <option value="approved">Approved</option>
-          <option value="published">Published</option>
-          <option value="archived">Archived</option>
-        </FilterSelect>
-
-        <FilterSelect
-          label="Tag"
-          value={filterTag}
-          onChange={(value) => {
-            setFilterTag(value);
-            setCurrentPage(1);
-          }}
-        >
-          <option value="">All Tags</option>
-          {tagOptions.map((tag) => (
-            <option key={tag} value={tag}>
-              {tag}
-            </option>
-          ))}
-        </FilterSelect>
-
-        <FilterSelect
-          label="Category"
-          value={filterCategory}
-          onChange={(value) => {
-            setFilterCategory(normalizeFeedContentType(value));
-            setCurrentPage(1);
-          }}
-        >
-          {FEED_CONTENT_TABS.map((tab) => (
-            <option key={tab.key} value={tab.key}>
-              {tab.label}
-            </option>
-          ))}
-        </FilterSelect>
-
-        {(filterPhilosopher || filterStatus || filterTag || filterCategory !== "all") && (
+          Generate content
+        </Link>
+      </header>
+      <div className="admin-tabs" role="tablist" aria-label="Post status">
+        {[
+          ["", "All posts"],
+          ["draft", "Drafts"],
+          ["approved", "Approved"],
+          ["published", "Published"],
+          ["archived", "Archived"],
+        ].map(([value, label]) => (
           <button
-            onClick={resetFilters}
-            className="self-end rounded-lg border border-border px-3 py-2 text-xs font-mono text-terracotta transition-colors hover:bg-parchment-dark/40 hover:text-terracotta-light"
+            key={value}
+            role="tab"
+            aria-selected={(params.get("status") ?? "") === value}
+            onClick={() => void navigate({ status: value })}
           >
-            Clear filters
+            {label}
           </button>
-        )}
-
-        <div className="ml-auto self-end flex items-center gap-3 border-l border-border pl-4">
-          {(filterStatus === "" || filterStatus === "approved") && approvedCount > 0 && (
-            <button
-              onClick={handleBulkPublish}
-              disabled={bulkUpdating}
-              className="inline-flex items-center gap-1.5 rounded-full bg-green-700 px-4 py-2 text-xs font-mono tracking-wide text-white transition-colors hover:bg-green-800 disabled:opacity-50"
-            >
-              {bulkUpdating ? "Publishing..." : `Publish all approved (${approvedCount})`}
-            </button>
-          )}
-
-          <span className="text-xs font-mono text-ink-lighter">
-            {loading ? "Loading..." : totalPosts === 0 ? "0 posts" : `${rangeStart}-${rangeEnd} of ${totalPosts} posts`}
-          </span>
-        </div>
+        ))}
       </div>
-
+      <form
+        className="admin-toolbar"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void navigate({ q: search });
+        }}
+      >
+        <div className="admin-field flex-1">
+          <label htmlFor="post-search">Search posts</label>
+          <input
+            id="post-search"
+            placeholder="Text, thesis, or source title…"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            maxLength={200}
+          />
+        </div>
+        <button className="admin-button" type="submit">
+          Search
+        </button>
+        <div className="admin-field">
+          <label htmlFor="filter-philosopher">Philosopher</label>
+          <select
+            id="filter-philosopher"
+            value={params.get("philosopher") ?? ""}
+            onChange={(event) =>
+              void navigate({ philosopher: event.target.value })
+            }
+          >
+            <option value="">All philosophers</option>
+            {philosophers.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="admin-field">
+          <label htmlFor="filter-category">Content type</label>
+          <select
+            id="filter-category"
+            value={params.get("category") ?? "all"}
+            onChange={(event) =>
+              void navigate({
+                category:
+                  event.target.value === "all" ? "" : event.target.value,
+              })
+            }
+          >
+            {FEED_CONTENT_TABS.map((tab) => (
+              <option key={tab.key} value={tab.key}>
+                {tab.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="admin-field">
+          <label htmlFor="filter-tag">Tag</label>
+          <select
+            id="filter-tag"
+            value={params.get("tag") ?? ""}
+            onChange={(event) => void navigate({ tag: event.target.value })}
+          >
+            <option value="">All tags</option>
+            {data.availableTags.map((tag) => (
+              <option key={tag}>{tag}</option>
+            ))}
+          </select>
+        </div>
+        <button
+          className="admin-button"
+          type="button"
+          onClick={() =>
+            void navigate({
+              q: "",
+              philosopher: "",
+              category: "",
+              tag: "",
+              status: "",
+            })
+          }
+        >
+          Reset
+        </button>
+      </form>
       {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {error}
-          <button onClick={() => setError(null)} className="ml-3 text-xs font-mono text-red-600 hover:text-red-800">
-            Dismiss
+        <AdminNotice error>
+          {error}{" "}
+          <button
+            className="underline"
+            onClick={() => setRevision((value) => value + 1)}
+          >
+            Retry
           </button>
-        </div>
+        </AdminNotice>
       )}
-
-      {loading && (
-        <div className="flex items-center justify-center py-16">
-          <div className="flex flex-col items-center gap-3">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-terracotta/30 border-t-terracotta" />
-            <span className="text-sm text-ink-lighter">Loading posts...</span>
-          </div>
-        </div>
-      )}
-
-      {!loading && posts.length === 0 && (
-        <div className="py-16 text-center text-sm text-ink-lighter">
-          No posts found matching your filters.
-        </div>
-      )}
-
-      {!loading && posts.length > 0 && (
-        <div className="space-y-4">
-          {posts.map((post) => {
-            const philosopher = philosopherMap.get(post.philosopher_id);
-            const stanceCfg = STANCE_CONFIG[post.stance];
-            const statusCfg = STATUS_CONFIG[post.status];
-            const nextStatus = STATUS_TRANSITIONS[post.status];
-            const isUpdating = updatingId === post.id;
-            const isDeleting = deletingId === post.id;
-            const preview =
-              post.content.length > 200
-                ? `${post.content.slice(0, 200).replace(/\s+\S*$/, "")}\u2026`
-                : post.content;
-
-            return (
-              <article
-                key={post.id}
-                className="rounded-lg border border-border-light bg-parchment"
-                style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
-              >
-                <div className="px-6 py-5">
-                  <div className="mb-4 flex items-start justify-between gap-4">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-mono font-bold text-white"
-                        style={{ backgroundColor: philosopher?.color ?? "#7D7468" }}
-                      >
-                        {philosopher?.initials ?? "??"}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-serif font-bold text-ink">
-                            {philosopher?.name ?? post.philosopher_id}
-                          </span>
-                          {philosopher?.tradition && (
-                            <span
-                              className="rounded px-2 py-0.5 text-[11px] font-mono"
-                              style={{
-                                backgroundColor: `${philosopher.color}15`,
-                                color: philosopher.color,
-                              }}
-                            >
-                              {philosopher.tradition}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[11px] font-mono text-ink-lighter">
-                          {formatDateTime(post.created_at)}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      <span
-                        className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider"
-                        style={{
-                          backgroundColor: statusCfg.bg,
-                          color: statusCfg.text,
-                          border: `1px solid ${statusCfg.border}`,
-                        }}
-                      >
-                        {statusCfg.label}
-                      </span>
-
-                      {nextStatus && (
-                        <button
-                          onClick={() => handleStatusChange(post.id, nextStatus)}
-                          disabled={isUpdating}
-                          className="rounded-full px-4 py-1.5 text-xs font-mono text-white disabled:opacity-50"
-                          style={{ backgroundColor: nextStatus === "approved" ? "#2A4365" : "#276749" }}
-                        >
-                          {isUpdating ? "Updating..." : TRANSITION_LABELS[post.status]}
-                        </button>
-                      )}
-
-                      {post.status === "archived" && (
-                        <button
-                          onClick={() => handleStatusChange(post.id, "draft")}
-                          disabled={isUpdating}
-                          className="rounded-full bg-[#2A4365] px-4 py-1.5 text-xs font-mono text-white disabled:opacity-50"
-                        >
-                          {isUpdating ? "Restoring..." : "Restore"}
-                        </button>
-                      )}
-
-                      {post.status !== "archived" && (
-                        <button
-                          onClick={() => handleStatusChange(post.id, "archived")}
-                          disabled={isUpdating}
-                          className="rounded-full border border-[#FEB2B2] bg-[#FED7D7] px-4 py-1.5 text-xs font-mono text-[#9B2C2C] disabled:opacity-50"
-                        >
-                          Archive
-                        </button>
-                      )}
-
-                      {confirmDeleteId === post.id ? (
-                        <>
-                          <button
-                            onClick={() => handleDelete(post.id)}
-                            disabled={isDeleting}
-                            className="rounded-full bg-red-600 px-3.5 py-1.5 text-xs font-mono text-white disabled:opacity-50"
-                          >
-                            {isDeleting ? "Deleting..." : "Confirm"}
-                          </button>
-                          <button
-                            onClick={() => setConfirmDeleteId(null)}
-                            className="rounded-full border border-border-light px-3.5 py-1.5 text-xs font-mono text-ink-lighter"
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          onClick={() => setConfirmDeleteId(post.id)}
-                          className="rounded-lg border border-border-light px-3 py-1.5 text-xs font-mono text-ink-lighter"
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {post.citation_title && (
-                    <div className="mb-2 ml-12 text-[11px] font-mono text-ink-lighter">
-                      {post.citation_url ? (
-                        <a href={post.citation_url} target="_blank" rel="noopener noreferrer" className="hover:text-terracotta">
-                          via {post.citation_source || "article"}: {post.citation_title}
-                        </a>
-                      ) : (
-                        <span>via {post.citation_source || "article"}: {post.citation_title}</span>
-                      )}
-                    </div>
-                  )}
-
-                  {post.thesis && (
-                    <blockquote
-                      className="mb-2 pl-3 font-serif text-[15px] leading-snug text-ink"
-                      style={{
-                        borderLeft: `3px solid ${philosopher?.color ?? "#7D7468"}`,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {post.thesis}
-                    </blockquote>
-                  )}
-
-                  <p className="mb-3 text-sm leading-relaxed text-ink-light" style={{ paddingLeft: post.thesis ? "15px" : undefined }}>
-                    {preview}
-                  </p>
-
-                  {post.citation_title && (
-                    <div
-                      className="mb-3 mt-3 flex items-center gap-2 rounded-md px-4 py-3 text-xs font-mono"
-                      style={{
-                        backgroundColor: `${philosopher?.color ?? "#7D7468"}08`,
-                        border: `1px solid ${philosopher?.color ?? "#7D7468"}20`,
-                        color: philosopher?.color ?? "#7D7468",
-                      }}
-                    >
-                      <BookIcon size={14} className="shrink-0 opacity-60" />
-                      <span className="truncate">
-                        {post.citation_title}
-                        {post.citation_source && <span className="opacity-60"> - {post.citation_source}</span>}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border-light pt-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {post.tag && (
-                        <span
-                          className="inline-flex items-center rounded px-2.5 py-0.5 text-[11px] font-mono tracking-wide"
-                          style={{
-                            backgroundColor: `${philosopher?.color ?? "#7D7468"}10`,
-                            color: philosopher?.color ?? "#7D7468",
-                            border: `1px solid ${philosopher?.color ?? "#7D7468"}25`,
-                          }}
-                        >
-                          {post.tag}
-                        </span>
-                      )}
-
-                      <span
-                        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider"
-                        style={{
-                          backgroundColor: stanceCfg.bg,
-                          color: stanceCfg.color,
-                          border: `1px solid ${stanceCfg.border}`,
-                        }}
-                      >
-                        {stanceCfg.label}
-                      </span>
-                      {post.mood_register && (
-                        <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-[11px] font-mono italic tracking-wide text-purple-700">
-                          {post.mood_register}
-                        </span>
-                      )}
-
-                      {post.reply_to && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-mono text-ink-lighter">
-                          <ReplyArrowIcon />
-                          Reply
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-4 text-ink-lighter">
-                      <span className="inline-flex items-center gap-1 text-xs font-mono">
-                        <HeartIcon size={14} />
-                        {post.likes}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-xs font-mono">
-                        <ReplyIcon size={14} />
-                        {post.replies}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-xs font-mono">
-                        <BookmarkIcon size={14} />
-                        {post.bookmarks}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-
-          {totalPages > 1 && (
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <button
-                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                disabled={currentPage === 1}
-                className="rounded-full border border-border px-4 py-2 text-xs font-mono text-ink-lighter disabled:opacity-50"
-              >
-                Previous
-              </button>
-
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                {visiblePages[0] > 1 && (
-                  <button
-                    onClick={() => setCurrentPage(1)}
-                    className="rounded-full border border-border px-3 py-2 text-xs font-mono text-ink-lighter"
-                  >
-                    1
-                  </button>
-                )}
-                {visiblePages[0] > 2 && <span className="px-1 text-xs font-mono text-ink-lighter">...</span>}
-                {visiblePages.map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`min-w-9 rounded-full border px-3 py-2 text-xs font-mono ${
-                      page === currentPage
-                        ? "border-terracotta bg-terracotta text-white"
-                        : "border-border text-ink-lighter"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-                {visiblePages[visiblePages.length - 1] < totalPages - 1 && (
-                  <span className="px-1 text-xs font-mono text-ink-lighter">...</span>
-                )}
-                {visiblePages[visiblePages.length - 1] < totalPages && (
-                  <button
-                    onClick={() => setCurrentPage(totalPages)}
-                    className="rounded-full border border-border px-3 py-2 text-xs font-mono text-ink-lighter"
-                  >
-                    {totalPages}
-                  </button>
-                )}
+      {notice && <AdminNotice>{notice}</AdminNotice>}
+      <div className={active ? "admin-review-grid" : ""}>
+        <section className="admin-panel" aria-label="Posts queue">
+          <div className="admin-panel-header">
+            <span>
+              {loading
+                ? "Loading posts…"
+                : `${data.total} posts · page ${data.page} of ${data.totalPages}`}
+            </span>
+            {selected.length > 0 && (
+              <div className="flex flex-wrap gap-2 items-center">
+                <span>{selected.length} selected on this page</span>
+                <button
+                  className="admin-button"
+                  disabled={
+                    busy ||
+                    !selectedPosts.some((post) => post.status === "draft")
+                  }
+                  onClick={() => void bulk("draft", "approved")}
+                >
+                  Approve selected drafts
+                </button>
+                <button
+                  className="admin-button admin-button-primary"
+                  disabled={
+                    busy ||
+                    !selectedPosts.some((post) => post.status === "approved")
+                  }
+                  onClick={() => void bulk("approved", "published")}
+                >
+                  Publish selected approved
+                </button>
               </div>
-
-              <button
-                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                disabled={currentPage === totalPages}
-                className="rounded-full border border-border px-4 py-2 text-xs font-mono text-ink-lighter disabled:opacity-50"
-              >
-                Next
-              </button>
+            )}
+          </div>
+          <div className="admin-table-scroll">
+            <table className="w-full">
+              <thead>
+                <tr>
+                  <th className="w-10">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all posts on this page"
+                      checked={
+                        data.items.length > 0 &&
+                        selected.length === data.items.length
+                      }
+                      disabled={loading}
+                      onChange={(event) =>
+                        setSelected(
+                          event.target.checked
+                            ? data.items.map((post) => post.id)
+                            : [],
+                        )
+                      }
+                    />
+                  </th>
+                  <th>Post</th>
+                  <th>Status</th>
+                  <th className="admin-post-date">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.items.map((post) => (
+                  <tr
+                    key={post.id}
+                    className={
+                      active?.id === post.id ? "admin-row-selected" : ""
+                    }
+                  >
+                    <td>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select post by ${post.philosopher_name}: ${post.thesis || post.id}`}
+                        checked={selected.includes(post.id)}
+                        disabled={loading || busy}
+                        onChange={(event) =>
+                          setSelected((ids) =>
+                            event.target.checked
+                              ? [...ids, post.id]
+                              : ids.filter((id) => id !== post.id),
+                          )
+                        }
+                      />
+                    </td>
+                    <td>
+                      <span className="block text-xs text-ink-lighter mb-1">
+                        {post.philosopher_name} · {post.tag || post.source_type}
+                      </span>
+                      <button
+                        className="admin-post-title"
+                        disabled={busy}
+                        onClick={() => void navigate({ post: post.id }, false)}
+                      >
+                        {post.thesis || post.content.slice(0, 100)}
+                      </button>
+                      <span className="admin-post-excerpt">{post.content}</span>
+                    </td>
+                    <td>
+                      <AdminStatus status={post.status} />
+                    </td>
+                    <td className="admin-post-date text-xs text-ink-lighter whitespace-nowrap">
+                      {formatDateTime(post.created_at)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {!loading && !data.items.length && (
+            <div className="admin-empty">
+              No posts match these filters. Try a different search or reset the
+              filters.
             </div>
           )}
-        </div>
-      )}
+          <footer className="admin-panel-footer">
+            <button
+              className="admin-button"
+              disabled={loading || data.page <= 1}
+              onClick={() =>
+                void navigate({ page: String(data.page - 1), post: "" }, false)
+              }
+            >
+              Previous page
+            </button>
+            <span className="text-xs text-ink-lighter">25 per page</span>
+            <button
+              className="admin-button"
+              disabled={loading || data.page >= data.totalPages}
+              onClick={() =>
+                void navigate({ page: String(data.page + 1), post: "" }, false)
+              }
+            >
+              Next page
+            </button>
+          </footer>
+        </section>
+        {active && (
+          <PostEditor
+            key={active.id}
+            initial={active}
+            onSaved={onSaved}
+            onDirty={setDirty}
+            onBusy={setEditorBusy}
+            onClose={() => void navigate({ post: "" }, false)}
+            previous={position > 0}
+            next={position >= 0 && position < data.items.length - 1}
+            onStep={(direction) => {
+              const post = data.items[position + direction];
+              if (post) void navigate({ post: post.id }, false);
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }
-
-function FilterSelect({
-  label,
-  value,
-  onChange,
-  children,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-mono uppercase tracking-widest text-ink-lighter">{label}</label>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="rounded-md border border-border bg-parchment px-4 py-2.5 text-sm font-body text-ink focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/30"
-      >
-        {children}
-      </select>
-    </div>
-  );
-}
-
 export default function AdminPostsPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="py-16 text-center">
-          <span className="text-sm font-body text-ink-lighter">Loading posts...</span>
-        </div>
-      }
-    >
-      <AdminPostsPageInner />
+    <Suspense fallback={<p>Loading posts…</p>}>
+      <PostsWorkspace />
     </Suspense>
   );
 }

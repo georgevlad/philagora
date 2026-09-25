@@ -1,4 +1,6 @@
 "use client";
+import { AdminField } from "@/components/admin/AdminUI";
+import { useUnsavedChanges } from "@/components/admin/AdminUI";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -41,9 +43,16 @@ export default function ScoringSettingsPage() {
   const [stanceGuidance, setStanceGuidance] = useState<StanceGuidanceConfig>(DEFAULT_STANCE_GUIDANCE);
   const [openSections, setOpenSections] = useState({
     tiers: true,
-    tensions: true,
-    stances: true,
+    tensions: false,
+    stances: false,
   });
+
+  const [savedConfig, setSavedConfig] = useState<Partial<ScoringConfigResponse>>({});
+  const currentConfig = { scoring_model: scoringModel, score_tiers: scoreTiers, tension_vocabulary: tensionVocabulary, stance_guidance: stanceGuidance };
+  const dirty = (Object.keys(currentConfig) as Array<keyof ScoringConfigResponse>).some(
+    (key) => key in savedConfig && JSON.stringify(savedConfig[key]) !== JSON.stringify(currentConfig[key])
+  );
+  useUnsavedChanges(dirty);
 
   useEffect(() => {
     async function loadConfig() {
@@ -57,6 +66,7 @@ export default function ScoringSettingsPage() {
         }
 
         if ("score_tiers" in data) {
+          setSavedConfig(data);
           setScoringModel(data.scoring_model);
           setScoreTiers(data.score_tiers);
           setTensionVocabulary(data.tension_vocabulary);
@@ -106,6 +116,7 @@ export default function ScoringSettingsPage() {
         if (key === "stance_guidance") setStanceGuidance(data.stance_guidance);
       }
 
+      setSavedConfig((current) => ({ ...current, [key]: value }));
       setSuccessMessage(successText);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save scoring config");
@@ -216,7 +227,7 @@ export default function ScoringSettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6"><p className="admin-notice" role="status">{dirty ? "Unsaved changes. Save each modified section before leaving." : "Each section saves independently."}</p>
       <div className="flex items-center justify-between gap-4">
         <div>
           <Link
@@ -254,10 +265,9 @@ export default function ScoringSettingsPage() {
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-end">
             <div>
-              <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+              <AdminField label={<>
                 Model
-              </label>
-              <select
+              </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><select
                 value={scoringModel}
                 onChange={(event) => setScoringModel(event.target.value as ScoringModelName)}
                 className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
@@ -267,7 +277,7 @@ export default function ScoringSettingsPage() {
                     {option.label}
                   </option>
                 ))}
-              </select>
+              </select></AdminField>
             </div>
 
             <button
@@ -309,48 +319,44 @@ export default function ScoringSettingsPage() {
               return (
                 <div key={tierKey} className="grid grid-cols-1 lg:grid-cols-[140px_120px_120px_1fr] gap-4 items-end">
                   <div>
-                    <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                    <AdminField label={<>
                       Label
-                    </label>
-                    <input
+                    </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                       type="text"
                       value={tier.label}
                       onChange={(event) => updateTier(tierKey, "label", event.target.value)}
                       className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
-                    />
+                    /></AdminField>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                    <AdminField label={<>
                       Min
-                    </label>
-                    <input
+                    </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                       type="number"
                       value={tier.min ?? ""}
                       onChange={(event) => updateTier(tierKey, "min", event.target.value)}
                       className="w-full px-3 py-2 text-sm font-mono text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
-                    />
+                    /></AdminField>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                    <AdminField label={<>
                       Max
-                    </label>
-                    <input
+                    </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                       type="number"
                       value={tier.max ?? ""}
                       onChange={(event) => updateTier(tierKey, "max", event.target.value)}
                       className="w-full px-3 py-2 text-sm font-mono text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
-                    />
+                    /></AdminField>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                    <AdminField label={<>
                       Description
-                    </label>
-                    <input
+                    </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                       type="text"
                       value={tier.description}
                       onChange={(event) => updateTier(tierKey, "description", event.target.value)}
                       className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
-                    />
+                    /></AdminField>
                   </div>
                 </div>
               );
@@ -391,37 +397,34 @@ export default function ScoringSettingsPage() {
               <div key={`${item.id}-${index}`} className="border border-border-light rounded-lg p-4 bg-parchment/40 space-y-3">
                 <div className="grid grid-cols-1 lg:grid-cols-[180px_180px_1fr_auto] gap-3 items-end">
                   <div>
-                    <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                    <AdminField label={<>
                       ID
-                    </label>
-                    <input
+                    </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                       type="text"
                       value={item.id}
                       readOnly
                       className="w-full px-3 py-2 text-sm font-mono text-ink-lighter bg-parchment-dark/40 border border-border rounded-lg"
-                    />
+                    /></AdminField>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                    <AdminField label={<>
                       Label
-                    </label>
-                    <input
+                    </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                       type="text"
                       value={item.label}
                       onChange={(event) => updateTension(index, "label", event.target.value)}
                       className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
-                    />
+                    /></AdminField>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                    <AdminField label={<>
                       Description
-                    </label>
-                    <input
+                    </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                       type="text"
                       value={item.description}
                       onChange={(event) => updateTension(index, "description", event.target.value)}
                       className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
-                    />
+                    /></AdminField>
                   </div>
                   <button
                     type="button"
@@ -474,10 +477,9 @@ export default function ScoringSettingsPage() {
         {openSections.stances && (
           <div className="p-5 space-y-5">
             <div>
-              <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+              <AdminField label={<>
                 Guidance Text
-              </label>
-              <textarea
+              </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><textarea
                 value={stanceGuidance.guidance_text}
                 onChange={(event) =>
                   setStanceGuidance((current) => ({
@@ -487,7 +489,7 @@ export default function ScoringSettingsPage() {
                 }
                 rows={5}
                 className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors resize-y leading-relaxed"
-              />
+              /></AdminField>
             </div>
 
             <div>
@@ -557,19 +559,14 @@ export default function ScoringSettingsPage() {
                     <button
                       key={stance}
                       type="button"
+                      aria-pressed={active}
                       onClick={() => toggleDeprioritizedStance(stance)}
-                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-mono transition-colors ${
-                        active ? "" : "opacity-45 hover:opacity-80"
-                      }`}
-                      style={{
-                        backgroundColor: active ? style.bg : "#F6F1E8",
-                        borderColor: active ? style.border : "#D8CFC1",
-                        color: active ? style.color : "#7C7267",
-                      }}
+                      className="admin-stance-toggle inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-mono transition-colors"
                     >
                       <span
                         className="inline-block w-2 h-2 rounded-full"
-                        style={{ backgroundColor: active ? style.color : "#B2A79A" }}
+                        aria-hidden="true"
+                        style={{ backgroundColor: "currentColor" }}
                       />
                       {style.label}
                     </button>

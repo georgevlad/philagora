@@ -1,10 +1,11 @@
 "use client";
+import { useUnsavedChanges } from "@/components/admin/AdminUI";
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { formatDateTime } from "@/lib/date-utils";
-import { STANCE_CONFIG, STATUS_STYLES, CONTENT_TYPE_LABELS } from "@/lib/constants";
+import { STATUS_STYLES, CONTENT_TYPE_LABELS } from "@/lib/constants";
 import type { Philosopher } from "@/types/admin";
 
 // ── Types ───────────────────────────────────────────────────────────────
@@ -390,14 +391,16 @@ function ContentGenerationPageInner() {
         throw new Error((err as { error?: string }).error || "Failed to create post");
       }
 
-      // Update the generation log entry to "approved"
-      await fetch("/api/admin/content", {
+      // The draft is already saved; never offer a duplicate save if log sync fails.
+      setPreview(null);
+      setSuccessMessage("Post saved as a draft. Open Posts to review and publish it.");
+      const logResponse = await fetch("/api/admin/content", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: preview.logEntryId, status: "approved" }),
       });
 
-      setSuccessMessage("Post created as draft! View it in the Posts section.");
+      if (!logResponse.ok) setErrorMessage("The draft is saved, but its generation log could not be updated.");
       setPreview(null);
       setCitationTitle("");
       setCitationSource("");
@@ -436,6 +439,8 @@ function ContentGenerationPageInner() {
     }
   }
 
+  useUnsavedChanges(submitting || !!preview);
+
   // ── Selected philosopher for display ────────────────────────────────
   const selectedPhilosopher = philosophers.find(
     (p) => p.id === selectedPhilosopherId
@@ -466,7 +471,8 @@ function ContentGenerationPageInner() {
       </div>
 
       {/* ── Generation Form ─────────────────────────────────────────── */}
-      <form onSubmit={handleGenerate}>
+      <div className="admin-generation-workspace">
+      <form onSubmit={handleGenerate}><fieldset disabled={submitting || approving || rejecting || !!preview}>
         <div className="bg-white border border-border rounded-xl shadow-sm overflow-hidden">
           <div className="px-6 py-5 border-b border-border bg-parchment-dark/20">
             <h2 className="font-serif text-lg font-bold text-ink">
@@ -555,7 +561,7 @@ function ContentGenerationPageInner() {
 
             {/* Citation fields (headline reactions only) */}
             {supportsCitation && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="admin-citation-fields grid grid-cols-2 gap-4">
                 <div>
                   <label
                     htmlFor="citation-title"
@@ -608,7 +614,7 @@ function ContentGenerationPageInner() {
             )}
 
             {isArtCommentary && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="admin-citation-fields grid grid-cols-2 gap-4">
                 <div>
                   <label
                     htmlFor="citation-title"
@@ -661,15 +667,15 @@ function ContentGenerationPageInner() {
             )}
 
             {/* Active System Prompt Preview */}
-            <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+            <details>
+              <summary className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
                 Active System Prompt
                 {selectedPhilosopher && (
                   <span className="text-ink-light ml-1 normal-case tracking-normal">
                     for {selectedPhilosopher.name}
                   </span>
                 )}
-              </label>
+              </summary>
               <div className="w-full rounded-lg border border-border bg-parchment-dark/40 px-4 py-3 text-sm font-mono text-ink-light min-h-[80px] max-h-[200px] overflow-y-auto whitespace-pre-wrap">
                 {!selectedPhilosopherId ? (
                   <span className="text-ink-lighter italic">
@@ -698,7 +704,7 @@ function ContentGenerationPageInner() {
                   </span>
                 )}
               </div>
-            </div>
+            </details>
 
             {/* Error / Success messages */}
             {errorMessage && (
@@ -720,9 +726,9 @@ function ContentGenerationPageInner() {
           </div>
 
           {/* Form footer with generate button */}
-          <div className="px-6 py-4 border-t border-border bg-parchment-dark/20 flex items-center justify-between">
+          <div className="admin-save-bar px-6 py-4 border-t border-border flex items-center justify-between">
             <p className="text-xs text-ink-lighter">
-              Generates content via Claude API and saves to the generation log.
+              Generate a preview to review before saving.
             </p>
             <button
               type="submit"
@@ -775,7 +781,7 @@ function ContentGenerationPageInner() {
             </button>
           </div>
         </div>
-      </form>
+      </fieldset>{preview && <p className="mt-3 text-sm text-ink-lighter">Setup is locked to this preview. Save it as a draft or reject it before changing the source or philosopher.</p>}</form>
 
       {/* ── Preview Card ──────────────────────────────────────────── */}
       {preview && (
@@ -828,10 +834,7 @@ function ContentGenerationPageInner() {
                       </span>
                       <span
                         className="text-xs font-mono px-1.5 py-0.5 rounded"
-                        style={{
-                          backgroundColor: `${selectedPhilosopher.color}15`,
-                          color: selectedPhilosopher.color,
-                        }}
+                        data-admin-tag=""
                       >
                         {selectedPhilosopher.tradition}
                       </span>
@@ -904,13 +907,7 @@ function ContentGenerationPageInner() {
                 {preview.data.stance && (
                   <span
                     className="inline-flex items-center px-2.5 py-0.5 text-[11px] font-mono tracking-wider uppercase rounded-full"
-                    style={{
-                      backgroundColor:
-                        STANCE_CONFIG[preview.data.stance as keyof typeof STANCE_CONFIG]?.bg ?? "#E2E8F0",
-                      color:
-                        STANCE_CONFIG[preview.data.stance as keyof typeof STANCE_CONFIG]?.color ?? "#4A5568",
-                      border: `1px solid ${STANCE_CONFIG[preview.data.stance as keyof typeof STANCE_CONFIG]?.border ?? "#CBD5E0"}`,
-                    }}
+                    data-admin-tag=""
                   >
                     {preview.data.stance}
                   </span>
@@ -918,11 +915,7 @@ function ContentGenerationPageInner() {
                 {preview.data.tag && (
                   <span
                     className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-mono tracking-wide rounded"
-                    style={{
-                      backgroundColor: `${selectedPhilosopher?.color ?? "#C05A2C"}10`,
-                      color: selectedPhilosopher?.color ?? "#C05A2C",
-                      border: `1px solid ${selectedPhilosopher?.color ?? "#C05A2C"}25`,
-                    }}
+                    data-admin-tag=""
                   >
                     {preview.data.tag}
                   </span>
@@ -1016,7 +1009,7 @@ function ContentGenerationPageInner() {
                         d="M4.5 12.75l6 6 9-13.5"
                       />
                     </svg>
-                    Approve &amp; Save as Post
+                    Save as draft
                   </>
                 )}
               </button>
@@ -1024,6 +1017,9 @@ function ContentGenerationPageInner() {
           </div>
         </div>
       )}
+
+      {!preview && <div className="admin-panel admin-empty">Your generated draft will appear here for review. Nothing is published automatically.</div>}
+      </div>
 
       {/* ── Generation Log ──────────────────────────────────────────── */}
       <div className="mt-10">

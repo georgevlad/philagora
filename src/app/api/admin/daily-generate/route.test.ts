@@ -9,8 +9,9 @@ vi.mock("@/lib/feed-cache", () => ({ bustFeedCache: vi.fn() }));
 vi.mock("@/lib/generation-service", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/generation-service")>(),
   generateContent: vi.fn(),
+  generateDailyDraft: vi.fn(),
 }));
-import { generateContent } from "@/lib/generation-service";
+import { generateContent, generateDailyDraft } from "@/lib/generation-service";
 import { PATCH, POST } from "./route";
 
 const result = {
@@ -82,5 +83,48 @@ describe("daily draft regeneration integrity", () => {
     const response = await POST(new NextRequest("http://localhost/api/admin/daily-generate", { method: "POST", body: "{" }));
     expect(response.status).toBe(400);
     expect(generateContent).not.toHaveBeenCalled();
+  });
+});
+
+
+describe("saved daily generation runs", () => {
+  const batch = (runId: string) => new NextRequest("http://localhost/api/admin/daily-generate", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ run_id: runId, article_ids: ["article"], config: { reactions_per_article: 2, cross_replies: 0, timeless_reflections: 0, quips: 0, cultural_recommendations: 0, excluded_philosophers: [], length_strategy: "short" } }),
+  });
+  const item = () => ({ type: "news_reaction" as const, post_id: "original", generation_log_id: originalLog, philosopher_id: "camus", philosopher_name: "Camus", content: "Draft", thesis: "Thesis", stance: "observes" as const, tag: "Test", length: "short" as const, article_candidate_id: "article" });
+  it("checkpoints completed items before the next model call and rejects a duplicate run", async () => {
+    vi.mocked(generateDailyDraft).mockResolvedValueOnce({ success: true, data: item() }).mockImplementationOnce(async () => {
+      const run = db.prepare("SELECT status, items_json FROM admin_generation_runs WHERE id = 'saved-run'").get() as { status: string; items_json: string };
+      expect(run.status).toBe("running");
+      expect(JSON.parse(run.items_json)[0].post_id).toBe("original");
+      return { success: false, error: "Model unavailable" };
+    });
+    expect((await POST(batch("saved-run"))).status).toBe(200);
+    const saved = db.prepare("SELECT status, items_json, summary_json FROM admin_generation_runs WHERE id = 'saved-run'").get() as { status: string; items_json: string; summary_json: string };
+    expect(saved.status).toBe("partial");
+    expect(JSON.parse(saved.items_json)).toHaveLength(1);
+    expect(JSON.parse(saved.summary_json).errors).toHaveLength(1);
+    expect((await POST(batch("saved-run"))).status).toBe(409);
+    expect(generateDailyDraft).toHaveBeenCalledTimes(2);
+  });
+  it("retains completed drafts if a later generation throws", async () => {
+    vi.mocked(generateDailyDraft).mockResolvedValueOnce({ success: true, data: item() }).mockRejectedValueOnce(new Error("Interrupted"));
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect((await POST(batch("interrupted-run"))).status).toBe(500);
+    quiet.mockRestore();
+    const saved = db.prepare("SELECT status, items_json FROM admin_generation_runs WHERE id = 'interrupted-run'").get() as { status: string; items_json: string };
+    expect(saved.status).toBe("failed");
+    expect(JSON.parse(saved.items_json)[0].post_id).toBe("original");
+    expect(db.prepare("SELECT content FROM posts WHERE id = 'original'").get()).toEqual({ content: "Original draft" });
+  });
+  it("persists regenerated log metadata so reopening the run uses the current log", async () => {
+    db.prepare("INSERT INTO admin_generation_runs (id, status, config_json, article_ids_json, items_json, created_at, updated_at) VALUES ('review', 'complete', '{}', '[]', ?, ?, ?)").run(JSON.stringify([item()]), new Date().toISOString(), new Date().toISOString());
+    const response = await PATCH(request(payload()));
+    expect(response.status).toBe(200);
+    const regenerated = (await response.json()).item;
+    const saved = db.prepare("SELECT items_json FROM admin_generation_runs WHERE id = 'review'").get() as { items_json: string };
+    expect(JSON.parse(saved.items_json)[0].generation_log_id).toBe(regenerated.generation_log_id);
+    expect(regenerated.generation_log_id).not.toBe(originalLog);
   });
 });

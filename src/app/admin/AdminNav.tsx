@@ -1,105 +1,112 @@
 "use client";
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-interface NavItem {
-  href: string;
-  label: string;
-  icon: string;
-}
-
-interface NavSection {
-  label: string;
-  items: NavItem[];
-}
-
-const navSections: NavSection[] = [
+const sections = [
   {
-    label: "Overview",
+    label: "Editorial",
     items: [
-      { href: "/admin", label: "Dashboard", icon: "\uD83D\uDCCA" },
-      { href: "/admin/feed-preview", label: "Live Feed", icon: "\uD83D\uDC41\uFE0F" },
-      { href: "/admin/users", label: "Users", icon: "\uD83D\uDC65" },
+      ["", "Overview"],
+      ["news-scout", "News Scout"],
+      ["daily", "Daily Planner"],
+      ["posts", "Posts"],
+      ["content", "Generate content"],
+      ["feed-preview", "Live feed"],
     ],
   },
   {
-    label: "Pipeline",
+    label: "Conversations",
     items: [
-      { href: "/admin/news-scout", label: "News Scout", icon: "\uD83D\uDCF0" },
-      { href: "/admin/content", label: "Generate", icon: "\u26A1" },
-      { href: "/admin/daily", label: "Daily Planner", icon: "\uD83D\uDDD3\uFE0F" },
+      ["debates", "Debates"],
+      ["agora", "Agora"],
     ],
   },
   {
-    label: "Content",
+    label: "Library",
     items: [
-      { href: "/admin/posts", label: "Posts", icon: "\uD83D\uDCDD" },
-      { href: "/admin/debates", label: "Debates", icon: "\u2694\uFE0F" },
-      { href: "/admin/agora", label: "Agora", icon: "\u2753" },
-      { href: "/admin/everyday", label: "Scenarios", icon: "\uD83D\uDCAD" },
-      { href: "/admin/historical-events", label: "Today in History", icon: "\uD83C\uDFDB\uFE0F" },
+      ["philosophers", "Philosophers"],
+      ["everyday", "Scenarios"],
+      ["historical-events", "Today in History"],
     ],
   },
   {
-    label: "Configuration",
+    label: "Settings",
     items: [
-      { href: "/admin/philosophers", label: "Philosophers", icon: "\uD83C\uDFDB\uFE0F" },
-      { href: "/admin/prompts", label: "Prompts", icon: "\uD83D\uDCAC" },
-      { href: "/admin/templates", label: "Templates", icon: "\uD83D\uDCCB" },
-      { href: "/admin/scoring", label: "Scoring", icon: "\u2699\uFE0F" },
-      { href: "/admin/mood-palettes", label: "Mood Palettes", icon: "\uD83C\uDFA8" },
-      { href: "/admin/generation-settings", label: "AI Models", icon: "\uD83E\uDD16" },
-      { href: "/admin/api-logs", label: "API Logs", icon: "\uD83D\uDCCB" },
-      { href: "/admin/news-scout/sources", label: "Sources", icon: "\uD83D\uDCE1" },
+      ["prompts", "Persona prompts"],
+      ["templates", "Templates & house rules"],
+      ["scoring", "News scoring"],
+      ["mood-palettes", "Mood palettes"],
+      ["generation-settings", "AI models"],
+      ["news-scout/sources", "RSS sources"],
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      ["users", "Users"],
+      ["api-logs", "API logs"],
     ],
   },
 ];
-
+function NavIcon({ index }: { index: number }) {
+  const paths = [
+    "M3 3h6v6H3zM13 3h6v6h-6zM3 13h6v6H3zM13 13h6v6h-6z",
+    "M4 4h14v16H4zM7 8h8M7 12h8M7 16h5",
+    "M3 5h16v14H3zM7 2v6M15 2v6M3 10h16",
+    "M4 6h14M4 11h14M4 16h14",
+    "M4 18l3-6L16 3l3 3-9 9-6 3z",
+    "M2 11s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7zM8 11a3 3 0 106 0 3 3 0 10-6 0",
+  ];
+  return (
+    <svg
+      viewBox="0 0 22 22"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={paths[index % paths.length]} />
+    </svg>
+  );
+}
 export function AdminNav() {
   const pathname = usePathname();
-
+  function active(path: string) {
+    const href = `/admin${path ? `/${path}` : ""}`;
+    return path
+      ? pathname.startsWith(href) &&
+          !(path === "news-scout" && pathname.includes("/sources"))
+      : pathname === href;
+  }
   return (
-    <nav className="flex-1 space-y-1 px-3 py-4">
-      {navSections.map((section, sectionIndex) => (
-        <div key={section.label}>
-          <div
-            className={`px-3 pb-1 text-[10px] font-mono uppercase tracking-widest text-ink-lighter ${
-              sectionIndex === 0 ? "pt-1" : "pt-5"
-            }`}
+    <nav className="admin-nav" aria-label="Administration">
+      {sections.map((section) => {
+        const links = section.items.map(([path, label], index) => (
+          <Link
+            key={path}
+            href={`/admin${path ? `/${path}` : ""}`}
+            aria-current={active(path) ? "page" : undefined}
           >
-            {section.label}
+            <NavIcon index={index} />
+            <span>{label}</span>
+          </Link>
+        ));
+        return section.label === "Settings" ? (
+          <details
+            key={section.label}
+            className="admin-nav-group"
+            open={section.items.some(([path]) => active(path)) || undefined}
+          >
+            <summary>Settings</summary>
+            {links}
+          </details>
+        ) : (
+          <div className="admin-nav-group" key={section.label}>
+            <div className="admin-nav-heading">{section.label}</div>
+            {links}
           </div>
-
-          {section.items.map((item) => {
-            const isActive =
-              item.href === "/admin"
-                ? pathname === "/admin"
-                : pathname.startsWith(item.href) && item.href !== "/admin";
-
-            const isExactSubroute =
-              item.href === "/admin/news-scout" &&
-              pathname.startsWith("/admin/news-scout/sources");
-
-            const active = isActive && !isExactSubroute;
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm transition-colors duration-150 ${
-                  active
-                    ? "bg-terracotta/10 font-medium text-terracotta"
-                    : "text-ink-light hover:bg-parchment-dark hover:text-ink"
-                }`}
-              >
-                <span className="text-base">{item.icon}</span>
-                <span className="font-body">{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      ))}
+        );
+      })}
     </nav>
   );
 }

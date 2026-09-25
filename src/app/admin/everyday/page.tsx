@@ -719,11 +719,7 @@ export default function EverydayPage() {
                             {stance && (
                               <span
                                 className="inline-flex rounded-full px-3 py-1 text-[11px] font-mono uppercase tracking-[0.18em]"
-                                style={{
-                                  backgroundColor: stance.bg,
-                                  color: stance.color,
-                                  border: `1px solid ${stance.border}`,
-                                }}
+                                data-admin-tag=""
                               >
                                 {stance.label}
                               </span>
@@ -828,16 +824,11 @@ export default function EverydayPage() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {group.posts.map((post) => {
-                        const stance = STANCE_CONFIG[post.stance];
                         return (
                           <span
                             key={post.id}
                             className="inline-flex rounded-full px-3 py-1 text-[11px] font-mono uppercase tracking-[0.18em]"
-                            style={{
-                              backgroundColor: stance.bg,
-                              color: stance.color,
-                              border: `1px solid ${stance.border}`,
-                            }}
+                            data-admin-tag=""
                           >
                             {post.philosopher_name}
                           </span>
@@ -876,11 +867,7 @@ export default function EverydayPage() {
                           <div className="flex flex-wrap items-center gap-2">
                             <span
                               className="inline-flex rounded-full px-3 py-1 text-[11px] font-mono uppercase tracking-[0.18em]"
-                              style={{
-                                backgroundColor: stance.bg,
-                                color: stance.color,
-                                border: `1px solid ${stance.border}`,
-                              }}
+                              data-admin-tag=""
                             >
                               {stance.label}
                             </span>

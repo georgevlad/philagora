@@ -1,4 +1,6 @@
 "use client";
+import { AdminField } from "@/components/admin/AdminUI";
+import { useUnsavedChanges } from "@/components/admin/AdminUI";
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -29,6 +31,11 @@ export default function EditPhilosopherPage() {
   const [followers, setFollowers] = useState<number>(0);
   const [isActive, setIsActive] = useState<boolean>(true);
 
+  const [baseline, setBaseline] = useState("");
+  const formSnapshot = JSON.stringify([name, tradition, color, initials, bio, era, keyWorksText, corePrinciples, followers, isActive]);
+  const dirty = !!baseline && baseline !== formSnapshot;
+  useUnsavedChanges(dirty);
+
   const fetchPhilosopher = useCallback(async () => {
     try {
       setLoading(true);
@@ -47,6 +54,7 @@ export default function EditPhilosopherPage() {
         ? JSON.parse(data.core_principles)
         : (data.core_principles ?? []);
 
+      setBaseline(JSON.stringify([data.name, data.tradition, data.color, data.initials, data.bio, data.era, keyWorks.join("\n"), principles, data.followers ?? 0, data.is_active === 1 || data.is_active === true]));
       setName(data.name);
       setTradition(data.tradition);
       setColor(data.color);
@@ -125,6 +133,7 @@ export default function EditPhilosopherPage() {
         throw new Error(errData?.error ?? `Save failed (${res.status})`);
       }
 
+      setBaseline(formSnapshot);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
@@ -212,57 +221,53 @@ export default function EditPhilosopherPage() {
             {/* Name + Initials row */}
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-4">
               <div>
-                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                <AdminField label={<>
                   Name
-                </label>
-                <input
+                </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
                   className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
-                />
+                /></AdminField>
               </div>
               <div>
-                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                <AdminField label={<>
                   Initials
-                </label>
-                <input
+                </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                   type="text"
                   value={initials}
                   onChange={(e) => setInitials(e.target.value)}
                   maxLength={3}
                   required
                   className="w-full px-3 py-2 text-sm font-mono text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
-                />
+                /></AdminField>
               </div>
             </div>
 
             {/* Tradition + Era row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                <AdminField label={<>
                   Tradition
-                </label>
-                <input
+                </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                   type="text"
                   value={tradition}
                   onChange={(e) => setTradition(e.target.value)}
                   required
                   className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
-                />
+                /></AdminField>
               </div>
               <div>
-                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                <AdminField label={<>
                   Era
-                </label>
-                <input
+                </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                   type="text"
                   value={era}
                   onChange={(e) => setEra(e.target.value)}
                   required
                   className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
-                />
+                /></AdminField>
               </div>
             </div>
 
@@ -296,16 +301,15 @@ export default function EditPhilosopherPage() {
 
             {/* Bio */}
             <div>
-              <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+              <AdminField label={<>
                 Bio
-              </label>
-              <textarea
+              </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><textarea
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 rows={4}
                 required
                 className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors resize-y leading-relaxed"
-              />
+              /></AdminField>
             </div>
           </div>
         </section>
@@ -342,16 +346,15 @@ export default function EditPhilosopherPage() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                <AdminField label={<>
                   Followers
-                </label>
-                <input
+                </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                   type="number"
                   min="0"
                   value={followers}
                   onChange={(e) => setFollowers(parseInt(e.target.value, 10) || 0)}
                   className="w-full px-3 py-2 text-sm font-mono text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
-                />
+                /></AdminField>
               </div>
             </div>
           </div>
@@ -416,28 +419,26 @@ export default function EditPhilosopherPage() {
                   </button>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1">
+                  <AdminField label={<>
                     Title
-                  </label>
-                  <input
+                  </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1"><input
                     type="text"
                     value={principle.title}
                     onChange={(e) => updatePrinciple(index, "title", e.target.value)}
                     className="w-full px-3 py-2 text-sm font-serif font-semibold text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
                     placeholder="Principle title"
-                  />
+                  /></AdminField>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1">
+                  <AdminField label={<>
                     Description
-                  </label>
-                  <textarea
+                  </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1"><textarea
                     value={principle.description}
                     onChange={(e) => updatePrinciple(index, "description", e.target.value)}
                     rows={3}
                     className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors resize-y leading-relaxed"
                     placeholder="Describe this core principle..."
-                  />
+                  /></AdminField>
                 </div>
               </div>
             ))}
@@ -445,7 +446,7 @@ export default function EditPhilosopherPage() {
         </section>
 
         {/* Save bar */}
-        <div className="flex items-center justify-between pt-2 pb-8">
+        <div className="admin-save-bar"><span role="status">{saving ? "Saving…" : dirty ? "Unsaved changes" : "All changes saved"}</span>
           <Link
             href="/admin/philosophers"
             className="text-sm font-mono text-ink-lighter hover:text-terracotta transition-colors"
@@ -454,7 +455,7 @@ export default function EditPhilosopherPage() {
           </Link>
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || !dirty}
             className="px-6 py-2.5 bg-terracotta hover:bg-terracotta-light disabled:opacity-50 text-white text-sm font-serif font-semibold rounded-lg transition-colors duration-150 shadow-sm"
           >
             {saving ? "Saving..." : "Save Changes"}

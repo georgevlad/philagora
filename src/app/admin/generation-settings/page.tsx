@@ -1,4 +1,6 @@
 "use client";
+import { AdminField } from "@/components/admin/AdminUI";
+import { useUnsavedChanges } from "@/components/admin/AdminUI";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -31,6 +33,13 @@ export default function GenerationSettingsPage() {
   const [imageGenerationModel, setImageGenerationModel] =
     useState<ImageGenerationModelName>(DEFAULT_IMAGE_GENERATION_MODEL);
 
+  const [savedConfig, setSavedConfig] = useState<Partial<GenerationConfigResponse>>({});
+  const currentConfig = { generation_model: generationModel, synthesis_model: synthesisModel, image_generation_model: imageGenerationModel };
+  const dirty = (Object.keys(currentConfig) as Array<keyof GenerationConfigResponse>).some(
+    (key) => key in savedConfig && JSON.stringify(savedConfig[key]) !== JSON.stringify(currentConfig[key])
+  );
+  useUnsavedChanges(dirty);
+
   useEffect(() => {
     async function loadConfig() {
       try {
@@ -49,6 +58,7 @@ export default function GenerationSettingsPage() {
         }
 
         if ("generation_model" in data) {
+          setSavedConfig(data);
           setGenerationModel(data.generation_model);
           setSynthesisModel(data.synthesis_model);
           setImageGenerationModel(data.image_generation_model);
@@ -110,6 +120,7 @@ export default function GenerationSettingsPage() {
         if (key === "image_generation_model") setImageGenerationModel(data.image_generation_model);
       }
 
+      setSavedConfig((current) => ({ ...current, [key]: value }));
       setSuccessMessage(successText);
     } catch (err) {
       setError(
@@ -131,7 +142,7 @@ export default function GenerationSettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6"><p className="admin-notice" role="status">{dirty ? "Unsaved changes. Save each modified section before leaving." : "Each section saves independently."}</p>
       <div className="flex items-center justify-between gap-4">
         <div>
           <Link
@@ -175,10 +186,9 @@ export default function GenerationSettingsPage() {
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-end">
             <div>
-              <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+              <AdminField label={<>
                 Model
-              </label>
-              <select
+              </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><select
                 value={generationModel}
                 onChange={(event) =>
                   setGenerationModel(
@@ -192,7 +202,7 @@ export default function GenerationSettingsPage() {
                     {option.label}
                   </option>
                 ))}
-              </select>
+              </select></AdminField>
             </div>
 
             <button
@@ -229,10 +239,9 @@ export default function GenerationSettingsPage() {
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-end">
             <div>
-              <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+              <AdminField label={<>
                 Model
-              </label>
-              <select
+              </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><select
                 value={synthesisModel}
                 onChange={(event) =>
                   setSynthesisModel(
@@ -246,7 +255,7 @@ export default function GenerationSettingsPage() {
                     {option.label}
                   </option>
                 ))}
-              </select>
+              </select></AdminField>
             </div>
 
             <button
@@ -282,10 +291,9 @@ export default function GenerationSettingsPage() {
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-end">
             <div>
-              <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+              <AdminField label={<>
                 Model
-              </label>
-              <select
+              </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><select
                 value={imageGenerationModel}
                 onChange={(event) =>
                   setImageGenerationModel(
@@ -299,7 +307,7 @@ export default function GenerationSettingsPage() {
                     {option.label}
                   </option>
                 ))}
-              </select>
+              </select></AdminField>
             </div>
 
             <button

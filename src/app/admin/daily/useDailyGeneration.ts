@@ -23,6 +23,7 @@ export function useDailyGeneration({
   setPipelineResult,
   setError,
   setNotice,
+  onRunStarted,
 }: {
   selectedArticleIds: string[];
   config: typeof DEFAULT_CONFIG;
@@ -34,6 +35,7 @@ export function useDailyGeneration({
   setPipelineResult: React.Dispatch<React.SetStateAction<PipelineResult | null>>;
   setError: (msg: string | null) => void;
   setNotice: (msg: string | null) => void;
+  onRunStarted: (id: string) => void;
 }) {
   const [generating, setGenerating] = useState(false);
   const [pipelineRunning, setPipelineRunning] = useState(false);
@@ -101,6 +103,8 @@ export function useDailyGeneration({
       return;
     }
 
+    const runId = crypto.randomUUID();
+    onRunStarted(runId);
     setGenerating(true);
     setError(null);
     setNotice(null);
@@ -110,6 +114,7 @@ export function useDailyGeneration({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          run_id: runId,
           article_ids: selectedArticleIds,
           config,
         }),

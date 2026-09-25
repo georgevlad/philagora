@@ -4,6 +4,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import GenerationSettingsPage from "./generation-settings/page";
+import ScoringSettingsPage from "./scoring/page";
 import NewsScoutPage from "./news-scout/page";
 import ApiLogsPage from "./api-logs/page";
 import ContentGenerationPage from "./content/page";
@@ -11,6 +12,10 @@ import { AdminLogoutButton } from "./AdminLogoutButton";
 import { ReviewGroup } from "./daily/ReviewGroup";
 import type { ReviewItem } from "./daily/types";
 import {
+  DEFAULT_SCORING_MODEL,
+  DEFAULT_SCORE_TIERS,
+  DEFAULT_STANCE_GUIDANCE,
+  DEFAULT_TENSION_VOCABULARY,
   DEFAULT_GENERATION_MODEL,
   DEFAULT_IMAGE_GENERATION_MODEL,
   GENERATION_MODEL_OPTIONS,
@@ -77,6 +82,26 @@ function button(label: string) {
 }
 
 describe("admin UI regressions", () => {
+  it.each([ScoringSettingsPage, GenerationSettingsPage])("only reports unsaved settings after an edit when the API returns other sections (%#)", async (Page) => {
+    vi.stubGlobal("fetch", vi.fn(async () => json({
+      scoring_model: DEFAULT_SCORING_MODEL,
+      score_tiers: DEFAULT_SCORE_TIERS,
+      tension_vocabulary: DEFAULT_TENSION_VOCABULARY,
+      stance_guidance: DEFAULT_STANCE_GUIDANCE,
+      generation_model: DEFAULT_GENERATION_MODEL,
+      synthesis_model: DEFAULT_GENERATION_MODEL,
+      image_generation_model: DEFAULT_IMAGE_GENERATION_MODEL,
+      mood_enabled: true,
+      mood_content_types: ["news_reaction"],
+    })));
+    await render(React.createElement(Page));
+    expect(container.textContent).not.toContain("Unsaved changes.");
+    const model = container.querySelector("select")!;
+    const alternative = [...model.options].find((option) => option.value !== model.value)!;
+    await change(model, alternative.value);
+    expect(container.textContent).toContain("Unsaved changes.");
+  });
+
   it("keeps an unsaved synthesis model when saving the content model", async () => {
     const config = {
       generation_model: DEFAULT_GENERATION_MODEL,
@@ -176,7 +201,7 @@ describe("admin UI regressions", () => {
     await act(async () => {
       container.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     });
-    await act(async () => button("Approve & Save as Post").click());
+    await act(async () => button("Save as draft").click());
     const postCall = fetchMock.mock.calls.find(([url]) => url === "/api/admin/posts");
     expect(JSON.parse(String(postCall?.[1]?.body)).source_type).toBe("reflection");
   });

@@ -1,4 +1,5 @@
 "use client";
+import { AdminField } from "@/components/admin/AdminUI";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -604,11 +605,7 @@ export default function HistoricalEventDetailPage() {
           </span>
           <span
             className="inline-flex rounded-full px-3 py-1 text-[11px] font-mono uppercase tracking-wider"
-            style={{
-              backgroundColor: stance.bg,
-              color: stance.color,
-              border: `1px solid ${stance.border}`,
-            }}
+            data-admin-tag=""
           >
             {stance.label}
           </span>
@@ -664,21 +661,19 @@ export default function HistoricalEventDetailPage() {
         <div className="space-y-5 px-6 py-6">
           <div className="grid gap-5 md:grid-cols-2">
             <div className="md:col-span-2">
-              <label className="mb-1.5 block text-xs font-mono uppercase tracking-wider text-ink-lighter">
+              <AdminField label={<>
                 Title
-              </label>
-              <input
+              </>} labelClassName="mb-1.5 block text-xs font-mono uppercase tracking-wider text-ink-lighter"><input
                 value={form.title}
                 onChange={(event) => updateForm("title", event.target.value)}
                 className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
-              />
+              /></AdminField>
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-mono uppercase tracking-wider text-ink-lighter">
+              <AdminField label={<>
                 Month
-              </label>
-              <select
+              </>} labelClassName="mb-1.5 block text-xs font-mono uppercase tracking-wider text-ink-lighter"><select
                 value={form.eventMonth}
                 onChange={(event) => updateForm("eventMonth", event.target.value)}
                 className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
@@ -688,14 +683,13 @@ export default function HistoricalEventDetailPage() {
                     {option.label}
                   </option>
                 ))}
-              </select>
+              </select></AdminField>
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-mono uppercase tracking-wider text-ink-lighter">
+              <AdminField label={<>
                 Day
-              </label>
-              <select
+              </>} labelClassName="mb-1.5 block text-xs font-mono uppercase tracking-wider text-ink-lighter"><select
                 value={form.eventDay}
                 onChange={(event) => updateForm("eventDay", event.target.value)}
                 className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
@@ -705,39 +699,36 @@ export default function HistoricalEventDetailPage() {
                     {day}
                   </option>
                 ))}
-              </select>
+              </select></AdminField>
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-mono uppercase tracking-wider text-ink-lighter">
+              <AdminField label={<>
                 Year
-              </label>
-              <input
+              </>} labelClassName="mb-1.5 block text-xs font-mono uppercase tracking-wider text-ink-lighter"><input
                 value={form.eventYear}
                 onChange={(event) => updateForm("eventYear", event.target.value)}
                 className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
-              />
+              /></AdminField>
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-mono uppercase tracking-wider text-ink-lighter">
+              <AdminField label={<>
                 Display Date
-              </label>
-              <input
+              </>} labelClassName="mb-1.5 block text-xs font-mono uppercase tracking-wider text-ink-lighter"><input
                 value={form.displayDate}
                 onChange={(event) => {
                   setDisplayDateTouched(true);
                   updateForm("displayDate", event.target.value);
                 }}
                 className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
-              />
+              /></AdminField>
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-mono uppercase tracking-wider text-ink-lighter">
+              <AdminField label={<>
                 Era
-              </label>
-              <select
+              </>} labelClassName="mb-1.5 block text-xs font-mono uppercase tracking-wider text-ink-lighter"><select
                 value={form.era}
                 onChange={(event) => updateForm("era", event.target.value)}
                 className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
@@ -747,14 +738,13 @@ export default function HistoricalEventDetailPage() {
                     {labelHistoricalEra(era)}
                   </option>
                 ))}
-              </select>
+              </select></AdminField>
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-mono uppercase tracking-wider text-ink-lighter">
+              <AdminField label={<>
                 Category
-              </label>
-              <select
+              </>} labelClassName="mb-1.5 block text-xs font-mono uppercase tracking-wider text-ink-lighter"><select
                 value={form.category}
                 onChange={(event) => updateForm("category", event.target.value)}
                 className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
@@ -764,20 +754,19 @@ export default function HistoricalEventDetailPage() {
                     {labelHistoricalCategory(category)}
                   </option>
                 ))}
-              </select>
+              </select></AdminField>
             </div>
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-mono uppercase tracking-wider text-ink-lighter">
+            <AdminField label={<>
               Context
-            </label>
-            <textarea
+            </>} labelClassName="mb-1.5 block text-xs font-mono uppercase tracking-wider text-ink-lighter"><textarea
               value={form.context}
               onChange={(event) => updateForm("context", event.target.value)}
               rows={8}
               className="w-full rounded-lg border border-border bg-parchment px-4 py-3 text-sm text-ink focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
-            />
+            /></AdminField>
           </div>
 
           <div>
@@ -1076,11 +1065,7 @@ export default function HistoricalEventDetailPage() {
                             <div className="mt-1 flex flex-wrap gap-2">
                               <span
                                 className="inline-flex rounded-full px-3 py-1 text-[11px] font-mono uppercase tracking-wider"
-                                style={{
-                                  backgroundColor: stance.bg,
-                                  color: stance.color,
-                                  border: `1px solid ${stance.border}`,
-                                }}
+                                data-admin-tag=""
                               >
                                 {stance.label}
                               </span>

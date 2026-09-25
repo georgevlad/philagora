@@ -38,7 +38,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-parchment flex items-center justify-center px-4">
+    <div className="admin-theme admin-login min-h-screen bg-parchment flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         {/* Logo area */}
         <div className="text-center mb-8">

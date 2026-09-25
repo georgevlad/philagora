@@ -1,6 +1,8 @@
 "use client";
+import { AdminField } from "@/components/admin/AdminUI";
+import { useUnsavedChanges } from "@/components/admin/AdminUI";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { getQuestionTypeLabel } from "@/lib/agora";
 import { AGORA_STATUS_COLORS } from "@/lib/constants";
 import { formatDate } from "@/lib/date-utils";
@@ -183,7 +185,7 @@ function FollowUpResponseCard({ response }: { response: AgResponseRow }) {
             <span className="font-serif font-bold text-ink text-sm">{response.philosopher_name}</span>
             <span
               className="ml-2 text-[11px] font-mono px-2 py-0.5 rounded"
-              style={{ backgroundColor: `${response.philosopher_color}15`, color: response.philosopher_color }}
+              data-admin-tag=""
             >
               {response.philosopher_tradition}
             </span>
@@ -231,7 +233,7 @@ function FollowUpResponseCard({ response }: { response: AgResponseRow }) {
               </div>
               <span
                 className="text-[10px] font-mono px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: `${response.philosopher_color}12`, color: response.philosopher_color }}
+                data-admin-tag=""
               >
                 Recommendation
               </span>
@@ -321,6 +323,8 @@ export default function AgoraWorkshopPage() {
   // ── Wizard state ──────────────────────────────────────────────────────
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [threadId, setThreadId] = useState<string | null>(null);
+  const [workspaceView, setWorkspaceView] = useState<"list" | "work">("list");
+  const [listSearch, setListSearch] = useState("");
 
   // Step 1: Setup
   const [question, setQuestion] = useState("");
@@ -345,6 +349,8 @@ export default function AgoraWorkshopPage() {
   const [followUp, setFollowUp] = useState<AdminFollowUpData | null>(null);
 
   // ── Selected philosopher objects ──────────────────────────────────────
+  const workshopBusy = creating || savingSynthesis || synthesisState === "generating" || Object.values(responses).some((item) => item.status === "generating");
+  const confirmLeave = useUnsavedChanges(workspaceView === "work" && (workshopBusy || Object.values(responses).some((item) => item.status === "preview") || synthesisState === "preview" || (!threadId && (!!question.trim() || !!articleUrl.trim() || askedBy !== "Anonymous User" || selectedIds.length > 0 || questionType !== "advice" || recommendationsEnabled))));
   const selectedPhilosophers = selectedIds
     .map((id) => philosophers.find((p) => p.id === id))
     .filter(Boolean) as Philosopher[];
@@ -444,8 +450,12 @@ export default function AgoraWorkshopPage() {
   }
 
   // ── Resume an existing thread ─────────────────────────────────────────
+  const resumeRequest = useRef(0);
+  const [loadingWorkshop, setLoadingWorkshop] = useState(false);
   const resumeThread = useCallback(
     async (id: string) => {
+      const request = ++resumeRequest.current;
+      setLoadingWorkshop(true);
       setError("");
       setNotice("");
       try {
@@ -453,7 +463,10 @@ export default function AgoraWorkshopPage() {
         if (!res.ok) throw new Error("Failed to load thread");
         const data = await res.json() as AdminThreadDetailPayload;
 
+        if (request !== resumeRequest.current) return;
         setThreadId(id);
+        setWorkspaceView("work");
+        window.history.replaceState(null, "", '/admin/agora?id=' + encodeURIComponent(id));
         setQuestion(data.thread.question);
         setAskedBy(data.thread.asked_by);
         setArticle(data.thread.article ?? null);
@@ -517,11 +530,15 @@ export default function AgoraWorkshopPage() {
           setStep(2);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load thread");
+        if (request === resumeRequest.current) setError(err instanceof Error ? err.message : "Failed to load thread");
+      } finally {
+        if (request === resumeRequest.current) setLoadingWorkshop(false);
       }
     },
     []
   );
+
+  useEffect(() => { const selectedId = new URLSearchParams(window.location.search).get("id"); if (selectedId) void resumeThread(selectedId); }, [resumeThread]);
 
   // ── Step 1: Create thread ─────────────────────────────────────────────
   async function handleCreateThread() {
@@ -562,6 +579,7 @@ export default function AgoraWorkshopPage() {
       }
       const data = await res.json();
       setThreadId(data.thread.id);
+      window.history.replaceState(null, "", '/admin/agora?id=' + encodeURIComponent(data.thread.id));
       setArticle(data.thread.article ?? null);
       setArticleUrl(data.thread.article?.url ?? trimmedArticleUrl);
       setNotice(data.articleWarning || "");
@@ -750,7 +768,7 @@ export default function AgoraWorkshopPage() {
               <span className="font-serif font-bold text-ink text-sm">{philosopher.name}</span>
               <span
                 className="ml-2 text-[11px] font-mono px-2 py-0.5 rounded"
-                style={{ backgroundColor: `${philosopher.color}15`, color: philosopher.color }}
+                data-admin-tag=""
               >
                 {philosopher.tradition}
               </span>
@@ -826,7 +844,7 @@ export default function AgoraWorkshopPage() {
                   </div>
                   <span
                     className="text-[10px] font-mono px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: `${philosopher.color}12`, color: philosopher.color }}
+                    data-admin-tag=""
                   >
                     Recommendation
                   </span>
@@ -876,6 +894,11 @@ export default function AgoraWorkshopPage() {
         </p>
       </div>
 
+      <div className="admin-toolbar">
+        {workspaceView === "list" ? <><div className="admin-field flex-1"><label htmlFor="workshop-search">Search questions</label><input id="workshop-search" value={listSearch} onChange={(event) => setListSearch(event.target.value)} placeholder="Search by topic…" /></div><button disabled={loadingWorkshop} className="admin-button admin-button-primary" onClick={() => { setThreadId(null); setStep(1); setQuestion(""); setAskedBy("Anonymous User"); setArticleUrl(""); setArticle(null); setQuestionType("advice"); setRecommendationsEnabled(false); setSelectedIds([]); setResponses({}); setFollowUp(null); setSynthesisState("pending"); setSynthesisData(null); setWorkspaceView("work"); window.history.replaceState(null, "", '/admin/agora'); }}>New Agora thread</button></>
+          : <><button className="admin-button" disabled={workshopBusy} onClick={async () => { if (await confirmLeave()) { setWorkspaceView("list"); window.history.replaceState(null, "", '/admin/agora'); } }}>← All threads</button><span className="ml-auto text-sm text-ink-lighter">{workshopBusy ? "Generation in progress…" : threadId ? "Saved workshop · resume from this URL" : "New workshop"}</span></>}
+      </div>
+      <div hidden={workspaceView !== "list"}>
       {/* Existing threads */}
       {existingThreads.length > 0 && (
         <div className="mb-8">
@@ -900,7 +923,7 @@ export default function AgoraWorkshopPage() {
           </div>
           <h2 className="font-serif text-lg font-bold text-ink mb-3">Existing Threads</h2>
           <div className="space-y-3">
-            {filteredThreads.map((t) => (
+            {filteredThreads.filter((t) => t.question.toLowerCase().includes(listSearch.toLowerCase())).map((t) => (
               <div
                 key={t.id}
                 className={`w-full bg-white border rounded-xl px-6 py-4 transition-colors ${
@@ -909,6 +932,7 @@ export default function AgoraWorkshopPage() {
               >
                 <div className="flex items-center justify-between">
                   <button
+                    disabled={loadingWorkshop}
                     onClick={() => resumeThread(t.id)}
                     className="min-w-0 flex-1 mr-4 text-left hover:opacity-70 transition-opacity"
                   >
@@ -1022,6 +1046,9 @@ export default function AgoraWorkshopPage() {
         </div>
       )}
 
+      {existingThreads.length === 0 && <div className="admin-empty">No threads yet. Create one to get started.</div>}
+      </div>
+      <div hidden={workspaceView !== "work"}>
       {/* Step indicator */}
       {threadId && (
         <div className="mb-6 flex items-center gap-2">
@@ -1072,43 +1099,40 @@ export default function AgoraWorkshopPage() {
           <div className="px-6 py-6 space-y-6">
             {/* Question */}
             <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+              <AdminField label={<>
                 User&apos;s Question
-              </label>
-              <textarea
+              </>} labelClassName="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"><textarea
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 rows={4}
                 placeholder="What question should the philosophers respond to?"
                 className="w-full rounded-lg border border-border bg-parchment px-4 py-3 text-sm text-ink font-body placeholder:text-ink-lighter/60 focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors resize-y"
-              />
+              /></AdminField>
             </div>
 
             {/* Asked by */}
             <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+              <AdminField label={<>
                 Asked By
-              </label>
-              <input
+              </>} labelClassName="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"><input
                 type="text"
                 value={askedBy}
                 onChange={(e) => setAskedBy(e.target.value)}
                 placeholder="Anonymous User"
                 className="w-full max-w-xs rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-              />
+              /></AdminField>
             </div>
 
             <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+              <AdminField label={<>
                 Article URL
-              </label>
-              <input
+              </>} labelClassName="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"><input
                 type="url"
                 value={articleUrl}
                 onChange={(event) => setArticleUrl(event.target.value)}
                 placeholder="https://example.com/article..."
                 className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
-              />
+              /></AdminField>
               <p className="mt-2 text-xs text-ink-lighter">
                 Optional. If we can read the article, the responses will use it as source context.
               </p>
@@ -1116,10 +1140,9 @@ export default function AgoraWorkshopPage() {
 
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2">
+                <AdminField label={<>
                   Question Type
-                </label>
-                <select
+                </>} labelClassName="block text-xs font-mono uppercase tracking-wider text-ink-lighter mb-2"><select
                   value={questionType}
                   onChange={(event) => setQuestionType(event.target.value as AgoraQuestionType)}
                   className="w-full rounded-lg border border-border bg-parchment px-4 py-2.5 text-sm text-ink font-body focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-colors"
@@ -1127,7 +1150,7 @@ export default function AgoraWorkshopPage() {
                   <option value="advice">Seeking advice</option>
                   <option value="conceptual">Exploring a concept</option>
                   <option value="debate">A contested question</option>
-                </select>
+                </select></AdminField>
               </div>
 
               <div className="flex items-end">
@@ -1373,6 +1396,7 @@ export default function AgoraWorkshopPage() {
           No agora threads yet. Create your first one above.
         </p>
       )}
+      </div>
     </div>
   );
 }

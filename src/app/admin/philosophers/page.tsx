@@ -1,4 +1,6 @@
 "use client";
+import { AdminField } from "@/components/admin/AdminUI";
+import { AdminDialog, useAdminConfirm } from "@/components/admin/AdminUI";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -66,6 +68,7 @@ export default function PhilosophersListPage() {
   const [pageError, setPageError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const confirm = useAdminConfirm();
   const [form, setForm] = useState<CreatePhilosopherForm>(EMPTY_FORM);
   const [idTouched, setIdTouched] = useState(false);
   const [initialsTouched, setInitialsTouched] = useState(false);
@@ -105,20 +108,6 @@ export default function PhilosophersListPage() {
     return () => window.clearTimeout(timeout);
   }, [successMessage]);
 
-  useEffect(() => {
-    if (!isModalOpen) return;
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape" && !saving) {
-        setIsModalOpen(false);
-        setFormError("");
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isModalOpen, saving]);
-
   const trimmedId = form.id.trim();
   const hasRequiredFields = Boolean(form.name.trim() && form.tradition.trim() && form.era.trim());
   const isIdValid = Boolean(trimmedId) && ID_PATTERN.test(trimmedId);
@@ -132,8 +121,9 @@ export default function PhilosophersListPage() {
     setIsModalOpen(true);
   }
 
-  function closeModal(force = false) {
+  async function closeModal(force = false) {
     if (saving && !force) return;
+    if (!force && JSON.stringify(form) !== JSON.stringify(EMPTY_FORM) && !await confirm({ title: "Discard this new philosopher?", description: "The profile has not been created. Your entered details will be discarded.", confirmLabel: "Discard details", destructive: true })) return;
     setIsModalOpen(false);
     setFormError("");
   }
@@ -310,10 +300,7 @@ export default function PhilosophersListPage() {
                   <td className="px-4 py-3">
                     <span
                       className="text-xs font-mono px-2 py-0.5 rounded"
-                      style={{
-                        backgroundColor: `${philosopher.color}15`,
-                        color: philosopher.color,
-                      }}
+                      data-admin-tag=""
                     >
                       {philosopher.tradition}
                     </span>
@@ -350,36 +337,12 @@ export default function PhilosophersListPage() {
         )}
       </div>
 
-      {isModalOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
-          onClick={() => closeModal()}
-        >
-          <div
-            className="bg-parchment rounded-xl shadow-xl border border-border max-w-lg w-full max-h-[90vh] overflow-y-auto"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-parchment-dark/60">
-              <div>
-                <h2 className="font-serif text-xl font-semibold text-ink">Add Philosopher</h2>
-                <p className="text-sm text-ink-lighter font-body mt-1">
-                  Create the base profile here, then refine the deeper fields on the edit page.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => closeModal()}
-                className="text-ink-lighter hover:text-ink transition-colors p-1"
-                aria-label="Close add philosopher modal"
-              >
-                <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M4 4L12 12" strokeLinecap="round" />
-                  <path d="M12 4L4 12" strokeLinecap="round" />
-                </svg>
-              </button>
-            </div>
-
-            <form onSubmit={handleCreatePhilosopher} className="px-6 py-5 space-y-4">
+      <AdminDialog open={isModalOpen} title="Add philosopher" wide busy={saving} onClose={() => void closeModal()} footer={<>
+        <span className="mr-auto text-xs text-ink-lighter">Name, ID, tradition, and era are required.</span>
+        <button type="button" className="admin-button" disabled={saving} onClick={() => void closeModal()}>Cancel</button>
+        <button type="submit" form="add-philosopher" className="admin-button admin-button-primary" disabled={isCreateDisabled}>{saving ? "Creating…" : "Create Philosopher"}</button>
+      </>}>
+            <form id="add-philosopher" onSubmit={handleCreatePhilosopher} className="grid grid-cols-2 gap-5">
               {formError && (
                 <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
                   {formError}
@@ -387,23 +350,21 @@ export default function PhilosophersListPage() {
               )}
 
               <div>
-                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                <AdminField label={<>
                   Name
-                </label>
-                <input
+                </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                   type="text"
                   value={form.name}
                   onChange={(event) => handleNameChange(event.target.value)}
                   className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
                   required
-                />
+                /></AdminField>
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                <AdminField label={<>
                   ID / Slug
-                </label>
-                <input
+                </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                   type="text"
                   value={form.id}
                   onChange={(event) => {
@@ -412,7 +373,7 @@ export default function PhilosophersListPage() {
                   }}
                   className="w-full px-3 py-2 text-sm font-mono text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
                   required
-                />
+                /></AdminField>
                 {form.id && !isIdValid && (
                   <p className="mt-1.5 text-xs text-red-700 font-body">
                     Use lowercase letters, numbers, and hyphens only.
@@ -421,39 +382,36 @@ export default function PhilosophersListPage() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                <AdminField label={<>
                   Tradition
-                </label>
-                <input
+                </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                   type="text"
                   value={form.tradition}
                   onChange={(event) => updateForm("tradition", event.target.value)}
                   placeholder="Stoicism"
                   className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
                   required
-                />
+                /></AdminField>
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                <AdminField label={<>
                   Era
-                </label>
-                <input
+                </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                   type="text"
                   value={form.era}
                   onChange={(event) => updateForm("era", event.target.value)}
                   placeholder="428-348 BCE"
                   className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
                   required
-                />
+                /></AdminField>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-end">
                 <div>
-                  <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                  <AdminField label={<>
                     Initials
-                  </label>
-                  <input
+                  </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                     type="text"
                     value={form.initials}
                     onChange={(event) => {
@@ -461,74 +419,46 @@ export default function PhilosophersListPage() {
                       updateForm("initials", event.target.value.toUpperCase().slice(0, 2));
                     }}
                     className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
-                  />
+                  /></AdminField>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                  <AdminField label={<>
                     Color
-                  </label>
-                  <input
+                  </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                     type="color"
                     value={form.color}
                     onChange={(event) => updateForm("color", event.target.value)}
                     className="h-10 w-20 rounded-lg border border-border bg-parchment p-1 cursor-pointer"
-                  />
+                  /></AdminField>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                <AdminField label={<>
                   Bio
-                </label>
-                <textarea
+                </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><textarea
                   value={form.bio}
                   onChange={(event) => updateForm("bio", event.target.value)}
                   rows={3}
                   className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors resize-y"
-                />
+                /></AdminField>
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5">
+                <AdminField label={<>
                   Followers
-                </label>
-                <input
+                </>} labelClassName="block text-[11px] font-mono tracking-wider uppercase text-ink-lighter mb-1.5"><input
                   type="number"
                   min="0"
                   value={form.followers}
                   onChange={(event) => updateForm("followers", event.target.value)}
                   className="w-full px-3 py-2 text-sm font-body text-ink bg-parchment border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors"
-                />
+                /></AdminField>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-2 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => closeModal()}
-                  className="px-3 py-2 text-sm font-body text-ink-lighter hover:text-ink transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCreateDisabled}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-terracotta hover:bg-terracotta-light disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-serif font-semibold rounded-lg transition-colors duration-150 shadow-sm"
-                >
-                  {saving ? (
-                    <>
-                      <Spinner className="h-4 w-4" />
-                      Creating...
-                    </>
-                  ) : (
-                    "Create Philosopher"
-                  )}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
-      )}
+      </AdminDialog>
     </div>
   );
 }

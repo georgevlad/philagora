@@ -8,6 +8,8 @@ import { POST_STATUSES, STANCE_CONFIG } from "@/lib/constants";
 import { buildFeedContentTypeConditions } from "@/lib/feed-utils";
 
 type AdminPostFilters = {
+  query?: string | null;
+  id?: string | null;
   philosopher?: string | null;
   status?: string | null;
   tag?: string | null;
@@ -24,6 +26,13 @@ function buildPostFilterParts(
 ) {
   const conditions: string[] = [];
   const params: Array<string | number> = [];
+
+  if (filters.id) { conditions.push("p.id = ?"); params.push(filters.id); }
+  if (filters.query) {
+    conditions.push("(p.content LIKE ? ESCAPE '\\' OR p.thesis LIKE ? ESCAPE '\\' OR p.citation_title LIKE ? ESCAPE '\\')");
+    const query = `%${filters.query.replace(/[\\%_]/g, "\\$&")}%`;
+    params.push(query, query, query);
+  }
 
   if (filters.philosopher) {
     conditions.push("p.philosopher_id = ?");
@@ -64,6 +73,8 @@ export async function GET(request: NextRequest) {
     const pageSizeParam = searchParams.get("page_size");
 
     const filters: AdminPostFilters = {
+      query: searchParams.get("q")?.slice(0, 200),
+      id: searchParams.get("id"),
       philosopher,
       status,
       tag,
@@ -263,21 +274,40 @@ export async function PATCH(request: NextRequest) {
     }
     const { id, status } = body;
 
-    if (typeof id !== "string" || !id.trim() || typeof status !== "string") {
+    if (typeof id !== "string" || !id.trim()) {
       return NextResponse.json(
-        { error: "id and status are required" },
+        { error: "id is required" },
         { status: 400 }
       );
     }
 
-    if (!POST_STATUSES.some((validStatus) => validStatus === status)) {
+    if (status !== undefined && !POST_STATUSES.some((validStatus) => validStatus === status)) {
       return NextResponse.json(
         { error: `Invalid status. Must be one of: ${POST_STATUSES.join(", ")}` },
         { status: 400 }
       );
     }
 
-    const existing = db.prepare("SELECT id FROM posts WHERE id = ?").get(id);
+    const fields = ["content", "thesis", "stance", "tag", "citation_title", "citation_source", "citation_url", "recommendation_title", "recommendation_author", "recommendation_medium"] as const;
+    const changes: Array<[string, string | null]> = [];
+    for (const field of fields) {
+      if (!Object.hasOwn(body, field)) continue;
+      const value = body[field];
+      if (typeof value !== "string" || value.length > (field === "content" ? 50000 : 3000)) {
+        return NextResponse.json({ error: `Invalid ${field}` }, { status: 400 });
+      }
+      if (field === "content" && !value.trim()) return NextResponse.json({ error: "Content cannot be empty" }, { status: 400 });
+      if (field === "stance" && !Object.hasOwn(STANCE_CONFIG, value)) return NextResponse.json({ error: "Invalid stance" }, { status: 400 });
+      if (field === "citation_url" && value.trim()) {
+        try { if (!["http:", "https:"].includes(new URL(value).protocol)) throw new Error(); }
+        catch { return NextResponse.json({ error: "Source URL must start with http:// or https://" }, { status: 400 }); }
+      }
+      changes.push([field, value]);
+    }
+    if (status !== undefined) changes.push(["status", status as string]);
+    if (!changes.length) return NextResponse.json({ error: "No changes supplied" }, { status: 400 });
+    if (body.expected_updated_at !== undefined && typeof body.expected_updated_at !== "string") return NextResponse.json({ error: "Invalid edit version" }, { status: 400 });
+    const existing = db.prepare("SELECT id, updated_at FROM posts WHERE id = ?").get(id) as { id: string; updated_at: string } | undefined;
     if (!existing) {
       return NextResponse.json(
         { error: "Post not found" },
@@ -285,9 +315,14 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    db.prepare(
-      "UPDATE posts SET status = ?, updated_at = datetime('now') WHERE id = ?"
-    ).run(status, id);
+    if (body.expected_updated_at !== undefined && body.expected_updated_at !== existing.updated_at) {
+      return NextResponse.json({ error: "This post changed in another editor. Reload the post before saving." }, { status: 409 });
+    }
+    // Column names come only from the fixed allowlist above. All values are bound.
+    const versioned = body.expected_updated_at !== undefined;
+    const changed = db.prepare(`UPDATE posts SET ${changes.map(([field]) => `${field} = ?`).join(", ")}, updated_at = ? WHERE id = ?${versioned ? " AND updated_at = ?" : ""}`)
+      .run(...changes.map(([, value]) => value), new Date(Math.max(Date.now(), Date.parse(existing.updated_at) + 1)).toISOString(), id, ...(versioned ? [body.expected_updated_at as string] : []));
+    if (!changed.changes) return NextResponse.json({ error: "This post changed in another editor. Reload the post before saving." }, { status: 409 });
 
     bustFeedCache();
     revalidatePath("/");

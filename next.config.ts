@@ -4,7 +4,7 @@ const snapshotReview =
   process.env.NODE_ENV !== "production" && process.env.AGORA_REVIEW_MODE === "snapshot";
 
 const nextConfig: NextConfig = {
-  ...(["fixtures", "snapshot"].includes(process.env.AGORA_REVIEW_MODE || "") && process.env.NODE_ENV !== "production"
+  ...(["fixtures", "snapshot", "admin"].includes(process.env.AGORA_REVIEW_MODE || "") && process.env.NODE_ENV !== "production"
     ? { distDir: `.local-review/next-${process.env.AGORA_REVIEW_PORT || "3100"}` } : {}),
   turbopack: {
     root: process.cwd(),

@@ -1,6 +1,8 @@
 "use client";
+import { AdminField } from "@/components/admin/AdminUI";
+import { useUnsavedChanges, useAdminConfirm } from "@/components/admin/AdminUI";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ContentTypeKey as TemplateKey } from "@/lib/content-templates";
 import { formatDateTime } from "@/lib/date-utils";
 
@@ -78,9 +80,11 @@ export default function TemplatesPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const loadRequest = useRef(0);
   const isHouseRules = selectedSection === "house_rules";
 
   const loadTemplateDetail = useCallback(async (key: TemplateKey) => {
+    const request = ++loadRequest.current;
     const res = await fetch(
       `/api/admin/content-templates?key=${encodeURIComponent(
         key
@@ -92,12 +96,14 @@ export default function TemplatesPage() {
     }
 
     const data = (await res.json()) as TemplateDetailResponse;
+    if (request !== loadRequest.current) return;
     setTemplateDetail(data);
     setEditorText(data.active_template?.instructions ?? data.code_default ?? "");
     setNotes("");
   }, []);
 
   const loadHouseRules = useCallback(async () => {
+    const request = ++loadRequest.current;
     const res = await fetch("/api/admin/house-rules");
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
@@ -105,12 +111,14 @@ export default function TemplatesPage() {
     }
 
     const data = (await res.json()) as HouseRulesResponse;
+    if (request !== loadRequest.current) return;
     setHouseRulesDetail(data);
     setEditorText(data.active_rules?.rules_text ?? "");
     setNotes("");
   }, []);
 
   useEffect(() => {
+    setTemplateDetail(null); setHouseRulesDetail(null); setEditorText(""); setNotes("");
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -119,11 +127,12 @@ export default function TemplatesPage() {
       ? loadHouseRules()
       : loadTemplateDetail(selectedSection as TemplateKey);
 
+    let live = true;
+    const request = loadRequest.current;
     promise
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : "Failed to load data")
-      )
-      .finally(() => setLoading(false));
+      .catch((err) => { if (live) setError(err instanceof Error ? err.message : "Failed to load data"); })
+      .finally(() => { if (live) setLoading(false); });
+    return () => { live = false; if (loadRequest.current === request) loadRequest.current = request + 1; };
   }, [isHouseRules, loadHouseRules, loadTemplateDetail, selectedSection]);
 
   const activeTemplateText = useMemo(() => {
@@ -137,6 +146,10 @@ export default function TemplatesPage() {
       ""
     );
   }, [houseRulesDetail, isHouseRules, templateDetail]);
+
+  const dirty = !loading && (editorText !== activeTemplateText || !!notes.trim());
+  const confirmDiscard = useUnsavedChanges(dirty);
+  const confirm = useAdminConfirm();
 
   const activeVersionId = isHouseRules
     ? houseRulesDetail?.active_rules?.id ?? null
@@ -201,7 +214,7 @@ export default function TemplatesPage() {
         throw new Error(errData.error ?? "Failed to save version");
       }
 
-      setSuccess("New version saved.");
+      setSuccess("New version saved as inactive. Activate it in Version History when you are ready to use it for generation.");
       await refreshCurrentSection();
       setNotes("");
     } catch (err) {
@@ -212,6 +225,7 @@ export default function TemplatesPage() {
   }
 
   async function handleActivateVersion(id: number) {
+    if (!await confirmDiscard()) return;
     setActivatingId(id);
     setError(null);
     setSuccess(null);
@@ -241,11 +255,8 @@ export default function TemplatesPage() {
   }
 
   async function handleDeactivateActive(id: number) {
-    const confirmed = window.confirm(
-      isHouseRules
-        ? "This will turn house rules off entirely. Continue?"
-        : "This will revert this template to the code default. Continue?"
-    );
+    if (!await confirmDiscard()) return;
+    const confirmed = await confirm({ title: isHouseRules ? "Turn off house rules?" : "Use the default template?", description: isHouseRules ? "New generation will no longer include these global rules." : "New generation will use the built-in template instructions.", confirmLabel: "Deactivate" });
     if (!confirmed) return;
 
     setDeactivatingId(id);
@@ -357,7 +368,8 @@ export default function TemplatesPage() {
               return (
                 <li key={item.key}>
                   <button
-                    onClick={() => setSelectedSection(item.key)}
+                    disabled={saving || !!activatingId || !!deactivatingId || !!deletingId}
+                    onClick={async () => { if (await confirmDiscard()) setSelectedSection(item.key); }}
                     className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm transition-colors duration-150 ${
                       selected
                         ? "border-border bg-parchment-dark text-ink"
@@ -374,7 +386,8 @@ export default function TemplatesPage() {
           <div className="my-4 border-t border-border-light" />
 
           <button
-            onClick={() => setSelectedSection("house_rules")}
+            disabled={saving || !!activatingId || !!deactivatingId || !!deletingId}
+            onClick={async () => { if (await confirmDiscard()) setSelectedSection("house_rules"); }}
             className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm transition-colors duration-150 ${
               selectedSection === "house_rules"
                 ? "border-border bg-parchment-dark text-ink"
@@ -475,7 +488,7 @@ export default function TemplatesPage() {
                       constraint inserted.
                     </p>
                   )}
-                  <textarea
+                  <textarea disabled={saving || !!activatingId || !!deactivatingId || !!deletingId} aria-label="Template instructions"
                     value={editorText}
                     onChange={(event) => setEditorText(event.target.value)}
                     rows={14}
@@ -486,24 +499,24 @@ export default function TemplatesPage() {
                         : "Write the template instructions..."
                     }
                   />
-                  <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                  <div className="admin-save-bar mt-3"><span className="text-xs" role="status">{dirty ? "Unsaved changes" : "No unsaved edits"}</span>
                     <div>
-                      <label className="mb-1.5 block text-[11px] font-mono uppercase tracking-wider text-ink-lighter">
+                      <AdminField label={<>
                         Notes
-                      </label>
-                      <input
+                      </>} labelClassName="mb-1.5 block text-[11px] font-mono uppercase tracking-wider text-ink-lighter"><input
+                        disabled={saving || !!activatingId || !!deactivatingId || !!deletingId}
                         value={notes}
                         onChange={(event) => setNotes(event.target.value)}
                         placeholder="Optional note: why this version was created"
                         className="w-full rounded-lg border border-border bg-parchment px-3 py-2 text-sm font-body text-ink placeholder:text-ink-lighter/60 focus:border-terracotta/50 focus:outline-none focus:ring-2 focus:ring-terracotta/30"
-                      />
+                      /></AdminField>
                     </div>
                     <button
                       onClick={handleSaveVersion}
                       disabled={saving || !editorText.trim()}
                       className="rounded-lg bg-terracotta px-5 py-2 text-sm font-body font-medium text-white transition-colors duration-150 hover:bg-terracotta-light disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      {saving ? "Saving..." : "Save New Version"}
+                      {saving ? "Saving..." : "Save inactive version"}
                     </button>
                   </div>
                 </div>

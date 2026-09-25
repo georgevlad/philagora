@@ -1,4 +1,5 @@
 "use client";
+import { useAdminConfirm } from "@/components/admin/AdminUI";
 
 import { useEffect, useState } from "react";
 import { Spinner } from "@/components/Spinner";
@@ -93,6 +94,7 @@ function formatCaller(caller: string): string {
 }
 
 export default function ApiLogsPage() {
+  const confirm = useAdminConfirm();
   const [logs, setLogs] = useState<ApiLogRow[]>([]);
   const [stats, setStats] = useState<ApiLogStats | null>(null);
   const [total, setTotal] = useState(0);
@@ -189,7 +191,7 @@ export default function ApiLogsPage() {
   }
 
   async function clearOldLogs() {
-    if (!window.confirm("Delete API log entries older than 30 days?")) {
+    if (!await confirm({ title: "Delete old API logs?", description: "This permanently deletes API log entries older than 30 days.", confirmLabel: "Delete old logs", destructive: true })) {
       return;
     }
 

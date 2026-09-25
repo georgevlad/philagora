@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Spinner } from "@/components/Spinner";
 import { STANCE_CONFIG } from "@/lib/constants";
 import { ITEM_STATUS_CLASSES, truncate, type ReviewItem } from "./types";
@@ -5,7 +6,7 @@ import { ITEM_STATUS_CLASSES, truncate, type ReviewItem } from "./types";
 export function SummaryTile({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-lg border border-border bg-white px-4 py-3">
-      <p className="text-xs font-mono uppercase tracking-[0.25em] text-ink-lighter mb-1">{label}</p>
+      <p className="text-xs font-body text-ink-lighter mb-1">{label}</p>
       <p className="font-serif text-2xl font-bold text-ink">{value}</p>
     </div>
   );
@@ -73,6 +74,7 @@ export function ReviewGroup({
                 <div className="flex items-start gap-4 min-w-0 flex-1">
                   <input
                     type="checkbox"
+                    aria-label={`Select draft by ${item.philosopher_name}`}
                     checked={selectedDraftIds.includes(item.post_id)}
                     disabled={!isDraft || actionsDisabled}
                     onChange={() => onToggleSelection(item.post_id)}
@@ -89,11 +91,7 @@ export function ReviewGroup({
                       </span>
                       <span
                         className="inline-flex items-center px-2.5 py-1 text-[11px] font-mono tracking-wider uppercase rounded-full"
-                        style={{
-                          backgroundColor: stance.bg,
-                          color: stance.color,
-                          border: `1px solid ${stance.border}`,
-                        }}
+                        data-admin-tag=""
                       >
                         {stance.label}
                       </span>
@@ -171,10 +169,11 @@ export function ReviewGroup({
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0 lg:pl-4">
+                  <Link className="admin-button" href={`/admin/posts?post=${encodeURIComponent(item.post_id)}`}>Edit full post</Link>
                   <button
                     onClick={() => void onPublish(item)}
                     disabled={!isDraft || actionsDisabled}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-mono tracking-wide rounded-full text-white bg-[#276749] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-mono tracking-wide rounded-full text-white bg-terracotta disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isBusy ? <><Spinner /> Working</> : "Publish"}
                   </button>

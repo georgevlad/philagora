@@ -1,6 +1,7 @@
 ﻿@import "tailwindcss";
 
-@theme inline {
+/* Color utilities use variables so the admin can supply its own palette. */
+@theme {
   --color-parchment: #F4EFE6;
   --color-parchment-dark: #EEE6D8;
   --color-parchment-deeper: #E4D8C6;
@@ -30,7 +31,9 @@
   --color-classical: #3B6E8A;
 
   --color-warm-gold: #B08A49;
+}
 
+@theme inline {
   --font-source-serif: var(--font-lora);
   --font-display: var(--font-cormorant);
   --font-serif: var(--font-lora);

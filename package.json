@@ -17,6 +17,7 @@
     "test:coverage": "vitest run --coverage",
     "review:agora": "tsx scripts/agora-review.ts",
     "review:snapshot": "tsx scripts/snapshot-review.ts",
+    "review:admin": "tsx scripts/admin-ux-preview.ts",
     "test:browser": "playwright test"
   },
   "dependencies": {

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getIdentityFromCookies, isAdmin } from "@/lib/auth";
 import { AdminLogoutButton } from "./AdminLogoutButton";
 import { AdminNav } from "./AdminNav";
+import { AdminUIProvider } from "@/components/admin/AdminUI";
+import "./admin.css";
 
 export const metadata: Metadata = {
   robots: {
@@ -25,23 +27,19 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-parchment flex">
+    <div className="admin-theme admin-shell">
+      <AdminUIProvider>
       {/* Sidebar */}
-      <aside className="w-56 shrink-0 border-r border-border bg-parchment-dark/40 flex flex-col">
-        <div className="px-5 py-5 border-b border-border">
+      <aside className="admin-sidebar">
+        <div className="admin-brand">
           <Link href="/admin" className="block">
-            <h1 className="font-serif text-lg font-bold text-ink">
-              Philagora
-            </h1>
-            <p className="text-[10px] font-mono text-ink-lighter tracking-widest uppercase mt-0.5">
-              Admin Panel
-            </p>
+            <strong>Philagora</strong><span>Editorial workspace</span>
           </Link>
         </div>
 
         <AdminNav />
 
-        <div className="px-5 py-4 border-t border-border flex items-center justify-between">
+        <div className="admin-sidebar-footer">
           <Link
             href="/"
             className="text-sm text-ink-lighter hover:text-terracotta transition-colors font-mono"
@@ -53,9 +51,10 @@ export default async function AdminLayout({
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 min-w-0 overflow-auto">
-        <div className="max-w-5xl mx-auto px-6 py-8">{children}</div>
+      <main className="admin-main" id="admin-main">
+        {children}
       </main>
+      </AdminUIProvider>
     </div>
   );
 }

@@ -126,7 +126,7 @@ export default function RootLayout({
         <GoogleAnalytics />
         <ComingSoonToastProvider>
           {process.env.NODE_ENV === "development" &&
-          ["fixtures", "snapshot"].includes(process.env.AGORA_REVIEW_MODE || "") ? (
+          ["fixtures", "snapshot", "admin"].includes(process.env.AGORA_REVIEW_MODE || "") ? (
             <LocalReviewBanner />
           ) : (
             <DevelopmentBanner />

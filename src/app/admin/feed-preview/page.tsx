@@ -384,10 +384,7 @@ export default function FeedPreviewPage() {
                             <td className="whitespace-nowrap px-3 py-3">
                               <span
                                 className="inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-mono"
-                                style={{
-                                  backgroundColor: `${FORMAT_COLORS[format] || "#A88C6D"}20`,
-                                  color: FORMAT_COLORS[format] || "#A88C6D",
-                                }}
+                                data-admin-tag=""
                               >
                                 {format}
                               </span>
@@ -395,11 +392,7 @@ export default function FeedPreviewPage() {
                             <td className="whitespace-nowrap px-3 py-3">
                               <span
                                 className="inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-mono"
-                                style={{
-                                  color: stanceConfig?.color || "#58544E",
-                                  backgroundColor: stanceConfig?.bg || "#E7E2DB",
-                                  borderColor: stanceConfig?.border || "#CFC4B6",
-                                }}
+                                data-admin-tag=""
                               >
                                 {stanceConfig?.label || post.stance}
                               </span>
