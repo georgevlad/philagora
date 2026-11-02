@@ -33,9 +33,11 @@ type Draft = {
 export function QuestionComposer({
   philosophers,
   viewerKey,
+  hidePublicPrivacyNote = false,
 }: {
   philosophers: Philosopher[];
   viewerKey: string;
+  hidePublicPrivacyNote?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -48,6 +50,7 @@ export function QuestionComposer({
     selectedIds: [],
   });
   const [draft, setDraft] = useState(initialDraft.current);
+  const showPrivacyNote = draft.visibility === "private" || !hidePublicPrivacyNote;
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
@@ -378,7 +381,7 @@ export function QuestionComposer({
               value={draft.question}
               onChange={(e) => update({ question: e.target.value })}
               disabled={!ready || locked}
-              aria-describedby="question-privacy question-count question-error"
+              aria-describedby={`${showPrivacyNote ? "question-privacy " : ""}question-count question-error`}
             />
           </div>
           <div className="agora-composer-actions">
@@ -432,11 +435,13 @@ export function QuestionComposer({
             )}
           </div>
         </div>
-        <p id="question-privacy" className="agora-meta agora-privacy">
-          {draft.visibility === "private"
-            ? "Only you and Philagora administrators can read this conversation."
-            : `Everyone can read this conversation. You’ll appear as ${draft.askedBy.trim() || "Anonymous"}.`}
-        </p>
+        {showPrivacyNote && (
+          <p id="question-privacy" className="agora-meta agora-privacy">
+            {draft.visibility === "private"
+              ? "Only you and Philagora administrators can read this conversation."
+              : `Everyone can read this conversation. You’ll appear as ${draft.askedBy.trim() || "Anonymous"}.`}
+          </p>
+        )}
         <p
           id="question-error"
           ref={errorMessage}

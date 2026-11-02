@@ -75,7 +75,7 @@ export default async function HomePage({
             </p>
             <p className="agora-hero-invitation">Ask freely. No account needed.</p>
           </div>
-          <QuestionComposer philosophers={philosophers} viewerKey={viewerKey} />
+          <QuestionComposer philosophers={philosophers} viewerKey={viewerKey} hidePublicPrivacyNote />
         </section>
         <div className="agora-feature-grid">
           <section id="agora">
