@@ -170,6 +170,7 @@ CREATE TABLE IF NOT EXISTS agora_job_steps (
   attempts INTEGER NOT NULL DEFAULT 0 CHECK(attempts BETWEEN 0 AND 3),
   source_material TEXT,
   template TEXT,
+  rejected_output TEXT,
   PRIMARY KEY(thread_id, step_key)
 );
 

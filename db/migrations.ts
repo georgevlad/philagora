@@ -180,6 +180,16 @@ CREATE INDEX IF NOT EXISTS idx_admin_generation_runs_created ON admin_generation
       if (result.preservedCustom.length) console.info("[Shortening] Preserved custom templates:", result.preservedCustom.join(", "));
     },
   },
+  {
+    version: 23,
+    name: "agora_synthesis_revision_context",
+    migrate: (db) => {
+      const columns = db.prepare("PRAGMA table_info(agora_job_steps)").all() as { name: string }[];
+      if (!columns.some((column) => column.name === "rejected_output")) {
+        db.exec("ALTER TABLE agora_job_steps ADD COLUMN rejected_output TEXT");
+      }
+    },
+  },
   // Future migrations go here
 ];
 

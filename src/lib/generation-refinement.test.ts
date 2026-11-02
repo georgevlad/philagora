@@ -13,6 +13,8 @@ import { generateContent, generateSynthesis } from "./generation-service";
 import { withAgoraModelCall } from "./agora-model-call";
 import { getAgoraResponseTemplate, getSynthesisTemplateForType } from "./content-templates";
 import { chooseVariedLength, countWords } from "./content-lengths";
+import { runAgoraGeneration } from "./agora-generation";
+import { enqueueAgoraJob, getAgoraJob, snapshotParticipants } from "./agora-jobs";
 
 const words = (n: number) => Array(n).fill("word").join(" ");
 const response = (data: object) => ({ content: [{ type: "text", text: JSON.stringify(data) }], stop_reason: "end_turn", usage: { input_tokens: 100, output_tokens: 80 } });
@@ -23,6 +25,50 @@ beforeEach(() => {
 afterEach(() => db.close());
 
 describe("effective prompts and output length", () => {
+  it.each(["advice", "conceptual", "debate"] as const)("durably revises rejected %s synthesis across worker runs within three calls", async (mode) => {
+    const id = `revision-${mode}`;
+    db.prepare("INSERT INTO agora_threads (id, question, question_type, visibility, user_id) VALUES (?, ?, ?, ?, ?)")
+      .run(id, "A private question?", mode, "public", null);
+    for (const [order, pid] of ["kant", "camus"].entries()) {
+      db.prepare("INSERT INTO agora_thread_philosophers VALUES (?, ?)").run(id, pid);
+      db.prepare("INSERT INTO agora_responses (id, thread_id, philosopher_id, posts, sort_order) VALUES (?, ?, ?, ?, ?)")
+        .run(`${id}-${pid}`, id, pid, '["Keep this saved answer."]', order);
+    }
+    enqueueAgoraJob(db, id, {
+      version: 1, question: "A private question?", askedBy: "Anonymous", questionType: mode,
+      recommendationsEnabled: false, recommendationHint: null, participants: snapshotParticipants(db, ["kant", "camus"]),
+      visibility: "public", userId: null, article: null, parent: null,
+    });
+    const section = mode === "advice" ? "tensions" : mode === "conceptual" ? "frameworkComparison" : "commonGround";
+    const drafts = [54, 55, 40].map(n => ({ [section]: [words(n)] }));
+    for (const draft of drafts) provider.mockResolvedValueOnce(response(draft));
+    const savedAnswers = db.prepare("SELECT * FROM agora_responses WHERE thread_id = ?").all(id);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      db.prepare("UPDATE agora_jobs SET next_attempt_at = 0 WHERE thread_id = ?").run(id);
+      await runAgoraGeneration(id);
+      expect(provider).toHaveBeenCalledTimes(attempt + 1);
+      expect(getAgoraJob(db, id)?.state).toBe(attempt === 2 ? "complete" : "retry_wait");
+      expect(db.prepare("SELECT attempts, rejected_output FROM agora_job_steps WHERE thread_id = ? AND step_key = 'synthesis'").get(id))
+        .toEqual({ attempts: attempt + 1, rejected_output: attempt === 2 ? null : JSON.stringify(drafts[attempt]) });
+      const request = provider.mock.calls[attempt][0];
+      expect(request.system).toContain("Draft toward 40 words total");
+      expect(provider.mock.calls[attempt][1]).toEqual({ maxRetries: 0, timeout: 90_000 });
+      if (attempt) {
+        expect(request.messages[0]).toEqual(provider.mock.calls[0][0].messages[0]);
+        expect(request.messages[1]).toEqual({ role: "assistant", content: JSON.stringify(drafts[attempt - 1]) });
+        expect(request.messages[2].content).toContain(`${attempt === 1 ? 54 : 55} words across all fields`);
+        expect(request.messages[2].content).toContain("conditions, exceptions, attribution, and uncertainty");
+      }
+    }
+    expect(db.prepare("SELECT * FROM agora_responses WHERE thread_id = ?").all(id)).toEqual(savedAnswers);
+    expect(db.prepare("SELECT sections FROM agora_synthesis_v2 WHERE thread_id = ?").get(id))
+      .toEqual({ sections: JSON.stringify(drafts[2]) });
+    expect(db.prepare("SELECT success FROM api_call_log ORDER BY id").all()).toEqual([{ success: 0 }, { success: 0 }, { success: 1 }]);
+    expect(JSON.stringify(db.prepare("SELECT * FROM generation_log").all())).not.toContain(words(54));
+    await runAgoraGeneration(id);
+    expect(provider).toHaveBeenCalledTimes(3);
+  });
+
   it("checks optional recommendation prose separately", async () => {
     provider.mockResolvedValue(response({ posts: [words(60)], recommendation: { reason: words(21) } }));
     expect(await withAgoraModelCall(() => generateContent("kant", "agora_response", "A question.")))

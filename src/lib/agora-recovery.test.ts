@@ -87,6 +87,38 @@ describe("durable missing-work generation", () => {
     expect(getAgoraJob(db,id)?.state).toBe("retry_wait");
     expect(capture(id).synthesis).toBeUndefined();
   });
+  it("retains private synthesis revision context through provider failure and stops at the budget", async () => {
+    const id = create();
+    const draft = JSON.stringify({ tensions: ["PRIVATE rejected draft"] });
+    vi.mocked(generateSynthesis)
+      .mockResolvedValueOnce({ ...failure(), errorCode: "invalid_content", rawOutput: draft })
+      .mockResolvedValue(failure());
+    for (let attempt = 0; attempt < 3; attempt++) {
+      due(id); await runAgoraGeneration(id);
+      expect(vi.mocked(generateSynthesis).mock.calls[attempt][3]).toBe(attempt ? draft : undefined);
+      expect(db.prepare("SELECT rejected_output FROM agora_job_steps WHERE thread_id = ? AND step_key = 'synthesis'").get(id))
+        .toEqual({ rejected_output: draft });
+    }
+    expect(getAgoraJob(db, id)?.state).toBe("exhausted");
+    expect(generateContent).toHaveBeenCalledTimes(2);
+    expect(JSON.stringify(getAgoraRecovery(db, id))).not.toContain("PRIVATE");
+    expect(JSON.stringify(db.prepare("SELECT * FROM generation_log").all())).not.toContain("PRIVATE");
+    due(id); await runAgoraGeneration(id);
+    expect(generateSynthesis).toHaveBeenCalledTimes(3);
+  });
+
+  it("fences rejected drafts from an expired synthesis worker", async () => {
+    const id = create(); saved(id); saved(id, "nietzsche", 1);
+    let release!: (value: Awaited<ReturnType<typeof generateSynthesis>>) => void;
+    vi.mocked(generateSynthesis).mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
+    const stale = runAgoraGeneration(id);
+    due(id); await runAgoraGeneration(id);
+    release({ ...failure(), errorCode: "invalid_content" });
+    await stale;
+    expect(getAgoraJob(db, id)?.state).toBe("complete");
+    expect(db.prepare("SELECT rejected_output FROM agora_job_steps WHERE thread_id = ? AND step_key = 'synthesis'").get(id))
+      .toEqual({ rejected_output: null });
+  });
   it("retains existing synthesis even when answers were missing and status said complete", async () => {
     const id=create();saved(id);savedSynthesis(id);db.prepare("UPDATE agora_threads SET status = 'complete' WHERE id = ?").run(id);
     const original=capture(id);await runAgoraGeneration(id);

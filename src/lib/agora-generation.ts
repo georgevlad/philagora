@@ -108,20 +108,20 @@ export async function runAgoraGeneration(threadId: string): Promise<void> {
         : getAgoraResponseTemplate(context.questionType, context.recommendationsEnabled, context.recommendationHint, alreadyRecommended);
       // Consume the budget BEFORE calling the external provider. A crash cannot reset it.
       const step = fenced(() => {
-        const saved = db.prepare("SELECT attempts, source_material, template FROM agora_job_steps WHERE thread_id = ? AND step_key = ?")
-          .get(threadId, key) as { attempts: number; source_material: string | null; template: string | null } | undefined;
+        const saved = db.prepare("SELECT attempts, source_material, template, rejected_output FROM agora_job_steps WHERE thread_id = ? AND step_key = ?")
+          .get(threadId, key) as { attempts: number; source_material: string | null; template: string | null; rejected_output: string | null } | undefined;
         if (!saved) throw new Error("Missing job step");
         if (saved.attempts >= AGORA_MAX_ATTEMPTS) return null;
         db.prepare(`UPDATE agora_job_steps SET attempts = attempts + 1, source_material = COALESCE(source_material, ?), template = COALESCE(template, ?) WHERE thread_id = ? AND step_key = ?`)
           .run(source, template, threadId, key);
-        return { attempts: saved.attempts + 1, source: saved.source_material ?? source, template: saved.template ?? template };
+        return { attempts: saved.attempts + 1, source: saved.source_material ?? source, template: saved.template ?? template, rejectedOutput: saved.rejected_output ?? undefined };
       });
       if (step === undefined) return;
       if (!step) { finish("exhausted"); return; }
       let succeeded = false;
       try {
         const outcome = await withAgoraModelCall(() => synthesisStep
-          ? generateSynthesis("agora_synthesis", step.source, step.template)
+          ? generateSynthesis("agora_synthesis", step.source, step.template, step.rejectedOutput)
           : generateContent(pid!, "agora_response", step.source, undefined, step.template));
         if (!ownsLease()) return;
         const result = outcome.success ? outcome.data as { posts?: unknown; recommendation?: unknown } : null;
@@ -135,10 +135,18 @@ export async function runAgoraGeneration(threadId: string): Promise<void> {
           db.prepare(`INSERT INTO generation_log (philosopher_id, content_type, system_prompt_id, user_input, raw_output, status) VALUES (?, ?, ?, ?, ?, ?)`)
             .run(pid, synthesisStep ? "synthesis" : "agora_response", outcome.systemPromptId,
               "[Agora job content omitted]", "[Agora job content omitted]", succeeded ? "generated" : "rejected");
+          // Private revision context belongs to the fenced job, never logs or public state.
+          // Retain it through transient provider failures so the next attempt can still revise.
+          if (synthesisStep && !outcome.success && outcome.errorCode === "invalid_content") {
+            db.prepare("UPDATE agora_job_steps SET rejected_output = ? WHERE thread_id = ? AND step_key = ?")
+              .run(outcome.rawOutput, threadId, key);
+          }
           if (!succeeded) return;
           if (synthesisStep) {
             db.prepare("INSERT INTO agora_synthesis_v2 (thread_id, synthesis_type, sections) VALUES (?, ?, ?) ON CONFLICT(thread_id) DO NOTHING")
               .run(threadId, context.questionType, JSON.stringify(result));
+            db.prepare("UPDATE agora_job_steps SET rejected_output = NULL WHERE thread_id = ? AND step_key = ?")
+              .run(threadId, key);
           } else {
             db.prepare(`INSERT INTO agora_responses (id, thread_id, philosopher_id, posts, sort_order, recommendation)
               SELECT ?, ?, ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM agora_responses WHERE thread_id = ? AND philosopher_id = ?)`)

@@ -31,7 +31,9 @@ export function getLengthGuidance(key: ContentTypeKey, target?: TargetLength): s
   if (!budget) return "Follow the length specified in the task.";
   const field = key.endsWith("_synthesis") ? "across all text fields and list items combined, not per section"
     : key === "agora_response" ? "across all posts combined, not per post" : "in the content field";
-  return `LENGTH CONTRACT: Aim for ${budget.min}-${budget.max} words ${field}; maximum ${budget.max}. A shorter complete thought is welcome; do not pad to reach the minimum. Use natural sentence lengths, not compressed run-on sentences. Metadata fields do not count toward this limit.${key === "agora_response" ? " The posts field must always be a JSON array of strings, even for one post: {\"posts\":[\"Your response\"]}. Default to one post. Use at most two only when the second adds a distinct point within the same total budget." : ""}`;
+  const headroom = key.endsWith("_synthesis")
+    ? ` Draft toward ${Math.floor((budget.min + budget.max) / 2)} words total to leave room below the hard maximum. Count names and every populated section; leave optional sections empty instead of filling the budget.` : "";
+  return `LENGTH CONTRACT: Aim for ${budget.min}-${budget.max} words ${field}; maximum ${budget.max}. A shorter complete thought is welcome; do not pad to reach the minimum. Use natural sentence lengths, not compressed run-on sentences. Metadata fields do not count toward this limit.${headroom}${key === "agora_response" ? " The posts field must always be a JSON array of strings, even for one post: {\"posts\":[\"Your response\"]}. Default to one post. Use at most two only when the second adds a distinct point within the same total budget." : ""}`;
 }
 
 export function countWords(text: string): number {

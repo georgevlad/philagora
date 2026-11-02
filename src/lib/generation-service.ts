@@ -675,7 +675,8 @@ export async function generateEditorialContent(
 export async function generateSynthesis(
   synthesisType: "debate_synthesis" | "agora_synthesis",
   sourceMaterial: string,
-  templateOverride?: string
+  templateOverride?: string,
+  previousRejectedOutput?: string,
 ): Promise<GenerationOutcome> {
   const client = getAnthropicClient();
   if (!client) return { success: false, error: "AI generation is not configured.", rawOutput: "", systemPromptId: null };
@@ -689,6 +690,17 @@ export async function generateSynthesis(
     lengthGuidance,
   ].filter(Boolean).join("\n\n");
   const messages: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: sourceMaterial }];
+  const requestRevision = (draft: string, violation: string) => {
+    messages.push({ role: "assistant", content: draft }, { role: "user", content:
+      `Revise the complete JSON synthesis. ${violation} ${lengthGuidance} Keep each speaker's conditions, exceptions, attribution, and uncertainty. Do not broaden agreement to save words. Remove recap and repeated points across fields. Empty optional sections are valid. Do not add new facts or clip sentences.` });
+  };
+  if (previousRejectedOutput) {
+    // Recompute feedback locally; never replay provider errors as instructions.
+    try {
+      const violation = getLengthViolation(synthesisType, parseJsonResponse(previousRejectedOutput));
+      if (violation) requestRevision(previousRejectedOutput, violation);
+    } catch { /* An unusable saved draft must not prevent a fresh attempt. */ }
+  }
   // Durable Agora owns every retry; ordinary editorial generation may revise once.
   const attempts = agoraModelCall.getStore() === "durable" ? 1 : 2;
   let rawOutput = "";
@@ -712,8 +724,7 @@ export async function generateSynthesis(
       return { success: true, data, rawOutput, systemPromptId: null };
     } catch (error) {
       if (violation && attempt + 1 < attempts) {
-        messages.push({ role: "assistant", content: rawOutput }, { role: "user", content:
-          `Revise the complete JSON synthesis. ${violation} ${lengthGuidance} Keep each speaker's conditions, exceptions, attribution, and uncertainty. Do not broaden agreement to save words. Remove recap and repeated points across fields. Empty optional sections are valid. Do not add new facts or clip sentences.` });
+        requestRevision(rawOutput, violation);
         continue;
       }
       if (error instanceof ModelResponseError) return { success: false, error: error.message, errorCode: error.code, rawOutput, systemPromptId: null };

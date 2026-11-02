@@ -42,6 +42,23 @@ describe("migration system", () => {
     db = createFreshDb();
   });
 
+  it("adds synthesis revision context to existing steps without changing budgets or snapshots", () => {
+    db.exec("ALTER TABLE agora_job_steps DROP COLUMN rejected_output");
+    db.prepare("INSERT INTO agora_threads (id, question) VALUES (?, ?)").run("revision", "Question");
+    db.prepare("INSERT INTO agora_jobs (thread_id, context_json, state, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+      .run("revision", "{}", "exhausted", 1, 1);
+    db.prepare("INSERT INTO agora_job_steps (thread_id, step_key, attempts, source_material, template) VALUES (?, ?, ?, ?, ?)")
+      .run("revision", "synthesis", 3, "Frozen source", "Frozen template");
+    const migrate = MIGRATIONS.find(migration => migration.version === 23)!;
+    migrate.migrate(db, {});
+    migrate.migrate(db, {});
+    expect(db.prepare("SELECT * FROM agora_job_steps WHERE thread_id = ?").get("revision")).toEqual({
+      thread_id: "revision", step_key: "synthesis", attempts: 3,
+      source_material: "Frozen source", template: "Frozen template", rejected_output: null,
+    });
+    expect(db.prepare("SELECT state FROM agora_jobs WHERE thread_id = ?").get("revision")).toEqual({ state: "exhausted" });
+  });
+
   describe("version tracking", () => {
     it("creates _schema_meta table if it does not exist", () => {
       ensureMetaTable(db);
