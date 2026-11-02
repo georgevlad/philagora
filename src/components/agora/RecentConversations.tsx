@@ -39,8 +39,8 @@ export function RecentConversations({ viewerKey }: { viewerKey: string }) {
     <>
       {recent && (
         <aside className="agora-resume">
-          <span>Your conversation is saved.</span>
-          <Link href={`/agora/${recent}`}>Return to your conversation →</Link>
+          <span>Recently viewed</span>
+          <Link href={`/agora/${recent}`}>Continue reading →</Link>
         </aside>
       )}
       {userId && loadedUserId === userId && threads.length > 0 && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -8,7 +8,8 @@ import type { FeedPost } from "@/lib/types";
 import { PhilosopherLink } from "./public/PhilosopherLink";
 import { SourceCitation } from "./public/SourceCitation";
 import { BookmarkIcon, HeartIcon } from "./Icons";
-import { POST_CONTENT_TRUNCATE_LIMIT } from "@/lib/constants";
+import { getReadingPreview } from "@/lib/reading-preview";
+import { ExpandableContent } from "./public/ExpandableContent";
 import { timeAgo } from "@/lib/date-utils";
 import { showToast } from "./ComingSoonToast";
 import { useSession } from "@/lib/auth-client";
@@ -73,8 +74,6 @@ export function PostCard({
   isNew?: boolean;
   compact?: boolean;
 }) {
-  const contentId = useId();
-  const [showAll, setShowAll] = useState(false);
   const [failedThumbnail, setFailedThumbnail] = useState<string>();
   const [failedArtwork, setFailedArtwork] = useState<string>();
   const isAphorism =
@@ -82,20 +81,10 @@ export function PostCard({
   const isQuip = post.tag === "Glint";
   const isArt = post.sourceType === "art_commentary";
   const isHistorical = post.sourceType === "historical_event";
-  const truncate =
-    !expanded &&
-    !showAll &&
-    !isQuip &&
-    post.content.length > POST_CONTENT_TRUNCATE_LIMIT + 50;
-  const content = truncate
-    ? post.content
-        .slice(0, POST_CONTENT_TRUNCATE_LIMIT)
-        .replace(/\s+\S*$/, "") + "…"
-    : post.content;
+  const preview = getReadingPreview([post.content], 80);
   const title =
     post.thesis ||
     (expanded ? `${post.philosopherName} · ${post.tag || "A reflection"}` : "");
-  const Title = expanded ? "h1" : "h2";
   const recommendation = [
     post.recommendationTitle,
     post.recommendationAuthor,
@@ -122,12 +111,7 @@ export function PostCard({
           {post.likes >= 50 && <span className="agora-badge">Trending</span>}
         </div>
       </header>
-      {title &&
-        (!isQuip || title.trim() !== post.content.trim() || expanded) && (
-          <Title className="public-post-title">
-            {expanded ? title : <Link href={`/post/${post.id}`}>{title}</Link>}
-          </Title>
-        )}
+      {expanded && <h1 className="public-post-title">{title}</h1>}
       {post.replyTo && (
         <div className="public-reply-context">
           <Link href={`/post/${post.replyTo}`}>
@@ -183,19 +167,10 @@ export function PostCard({
           <p>{post.eventContext}</p>
         </details>
       )}
-      <div className="public-prose" id={contentId}>
-        {parseInlineFormatting(content)}
-      </div>
-      {!expanded && post.content.length > POST_CONTENT_TRUNCATE_LIMIT + 50 && !isQuip && (
-        <button
-          className="agora-text-link"
-          aria-expanded={showAll}
-          aria-controls={contentId}
-          onClick={() => setShowAll(!showAll)}
-        >
-          {showAll ? "Show less" : "Read more"}
-        </button>
-      )}
+      <ExpandableContent className="public-prose" collapsible={!expanded && !isQuip && preview.truncated}
+        preview={parseInlineFormatting(preview.paragraphs.join("\n\n"))}>
+        {parseInlineFormatting(post.content)}
+      </ExpandableContent>
       {post.recommendationTitle && (
         <aside className="public-source">
           <p className="agora-eyebrow">

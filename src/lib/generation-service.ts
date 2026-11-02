@@ -4,15 +4,20 @@
  */
 
 import { getDb } from "@/lib/db";
+import { agoraModelCall } from "@/lib/agora-model-call";
+import { getLengthViolation } from "@/lib/content-lengths";
+import { PHILOSOPHER_GENERATION_RULES, EDITORIAL_EVIDENCE_RULES, SYNTHESIS_FIDELITY_RULES } from "@/lib/generation-policy";
 import { safeJsonParse } from "@/lib/json-utils";
 import {
   createMessage,
   getAnthropicClient,
   parseJsonResponse,
+  ModelResponseError,
 } from "@/lib/anthropic-utils";
 import {
   getActiveHouseRules,
   getActiveTemplate,
+  getSynthesisTemplateForType,
   getLengthGuidance,
   type ContentTypeKey,
   type TargetLength,
@@ -36,13 +41,6 @@ import type { AgoraQuestionType, Stance } from "@/lib/types";
 
 const DEFAULT_MAX_TOKENS = 1024;
 const TEMPERATURE = 0.8; // Tunable — higher = more creative variation
-
-/** Hard-cap tokens by target length to enforce brevity at the API level. */
-const LENGTH_MAX_TOKENS: Record<string, number> = {
-  short: 384,
-  medium: 1024,
-  long: 1536,
-};
 
 const SYNTHESIS_TEMPERATURE = 0.4; // Lower for precision and consistency
 const SYNTHESIS_MAX_TOKENS = 2048; // Synthesis output is longer
@@ -84,6 +82,7 @@ export interface GenerationResult {
 export interface GenerationError {
   success: false;
   error: string;
+  errorCode?: ModelResponseError["code"];
   rawOutput: string;
   systemPromptId: number | null;
 }
@@ -179,7 +178,7 @@ export async function classifyAgoraQuestion(
    - "conceptual": big ideas, definitions, meaning, "what is...", "why does...", "how do X and Y relate", explorations of abstract concepts
    - "debate": contested issues with clear sides, policy questions, ethical dilemmas about society, "is it right to...", "should society..."
 
-2. recommendations_appropriate: boolean - would a book/film/essay recommendation genuinely enrich the response to this question? Be selective - roughly 30-40% of questions warrant recommendations. Good signals: existential themes, questions about meaning/suffering/identity/creativity, philosophical traditions. Bad signals: very specific practical decisions, time-sensitive dilemmas, narrow tactical questions.
+2. recommendations_appropriate: boolean - would a book/film/essay recommendation genuinely enrich the response to this question? Judge this question on its merits, without a target percentage. An explicit request for a cultural recommendation warrants a recommendation. Good signals: existential themes, questions about meaning/suffering/identity/creativity, philosophical traditions. Bad signals: very specific practical decisions, time-sensitive dilemmas, narrow tactical questions.
 
 3. recommendation_hint: if recommendations_appropriate is true, a brief hint about what kind of works would fit (e.g. "existential literature, absurdist film", "Stoic texts, mindfulness guides"). null if not appropriate.
 
@@ -210,7 +209,7 @@ RESPOND WITH VALID JSON ONLY:
       questionType: isQuestionType(parsed.questionType)
         ? parsed.questionType
         : DEFAULT_QUESTION_CLASSIFICATION.questionType,
-      recommendationsAppropriate: Boolean(parsed.recommendationsAppropriate),
+      recommendationsAppropriate: parsed.recommendationsAppropriate === true,
       recommendationHint:
         typeof parsed.recommendationHint === "string" && parsed.recommendationHint.trim().length > 0
           ? parsed.recommendationHint.trim()
@@ -224,12 +223,38 @@ RESPOND WITH VALID JSON ONLY:
 
 // ── Philosopher content generation ───────────────────────────────────
 
+type OutputValidator = (data: Record<string, unknown>) => void;
+
+function parseWorkshopResponse(rawOutput: string, stopReason: string | null, validateOutput?: OutputValidator) {
+  if (stopReason === "max_tokens") {
+    throw new ModelResponseError("truncated", "The model response was cut off before it finished. Try a narrower request.");
+  }
+  let data: Record<string, unknown>;
+  try { data = parseJsonResponse(rawOutput); }
+  catch { throw new ModelResponseError("invalid_json", "The model returned text in an unreadable JSON format. Try generating again."); }
+  validateOutput?.(data);
+  return data;
+}
+
+/** Normalize harmless shape slips without rewriting or truncating any prose. */
+function normalizeContentShape(key: ContentTypeKey, data: Record<string, unknown>): Record<string, unknown> {
+  if (key === "agora_response" && typeof data.posts === "string") {
+    return { ...data, posts: [data.posts] };
+  }
+  const feedTypes: ContentTypeKey[] = ["news_reaction", "quip", "cross_philosopher_reply", "timeless_reflection", "historical_reaction", "everyday_reaction", "cultural_recommendation", "art_commentary"];
+  if (feedTypes.includes(key) && typeof data.stance === "string" && !VALID_STANCES.has(data.stance as Stance)) {
+    return { ...data, stance: key === "cultural_recommendation" ? "recommends" : key === "quip" ? "quips" : "observes" };
+  }
+  return data;
+}
+
 export async function generateContent(
   philosopherId: string,
   contentTypeKey: ContentTypeKey,
   sourceMaterial: string,
   targetLength?: TargetLength,
-  templateOverride?: string
+  templateOverride?: string,
+  validateOutput?: OutputValidator,
 ): Promise<GenerationOutcome> {
   const db = getDb();
   const { generationModel } = getGenerationModels();
@@ -253,7 +278,7 @@ export async function generateContent(
   // 2. Fetch the active system prompt
   const activePrompt = db
     .prepare(
-      "SELECT id, system_prompt_text, prompt_version FROM system_prompts WHERE philosopher_id = ? AND is_active = 1 LIMIT 1"
+      "SELECT id, system_prompt_text, prompt_version FROM system_prompts WHERE philosopher_id = ? AND is_active = 1 ORDER BY prompt_version DESC, id DESC LIMIT 1"
     )
     .get(philosopherId) as PromptRow | undefined;
 
@@ -269,57 +294,33 @@ export async function generateContent(
   // 3. Get the content template (DB-first, code fallback)
   const templateInstructions = templateOverride ?? getActiveTemplate(contentTypeKey);
 
-  // 4. Parse core principles for context
-  let principlesText = "";
-  try {
-    const principles = JSON.parse(philosopher.core_principles!) as {
-      title: string;
-      description: string;
-    }[];
-    principlesText = principles
-      .map((p) => `- ${p.title}: ${p.description}`)
-      .join("\n");
-  } catch {
-    principlesText = "(no principles available)";
-  }
-
-  // 5. Compose the system message: persona prompt + metadata + template
-  //    Substitute {LENGTH_GUIDANCE} if the template uses variable lengths
+  // The reviewed persona owns doctrine; public profile summaries are not injected
+  // a second time. Old template source placeholders refer to user data only.
   const lengthGuidance = getLengthGuidance(contentTypeKey, targetLength);
   const instructions = templateInstructions
-    .replace("{LENGTH_GUIDANCE}", lengthGuidance)
-    .replace("{SOURCE_MATERIAL}", sourceMaterial);
+    .replaceAll("{LENGTH_GUIDANCE}", lengthGuidance)
+    .replaceAll("{SOURCE_MATERIAL}", "See source_material in the user message.");
   const houseRules = getActiveHouseRules();
-  const houseRulesBlock = houseRules ? `\n---\n\n${houseRules}\n` : "";
+  const systemMessage = [
+    PHILOSOPHER_GENERATION_RULES,
+    activePrompt.system_prompt_text,
+    `PHILOSOPHER METADATA: ${philosopher.name}; ${philosopher.tradition}; ${philosopher.era ?? ""}`,
+    houseRules,
+    instructions,
+    lengthGuidance,
+  ].filter(Boolean).join("\n\n---\n\n");
 
-  const systemMessage = `${activePrompt.system_prompt_text}
-
----
-
-PHILOSOPHER METADATA:
-Name: ${philosopher.name}
-Tradition: ${philosopher.tradition}
-Era: ${philosopher.era!}
-Core Principles:
-${principlesText}
-${houseRulesBlock}
-
----
-
-${instructions}`;
-
-  // 6. Compose the user message
-  let userMessage = `SOURCE MATERIAL:\n${sourceMaterial}`;
-
-  // For cross-replies and rebuttals, the source material should already
-  // contain the other philosopher's info, but we'll add structure if the
-  // content type warrants it
-  if (
-    contentTypeKey === "cross_philosopher_reply" ||
-    contentTypeKey === "debate_rebuttal"
-  ) {
-    userMessage = `YOU ARE REPLYING TO THE FOLLOWING:\n\n${sourceMaterial}`;
-  }
+  // Feed history is bounded and contains only post data, never private Agora text.
+  const feedTypes: ContentTypeKey[] = ["news_reaction", "quip", "cross_philosopher_reply", "timeless_reflection", "historical_reaction", "everyday_reaction", "cultural_recommendation", "art_commentary"];
+  const recentWriting = feedTypes.includes(contentTypeKey)
+    ? db.prepare(`SELECT substr(content, 1, 420) AS excerpt, thesis, recommendation_title
+        FROM posts WHERE philosopher_id = ? AND status IN ('draft', 'published')
+        ORDER BY created_at DESC, id DESC LIMIT ?`).all(philosopherId, 4)
+    : [];
+  const userMessage = JSON.stringify({
+    source_material: sourceMaterial,
+    ...(recentWriting.length ? { recent_writing_for_variety_only: recentWriting } : {}),
+  });
 
   // 7. Call the Anthropic API
   const client = getAnthropicClient();
@@ -333,83 +334,49 @@ ${instructions}`;
     };
   }
 
-  let maxTokens = targetLength
-    ? (LENGTH_MAX_TOKENS[targetLength] ?? DEFAULT_MAX_TOKENS)
-    : DEFAULT_MAX_TOKENS;
-
-  // Hard cap for quips - they should never need more than a few tokens
-  if (contentTypeKey === "quip") {
-    maxTokens = 192;
-  }
-
-  // Agora responses need more headroom, especially follow-ups which include
-  // full parent context (all previous responses + synthesis + article)
-  if (contentTypeKey === "agora_response") {
-    maxTokens = 2048;
-  }
-
+  // Token capacity includes JSON and metadata; word limits are checked separately.
+  const maxTokens = contentTypeKey === "in_focus_perspective" ? 4096
+    : contentTypeKey === "agora_response" ? 1536
+    : contentTypeKey === "quip" ? 384 : DEFAULT_MAX_TOKENS;
+  const caller = contentTypeKey === "in_focus_perspective" ? "in_focus" : "generation";
+  const messages: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: userMessage }];
+  // Durable Agora owns a persisted three-call budget. It retries invalid output
+  // as another recorded job attempt; never spend an uncounted repair call here.
+  const attempts = agoraModelCall.getStore() === "durable" || contentTypeKey === "in_focus_perspective" ? 1 : 2;
   let rawOutput = "";
-  let response: Awaited<ReturnType<typeof createMessage>> | null = null;
-
-  try {
-    response = await createMessage(
-      client,
-      {
-        model: generationModel,
-        max_tokens: maxTokens,
-        temperature: TEMPERATURE,
-        system: systemMessage,
-        messages: [{ role: "user", content: userMessage }],
-      },
-      "generation"
-    );
-
-    // Extract text from the response
-    rawOutput = response.content
-      .filter((block) => block.type === "text")
-      .map((block) => {
-        if (block.type === "text") return block.text;
-        return "";
-      })
-      .join("");
-  } catch (err: unknown) {
-    const message =
-      err instanceof Error ? err.message : "Unknown API error";
-    return {
-      success: false,
-      error: `Anthropic API error: ${message}`,
-      rawOutput: rawOutput || String(err),
-      systemPromptId: activePrompt.id,
-    };
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    let lengthViolation: string | null = null;
+    let parsed: Record<string, unknown> | undefined;
+    try {
+      const response = await createMessage(client, {
+        model: generationModel, max_tokens: maxTokens, temperature: TEMPERATURE,
+        system: systemMessage, messages,
+      }, caller, (message) => {
+        rawOutput = message.content.filter(b => b.type === "text").map(b => b.type === "text" ? b.text : "").join("");
+        parsed = normalizeContentShape(contentTypeKey, parseWorkshopResponse(rawOutput, message.stop_reason, validateOutput));
+        lengthViolation = getLengthViolation(contentTypeKey, parsed, targetLength);
+        if (lengthViolation) throw new ModelResponseError("invalid_content", lengthViolation);
+      });
+      // Also support callers/tests that substitute the logged provider wrapper.
+      rawOutput = response.content.filter(b => b.type === "text").map(b => b.type === "text" ? b.text : "").join("");
+      parsed ??= normalizeContentShape(contentTypeKey, parseWorkshopResponse(rawOutput, response.stop_reason, validateOutput));
+      lengthViolation = getLengthViolation(contentTypeKey, parsed, targetLength);
+      if (lengthViolation) throw new ModelResponseError("invalid_content", lengthViolation);
+      return { success: true, data: parsed, rawOutput, systemPromptId: activePrompt.id };
+    } catch (error) {
+      if (lengthViolation && attempt + 1 < attempts) {
+        messages.push({ role: "assistant", content: rawOutput }, { role: "user", content:
+          `Revise the previous JSON response. ${lengthViolation} ${lengthGuidance} Preserve the central argument, philosophical voice, factual qualifications, required fields, and valid JSON. Remove repetition and secondary points. Return only the complete revised JSON; do not clip a sentence or add new facts.` });
+        continue;
+      }
+      if (error instanceof ModelResponseError) {
+        return { success: false, error: error.message, errorCode: error.code, rawOutput, systemPromptId: activePrompt.id };
+      }
+      return { success: false, error: "Could not generate content. Try again.", rawOutput, systemPromptId: activePrompt.id };
+    }
   }
+  return { success: false, error: "Could not generate content within its length limit.", rawOutput, systemPromptId: activePrompt.id };
 
-  // 7b. Detect output truncation - the model hit max_tokens before finishing
-  if (response && response.stop_reason === "max_tokens") {
-    return {
-      success: false,
-      error: `Response truncated (hit ${maxTokens} token output limit). The model did not finish generating valid JSON.`,
-      rawOutput,
-      systemPromptId: activePrompt.id,
-    };
-  }
-
-  // 8. Parse the JSON response
-  try {
-    const parsed = parseJsonResponse(rawOutput);
-    return {
-      success: true,
-      data: parsed,
-      rawOutput,
-      systemPromptId: activePrompt.id,
-    };
-  } catch {
-    return {
-      success: false,
-      error: `Failed to parse AI response as JSON. The raw output is preserved in the generation log.`,
-      rawOutput,
-      systemPromptId: activePrompt.id,
-    };
-  }
 }
 
 // ── Daily draft generation helpers ───────────────────────────────────
@@ -667,76 +634,91 @@ export function buildArticleSourceMaterialParts(
 
 // ── Synthesis generation (no philosopher persona) ────────────────────
 
+/** Private editorial preparation, using the same model settings and API logger. */
+export async function generateEditorialContent(
+  contentType: "in_focus_briefing" | "in_focus_questions" | "in_focus_voices",
+  sourceMaterial: string,
+  templateOverride?: string,
+  validateOutput?: OutputValidator,
+): Promise<GenerationOutcome> {
+  const client = getAnthropicClient();
+  if (!client) return { success: false, error: "AI generation is not configured.", rawOutput: "", systemPromptId: null };
+  const { synthesisModel } = getGenerationModels();
+  let rawOutput = "";
+  let data: Record<string, unknown> | undefined;
+  try {
+    const response = await createMessage(client, {
+      model: synthesisModel,
+      max_tokens: 4096,
+      temperature: SYNTHESIS_TEMPERATURE,
+      system: `${EDITORIAL_EVIDENCE_RULES}\n\n${getActiveHouseRules()}\n\n${templateOverride ?? getActiveTemplate(contentType)}`,
+      messages: [{ role: "user", content: sourceMaterial }],
+    }, "in_focus", (message) => {
+      rawOutput = message.content.filter((block) => block.type === "text")
+        .map((block) => block.type === "text" ? block.text : "").join("");
+      data = parseWorkshopResponse(rawOutput, message.stop_reason, validateOutput);
+    });
+    rawOutput = response.content.filter((block) => block.type === "text")
+      .map((block) => block.type === "text" ? block.text : "").join("");
+    if (response.stop_reason === "max_tokens") {
+      return { success: false, error: "The response was truncated. Try a narrower request.", rawOutput, systemPromptId: null };
+    }
+    return { success: true, data: data ?? parseWorkshopResponse(rawOutput, response.stop_reason, validateOutput), rawOutput, systemPromptId: null };
+  } catch (error) {
+    if (error instanceof ModelResponseError) {
+      return { success: false, error: error.message, errorCode: error.code, rawOutput, systemPromptId: null };
+    }
+    return { success: false, error: "Could not generate valid editorial content. Try again.", rawOutput, systemPromptId: null };
+  }
+}
+
 export async function generateSynthesis(
   synthesisType: "debate_synthesis" | "agora_synthesis",
   sourceMaterial: string,
   templateOverride?: string
 ): Promise<GenerationOutcome> {
-  const { synthesisModel } = getGenerationModels();
-
-  // 1. Get the synthesis template (DB-first, code fallback)
-  const systemMessage = templateOverride ?? getActiveTemplate(synthesisType);
-
-  // 3. Call the Anthropic API with lower temperature
   const client = getAnthropicClient();
-  if (!client) {
-    return {
-      success: false,
-      error:
-        "ANTHROPIC_API_KEY is not configured. Set it in .env.local to enable AI generation.",
-      rawOutput: "",
-      systemPromptId: null,
-    };
-  }
-
+  if (!client) return { success: false, error: "AI generation is not configured.", rawOutput: "", systemPromptId: null };
+  const { synthesisModel } = getGenerationModels();
+  const lengthGuidance = getLengthGuidance(synthesisType);
+  const systemMessage = [
+    EDITORIAL_EVIDENCE_RULES,
+    getActiveHouseRules(),
+    templateOverride ?? (synthesisType === "agora_synthesis" ? getSynthesisTemplateForType("advice") : getActiveTemplate(synthesisType)),
+    SYNTHESIS_FIDELITY_RULES,
+    lengthGuidance,
+  ].filter(Boolean).join("\n\n");
+  const messages: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: sourceMaterial }];
+  // Durable Agora owns every retry; ordinary editorial generation may revise once.
+  const attempts = agoraModelCall.getStore() === "durable" ? 1 : 2;
   let rawOutput = "";
-
-  try {
-    const response = await createMessage(
-      client,
-      {
-        model: synthesisModel,
-        max_tokens: SYNTHESIS_MAX_TOKENS,
-        temperature: SYNTHESIS_TEMPERATURE,
-        system: systemMessage,
-        messages: [{ role: "user", content: sourceMaterial }],
-      },
-      "synthesis"
-    );
-
-    rawOutput = response.content
-      .filter((block) => block.type === "text")
-      .map((block) => {
-        if (block.type === "text") return block.text;
-        return "";
-      })
-      .join("");
-  } catch (err: unknown) {
-    const message =
-      err instanceof Error ? err.message : "Unknown API error";
-    return {
-      success: false,
-      error: `Anthropic API error: ${message}`,
-      rawOutput: rawOutput || String(err),
-      systemPromptId: null,
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    let violation: string | null = null;
+    let data: Record<string, unknown> | undefined;
+    const validate: OutputValidator = (parsed) => {
+      violation = getLengthViolation(synthesisType, parsed);
+      if (violation) throw new ModelResponseError("invalid_content", violation);
     };
+    try {
+      const response = await createMessage(client, {
+        model: synthesisModel, max_tokens: SYNTHESIS_MAX_TOKENS,
+        temperature: SYNTHESIS_TEMPERATURE, system: systemMessage, messages,
+      }, "synthesis", (message) => {
+        rawOutput = message.content.filter(b => b.type === "text").map(b => b.type === "text" ? b.text : "").join("");
+        data = parseWorkshopResponse(rawOutput, message.stop_reason, validate);
+      });
+      rawOutput = response.content.filter(b => b.type === "text").map(b => b.type === "text" ? b.text : "").join("");
+      data ??= parseWorkshopResponse(rawOutput, response.stop_reason, validate);
+      return { success: true, data, rawOutput, systemPromptId: null };
+    } catch (error) {
+      if (violation && attempt + 1 < attempts) {
+        messages.push({ role: "assistant", content: rawOutput }, { role: "user", content:
+          `Revise the complete JSON synthesis. ${violation} ${lengthGuidance} Keep each speaker's conditions, exceptions, attribution, and uncertainty. Do not broaden agreement to save words. Remove recap and repeated points across fields. Empty optional sections are valid. Do not add new facts or clip sentences.` });
+        continue;
+      }
+      if (error instanceof ModelResponseError) return { success: false, error: error.message, errorCode: error.code, rawOutput, systemPromptId: null };
+      return { success: false, error: "Could not generate synthesis. Try again.", rawOutput, systemPromptId: null };
+    }
   }
-
-  // 4. Parse the JSON response
-  try {
-    const parsed = parseJsonResponse(rawOutput);
-    return {
-      success: true,
-      data: parsed,
-      rawOutput,
-      systemPromptId: null,
-    };
-  } catch {
-    return {
-      success: false,
-      error: `Failed to parse synthesis response as JSON. The raw output is preserved in the generation log.`,
-      rawOutput,
-      systemPromptId: null,
-    };
-  }
+  return { success: false, error: "Could not generate synthesis within its length limit.", rawOutput, systemPromptId: null };
 }

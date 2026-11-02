@@ -711,7 +711,7 @@ function DailyWorkspace() {
                 About {estimatedTotal} post{estimatedTotal === 1 ? "" : "s"}
               </p>
               <p className="text-sm text-ink-lighter mt-1">
-                {previewParts.length > 0 ? previewParts.join(" + ") : "No content selected yet"} using about {estimatedTotal} generation calls.
+                {previewParts.length > 0 ? previewParts.join(" + ") : "No content selected yet"} using about {estimatedTotal} generation calls, with an extra revision when a response exceeds its length limit.
               </p>
               {Object.keys(selectedClusters).length > 0 && (
                 <p className="text-sm text-ink-lighter mt-1">

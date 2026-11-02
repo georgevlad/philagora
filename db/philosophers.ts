@@ -1,3 +1,5 @@
+import { PHILOSOPHER_PROFILES } from "./philosopher-prompts";
+
 /**
  * Canonical philosopher definitions used by db/seed.ts to bootstrap the database.
  * The Philosopher interface is defined in src/lib/types.ts; this file uses a
@@ -36,28 +38,7 @@ export const philosophers: Record<string, PhilosopherSeed> = {
       "Letters to Fronto",
       "Discourses (via Epictetus, primary influence)",
     ],
-    corePrinciples: [
-      {
-        title: "The Dichotomy of Control",
-        description:
-          "Distinguish sharply between what is up to you (your judgments, intentions, actions) and what is not (others\u2019 opinions, external events, outcomes). Freedom lies in this distinction.",
-      },
-      {
-        title: "Memento Mori",
-        description:
-          "Keep the awareness of death close \u2014 not as morbidity, but as clarity. Impermanence makes every moment urgent and every petty concern irrelevant.",
-      },
-      {
-        title: "Duty to the Whole",
-        description:
-          "You are a citizen of the cosmos. Act not for personal gain but for the common good. Even an emperor is a servant of the community.",
-      },
-      {
-        title: "The Inner Citadel",
-        description:
-          "Your mind is a fortress that external events cannot breach unless you allow them entry. Protect your peace through disciplined thought.",
-      },
-    ],
+    corePrinciples: PHILOSOPHER_PROFILES["marcus-aurelius"].principles,
   },
   nietzsche: {
     id: "nietzsche",
@@ -76,28 +57,7 @@ export const philosophers: Record<string, PhilosopherSeed> = {
       "On the Genealogy of Morals",
       "The Gay Science",
     ],
-    corePrinciples: [
-      {
-        title: "Will to Power",
-        description:
-          "The fundamental drive of all life is not survival but the expansion and expression of power \u2014 creative, intellectual, existential.",
-      },
-      {
-        title: "Genealogy of Morals",
-        description:
-          "Every moral system has a history and a hidden agenda. Ask: who created this value, and what did they gain from it?",
-      },
-      {
-        title: "Amor Fati",
-        description:
-          "Love your fate \u2014 not just accept it, but embrace every moment of existence, including suffering, as necessary and beautiful.",
-      },
-      {
-        title: "The \u00dcbermensch",
-        description:
-          "Humanity must surpass itself. Create your own values rather than inheriting them. Become who you are.",
-      },
-    ],
+    corePrinciples: PHILOSOPHER_PROFILES["nietzsche"].principles,
   },
   confucius: {
     id: "confucius",
@@ -115,28 +75,7 @@ export const philosophers: Record<string, PhilosopherSeed> = {
       "The Doctrine of the Mean",
       "The Great Learning",
     ],
-    corePrinciples: [
-      {
-        title: "Ren (\u4ec1) \u2014 Humaneness",
-        description:
-          "The highest virtue is genuine care for others. It is cultivated through practice, not merely proclaimed.",
-      },
-      {
-        title: "Li (\u79ae) \u2014 Ritual Propriety",
-        description:
-          "Social harmony depends on proper conduct, ceremony, and respect for established forms. Ritual shapes character.",
-      },
-      {
-        title: "Rectification of Names",
-        description:
-          "When words lose their meaning, society loses its way. A ruler must rule, a father must father. Clarity of language is clarity of thought.",
-      },
-      {
-        title: "The Junzi (\u541b\u5b50)",
-        description:
-          "The ideal person cultivates virtue through study, self-reflection, and the disciplined practice of right relationships.",
-      },
-    ],
+    corePrinciples: PHILOSOPHER_PROFILES["confucius"].principles,
   },
   kant: {
     id: "kant",
@@ -155,28 +94,7 @@ export const philosophers: Record<string, PhilosopherSeed> = {
       "Groundwork of the Metaphysics of Morals",
       "Critique of Judgment",
     ],
-    corePrinciples: [
-      {
-        title: "The Categorical Imperative",
-        description:
-          "Act only according to maxims you could will to be universal laws. If everyone doing it would create a contradiction, the act is immoral.",
-      },
-      {
-        title: "Humanity as End",
-        description:
-          "Treat every rational being as an end in themselves, never merely as a means. People are not instruments.",
-      },
-      {
-        title: "Duty Over Inclination",
-        description:
-          "Moral worth lies in acting from duty, not from desire or self-interest. The good will is the only unconditional good.",
-      },
-      {
-        title: "Autonomy of Reason",
-        description:
-          "Rational beings give the moral law to themselves. Morality is not imposed from outside \u2014 it is the structure of reason itself.",
-      },
-    ],
+    corePrinciples: PHILOSOPHER_PROFILES["kant"].principles,
   },
   plato: {
     id: "plato",
@@ -196,28 +114,7 @@ export const philosophers: Record<string, PhilosopherSeed> = {
       "Timaeus",
       "The Apology (recording Socrates\u2019 trial)",
     ],
-    corePrinciples: [
-      {
-        title: "Theory of Forms",
-        description:
-          "Behind every changing, imperfect thing in the visible world lies an eternal, perfect Form. True knowledge is knowledge of these unchanging realities.",
-      },
-      {
-        title: "The Allegory of the Cave",
-        description:
-          "Most people live chained to shadows, mistaking appearances for reality. Philosophy is the painful journey from darkness into the light of true understanding.",
-      },
-      {
-        title: "Philosopher-Kings",
-        description:
-          "Only those who have seen the Good \u2014 who pursue truth above power or pleasure \u2014 are fit to govern. Justice requires wisdom at the helm.",
-      },
-      {
-        title: "The Tripartite Soul",
-        description:
-          "The soul has three parts: reason, spirit, and appetite. Justice within the person mirrors justice in the state \u2014 each part fulfilling its proper role.",
-      },
-    ],
+    corePrinciples: PHILOSOPHER_PROFILES["plato"].principles,
   },
   seneca: {
     id: "seneca",
@@ -237,28 +134,7 @@ export const philosophers: Record<string, PhilosopherSeed> = {
       "On the Happy Life",
       "Medea",
     ],
-    corePrinciples: [
-      {
-        title: "The Shortness of Life",
-        description:
-          "Life is long enough if you know how to use it. We waste most of our time on things that don\u2019t matter, then complain that time is short.",
-      },
-      {
-        title: "Premeditatio Malorum",
-        description:
-          "Rehearse adversity in your mind before it arrives. The person who has imagined every misfortune is never surprised by any of them.",
-      },
-      {
-        title: "Virtue as the Only Good",
-        description:
-          "Wealth, health, and reputation are preferred but not necessary. Only virtue \u2014 living according to reason and nature \u2014 constitutes the truly good life.",
-      },
-      {
-        title: "The Sage and the Crowd",
-        description:
-          "The wise person lives by inner standards, not public opinion. The crowd is a dangerous counselor \u2014 avoid its enthusiasms and its panics alike.",
-      },
-    ],
+    corePrinciples: PHILOSOPHER_PROFILES["seneca"].principles,
   },
   jung: {
     id: "jung",
@@ -278,28 +154,7 @@ export const philosophers: Record<string, PhilosopherSeed> = {
       "The Archetypes and the Collective Unconscious",
       "Memories, Dreams, Reflections",
     ],
-    corePrinciples: [
-      {
-        title: "The Shadow",
-        description:
-          "The repressed, denied aspects of the self do not disappear \u2014 they grow stronger in the dark. Integration of the shadow, not its destruction, is the path to wholeness.",
-      },
-      {
-        title: "The Collective Unconscious",
-        description:
-          "Beneath individual psychology lies a shared layer of archetypes \u2014 universal patterns inherited from all of human experience, expressed in myth, dream, and symbol.",
-      },
-      {
-        title: "Individuation",
-        description:
-          "The lifelong process of becoming whole by integrating conscious and unconscious, persona and shadow, masculine and feminine. Not perfection \u2014 completeness.",
-      },
-      {
-        title: "Archetypes",
-        description:
-          "Universal patterns \u2014 the Hero, the Trickster, the Great Mother, the Wise Old Man \u2014 shape human experience across all cultures and epochs.",
-      },
-    ],
+    corePrinciples: PHILOSOPHER_PROFILES["jung"].principles,
   },
   kierkegaard: {
     id: "kierkegaard",
@@ -318,28 +173,7 @@ export const philosophers: Record<string, PhilosopherSeed> = {
       "The Sickness Unto Death",
       "The Concept of Anxiety",
     ],
-    corePrinciples: [
-      {
-        title: "The Leap of Faith",
-        description:
-          "Reason can take you to the edge but not across. At some point you must leap \u2014 into faith, into commitment, into the absurd \u2014 without guarantees.",
-      },
-      {
-        title: "The Three Stages",
-        description:
-          "Life moves through three spheres: the aesthetic (pleasure), the ethical (duty), and the religious (faith). Each requires a qualitative leap to the next.",
-      },
-      {
-        title: "Anxiety as the Dizziness of Freedom",
-        description:
-          "Anxiety is not a disorder \u2014 it is the natural response to the terrifying fact of human freedom. We are anxious because we are free.",
-      },
-      {
-        title: "Subjectivity is Truth",
-        description:
-          "Truth is not an abstract proposition \u2014 it is how you relate to it. A truth that does not transform your existence is no truth at all.",
-      },
-    ],
+    corePrinciples: PHILOSOPHER_PROFILES["kierkegaard"].principles,
   },
   dostoevsky: {
     id: "dostoevsky",
@@ -359,28 +193,7 @@ export const philosophers: Record<string, PhilosopherSeed> = {
       "The Idiot",
       "Demons",
     ],
-    corePrinciples: [
-      {
-        title: "Freedom Through Suffering",
-        description:
-          "Suffering is not punishment \u2014 it is the crucible in which the soul is forged. Those who have not suffered deeply cannot understand deeply.",
-      },
-      {
-        title: "The Problem of Evil",
-        description:
-          "If God does not exist, everything is permitted. But even if God exists \u2014 can we accept a world that requires the suffering of innocent children?",
-      },
-      {
-        title: "The Underground Man",
-        description:
-          "Rationalism cannot contain human nature. We are contradictory, spiteful, self-destructive \u2014 and this rebellion against reason is itself a form of freedom.",
-      },
-      {
-        title: "Redemption Through Love",
-        description:
-          "The only force that can overcome the darkness in the human soul is active, sacrificial love \u2014 not as sentiment, but as daily, difficult practice.",
-      },
-    ],
+    corePrinciples: PHILOSOPHER_PROFILES["dostoevsky"].principles,
   },
   camus: {
     id: "camus",
@@ -399,28 +212,7 @@ export const philosophers: Record<string, PhilosopherSeed> = {
       "The Plague",
       "The Rebel",
     ],
-    corePrinciples: [
-      {
-        title: "The Absurd",
-        description:
-          "The absurd is born from the collision between our longing for meaning and the universe\u2019s cold indifference. Neither can be eliminated \u2014 we must live in the tension.",
-      },
-      {
-        title: "Revolt",
-        description:
-          "The only coherent response to absurdity is revolt \u2014 not violent revolution, but the stubborn refusal to accept injustice or surrender to despair.",
-      },
-      {
-        title: "We Must Imagine Sisyphus Happy",
-        description:
-          "The struggle itself is enough to fill a heart. Meaning is not found \u2014 it is created in the act of pushing the boulder, knowing it will roll back down.",
-      },
-      {
-        title: "Solidarity in Suffering",
-        description:
-          "In a world without God, we have only each other. Shared struggle against suffering is the closest thing to grace that mortals can know.",
-      },
-    ],
+    corePrinciples: PHILOSOPHER_PROFILES["camus"].principles,
   },
   russell: {
     id: "russell",
@@ -440,28 +232,7 @@ export const philosophers: Record<string, PhilosopherSeed> = {
       "Principia Mathematica",
       "The Conquest of Happiness",
     ],
-    corePrinciples: [
-      {
-        title: "Logical Analysis",
-        description:
-          "Decompose complex problems into their simplest components. Most philosophical confusion dissolves when you state the question precisely.",
-      },
-      {
-        title: "Skepticism of Authority",
-        description:
-          "Question everything \u2014 religious, political, institutional. The fact that an opinion has been widely held is no evidence that it is not utterly absurd.",
-      },
-      {
-        title: "The Value of Philosophy",
-        description:
-          "Philosophy\u2019s value lies not in definite answers but in enlarging our sense of what is possible, freeing us from the tyranny of custom and unexamined assumptions.",
-      },
-      {
-        title: "Rational Ethics",
-        description:
-          "Morality should be grounded in human welfare, not divine command. The good life is one inspired by love and guided by knowledge.",
-      },
-    ],
+    corePrinciples: PHILOSOPHER_PROFILES["russell"].principles,
   },
   cicero: {
     id: "cicero",
@@ -482,28 +253,7 @@ export const philosophers: Record<string, PhilosopherSeed> = {
       "On the Orator (De Oratore)",
       "Tusculan Disputations",
     ],
-    corePrinciples: [
-      {
-        title: "Natural Law",
-        description:
-          "True law is right reason in agreement with nature \u2014 universal, unchanging, and binding on all people and all nations. No statute that contradicts it deserves the name of law.",
-      },
-      {
-        title: "The Mixed Constitution",
-        description:
-          "The best government blends monarchy, aristocracy, and democracy in a system of checks and balances. Pure forms inevitably corrupt. Stability requires institutional design, not virtuous rulers.",
-      },
-      {
-        title: "Officium (Duty)",
-        description:
-          "Every person occupies roles \u2014 citizen, parent, leader, friend \u2014 and each role carries binding obligations. The honorable (honestum) must never be sacrificed to the expedient (utile), though the truly expedient is always honorable.",
-      },
-      {
-        title: "Rhetoric as Civic Virtue",
-        description:
-          "Eloquence without wisdom is dangerous, but wisdom without eloquence is useless to the state. The orator who combines both is the highest product of civilization.",
-      },
-    ],
+    corePrinciples: PHILOSOPHER_PROFILES["cicero"].principles,
   },
   augustine: {
     id: "augustine",
@@ -523,28 +273,7 @@ export const philosophers: Record<string, PhilosopherSeed> = {
       "On Free Choice of the Will",
       "Enchiridion",
     ],
-    corePrinciples: [
-      {
-        title: "The Restless Heart",
-        description:
-          "The soul is made for God and finds no peace in lesser things. All human striving—for pleasure, power, knowledge—is misdirected longing until it finds its true object.",
-      },
-      {
-        title: "Original Sin and the Will",
-        description:
-          "Human beings are free yet fundamentally flawed. The will is divided against itself, drawn toward what it knows to be wrong. Grace, not willpower alone, is what reorients us.",
-      },
-      {
-        title: "The Problem of Evil",
-        description:
-          "Evil is not a substance but a privation: the absence of good. Suffering exists not because God wills it but because free creatures turn away from the order of being.",
-      },
-      {
-        title: "Time and Eternity",
-        description:
-          "Time exists in the mind as memory, attention, and expectation, while eternity stands outside it. Human life is lived in the tension between temporal experience and eternal truth.",
-      },
-    ],
+    corePrinciples: PHILOSOPHER_PROFILES["augustine"].principles,
   },
   diogenes: {
     id: "diogenes",
@@ -558,28 +287,7 @@ export const philosophers: Record<string, PhilosopherSeed> = {
     postsCount: 0,
     debatesCount: 0,
     keyWorks: ["None (philosophy was lived, not written)"],
-    corePrinciples: [
-      {
-        title: "Autarkeia",
-        description:
-          "Freedom through radical self-sufficiency: needing nothing that can be taken from you.",
-      },
-      {
-        title: "Parrhesia",
-        description:
-          "Fearless speech that says what others think but lack the courage to voice.",
-      },
-      {
-        title: "Nature Over Convention",
-        description:
-          "Human laws and customs are arbitrary; only what nature demands is real.",
-      },
-      {
-        title: "Askesis",
-        description:
-          "Training through deliberate hardship, because comfort can become the enemy of freedom.",
-      },
-    ],
+    corePrinciples: PHILOSOPHER_PROFILES["diogenes"].principles,
   },
   "hannah-arendt": {
     id: "hannah-arendt",
@@ -600,28 +308,7 @@ export const philosophers: Record<string, PhilosopherSeed> = {
       "The Life of the Mind",
       "Between Past and Future",
     ],
-    corePrinciples: [
-      {
-        title: "The Banality of Evil",
-        description:
-          "The most dangerous evil can come from ordinary people who stop thinking, follow procedures, and obey orders without asking what they are part of.",
-      },
-      {
-        title: "The Public Realm",
-        description:
-          "Human beings are most fully alive when they act and speak together in public. When that realm shrinks, human dignity is diminished.",
-      },
-      {
-        title: "Thinking as Moral Act",
-        description:
-          "The failure to think is a precondition for complicity. Thinking is the willingness to stop and examine what you are doing and what you are part of.",
-      },
-      {
-        title: "Natality",
-        description:
-          "Every person arrives as a new beginning, capable of starting something unprecedented. This capacity for the new is a foundation of political hope.",
-      },
-    ],
+    corePrinciples: PHILOSOPHER_PROFILES["hannah-arendt"].principles,
   },
   "simone-de-beauvoir": {
     id: "simone-de-beauvoir",
@@ -641,27 +328,6 @@ export const philosophers: Record<string, PhilosopherSeed> = {
       "The Coming of Age",
       "Memoirs of a Dutiful Daughter",
     ],
-    corePrinciples: [
-      {
-        title: "Situated Freedom",
-        description:
-          "Freedom is not abstract; it exists only in concrete material, bodily, and historical situations.",
-      },
-      {
-        title: "The Other",
-        description:
-          "A central mechanism of oppression is defining someone as object rather than subject while the dominant group claims universality for itself.",
-      },
-      {
-        title: "Ambiguity",
-        description:
-          "Human existence is fundamentally ambiguous: we are subject and object, free and constrained. Ethics begins by accepting that ambiguity.",
-      },
-      {
-        title: "Reciprocal Freedom",
-        description:
-          "No one is truly free while others are oppressed. My freedom depends upon recognizing and defending yours.",
-      },
-    ],
+    corePrinciples: PHILOSOPHER_PROFILES["simone-de-beauvoir"].principles,
   },
 };

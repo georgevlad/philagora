@@ -1,4 +1,8 @@
 "use client";
+
+import { getReadingPreview } from "@/lib/reading-preview";
+import { countSynthesisWords } from "@/lib/content-lengths";
+import { ExpandableContent } from "@/components/public/ExpandableContent";
 import { AgoraRecoveryControls } from "@/components/agora/AgoraRecoveryControls";
 import {
   useCallback,
@@ -68,10 +72,15 @@ function Synthesis({ synthesis }: { synthesis: AgoraSynthesis }) {
     commonGround: "Common ground",
     whatIsAtStake: "What is at stake",
   };
+  const first = Object.entries(synthesis.sections).find(([, value]) => value?.length);
+  const firstText = first ? (Array.isArray(first[1]) ? first[1][0] : first[1]) : "";
+  const preview = getReadingPreview([firstText], 40);
   return (
     <section className="agora-synthesis">
       <p className="agora-eyebrow">Synthesis</p>
       <h3>A few things to sit with</h3>
+      <ExpandableContent collapsible={countSynthesisWords(synthesis.sections) > 60}
+        expandLabel="Read full synthesis" preview={first && <div><h4>{labels[first[0]] ?? first[0]}</h4><p>{preview.paragraphs.join("\n\n")}</p></div>}>
       {Object.entries(synthesis.sections).map(([key, value]) =>
         value?.length ? (
           <div key={key}>
@@ -86,9 +95,18 @@ function Synthesis({ synthesis }: { synthesis: AgoraSynthesis }) {
           </div>
         ) : null,
       )}
+      </ExpandableContent>
     </section>
   );
 }
+function AnswerText({ posts }: { posts: string[] }) {
+  const preview = getReadingPreview(posts, 90);
+  return <ExpandableContent className="agora-answer-text" collapsible={preview.truncated}
+    expandLabel="Read full answer" preview={preview.paragraphs.map((text, i) => <p key={i}>{text}</p>)}>
+    {posts.map((text, i) => <p key={i}>{text}</p>)}
+  </ExpandableContent>;
+}
+
 function Round({
   round,
   group,
@@ -148,9 +166,7 @@ function Round({
               <small>{r.philosopherTradition} · AI persona</small>
             </span>
           </Link>
-          {r.posts.map((text, i) => (
-            <p key={i}>{text}</p>
-          ))}
+          <AnswerText posts={r.posts} />
           {r.recommendation && (
             <aside className="agora-recommendation">
               <p className="agora-eyebrow">

@@ -6,7 +6,6 @@ import {
   Cormorant_Garamond,
 } from "next/font/google";
 import { LocalReviewBanner } from "@/components/LocalReviewBanner";
-import DevelopmentBanner from "@/components/DevelopmentBanner";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { ComingSoonToastProvider } from "@/components/ComingSoonToast";
 import { getMetadataBase } from "@/lib/seo";
@@ -14,6 +13,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { buildOrganizationSchema, buildWebSiteSchema } from "@/lib/seo/schema";
 import "./globals.css";
 import "./agora-design.css";
+import "./in-focus.css";
 import "./public-design.css";
 import "./public-shell.css";
 
@@ -126,10 +126,8 @@ export default function RootLayout({
         <GoogleAnalytics />
         <ComingSoonToastProvider>
           {process.env.NODE_ENV === "development" &&
-          ["fixtures", "snapshot", "admin"].includes(process.env.AGORA_REVIEW_MODE || "") ? (
+          ["fixtures", "snapshot", "admin"].includes(process.env.AGORA_REVIEW_MODE || "") && (
             <LocalReviewBanner />
-          ) : (
-            <DevelopmentBanner />
           )}
           {children}
         </ComingSoonToastProvider>

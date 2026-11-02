@@ -102,8 +102,8 @@ export async function runAgoraGeneration(threadId: string): Promise<void> {
       const source = synthesisStep
         ? parent ? buildAgoraFollowUpSynthesisSourceMaterial({ ...common, ...parent, responses, recommendations })
           : buildAgoraSynthesisSourceMaterial({ ...common, responses, recommendations })
-        : parent ? buildAgoraFollowUpResponseSourceMaterial({ ...common, ...parent, alreadyRecommended })
-          : buildAgoraResponseSourceMaterial({ ...common, alreadyRecommended });
+        : parent ? buildAgoraFollowUpResponseSourceMaterial({ ...common, ...parent, alreadyRecommended, earlierResponses: responses })
+          : buildAgoraResponseSourceMaterial({ ...common, alreadyRecommended, earlierResponses: responses });
       const template = synthesisStep ? getSynthesisTemplateForType(context.questionType)
         : getAgoraResponseTemplate(context.questionType, context.recommendationsEnabled, context.recommendationHint, alreadyRecommended);
       // Consume the budget BEFORE calling the external provider. A crash cannot reset it.

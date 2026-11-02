@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       type: "quip",
       dbContentType: "post",
       sourceMaterial: buildArticleSourceMaterial(article),
-      targetLength: "medium",
+      targetLength: "short",
       citation: {
         title: article.title,
         source: article.source_name,

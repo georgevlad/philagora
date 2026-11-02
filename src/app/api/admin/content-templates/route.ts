@@ -9,6 +9,10 @@ import {
 } from "@/lib/content-templates";
 
 const TEMPLATE_LABELS: Record<ContentTypeKey, string> = {
+  in_focus_briefing: "In Focus: Briefing",
+  in_focus_questions: "In Focus: Questions",
+  in_focus_voices: "In Focus: Philosopher selection",
+  in_focus_perspective: "In Focus: Philosophical exchange",
   news_reaction: "News Reaction",
   quip: "Glint",
   timeless_reflection: "Timeless Reflection",

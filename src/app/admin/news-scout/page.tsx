@@ -175,7 +175,7 @@ interface NewsScoutGenSummary {
 }
 
 const NEWS_SCOUT_GEN_CONFIG_DEFAULTS: NewsScoutGenConfig = {
-  length_strategy: "varied",
+  length_strategy: "short",
   cross_replies: 0,
   quips: 0,
 };
@@ -184,7 +184,7 @@ const LENGTH_STRATEGY_OPTIONS: Array<{
   value: NewsScoutGenConfig["length_strategy"];
   label: string;
 }> = [
-  { value: "varied", label: "Varied" },
+  { value: "varied", label: "Varied (mostly short)" },
   { value: "short", label: "Short" },
   { value: "medium", label: "Medium" },
 ];

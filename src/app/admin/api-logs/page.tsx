@@ -9,6 +9,7 @@ const PAGE_SIZE = 50;
 const CALLER_FILTERS = [
   { value: "all", label: "All" },
   { value: "generation", label: "Generation" },
+  { value: "in_focus", label: "In Focus" },
   { value: "scoring", label: "Scoring" },
   { value: "synthesis", label: "Synthesis" },
   { value: "historical-events", label: "Historical Events" },

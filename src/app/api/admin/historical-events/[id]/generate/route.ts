@@ -53,7 +53,7 @@ export async function POST(
       return NextResponse.json({ error: "philosopher_id is required" }, { status: 400 });
     }
 
-    const targetLength = body.target_length ?? "medium";
+    const targetLength = body.target_length ?? "short";
     if (!["short", "medium", "long"].includes(targetLength)) {
       return NextResponse.json(
         { error: "target_length must be short, medium, or long" },

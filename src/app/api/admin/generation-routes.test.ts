@@ -78,4 +78,15 @@ describe("admin generation input integrity", () => {
     expect((await saveSynthesis(request({ action: "generate" }), params)).status).toBe(201);
     expect(vi.mocked(generateSynthesis).mock.calls[0][1]).toContain("Friedrich Nietzsche (rebutting Albert Camus)");
   });
+
+  it("gives a rebuttal its own opening, original evidence, participants, and target argument", async () => {
+    db.prepare("UPDATE debates SET editorial_context = ? WHERE id = ?").run("Only a pilot has been announced.", "debate");
+    const insert = db.prepare("INSERT INTO debate_posts (id, debate_id, philosopher_id, content, phase) VALUES (?, 'debate', ?, ?, 'opening')");
+    insert.run("own", "camus", "My earlier position.");
+    insert.run("target", "nietzsche", "The opposing argument.");
+    vi.mocked(generateContent).mockResolvedValueOnce({ success: true, data: { content: "A reply." }, rawOutput: "{}", systemPromptId: null });
+    expect((await generateDebate(request({ philosopher_id: "camus", phase: "rebuttal", target_philosopher_id: "nietzsche" }), params)).status).toBe(201);
+    const source = vi.mocked(generateContent).mock.calls[0][2];
+    for (const fragment of ["My earlier position.", "The opposing argument.", "Only a pilot has been announced.", "PARTICIPANTS:"]) expect(source).toContain(fragment);
+  });
 });

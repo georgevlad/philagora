@@ -87,7 +87,7 @@ function normalizeSuggestions(
     suggestions.push({ id, reason });
     seenIds.add(id);
 
-    if (suggestions.length >= 4) {
+    if (suggestions.length >= 2) {
       break;
     }
   }
@@ -179,15 +179,15 @@ export async function POST(request: NextRequest) {
       .join("\n");
     const systemPrompt = `You suggest philosophers for a question submitted to Philagora, a philosophy forum.
 
-Given the user's question and the available philosopher roster, suggest 2-4 philosophers who would produce the most interesting, diverse, and genuinely useful responses.
+Given the user's question and the available philosopher roster, suggest exactly 2 philosophers whose methods will contribute distinct, useful reasons or questions. Order them as a complementary pair; users can add more thinkers themselves.
 
 PRIORITIZE:
-- Genuine disagreement: don't suggest 3 thinkers from similar traditions. If you suggest a Stoic, pair them with an Existentialist or a Confucian.
+- Distinct perspectives: choose thinkers whose actual methods illuminate different aspects of the question. Agreement for different reasons can also be useful.
 - Framework relevance: the philosopher's tradition should actually speak to this topic, not just tangentially.
-- At least one surprising but defensible pick alongside the obvious choices.
+- Include a less obvious thinker when their perspective is relevant; relevance matters more than surprise.
 - For advice questions: prefer philosophers who give concrete, actionable guidance.
 - For conceptual questions: prefer philosophers with deep, distinctive frameworks on the topic.
-- For debate questions: prefer philosophers who would take genuinely opposing positions.
+- For debate questions: seek substantive differences in reasoning without presuming their conclusions or forcing opposition.
 
 AVAILABLE PHILOSOPHERS:
 ${rosterList}

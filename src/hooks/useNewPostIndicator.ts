@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 const STORAGE_KEY = "philagora_last_visit";
 const UPDATE_DELAY_MS = 5000;
+const subscribe = () => () => {};
+const clientSnapshot = () => true;
+const serverSnapshot = () => false;
 
 function getStoredLastVisit(): string | null {
   if (typeof window === "undefined") {
@@ -19,6 +22,8 @@ function getStoredLastVisit(): string | null {
 
 export function useNewPostIndicator(): (postTimestamp: string) => boolean {
   const [lastVisit] = useState<string | null>(() => getStoredLastVisit());
+  // The server cannot read localStorage. Keep the initial client markup identical.
+  const hydrated = useSyncExternalStore(subscribe, clientSnapshot, serverSnapshot);
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -37,7 +42,7 @@ export function useNewPostIndicator(): (postTimestamp: string) => boolean {
   }, []);
 
   return (postTimestamp: string): boolean => {
-    if (!lastVisit) return false;
+    if (!hydrated || !lastVisit) return false;
     return postTimestamp > lastVisit;
   };
 }

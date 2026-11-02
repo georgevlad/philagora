@@ -7,13 +7,10 @@ import { createHmac, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import Database from "better-sqlite3";
 import { philosophers } from "../db/philosophers";
+import { concisePosts, conciseFollowUps, conciseSynthesis, conciseFollowUpSynthesis } from "./fixtures/concise-generation";
 import {
   responsePosts,
-  followUpPosts,
-  otherResponse,
-  otherFollowUp,
   synthesis,
-  followUpSynthesis,
   recommendations,
 } from "./fixtures/agora-review-content";
 
@@ -248,9 +245,9 @@ async function main() {
         ? body.system
         : JSON.stringify(body.system);
     const isClassification = system.includes("You classify questions");
-    const isSuggestion =
-      system.includes("philosopher IDs") || system.includes("suggestions");
-    const name = system.match(/Name: (.+)/)?.[1];
+    const isSuggestion = system.startsWith("You suggest philosophers");
+    const name = system.match(/PHILOSOPHER METADATA: ([^;]+)/)?.[1]
+      ?? system.match(/Name: (.+)/)?.[1];
     const pid = Object.values(philosophers).find((p) => p.name === name)?.id;
     const input = JSON.stringify(body.messages);
     const isFollowUp = input.includes("=== FOLLOW-UP");
@@ -307,15 +304,15 @@ async function main() {
         : pid
           ? {
               posts: isFollowUp
-                ? followUpPosts[pid] || otherFollowUp
-                : responsePosts[pid] || otherResponse,
+                ? conciseFollowUps[pid] || conciseFollowUps.other
+                : concisePosts[pid] || concisePosts.other,
               ...(!isFollowUp && recommendations[pid]
-                ? { recommendation: recommendations[pid] }
+                ? { recommendation: { ...recommendations[pid], reason: "A companion for examining the commitments that shape your ordinary days." } }
                 : {}),
             }
           : isFollowUp
-            ? followUpSynthesis
-            : synthesis;
+            ? conciseFollowUpSynthesis
+            : conciseSynthesis;
     response.setHeader("Content-Type", "application/json");
     response.end(
       JSON.stringify({

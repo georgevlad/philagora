@@ -1,0 +1,81 @@
+{
+  "personas": {
+    "augustine": "790942bf02c79dc6d8c76e9a0f28001a71657aacb36e2d4b9d229acd2189e876",
+    "camus": "2a2ac4142fc40a850d2d8265dbe35374ff86d11623b201b9f450b9df15031d73",
+    "cicero": "dd8e13850b19b4bf73c7d5e9cd8eb6bc0cf03dde6f67b11c76fd4f44dd5821b0",
+    "confucius": "83649e4bcc2424017112733d16cef7308187d64dd4bb8ec65b65a98f2513fb23",
+    "diogenes": "00a3f6fbb59945f9c1d9dec367c96d8c61ddeb9fcdd901088ceb9fff9e0b7a9b",
+    "dostoevsky": "8d6fdc76316097b11c728bfac77b51a5ad7a0b6fcd2764c3457d66b99304a153",
+    "hannah-arendt": "de7ad135b57d539e312eda2ccae901b0c3a00c408e1d048ded4f18f7603d8226",
+    "jung": "174a23b2b7d793350f44629294b7cfc06c8c5cd53c0b4b2cfc088815c7196928",
+    "kant": "47d15dfc272887eddefbda0dabb0e0f58bc0cdea9965db2eb6bde3896da3beb4",
+    "kierkegaard": "bcb0e7a7775a57d3775f97f15701e847ea4a6dd6fff9186d36d0ea30facd43c8",
+    "marcus-aurelius": "e8ec7ff76695908bd5f5d4664d8e6d19e5dec03d5c924ff5c9ea9ebd04699eab",
+    "nietzsche": "4406b8a513cb3238dda279da507b9448fc391c7c4b9ef5088b3a5714b84e70a9",
+    "plato": "1dd94a6b12064478b825698ae0d46d2527d3614895a7fbf66f75f49cb8cc1664",
+    "russell": "080379323d5dc30406ae4b5dbae46cefb1cd29de51eb4f957e55a890e7fffee5",
+    "seneca": "f172187c3b171ec6060a6f0b3af0b33103065a9a9534309ea8791f098476a284",
+    "simone-de-beauvoir": "a682ead4d861445efadb6a1685dfba9c767686c9c12442f951a46db3e1929aff"
+  },
+  "principles": {
+    "marcus-aurelius": "dfc9edf0fe63115d7bc8c1725f657db78fc2d5b2394a1af016314f259b8b973d",
+    "nietzsche": "c30ae2b4d39d8490a56ccf5f369f42fe2fbc6c3df8d6ab754869ad38a200b656",
+    "confucius": "16b3a6a95e0d308bc1fefd16e31328eaaf42ce4de4b6346076a03d8be2220a28",
+    "kant": "a401bc0b8c434d609397e3e7fc3a07be11ff4288dcf839a8b4d0ff1387a56a8f",
+    "plato": "ff583c6afc22ff10006ee1f0e14c9b663499dda9fa10b743faa33244f0ad2545",
+    "seneca": "905115e0f61981f1c1e5755518c7e69a944cf4a325b5c6aba5ca06fa1594597d",
+    "jung": "ded8a79adfed81546957402129e10717276750b6a67d9454783a2f90b24a9148",
+    "kierkegaard": "c036c995eb4210230d34b2216106f989b5ef67869ecc9cb069876e7fa0f1603e",
+    "dostoevsky": "5c4c8147599e62df3eb8521caecc53e14b925749db15a3f0cf0623caaea1dc08",
+    "camus": "5542291b5f6b695ee95a8ed70e8164670bc16ca9c4f859339bc662528ba9700d",
+    "russell": "8cbfc9efc0424f9dc15c54375f5a0ced4ec3d55787a4b02d4b2b8fd3412e7cc0",
+    "cicero": "b411a2a67b38f15d6a4f30ab4d6dda6097df145e94caebc1eb2e1ad5012fb593",
+    "augustine": "43c2c371c382a681a938e0ee4887d04dbc8ab56c9ef694eb75ad559500a90238",
+    "diogenes": "1faea6aec89e9d56d7befc8aafe439981278641bbaded682e6f56864204fad7a",
+    "hannah-arendt": "d071e5520b94c5a6189c0d02b50e49b177dfad1861490e7a59d04875f587c318",
+    "simone-de-beauvoir": "bfa51d2a0fccd22ba065c6940b22e7cbcac24f2b8b00b9a8c09a0e7250441ab7"
+  },
+  "templates": {
+    "news_reaction": [
+      "26ff7ee6ca2999abee1720490ebf65daab9dad3a7842c5721190e584adf55136",
+      "7e01e9f2396bda6d932b69ac2ba10419295c82bb57f724192785f3fb240828a9"
+    ],
+    "quip": [
+      "731f727e5b862520541af22147932772a45949dac176ce8b3b1b816885494f57"
+    ],
+    "timeless_reflection": [
+      "c3eff566781b41455c3fa2038017d476289446e7df5181b7b7e0317c5f4f2f45"
+    ],
+    "cultural_recommendation": [
+      "c6b93420e96dc7e836fb268b7fd71872783259459ac653bf866df58b3dc7aef0",
+      "abcfd1853e7372c699489314d23e57c5a0cd3d24ea6a32075302b3f2613b7fbb"
+    ],
+    "art_commentary": [
+      "ae103ff42e327a6c9b852c05f7b0705d9fe0a5f5de4c4626488695c89efb535d"
+    ],
+    "cross_philosopher_reply": [
+      "610a659070bf6091a636a4da551c59e612d8e83dd183936c2077e18650a36a2a"
+    ],
+    "historical_reaction": [
+      "43d89f2bf3b9de5d7b66178681f0fae704a65d110acff3549579095fbb641f7d"
+    ],
+    "everyday_reaction": [
+      "a966141530bbefa9fc01341ad7902a30218a5350d0306175b016a8121190bef9"
+    ],
+    "debate_opening": [
+      "3fe8d2bcdf5eb82395d0afea89d126cee50a9b903d3dfe394e72a73c4a07c4e0"
+    ],
+    "debate_rebuttal": [
+      "259190f9b49f087a35b0910510b4caa2dd283a25dfce0d7a86c5fb0950dee793"
+    ],
+    "agora_response": [
+      "2e0f43a02c058ea293cf552b149307e0f5e7300f41f994143ccb17f84c3825af"
+    ],
+    "debate_synthesis": [
+      "3e2dcd54dea3d2935c90316087def6b273842f096171387c8a728680094c5e86"
+    ],
+    "agora_synthesis": [
+      "4c428617bb6b01c70d2aec58ccfccfdd09594a5b5e1c50fa01b71c01ed95eb61"
+    ]
+  }
+}

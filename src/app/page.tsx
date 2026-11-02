@@ -5,6 +5,8 @@ import { AgoraShell } from "@/components/agora/AgoraShell";
 import { QuestionComposer } from "@/components/agora/QuestionComposer";
 import { RecentConversations } from "@/components/agora/RecentConversations";
 import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
+import { FocusFeature } from "@/components/in-focus/FocusFeature";
+import { getFeaturedFocusEdition } from "@/lib/in-focus-published";
 import { getIdentityFromCookies } from "@/lib/auth";
 import {
   getAllPhilosophers,
@@ -57,7 +59,7 @@ export default async function HomePage({
   const debate = getRecentDebates(1)[0];
   return (
     <AgoraShell>
-      <main id="main" className="agora-page">
+      <main id="main" className="agora-page agora-homepage">
         <RecentConversations viewerKey={viewerKey} />
         <section className="agora-home-hero">
           <div>
@@ -68,8 +70,7 @@ export default async function HomePage({
             </h1>
             <p className="agora-intro">Ask about your life or the world.</p>
             <p className="agora-meta">
-              Different perspectives from AI interpretations of historical
-              thinkers.
+              Different perspectives from AI philosopher personas.
             </p>
           </div>
           <QuestionComposer philosophers={philosophers} viewerKey={viewerKey} />
@@ -111,11 +112,11 @@ export default async function HomePage({
                         <span>{r.philosopherName}</span>
                       </Link>
                       <p>
-                        {r.posts[0]?.trim().split(/\s+/).length > 65
+                        {r.posts[0]?.trim().split(/\s+/).length > 35
                           ? r.posts[0]
                               .trim()
                               .split(/\s+/)
-                              .slice(0, 65)
+                              .slice(0, 35)
                               .join(" ") + "…"
                           : r.posts[0]}
                       </p>
@@ -142,46 +143,7 @@ export default async function HomePage({
               </div>
             )}
           </section>
-          <section id="world">
-            <div className="agora-section-heading">
-              <h2>The questions we share</h2>
-              <span>The world</span>
-            </div>
-            <p className="agora-eyebrow">
-              An issue in focus{" "}
-              <span className="agora-badge">Sample · Coming later</span>
-            </p>
-            <h3 className="agora-feature-title">
-              When a city overheats, who gets protected first?
-            </h3>
-            <p className="agora-world-description">
-              A shared problem. A limited budget. Different ideas of what we owe
-              each other.
-            </p>
-            <ol className="agora-issue-path" aria-label="Inside the sample briefing">
-              <li>The situation</li>
-              <li>Possible responses</li>
-              <li>The unresolved choice</li>
-            </ol>
-            <p className="agora-meta">
-              Marcus Aurelius · Hannah Arendt · Bertrand Russell
-            </p>
-            <p className="agora-notice">
-              This entire feature is a sample: the issue, briefing, responses
-              and question workflow.
-            </p>
-            <div className="agora-actions">
-              <Link className="agora-outline" href="/preview/issue-in-focus">
-                Read the sample briefing →
-              </Link>
-              <Link
-                className="agora-text-link"
-                href="/preview/issue-in-focus#ask-preview"
-              >
-                Preview asking about this →
-              </Link>
-            </div>
-          </section>
+          <FocusFeature edition={getFeaturedFocusEdition()} />
         </div>
         <section className="agora-more">
           <div className="agora-section-heading">

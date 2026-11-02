@@ -48,6 +48,8 @@ next-env.d.ts
 
 #db
 /db/philagora.db
+# Dated local database backups contain private application data.
+/db/philagora-*.db
 
 # local production snapshots and generated historical-event thumbnails
 /data/*.db

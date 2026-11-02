@@ -126,7 +126,7 @@ test("local generation partial failures retain first answer and explain missing 
   await request.post(`http://127.0.0.1:${review.stubPort}/mode`, {
     data: { mode: "normal" },
   });
-  await expect(page.locator(".agora-answer")).toHaveCount(3, { timeout: 60000 });
+  await expect(page.locator(".agora-answer")).toHaveCount(2, { timeout: 60000 });
   await expect(page.locator(".agora-synthesis")).toHaveCount(1);
   expect(await page.locator(".agora-answer").first().innerText()).toBe(originalAnswer);
   await expect(page.getByLabel("Your follow-up to the group")).toBeVisible();
@@ -235,7 +235,7 @@ test("feed pagination keeps personalized likes and bookmarks", async ({
   await expect(page.getByText("You’ve reached the end.")).toBeVisible();
 });
 
-test("Agora empty state preserves the composer and sample issue", async ({
+test("Agora empty state preserves the composer and published issue", async ({
   page,
 }) => {
   const db = new Database(review.databasePath);
@@ -254,7 +254,7 @@ test("Agora empty state preserves the composer and sample issue", async ({
       page.getByLabel("Your question for the philosophers"),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "Read the sample briefing" }),
+      page.getByRole("link", { name: "Explore the question" }),
     ).toBeVisible();
     await page.screenshot({
       path: ".local-review/home-empty.png",

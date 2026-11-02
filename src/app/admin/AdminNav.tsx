@@ -10,6 +10,7 @@ const sections = [
       ["daily", "Daily Planner"],
       ["posts", "Posts"],
       ["content", "Generate content"],
+      ["in-focus", "In Focus Workshop"],
       ["feed-preview", "Live feed"],
     ],
   },

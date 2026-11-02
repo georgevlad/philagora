@@ -14,6 +14,7 @@ export function SourceCitation({
 }) {
   const [failedImage, setFailedImage] = useState<string>();
   const linked = isValidHttpUrl(citation.url);
+  if (!citation.title && !citation.source) return null;
   return (
     <aside className="public-source public-source-citation" aria-label="Source material">
       {showImage && citation.imageUrl && failedImage !== citation.imageUrl && (
@@ -27,10 +28,10 @@ export function SourceCitation({
           />
         </div>
       )}
-      <p className="agora-eyebrow">
-        Source{citation.source ? ` · ${citation.source}` : ""}
-      </p>
-      <p className="public-source-title">
+      {citation.source && (
+        <p className="agora-eyebrow">Source · {citation.source}</p>
+      )}
+      {citation.title && <p className="public-source-title">
         {linked ? (
           <a href={citation.url} target="_blank" rel="noopener noreferrer">
             {citation.title} <span aria-hidden="true">↗</span>
@@ -39,7 +40,7 @@ export function SourceCitation({
         ) : (
           citation.title
         )}
-      </p>
+      </p>}
     </aside>
   );
 }

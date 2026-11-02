@@ -117,7 +117,7 @@ export const DEFAULT_CONFIG = {
   art_commentaries: 0,
   everyday_scenarios: 0,
   excluded_philosophers: [] as string[],
-  length_strategy: "varied" as LengthStrategy,
+  length_strategy: "short" as LengthStrategy,
 };
 
 export const ITEM_STATUS_CLASSES: Record<DraftStatus, string> = {
@@ -129,7 +129,7 @@ export const ITEM_STATUS_CLASSES: Record<DraftStatus, string> = {
 };
 
 export const LENGTH_OPTIONS: Array<{ value: LengthStrategy; label: string }> = [
-  { value: "varied", label: "Varied" },
+  { value: "varied", label: "Varied (mostly short)" },
   { value: "short", label: "Short" },
   { value: "medium", label: "Medium" },
 ];

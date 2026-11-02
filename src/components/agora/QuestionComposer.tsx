@@ -121,6 +121,7 @@ export function QuestionComposer({
     writeAgoraDraft("agora:sign-in-draft", draft);
   }
   const needsSignIn = draft.visibility === "private" && !session?.user;
+  const isGuest = viewerKey === "guest" && !session?.user;
   const questionValid =
     (draft.question.trim().length >= 10 || !!draft.articleUrl.trim()) &&
     draft.question.trim().length <= 500;
@@ -302,7 +303,7 @@ export function QuestionComposer({
     const next = {
       ...submitted,
       review,
-      selectedIds: review.suggestions.map((s) => s.id),
+      selectedIds: review.suggestions.slice(0, 2).map((s) => s.id),
     };
     setDraft(next);
     writeAgoraDraft(key, next);
@@ -380,20 +381,29 @@ export function QuestionComposer({
           />
           <div className="agora-composer-actions">
             <fieldset
-              className="agora-visibility"
-              disabled={locked || suggesting}
+              className={`agora-visibility${isGuest ? " agora-guest-visibility" : ""}`}
+              disabled={!ready || locked || suggesting}
             >
               <legend className="sr-only">Question visibility</legend>
-              {(["private", "public"] as const).map((value) => (
+              {(isGuest ? ["public", "private"] as const : ["private", "public"] as const).map((value) => (
                 <label key={value}>
                   <input
                     type="radio"
                     name="visibility"
                     value={value}
+                    aria-label={value === "private" ? "Private" : "Public"}
+                    aria-describedby={isGuest ? `visibility-${value}-hint` : undefined}
                     checked={draft.visibility === value}
                     onChange={() => update({ visibility: value })}
                   />
-                  {value === "private" ? "Private" : "Public"}
+                  {isGuest ? (
+                    <span>
+                      {value === "public" ? "Ask publicly" : "Ask privately"}
+                      <small id={`visibility-${value}-hint`}>
+                        {value === "public" ? "No account needed" : "Sign in"}
+                      </small>
+                    </span>
+                  ) : value === "private" ? "Private" : "Public"}
                 </label>
               ))}
             </fieldset>
@@ -422,19 +432,17 @@ export function QuestionComposer({
         </div>
         <p id="question-privacy" className="agora-meta agora-privacy">
           {draft.visibility === "private"
-            ? "Private to your account, with access for Philagora administrators. Not shown in the public Agora. Sign-in is required."
-            : `Your question, answers and any follow-up are public, shown as ${draft.askedBy.trim() || "Anonymous"}. Your account name is not displayed automatically.`}
+            ? "Only you and Philagora administrators can read this conversation."
+            : `Your question, answers and follow-ups are public as ${draft.askedBy.trim() || "Anonymous"}.`}
           {!session?.user && draft.visibility === "public" && (
             <>
               {" "}
-              Guests can ask publicly.{" "}
               <Link
                 onClick={signIn}
                 href={`/sign-in?returnTo=${encodeURIComponent(pathname + "#ask")}`}
               >
-                Sign in before asking
-              </Link>{" "}
-              to keep it in your account and add a follow-up.
+                Sign in to save and follow up.
+              </Link>
             </>
           )}
         </p>
@@ -465,7 +473,7 @@ export function QuestionComposer({
               {suggesting
                 ? "We’re matching your question with different ways of thinking. Nothing has been submitted yet."
                 : draft.review?.error ||
-                  "A suggested group for your question. Choose 2–4 thinkers."}
+                  "Start with two perspectives. You can choose up to four thinkers."}
             </p>
             {!suggesting && (
               <>
@@ -645,7 +653,7 @@ export function QuestionComposer({
           <button
             key={q}
             type="button"
-            disabled={locked || suggesting}
+            disabled={!ready || locked || suggesting}
             onClick={() => {
               update({ question: q });
               field.current?.focus();
@@ -656,10 +664,12 @@ export function QuestionComposer({
         ))}
       </div>
       {quota && (
-        <p className="agora-meta">
+        <p className="agora-meta agora-quota">
           {quota.limit === null
             ? "Unlimited questions"
-            : `${Math.max(0, quota.limit - quota.used)} of ${quota.limit} questions left today. Follow-ups count toward this limit.`}
+            : isGuest
+              ? `${Math.max(0, quota.limit - quota.used)} of ${quota.limit} questions left today.`
+              : `${Math.max(0, quota.limit - quota.used)} of ${quota.limit} questions left today. Follow-ups count toward this limit.`}
         </p>
       )}
     </section>

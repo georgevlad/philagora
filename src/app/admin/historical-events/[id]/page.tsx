@@ -112,7 +112,7 @@ export default function HistoricalEventDetailPage() {
   const [philosophers, setPhilosophers] = useState<Philosopher[]>([]);
   const [selectedPhilosophers, setSelectedPhilosophers] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<Record<string, PhilosopherSuggestion>>({});
-  const [length, setLength] = useState<"short" | "medium" | "long">("medium");
+  const [length, setLength] = useState<"short" | "medium" | "long">("short");
   const [previews, setPreviews] = useState<GeneratedPreview[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

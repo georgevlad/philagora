@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   normalizeMessageParams,
   omitsSamplingParameters,
+  parseJsonResponse,
 } from "@/lib/anthropic-utils";
 
 function baseParams(
@@ -36,6 +37,28 @@ describe("normalizeMessageParams", () => {
     expect(normalized.temperature).toBe(0.8);
     expect(normalized.top_p).toBe(0.9);
     expect(normalized.top_k).toBe(40);
+  });
+});
+
+describe("model JSON with literal string controls", () => {
+  it("preserves paragraphs, quoted words, backslashes and punctuation inside content", () => {
+    const content = 'First paragraph with "quoted words", a path C:\\files, and literal ,}.\n\nSecond paragraph.\r\n\tA tab and control \u0001. [S1]';
+    const malformed = JSON.stringify({ content }).replaceAll('\\n', '\n').replaceAll('\\r', '\r').replaceAll('\\t', '\t').replaceAll('\\u0001', '\u0001');
+    expect(() => JSON.parse(malformed)).toThrow();
+    expect(parseJsonResponse(malformed)).toEqual({ content });
+  });
+
+  it.each(["%s", "```json\n%s\n```", "Here is the draft:\n%s\nEnd."])("repairs controls in %s", (wrapper) => {
+    expect(parseJsonResponse(wrapper.replace("%s", '{"content":"First.\n\nSecond."}'))).toEqual({ content: "First.\n\nSecond." });
+  });
+
+  it("leaves valid JSON escapes and formatting untouched", () => {
+    const data = { content: 'A literal \\n, an escaped quote ", and a line\nbreak.', values: [1, 2] };
+    expect(parseJsonResponse(JSON.stringify(data, null, 2))).toEqual(data);
+  });
+
+  it.each(['{"content":"Unfinished\nparagraph', '{"content":"Unknown escape \\q"}', '{"content":"A "bare" quote"}'])("does not guess at ambiguous or incomplete content: %s", (raw) => {
+    expect(() => parseJsonResponse(raw)).toThrow();
   });
 });
 

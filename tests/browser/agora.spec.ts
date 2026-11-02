@@ -116,14 +116,14 @@ test("real submission, incremental answers, return, refresh and whole-group foll
   await page
     .getByRole("link", { name: "Browse the Agora while you wait" })
     .click();
-  await page.getByRole("link", { name: "Return to your conversation" }).click();
+  await page.getByRole("link", { name: "Continue reading" }).click();
   await expect(page).toHaveURL(threadURL);
   await page.reload();
   await expect(page).toHaveURL(threadURL);
   await request.post(`http://127.0.0.1:${review.stubPort}/mode`, {
     data: { mode: "normal" },
   });
-  await expect(page.locator("#first-responses .agora-answer")).toHaveCount(3, {
+  await expect(page.locator("#first-responses .agora-answer")).toHaveCount(2, {
     timeout: 60000,
   });
   await expect(
@@ -133,7 +133,9 @@ test("real submission, incremental answers, return, refresh and whole-group foll
     .locator("#first-responses .agora-answer")
     .first()
     .innerText();
-  expect(originalAnswer.split(/\s+/).length).toBeGreaterThan(200);
+  const prose = await page.locator("#first-responses .agora-answer-text").first().innerText();
+  expect(prose.split(/\s+/).length).toBeLessThanOrEqual(80);
+  await expect(page.getByRole("button", { name: "Read full answer" })).toHaveCount(0);
   await page
     .getByLabel("Your follow-up to the group")
     .fill("How do I distinguish peace from giving up?");
@@ -143,14 +145,14 @@ test("real submission, incremental answers, return, refresh and whole-group foll
       name: "How do I distinguish peace from giving up?",
     }),
   ).toBeVisible();
-  await expect(page.locator("#follow-up .agora-answer")).toHaveCount(3);
+  await expect(page.locator("#follow-up .agora-answer")).toHaveCount(2);
   expect(
     await page.locator("#follow-up .agora-answer").first().innerText(),
   ).not.toBe(originalAnswer);
   await expect(
     page.getByRole("heading", { name: "A place to leave it, for now." }),
   ).toBeVisible();
-  await expect(page.locator("#first-responses .agora-answer")).toHaveCount(3);
+  await expect(page.locator("#first-responses .agora-answer")).toHaveCount(2);
   await expect(page.getByLabel("Your follow-up to the group")).toHaveCount(0);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({
@@ -272,7 +274,7 @@ test("public guest question, validation and one-follow-up ownership", async ({
   await expect(
     page.getByText("Public conversation", { exact: true }),
   ).toBeVisible();
-  await expect(page.locator(".agora-answer")).toHaveCount(3);
+  await expect(page.locator(".agora-answer")).toHaveCount(2);
   await expect(
     page.getByText("Guest questions cannot be claimed after submission.", {
       exact: false,
@@ -324,7 +326,7 @@ test("partial failure, slow state and network loss preserve answers", async ({
   });
 });
 
-test("navigation, feed filters, debate and mock issue actions", async ({
+test("navigation, feed filters, debate and published issue", async ({
   page,
 }) => {
   await page.goto("/");
@@ -341,7 +343,13 @@ test("navigation, feed filters, debate and mock issue actions", async ({
     }),
   ).toBeVisible();
   await page.goto("/");
-  await page.getByRole("link", { name: "Read the sample briefing" }).click();
+  await page.getByRole("link", { name: "Explore the question" }).click();
+  await expect(page).toHaveURL(/\/in-focus\/ukraine-air-defence-and-the-duty-to-help$/);
+  await expect(page.getByRole("heading", { name: "When does caution become a failure to help?" })).toBeVisible();
+  await expect(page.locator(".in-focus-contribution")).toHaveCount(3);
+  await expect(page.locator("#focus-sources li")).toHaveCount(9);
+  // The historical mock remains a deliberately separate, non-indexed design preview.
+  await page.goto("/preview/issue-in-focus");
   await expect(
     page.getByText("This entire feature is mocked", { exact: false }),
   ).toBeVisible();
@@ -374,7 +382,7 @@ test("keyboard, 200% text and reduced motion reflow", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
   await page.keyboard.press("Tab");
-  // The existing development notice may precede the skip link.
+  // The local review banner may precede the skip link.
   for (let i = 0; i < 3; i++) {
     if (
       await page

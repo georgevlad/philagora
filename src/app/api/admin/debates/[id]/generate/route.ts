@@ -71,30 +71,21 @@ export async function POST(
     let sourceMaterial: string;
     let contentTypeKey: "debate_opening" | "debate_rebuttal";
 
+    const participants = db.prepare(`SELECT p.name FROM debate_philosophers dp
+      JOIN philosophers p ON p.id = dp.philosopher_id WHERE dp.debate_id = ? ORDER BY p.name`)
+      .all(id) as { name: string }[];
+    const debateContext = [
+      `DEBATE TOPIC: ${debate.title}`,
+      `PARTICIPANTS: ${participants.map(p => p.name).join(", ")}`,
+      debate.editorial_context?.trim() ? `EDITORIAL CONTEXT:\n${debate.editorial_context.trim()}` : "",
+      debate.trigger_article_title ? `TRIGGER ARTICLE TITLE: ${debate.trigger_article_title}` : "",
+      debate.trigger_article_source ? `TRIGGER SOURCE: ${debate.trigger_article_source}` : "",
+      debate.trigger_article_url ? `TRIGGER URL (not retrieved): ${debate.trigger_article_url}` : "",
+    ].filter(Boolean).join("\n\n");
+
     if (phase === "opening") {
       contentTypeKey = "debate_opening";
-      sourceMaterial = `DEBATE TOPIC: ${debate.title}\n\n`;
-
-      const editorialContext = debate.editorial_context?.trim();
-      if (editorialContext) {
-        sourceMaterial += `EDITORIAL CONTEXT:\n${editorialContext}\n\n`;
-      }
-
-      const triggerArticleTitle = debate.trigger_article_title?.trim();
-      if (triggerArticleTitle) {
-        sourceMaterial += `TRIGGER ARTICLE:\nTitle: ${triggerArticleTitle}`;
-        const triggerArticleSource = debate.trigger_article_source?.trim();
-        if (triggerArticleSource) {
-          sourceMaterial += `\nSource: ${triggerArticleSource}`;
-        }
-        const triggerArticleUrl = debate.trigger_article_url?.trim();
-        if (triggerArticleUrl) {
-          sourceMaterial += `\nURL: ${triggerArticleUrl}`;
-        }
-        sourceMaterial += "\n\n";
-      }
-
-      sourceMaterial += "Present your opening position.";
+      sourceMaterial = `${debateContext}\n\nPresent your opening position.`;
     } else {
       // rebuttal
       contentTypeKey = "debate_rebuttal";
@@ -124,7 +115,18 @@ export async function POST(
         .prepare("SELECT name FROM philosophers WHERE id = ?")
         .get(target_philosopher_id) as PhilosopherRow | undefined;
 
-      sourceMaterial = `DEBATE TOPIC: ${debate.title}\n\nYOU ARE REBUTTING:\nPhilosopher: ${targetPhilosopher?.name ?? target_philosopher_id}\nTheir opening statement:\n${targetOpening.content}\n\nRespond to their specific claims.`;
+      const ownOpening = db.prepare("SELECT content FROM debate_posts WHERE debate_id = ? AND philosopher_id = ? AND phase = 'opening' ORDER BY sort_order LIMIT 1")
+        .get(id, philosopher_id) as { content: string } | undefined;
+      const exchange = db.prepare(`SELECT p.name, dp.content FROM debate_posts dp
+        JOIN philosophers p ON p.id = dp.philosopher_id
+        WHERE dp.debate_id = ? AND dp.phase = 'rebuttal' ORDER BY dp.sort_order DESC LIMIT ?`)
+        .all(id, 4) as { name: string; content: string }[];
+      sourceMaterial = [debateContext,
+        ownOpening ? `YOUR OWN OPENING:\n${ownOpening.content}` : "YOUR OWN OPENING: none supplied; do not invent a prior position.",
+        `YOU ARE REBUTTING:\nPhilosopher: ${targetPhilosopher?.name ?? target_philosopher_id}\nTheir opening statement:\n${targetOpening.content}`,
+        exchange.length ? `RECENT EXCHANGE (reference material):\n${JSON.stringify(exchange.reverse())}` : "",
+        "Respond to their specific claims and advance the exchange.",
+      ].filter(Boolean).join("\n\n");
     }
 
     // Generate content

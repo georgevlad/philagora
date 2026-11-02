@@ -54,6 +54,10 @@ const TEMPLATE_ITEMS: Array<{ key: TemplateKey; label: string }> = [
   { key: "agora_response", label: "Agora Response" },
   { key: "debate_synthesis", label: "Debate Synthesis" },
   { key: "agora_synthesis", label: "Agora Synthesis" },
+  { key: "in_focus_briefing", label: "In Focus: Briefing" },
+  { key: "in_focus_questions", label: "In Focus: Questions" },
+  { key: "in_focus_voices", label: "In Focus: Philosopher selection" },
+  { key: "in_focus_perspective", label: "In Focus: Philosophical exchange" },
 ];
 
 function truncateText(text: string, maxLen: number = 360): string {

@@ -68,9 +68,6 @@ export const CONTENT_TYPE_LABELS: Record<string, string> = {
   synthesis: "Synthesis",
 };
 
-// Post content truncation
-export const POST_CONTENT_TRUNCATE_LIMIT = 300;
-
 // Valid values
 export const DEBATE_PHASES = ["opening", "rebuttal"] as const;
 export const POST_STATUSES = ["draft", "approved", "published", "archived"] as const;

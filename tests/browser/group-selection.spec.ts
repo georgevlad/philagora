@@ -54,6 +54,7 @@ test("suggestions precede submission, reasons and custom group survive refresh, 
     ),
   ).toBeVisible();
   expect(submitted).toBeUndefined();
+  await expect(page.locator(".agora-selected-group")).toContainText("2 of 2–4 thinkers selected");
   await page.screenshot({
     path: ".local-review/group-review-mobile.png",
     fullPage: true,
@@ -61,6 +62,9 @@ test("suggestions precede submission, reasons and custom group survive refresh, 
   await page
     .getByText("Change the group · All thinkers", { exact: true })
     .click();
+  await selection(page)
+    .getByRole("checkbox", { name: "Nietzsche", exact: true })
+    .check();
   await selection(page)
     .getByRole("checkbox", { name: "Plato", exact: true })
     .check();
@@ -269,15 +273,26 @@ test("test mode is explicit and representative responses reflow at mobile and de
   for (const width of [320, 390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(page.locator("#first-responses .agora-answer")).toHaveCount(3);
-    const paragraphs = await page
-      .locator("#first-responses .agora-answer > p")
-      .allTextContents();
+    await page.reload();
+    const firstAnswer = page.locator("#first-responses .agora-answer").first();
+    const preview = await firstAnswer.locator(".agora-answer-text").innerText();
+    expect(preview.split(/\s+/).length).toBeLessThanOrEqual(90);
+    const expand = firstAnswer.getByRole("button", { name: "Read full answer" });
+    await expand.focus();
+    await page.keyboard.press("Enter");
+    await expect(firstAnswer.getByRole("button", { name: "Show less" })).toHaveAttribute("aria-expanded", "true");
+    for (const answer of await page.locator("#first-responses .agora-answer").all()) {
+      const button = answer.getByRole("button", { name: "Read full answer", exact: true });
+      if (await button.count()) await button.click();
+    }
+    const paragraphs = await page.locator("#first-responses .agora-answer-text > p").allTextContents();
     expect(paragraphs.length).toBe(4);
     for (const paragraph of paragraphs) {
       const words = paragraph.trim().split(/\s+/).length;
       expect(words).toBeGreaterThanOrEqual(100);
       expect(words).toBeLessThanOrEqual(200);
     }
+    await page.getByRole("button", { name: "Read full synthesis" }).click();
     expect(
       (await page.locator(".agora-synthesis").innerText()).split(/\s+/).length,
     ).toBeGreaterThan(200);
@@ -321,7 +336,7 @@ test("reviewed guest group and classification survive private sign-in and refres
   await owner(page);
   await page.goto("/");
   await page.reload();
-  await expect(page.locator(".agora-selected-group")).toContainText("3 of 2–4");
+  await expect(page.locator(".agora-selected-group")).toContainText("2 of 2–4");
   await expect(
     page.getByRole("radio", { name: "Private", exact: true }),
   ).toBeChecked();

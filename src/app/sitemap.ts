@@ -8,6 +8,8 @@ import {
   getAllPublicPostIds,
 } from "@/lib/data";
 import { toAbsoluteUrl } from "@/lib/seo";
+import { getPublishedFocusEditions } from "@/lib/in-focus-published";
+import { focusEditionPath } from "@/lib/in-focus-publication";
 
 export const dynamic = "force-dynamic";
 
@@ -59,5 +61,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...debateRoutes,
     ...agoraRoutes,
     ...philosopherRoutes,
+    ...getPublishedFocusEditions().map((edition) =>
+      buildRouteEntry(focusEditionPath(edition), "monthly", 0.8, edition.publishedAt)
+    ),
   ];
 }

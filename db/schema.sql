@@ -4,6 +4,32 @@
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 
+-- Private In Focus experiments are intentionally separate from publishable content.
+CREATE TABLE IF NOT EXISTS in_focus_experiments (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  state_json TEXT NOT NULL,
+  revision INTEGER NOT NULL DEFAULT 1,
+  archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0, 1)),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS in_focus_versions (
+  id TEXT PRIMARY KEY,
+  experiment_id TEXT NOT NULL REFERENCES in_focus_experiments(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK(kind IN ('briefing','questions','voices','argument','challenge','reply')),
+  origin TEXT NOT NULL CHECK(origin IN ('generated','edited')),
+  status TEXT NOT NULL CHECK(status IN ('generating','complete','failed')),
+  output_json TEXT NOT NULL DEFAULT '{}',
+  snapshot_json TEXT NOT NULL,
+  feedback TEXT NOT NULL DEFAULT '',
+  raw_output TEXT NOT NULL DEFAULT '',
+  error TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_in_focus_versions_experiment ON in_focus_versions(experiment_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_in_focus_one_generation ON in_focus_versions(experiment_id) WHERE status = 'generating';
+
 -- ── Philosophers ─────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS philosophers (

@@ -1,6 +1,8 @@
 import type Database from "better-sqlite3";
 import { DEFAULT_SCORING_CONFIG_VALUES } from "../src/lib/scoring-config";
 import { DEFAULT_MOOD_PALETTES } from "../src/lib/mood-data";
+import { applyPromptRefinement } from "./prompt-refinement";
+import { applyContentShortening } from "./content-shortening";
 
 // Migration Registry
 
@@ -136,6 +138,48 @@ CREATE TABLE IF NOT EXISTS admin_generation_runs (
 );
 CREATE INDEX IF NOT EXISTS idx_admin_generation_runs_created ON admin_generation_runs(created_at DESC);
 `); } },
+  {
+    version: 20,
+    name: "private_in_focus_workshop",
+    migrate: (db) => db.transaction(() => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS in_focus_experiments (
+          id TEXT PRIMARY KEY, title TEXT NOT NULL, state_json TEXT NOT NULL,
+          revision INTEGER NOT NULL DEFAULT 1,
+          archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0, 1)),
+          created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS in_focus_versions (
+          id TEXT PRIMARY KEY,
+          experiment_id TEXT NOT NULL REFERENCES in_focus_experiments(id) ON DELETE CASCADE,
+          kind TEXT NOT NULL CHECK(kind IN ('briefing','questions','voices','argument','challenge','reply')),
+          origin TEXT NOT NULL CHECK(origin IN ('generated','edited')),
+          status TEXT NOT NULL CHECK(status IN ('generating','complete','failed')),
+          output_json TEXT NOT NULL DEFAULT '{}', snapshot_json TEXT NOT NULL,
+          feedback TEXT NOT NULL DEFAULT '', raw_output TEXT NOT NULL DEFAULT '',
+          error TEXT, created_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_in_focus_versions_experiment ON in_focus_versions(experiment_id, created_at DESC);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_in_focus_one_generation ON in_focus_versions(experiment_id) WHERE status = 'generating';
+      `);
+    })(),
+  },
+  {
+    version: 21,
+    name: "refine_philosopher_prompts_and_response_lengths",
+    migrate: (db) => {
+      const result = applyPromptRefinement(db);
+      if (result.preservedCustom.length) console.info("[Prompts] Preserved custom versions:", result.preservedCustom.join(", "));
+    },
+  },
+  {
+    version: 22,
+    name: "shorter_answers_and_synthesis_templates",
+    migrate: (db) => {
+      const result = applyContentShortening(db);
+      if (result.preservedCustom.length) console.info("[Shortening] Preserved custom templates:", result.preservedCustom.join(", "));
+    },
+  },
   // Future migrations go here
 ];
 

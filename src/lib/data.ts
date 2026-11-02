@@ -64,11 +64,18 @@ function mapPhilosopher(row: PhilosopherRow): Philosopher {
   };
 }
 
+function cleanSourceText(value: string | null | undefined): string {
+  const text = value?.trim() ?? "";
+  return /^[-–—]*$/.test(text) ? "" : text;
+}
+
 function buildCitation(row: FeedPostRow): PostCitation | undefined {
-  if (!row.citation_title && !row.citation_source) return undefined;
+  const title = cleanSourceText(row.citation_title);
+  const source = cleanSourceText(row.citation_source);
+  if (!title && !source) return undefined;
   return {
-    title: row.citation_title ?? "",
-    source: row.citation_source ?? "",
+    title,
+    source,
     url: row.citation_url ?? undefined,
     imageUrl: row.citation_image_url ?? undefined,
   };
@@ -474,9 +481,10 @@ function getDebates(limit?: number): DebateListItem[] {
   const debates = db
     .prepare(
       `SELECT * FROM debates
+       WHERE status = ?
        ORDER BY debate_date DESC${boundedLimit === undefined ? "" : " LIMIT ?"}`
     )
-    .all(...(boundedLimit === undefined ? [] : [boundedLimit])) as DebateRow[];
+    .all("complete", ...(boundedLimit === undefined ? [] : [boundedLimit])) as DebateRow[];
 
   if (debates.length === 0) {
     return [];
@@ -545,8 +553,8 @@ function getDebates(limit?: number): DebateListItem[] {
       status: formatDebateStatus(d.status),
       debateDate: formatDebateDate(d.debate_date),
       debateDateRaw: d.debate_date,
-      triggerArticleTitle: d.trigger_article_title,
-      triggerArticleSource: d.trigger_article_source,
+      triggerArticleTitle: cleanSourceText(d.trigger_article_title),
+      triggerArticleSource: cleanSourceText(d.trigger_article_source),
       triggerArticleUrl: d.trigger_article_url,
       philosophers: philosophersByDebate.get(d.id) ?? [],
       openingPreviews: openingsByDebate.get(d.id) ?? [],
@@ -565,8 +573,8 @@ export function getRecentDebates(limit = 2): DebateListItem[] {
 export function getAllPublicDebateIds(): Array<{ id: string; updatedAt: string }> {
   const db = getDb();
   const rows = db
-    .prepare("SELECT id, debate_date FROM debates ORDER BY debate_date DESC")
-    .all() as Array<{ id: string; debate_date: string }>;
+    .prepare("SELECT id, debate_date FROM debates WHERE status = ? ORDER BY debate_date DESC")
+    .all("complete") as Array<{ id: string; debate_date: string }>;
 
   return rows.map((row) => ({
     id: row.id,
@@ -617,8 +625,8 @@ export function getDebateById(id: string): DebateDetail | null {
     status: formatDebateStatus(d.status),
     debateDate: formatDebateDate(d.debate_date),
     debateDateRaw: d.debate_date,
-    triggerArticleTitle: d.trigger_article_title,
-    triggerArticleSource: d.trigger_article_source,
+    triggerArticleTitle: cleanSourceText(d.trigger_article_title),
+    triggerArticleSource: cleanSourceText(d.trigger_article_source),
     triggerArticleUrl: d.trigger_article_url,
     philosophers: philRows.map((r) => r.philosopher_id),
     crossExaminations: postRows.filter((p) => p.phase === "cross-examination").map(mapPost),

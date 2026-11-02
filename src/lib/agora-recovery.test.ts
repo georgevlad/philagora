@@ -66,6 +66,11 @@ describe("durable missing-work generation", () => {
     expect(getAgoraJob(db,id)?.state).toBe("complete");
     expect(capture(id).responses[0]).toEqual(first);
     expect(generateContent).toHaveBeenCalledTimes(3);
+    const calls = vi.mocked(generateContent).mock.calls;
+    expect(calls[0][2]).not.toContain("EARLIER ANSWERS IN THIS SAME ROUND");
+    expect(calls[1][2]).toContain("EARLIER ANSWERS IN THIS SAME ROUND");
+    expect(calls[1][2]).toContain("First answer");
+    expect(calls[2][2]).toBe(calls[1][2]); // Recovery retains the originally persisted context.
     expect(generateSynthesis).toHaveBeenCalledTimes(1);
   });
   it("recovers synthesis alone without rewriting answers", async () => {
@@ -132,6 +137,9 @@ describe("durable missing-work generation", () => {
     db.prepare("UPDATE agora_responses SET posts = ? WHERE thread_id = ?").run('["LATER ANSWER"]',parent);
     vi.clearAllMocks();await runAgoraGeneration(child);
     for(const c of vi.mocked(generateContent).mock.calls){expect(c[2]).toContain("FROZEN QUESTION");expect(c[2]).toContain("FROZEN ANSWER");expect(c[2]).not.toContain("LATER");}
+    expect(vi.mocked(generateContent).mock.calls[0][2]).not.toContain("EARLIER ANSWERS IN THIS SAME ROUND");
+    expect(vi.mocked(generateContent).mock.calls[1][2]).toContain("EARLIER ANSWERS IN THIS SAME ROUND");
+    expect(vi.mocked(generateContent).mock.calls[1][2]).toContain("A preserved answer.");
     expect(vi.mocked(generateSynthesis).mock.calls[0][1]).toContain("FROZEN SYNTHESIS");
   });
   it("can finish a parent with a snapshotted child without altering the child",async()=>{

@@ -6,6 +6,13 @@ import { agoraModelCall } from "@/lib/agora-model-call";
 import Anthropic from "@anthropic-ai/sdk";
 import { classifyError, logApiCall } from "@/lib/api-logger";
 
+/** Safe application-level diagnostics; never include source text or provider internals. */
+export class ModelResponseError extends Error {
+  constructor(public code: "invalid_json" | "truncated" | "invalid_content", message: string) {
+    super(message);
+  }
+}
+
 const MODELS_WITHOUT_SAMPLING_PARAMS = new Set([
   "claude-opus-4-7",
   "claude-opus-4-8",
@@ -46,7 +53,8 @@ export function normalizeMessageParams(
 export async function createMessage(
   client: Anthropic,
   params: Anthropic.MessageCreateParamsNonStreaming,
-  caller: string
+  caller: string,
+  validateResponse?: (response: Anthropic.Message) => void,
 ): Promise<Anthropic.Message> {
   const start = Date.now();
   const requestParams = normalizeMessageParams(params);
@@ -64,13 +72,18 @@ export async function createMessage(
     )
     .reduce((total, length) => total + length, 0);
 
+  let response: Anthropic.Message | null = null;
+  let rawText = "";
   try {
-    const response = await client.messages.create(requestParams, agoraModelCall.getStore() === "durable" ? { maxRetries: 0, timeout: 90_000 } : undefined);
+    response = await client.messages.create(requestParams, agoraModelCall.getStore() === "durable" ? { maxRetries: 0, timeout: 90_000 } : undefined);
     const latencyMs = Date.now() - start;
-    const rawText = response.content
+    rawText = response.content
       .filter((block): block is Anthropic.TextBlock => block.type === "text")
       .map((block) => block.text)
       .join("");
+
+    // Workshop success includes parsing and content validation, not just HTTP success.
+    validateResponse?.(response);
 
     logApiCall({
       caller,
@@ -95,18 +108,20 @@ export async function createMessage(
     logApiCall({
       caller,
       model: requestParams.model,
-      inputTokens: null,
-      outputTokens: null,
+      inputTokens: response?.usage?.input_tokens ?? null,
+      outputTokens: response?.usage?.output_tokens ?? null,
       maxTokensRequested: requestParams.max_tokens,
       temperature: requestParams.temperature ?? null,
-      stopReason: null,
+      stopReason: response?.stop_reason ?? null,
       latencyMs,
       success: false,
-      errorMessage: (agoraModelCall.getStore() || caller === "classification") ? "Agora provider request failed" : message,
-      errorType: type,
+      errorMessage: response
+        ? err instanceof ModelResponseError ? err.message : "The model responded, but its output could not be processed."
+        : (agoraModelCall.getStore() || caller === "classification") ? "Agora provider request failed" : message,
+      errorType: response ? err instanceof ModelResponseError ? `response_${err.code}` : "response_validation" : type,
       systemPromptLength: systemLength,
       userMessageLength,
-      responseLength: null,
+      responseLength: response ? rawText.length : null,
     });
 
     throw err;
@@ -127,6 +142,37 @@ function repairJson(raw: string): string {
   return fixed;
 }
 
+/** Escape literal controls inside strings without changing text, escapes, or JSON structure. */
+function escapeJsonStringControls(raw: string): string {
+  let fixed = "";
+  let inString = false;
+  let escaped = false;
+  for (const character of raw) {
+    if (escaped) {
+      fixed += character;
+      escaped = false;
+    } else if (inString && character === "\\") {
+      fixed += character;
+      escaped = true;
+    } else if (character === '"') {
+      fixed += character;
+      inString = !inString;
+    } else if (inString && character.charCodeAt(0) < 0x20) {
+      fixed += JSON.stringify(character).slice(1, -1);
+    } else {
+      fixed += character;
+    }
+  }
+  return fixed;
+}
+
+function parseJsonCandidate(raw: string): unknown {
+  try { return JSON.parse(raw); } catch { /* Try lossless control escaping first. */ }
+  const escaped = escapeJsonStringControls(raw);
+  try { return JSON.parse(escaped); } catch { /* Keep the existing structural repairs as a fallback. */ }
+  return JSON.parse(repairJson(escaped));
+}
+
 export function parseJsonValueResponse(rawOutput: string): unknown {
   let cleaned = rawOutput.trim();
 
@@ -144,7 +190,7 @@ export function parseJsonValueResponse(rawOutput: string): unknown {
 
   // Strategy 3: Repair common malformations then parse
   try {
-    return JSON.parse(repairJson(cleaned));
+    return parseJsonCandidate(cleaned);
   } catch {
     // continue to next strategy
   }
@@ -156,7 +202,7 @@ export function parseJsonValueResponse(rawOutput: string): unknown {
       return JSON.parse(fenceMatch[1].trim());
     } catch {
       try {
-        return JSON.parse(repairJson(fenceMatch[1].trim()));
+        return parseJsonCandidate(fenceMatch[1].trim());
       } catch {
         // continue to next strategy
       }
@@ -219,7 +265,7 @@ export function parseJsonValueResponse(rawOutput: string): unknown {
         return JSON.parse(jsonCandidate);
       } catch {
         try {
-          return JSON.parse(repairJson(jsonCandidate));
+          return parseJsonCandidate(jsonCandidate);
         } catch {
           // continue to throw below
         }

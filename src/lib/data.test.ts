@@ -13,6 +13,7 @@ vi.mock("@/lib/db", () => ({
 
 import {
   getAllDebates,
+  getAllPublicDebateIds,
   getDebateById,
   getAllPhilosophers,
   getAgoraThreadById,
@@ -139,11 +140,12 @@ function seedDebate(args: {
   title: string;
   debateDate: string;
   philosopherIds: string[];
+  status?: "complete" | "in_progress" | "scheduled";
   openings?: Array<{ philosopherId: string; content: string }>;
 }) {
   testDb
-    .prepare("INSERT INTO debates (id, title, debate_date) VALUES (?, ?, ?)")
-    .run(args.id, args.title, args.debateDate);
+    .prepare("INSERT INTO debates (id, title, debate_date, status) VALUES (?, ?, ?, ?)")
+    .run(args.id, args.title, args.debateDate, args.status ?? "complete");
 
   const insertPhilosopher = testDb.prepare(
     "INSERT INTO debate_philosophers (debate_id, philosopher_id) VALUES (?, ?)"
@@ -544,6 +546,24 @@ describe("debate list helpers", () => {
       "debate-middle",
       "debate-oldest",
     ]);
+  });
+
+  it("omits unfinished debates from public listings and the sitemap without losing their content", () => {
+    for (const status of ["in_progress", "scheduled"] as const) {
+      seedDebate({
+        id: `debate-${status}`,
+        title: "An unfinished debate",
+        debateDate: "2025-04-01 12:00:00",
+        philosopherIds: ["plato"],
+        status,
+        openings: [{ philosopherId: "plato", content: "A saved opening." }],
+      });
+      expect(getDebateById(`debate-${status}`)?.openings[0].content).toBe("A saved opening.");
+    }
+    const publishedIds = ["debate-newest", "debate-middle", "debate-oldest"];
+    expect(getAllDebates().map((debate) => debate.id)).toEqual(publishedIds);
+    expect(getAllPublicDebateIds().map((debate) => debate.id)).toEqual(publishedIds);
+    expect(getRecentDebates(2).map((debate) => debate.id)).toEqual(publishedIds.slice(0, 2));
   });
 });
 

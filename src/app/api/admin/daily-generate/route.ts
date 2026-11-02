@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { chooseVariedLength } from "@/lib/content-lengths";
 import { getDb } from "@/lib/db";
 import type {
   ArticleCandidateRow,
@@ -377,7 +378,7 @@ export async function POST(request: NextRequest) {
         type: "quip",
         dbContentType: "post",
         sourceMaterial: buildArticleSourceMaterial(article),
-        targetLength: "medium",
+        targetLength: "short",
         citation: {
           title: article.title,
           source: article.source_name,
@@ -1237,16 +1238,11 @@ function pickQuipPhilosopher(args: {
 }
 
 function resolveTargetLength(strategy: LengthStrategy): TargetLength {
-  if (strategy === "varied") return pickWeightedLength();
+  if (strategy === "varied") return chooseVariedLength();
   return strategy;
 }
 
-function pickWeightedLength(): TargetLength {
-  const roll = Math.random();
-  if (roll < 0.25) return "short";
-  if (roll < 0.75) return "medium";
-  return "long";
-}
+
 
 function buildSummary(generated: DailyGeneratedItem[], errors: string[]) {
   const usedNames = Array.from(

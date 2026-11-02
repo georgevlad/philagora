@@ -116,6 +116,10 @@ export async function POST(
       undefined,
       alreadyRecommended
     );
+    const earlierResponses = db.prepare(`SELECT ar.posts, p.name AS philosopher_name, p.tradition AS philosopher_tradition
+      FROM agora_responses ar JOIN philosophers p ON p.id = ar.philosopher_id
+      WHERE ar.thread_id = ? AND ar.philosopher_id != ? ORDER BY ar.sort_order`)
+      .all(threadId, philosopher_id) as Array<{ posts: string; philosopher_name: string; philosopher_tradition: string }>;
     const sourceMaterial = buildAgoraResponseSourceMaterial({
       question: thread.question,
       askedBy: thread.asked_by,
@@ -123,6 +127,7 @@ export async function POST(
       recommendationsAppropriate: recommendationsEnabled,
       recommendationHint: null,
       alreadyRecommended,
+      earlierResponses,
       article,
     });
 
