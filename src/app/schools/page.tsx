@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { getPhilosophersMap, getAllPhilosophers } from "@/lib/data";
 import { SchoolsPageClient } from "./SchoolsPageClient";
 
+// Railway's database volume is only available at runtime. Do not cache the
+// build-time empty roster as the public schools directory.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Schools of Thought",
   description:
