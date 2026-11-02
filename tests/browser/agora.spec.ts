@@ -10,20 +10,25 @@ test("homepage at mobile, tablet and desktop sizes", async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
     await expect(
-      page.getByRole("heading", { name: "What’s on your mind?" }),
+      page.getByRole("heading", { name: "Ask the great philosophers." }),
     ).toBeVisible();
     await expect(
       page.getByLabel("Your question for the philosophers"),
     ).toBeVisible();
-    await expect(
-      page.getByRole("radio", { name: "Public", exact: true }),
-    ).toBeChecked();
+    await expect(page.getByRole("radio")).toHaveCount(0);
+    await expect(page.getByLabel("Public display name")).toHaveCount(0);
+    await expect(page.locator(".agora-quota")).toHaveCount(0);
+    await expect(page.locator(".agora-portrait-row img")).toHaveCount(5);
+    await expect.poll(() => page.locator(".agora-portrait-row img").evaluateAll(
+      (images) => images.every((img) => (img as HTMLImageElement).naturalWidth > 0),
+    )).toBeTruthy();
     await expect(page.getByRole("link", { name: "Sign in to ask privately" })).toHaveCount(0);
     const question = page.getByLabel("Your question for the philosophers");
     await expect(question).toBeEnabled();
     await page.evaluate(() => document.fonts.ready);
     const before = await question.boundingBox();
-    expect(before!.height).toBeGreaterThanOrEqual(180);
+    expect(before!.height).toBeGreaterThanOrEqual(112);
+    expect(before!.height).toBeLessThan(180);
     await question.focus();
     await expect(question).toBeFocused();
     expect(await question.boundingBox()).toEqual(before);
@@ -58,10 +63,11 @@ test("guest draft survives sign-in navigation without entering the URL", async (
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("radio", { name: "Private", exact: true }).check();
   await page
     .getByLabel("Your question for the philosophers")
     .fill("PRIVATE_DRAFT: Should I change the way I live?");
+  await page.getByRole("button", { name: "Find my philosophers" }).click();
+  await page.getByRole("radio", { name: "Private", exact: true }).check();
   await page.getByRole("link", { name: "Sign in to ask privately" }).click();
   await expect(page).toHaveURL(/\/sign-in\?/);
   expect(page.url()).not.toContain("PRIVATE_DRAFT");
@@ -81,7 +87,7 @@ test("guest draft survives sign-in navigation without entering the URL", async (
   ]);
   await page.goto("/");
   await expect(
-    page.getByRole("button", { name: "Find my philosophers" }),
+    page.getByRole("button", { name: "Ask the philosophers" }),
   ).toBeVisible();
   await expect(
     page.getByLabel("Your question for the philosophers"),
@@ -120,8 +126,8 @@ test("real submission, incremental answers, return, refresh and whole-group foll
   await page
     .getByLabel("Your question for the philosophers")
     .fill("Should I choose a quieter life for myself?");
-  await page.getByRole("radio", { name: "Private", exact: true }).check();
   await page.getByRole("button", { name: "Find my philosophers" }).click();
+  await page.getByRole("radio", { name: "Private", exact: true }).check();
   await page
     .getByRole("button", { name: "Ask the philosophers", exact: false })
     .click();
@@ -280,7 +286,7 @@ test("public guest question, validation and one-follow-up ownership", async ({
   });
   expect(rejected.status()).toBe(401);
   await page.goto("/");
-  await expect(page.getByRole("radio", { name: "Public", exact: true })).toBeChecked();
+  await expect(page.getByRole("radio")).toHaveCount(0);
   await page.getByLabel("Your question for the philosophers").fill("short");
   await expect(
     page.getByRole("button", { name: "Find my philosophers" }),
@@ -289,6 +295,8 @@ test("public guest question, validation and one-follow-up ownership", async ({
     .getByLabel("Your question for the philosophers")
     .fill("What does a good public life require of us?");
   await page.getByRole("button", { name: "Find my philosophers" }).click();
+  await expect(page.getByRole("radio", { name: "Public", exact: true })).toBeChecked();
+  await expect(page.locator("#question-privacy")).toContainText("Everyone can read");
   await page.getByRole("button", { name: "Ask the philosophers" }).click();
   await expect(page).toHaveURL(/\/agora\/[a-f0-9-]+$/);
   await expect(
@@ -350,7 +358,7 @@ test("navigation, feed filters, debate and published issue", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "The full feed" }).click();
+  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Feed", exact: true }).click();
   await expect(page).toHaveURL(/\/feed$/);
   await page.locator('a[href*="/feed?type="]').first().click();
   await expect(page).toHaveURL(/\/feed\?type=/);

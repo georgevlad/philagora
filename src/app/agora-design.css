@@ -1410,3 +1410,244 @@
   min-height: 44px;
   margin-top: 8px;
 }
+
+/* A welcoming entrance: the cast, one question, then the finer choices. */
+.agora-welcome {
+  max-width: 760px;
+  margin-inline: auto;
+  padding: 44px 0 52px;
+}
+.agora-welcome-intro {
+  text-align: center;
+  margin-bottom: 26px;
+}
+.agora-portrait-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: start;
+  gap: 20px;
+  max-width: 540px;
+  margin: 0 auto 28px;
+  padding: 0;
+  list-style: none;
+}
+.agora-portrait-row li {
+  min-width: 0;
+}
+.agora-portrait-mat {
+  padding: 8px;
+  border-radius: 50%;
+  background: #dce5d7;
+}
+.agora-portrait-row li:nth-child(2) .agora-portrait-mat {
+  background: #e9d4c7;
+}
+.agora-portrait-row li:nth-child(3) .agora-portrait-mat {
+  background: #d7e2e8;
+}
+.agora-portrait-row li:nth-child(4) .agora-portrait-mat {
+  background: #ece0bb;
+}
+.agora-portrait-row li:nth-child(5) .agora-portrait-mat {
+  background: #ded9e7;
+}
+.agora-portrait-mat > div {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+.agora-portrait-mat img {
+  width: 100%;
+  height: 100%;
+}
+.agora-portrait-row li > span {
+  display: block;
+  margin-top: 10px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.agora-welcome h1 {
+  font-size: clamp(2.25rem, 4.5vw, 3.5rem);
+  line-height: 1.15;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+.agora-welcome h1 em {
+  color: var(--clay);
+  font-weight: inherit;
+}
+.agora-welcome-description {
+  max-width: 55ch;
+  margin: 18px auto 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.7;
+  text-wrap: pretty;
+}
+.agora-simple-composer .agora-question-box {
+  border-color: #cfc6b8;
+  box-shadow: 0 6px 24px #503b2410;
+}
+.agora-simple-composer .agora-question-box textarea {
+  min-height: 112px;
+  padding-bottom: 12px;
+}
+.agora-simple-composer .agora-composer-actions {
+  background: #f5f0e7;
+  padding: 12px 16px;
+}
+.agora-simple-composer .agora-article-option {
+  border: 0;
+  margin-top: 4px;
+}
+.agora-article-option summary {
+  width: fit-content;
+  font-size: 0.8125rem;
+}
+.agora-simple-composer .agora-suggestions {
+  justify-content: center;
+  gap: 0 16px;
+  margin: 2px 0 0;
+}
+.agora-simple-composer .agora-suggestions > span {
+  flex-basis: auto;
+}
+.agora-simple-composer .agora-suggestions button {
+  border: 0;
+  border-radius: 0;
+  padding: 8px 0;
+  color: var(--clay-dark);
+  text-decoration: underline;
+  text-decoration-color: #cdb09b;
+  text-underline-offset: 4px;
+}
+.agora-simple-composer .agora-suggestions button:hover {
+  background: transparent;
+  text-decoration-color: var(--clay-dark);
+}
+.agora-matched-philosophers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 12px;
+  margin: 20px 0 8px;
+}
+.agora-matched-philosophers article {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 12px;
+  align-content: start;
+  align-items: center;
+  padding: 20px;
+  background: #eaf0e5;
+  border-top: 2px solid #9dab91;
+}
+.agora-matched-philosophers article:nth-child(even) {
+  background: #eaf0f3;
+  border-color: #9dafba;
+}
+.agora-matched-philosophers strong {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.agora-matched-philosophers small {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.agora-matched-philosophers article > p {
+  grid-column: 1 / -1;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+.agora-review-privacy {
+  margin-top: 24px;
+}
+.agora-review-privacy legend {
+  margin-bottom: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.agora-simple-composer .agora-selected-group {
+  padding-top: 0;
+  border: 0;
+  margin-top: 12px;
+}
+.agora-conversation-preview {
+  padding: 26px 32px 28px;
+  margin-bottom: 44px;
+  background: #edf0e8;
+  border-top: 2px solid #87967b;
+}
+.agora-conversation-preview .agora-section-heading {
+  border-bottom-color: #ced5c6;
+  margin-bottom: 20px;
+}
+.agora-conversation-preview .agora-feature-title {
+  max-width: 30ch;
+  font-size: clamp(1.65rem, 3vw, 2.25rem);
+}
+.agora-conversation-preview .agora-excerpts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+  margin-top: 28px;
+}
+.agora-conversation-preview .agora-excerpts article + article {
+  padding-left: 32px;
+  border-left: 1px solid #ced5c6;
+}
+.agora-home-discover .agora-question-list {
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (max-width: 760px) {
+  .agora-welcome {
+    padding: 28px 0 32px;
+  }
+  .agora-portrait-row {
+    max-width: 420px;
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+  .agora-portrait-mat {
+    padding: 6px;
+  }
+  .agora-welcome-description {
+    font-size: 0.9375rem;
+    margin-top: 14px;
+  }
+  .agora-conversation-preview {
+    padding: 20px;
+    margin-bottom: 28px;
+  }
+  .agora-conversation-preview .agora-excerpts {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .agora-conversation-preview .agora-excerpts article + article {
+    padding: 24px 0 0;
+    border-left: 0;
+    border-top: 1px solid #ced5c6;
+  }
+}
+@media (max-width: 480px) {
+  .agora-portrait-row {
+    gap: 8px;
+  }
+  .agora-portrait-row li > span {
+    font-size: 0.6875rem;
+    overflow-wrap: anywhere;
+  }
+  .agora-portrait-mat {
+    padding: 5px;
+  }
+  .agora-simple-composer .agora-composer-actions {
+    justify-content: center;
+  }
+  .agora-simple-composer .agora-suggestions {
+    align-items: center;
+    flex-direction: column;
+    margin-top: 8px;
+  }
+}

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AgoraShell } from "@/components/agora/AgoraShell";
-import { QuestionComposer } from "@/components/agora/QuestionComposer";
+import { AgoraWelcome } from "@/components/agora/AgoraWelcome";
 import { RecentConversations } from "@/components/agora/RecentConversations";
 import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
 import { FocusFeature } from "@/components/in-focus/FocusFeature";
@@ -12,14 +12,12 @@ import {
   getAllPhilosophers,
   getRecentAgoraThreads,
   getAgoraThreadById,
-  getInterleavedFeed,
-  getRecentDebates,
 } from "@/lib/data";
 import { isPublicAgoraThread } from "@/lib/agora-access";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: { absolute: "Philagora — What’s on your mind?" },
+  title: { absolute: "Philagora — Ask the great philosophers" },
   description:
     "Ask about your life or the world. Historical philosopher personas offer different perspectives in the Agora.",
   alternates: { canonical: "/" },
@@ -55,185 +53,105 @@ export default async function HomePage({
     recent.find((t) => t.question_type === "advice") ?? recent[0];
   const detail = candidate ? getAgoraThreadById(candidate.id) : null;
   const featured = detail && isPublicAgoraThread(detail) ? detail : null;
-  const posts = getInterleavedFeed({ limit: 2 }).posts;
-  const debate = getRecentDebates(1)[0];
   return (
     <AgoraShell>
       <main id="main" className="agora-page agora-homepage">
         <RecentConversations viewerKey={viewerKey} />
-        <section className="agora-home-hero">
-          <div>
-            <p className="agora-eyebrow">Welcome to the Agora</p>
-            <h1>
-              What’s on
-              <br className="agora-desktop-break" /> your mind?
-            </h1>
-            <p className="agora-intro">Ask about your life or the world.</p>
-            <p className="agora-meta">
-              A decision, a doubt, a question about the world. From Cicero to
-              Nietzsche, history’s great thinkers offer different ways to see it.
-            </p>
-            <p className="agora-hero-invitation">Ask freely. No account needed.</p>
-          </div>
-          <QuestionComposer philosophers={philosophers} viewerKey={viewerKey} hidePublicPrivacyNote />
-        </section>
-        <div className="agora-feature-grid">
-          <section id="agora">
-            <div className="agora-section-heading">
-              <h2>The questions we live with</h2>
-              <span>From the Agora</span>
-            </div>
-            {featured ? (
-              <article>
-                <p className="agora-eyebrow">
-                  A conversation worth sitting with
-                </p>
-                <h3 className="agora-feature-title">
-                  <Link href={`/agora/${featured.id}`}>
-                    {featured.question}
-                  </Link>
-                </h3>
-                <p className="agora-meta">
-                  Asked by {featured.askedBy} · {featured.philosophers.length}{" "}
-                  perspectives
-                </p>
-                <div className="agora-excerpts">
-                  {featured.responses.slice(0, 2).map((r) => (
-                    <article key={r.philosopherId}>
-                      <Link
-                        className="agora-person"
-                        href={`/philosophers/${r.philosopherId}`}
-                      >
-                        <PhilosopherAvatar
-                          philosopherId={r.philosopherId}
-                          name={r.philosopherName}
-                          initials={r.philosopherInitials}
-                          color={r.philosopherColor}
-                          size="sm"
-                        />
-                        <span>{r.philosopherName}</span>
-                      </Link>
-                      <p>
-                        {r.posts[0]?.trim().split(/\s+/).length > 35
-                          ? r.posts[0]
-                              .trim()
-                              .split(/\s+/)
-                              .slice(0, 35)
-                              .join(" ") + "…"
-                          : r.posts[0]}
-                      </p>
-                    </article>
-                  ))}
-                </div>
-                <Link
-                  className="agora-text-link"
-                  href={`/agora/${featured.id}`}
-                >
-                  Read the conversation →
-                </Link>
-              </article>
-            ) : (
-              <div className="agora-empty">
-                <h3>Every conversation starts with a question.</h3>
-                <p>
-                  Public conversations will appear here as they become
-                  available. Bring something you’re trying to make sense of.
-                </p>
-                <a className="agora-text-link" href="#ask">
-                  Ask the philosophers →
-                </a>
-              </div>
-            )}
-          </section>
-          <FocusFeature edition={getFeaturedFocusEdition()} />
-        </div>
-        <section className="agora-more">
+        <AgoraWelcome philosophers={philosophers} viewerKey={viewerKey} />
+        <section
+          id="agora"
+          className="agora-conversation-preview"
+          aria-labelledby="conversation-preview-title"
+        >
           <div className="agora-section-heading">
-            <h2>More questions from the Agora</h2>
-            <Link href="/agora">All conversations →</Link>
+            <h2 id="conversation-preview-title">
+              One question. Different perspectives.
+            </h2>
+            <Link href="/agora">From the Agora →</Link>
           </div>
-          <div className="agora-question-list">
-            {recent
-              .filter((t) => t.id !== featured?.id)
-              .slice(0, 3)
-              .map((t) => (
-                <Link key={t.id} href={`/agora/${t.id}`}>
-                  <h3>{t.question}</h3>
-                  <p className="agora-meta">
-                    {t.philosophers.map((p) => p.name).join(" · ")}
-                  </p>
+          {featured ? (
+            <article>
+              <h3 className="agora-feature-title">
+                <Link href={`/agora/${featured.id}`}>
+                  {featured.question}
                 </Link>
-              ))}
-          </div>
-          {recent.length <= 1 && (
-            <p className="agora-meta">
-              There’s room for the next question. Public conversations will
-              appear here.
-            </p>
+              </h3>
+              <p className="agora-meta">
+                Asked by {featured.askedBy} · {featured.philosophers.length}{" "}
+                perspectives
+              </p>
+              <div className="agora-excerpts">
+                {featured.responses.slice(0, 2).map((r) => (
+                  <article key={r.philosopherId}>
+                    <Link
+                      className="agora-person"
+                      href={`/philosophers/${r.philosopherId}`}
+                    >
+                      <PhilosopherAvatar
+                        philosopherId={r.philosopherId}
+                        name={r.philosopherName}
+                        initials={r.philosopherInitials}
+                        color={r.philosopherColor}
+                        size="lg"
+                      />
+                      <span>{r.philosopherName}</span>
+                    </Link>
+                    <p>
+                      {r.posts[0]?.trim().split(/\s+/).length > 35
+                        ? r.posts[0]
+                          .trim()
+                          .split(/\s+/)
+                          .slice(0, 35)
+                          .join(" ") + "…"
+                        : r.posts[0]}
+                    </p>
+                  </article>
+                ))}
+              </div>
+              <Link
+                className="agora-text-link"
+                href={`/agora/${featured.id}`}
+              >
+                Read the conversation →
+              </Link>
+            </article>
+          ) : (
+            <div className="agora-empty">
+              <h3>Every conversation starts with a question.</h3>
+              <p>
+                Public conversations will appear here as they become
+                available. Bring something you’re trying to make sense of.
+              </p>
+              <a className="agora-text-link" href="#ask">
+                Ask the philosophers →
+              </a>
+            </div>
           )}
         </section>
-        <div className="agora-reading-grid">
+        <div className="agora-feature-grid agora-home-discover">
+          <FocusFeature edition={getFeaturedFocusEdition()} />
           <section>
             <div className="agora-section-heading">
-              <h2>From the feed</h2>
-              <Link href="/feed">The full feed →</Link>
+              <h2>More conversations</h2>
+              <Link href="/agora">All conversations →</Link>
             </div>
-            {posts.slice(0, 2).map((p) => (
-              <article className="agora-feed-excerpt" key={p.id}>
-                <p className="agora-meta">
-                  {p.philosopherName} · {p.stance}
-                </p>
-                <h3>
-                  <Link href={`/post/${p.id}`}>
-                    {p.thesis || p.content.slice(0, 130)}
+            <div className="agora-question-list">
+              {recent
+                .filter((t) => t.id !== featured?.id)
+                .slice(0, 3)
+                .map((t) => (
+                  <Link key={t.id} href={`/agora/${t.id}`}>
+                    <h3>{t.question}</h3>
+                    <p className="agora-meta">
+                      {t.philosophers.map((p) => p.name).join(" · ")}
+                    </p>
                   </Link>
-                </h3>
-                {!p.thesis && (
-                  <p>
-                    {p.content.trim().split(/\s+/).length > 42
-                      ? `${p.content.trim().split(/\s+/).slice(0, 42).join(" ")}…`
-                      : p.content}
-                  </p>
-                )}
-                <Link className="agora-text-link" href={`/post/${p.id}`}>
-                  Keep reading →
-                </Link>
-              </article>
-            ))}
-            {!posts.length && (
-              <p className="agora-empty">
-                New reflections and reactions will appear here when published.
-              </p>
-            )}
-          </section>
-          <section>
-            <div className="agora-section-heading">
-              <h2>In debate</h2>
-              <Link href="/debates">All debates →</Link>
-            </div>
-            {debate ? (
-              <article className="agora-debate-preview">
-                <p className="agora-eyebrow">{debate.status}</p>
-                <h3>{debate.title}</h3>
-                <p className="agora-meta">
-                  {debate.philosophers
-                    .map((id) => philosophers.find((p) => p.id === id)?.name)
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-                {debate.openingPreviews.slice(0, 2).map((p) => (
-                  <p key={p.philosopherId}>{p.snippet}</p>
                 ))}
-                <Link
-                  className="agora-text-link"
-                  href={`/debates/${debate.id}`}
-                >
-                  Enter the debate →
-                </Link>
-              </article>
-            ) : (
-              <p className="agora-empty">
-                The next debate is still to come. Explore the debate archive.
+            </div>
+            {recent.length <= 1 && (
+              <p className="agora-meta">
+                There’s room for the next question. Public conversations will
+                appear here.
               </p>
             )}
           </section>

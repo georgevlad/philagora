@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getAllPhilosophers, getRecentAgoraThreads } from "@/lib/data";
 import { getIdentityFromCookies } from "@/lib/auth";
 import { AgoraShell } from "@/components/agora/AgoraShell";
-import { QuestionComposer } from "@/components/agora/QuestionComposer";
+import { AgoraWelcome } from "@/components/agora/AgoraWelcome";
 import { RecentConversations } from "@/components/agora/RecentConversations";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -25,22 +25,7 @@ export default async function AgoraPage() {
     <AgoraShell>
       <main id="main" className="agora-page">
         <RecentConversations viewerKey={viewerKey} />
-        <section className="agora-home-hero">
-          <div>
-            <p className="agora-eyebrow">The Agora</p>
-            <h1>A place for your questions.</h1>
-            <p className="agora-intro">About your life. About our world.</p>
-            <p className="agora-meta">
-              Different perspectives from AI interpretations of historical
-              thinkers.
-            </p>
-            <p className="agora-hero-invitation">Ask freely. No account needed.</p>
-          </div>
-          <QuestionComposer
-            philosophers={getAllPhilosophers()}
-            viewerKey={viewerKey}
-          />
-        </section>
+        <AgoraWelcome philosophers={getAllPhilosophers()} viewerKey={viewerKey} />
         <section className="agora-more">
           <div className="agora-section-heading">
             <h2>Public conversations</h2>

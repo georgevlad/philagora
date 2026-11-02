@@ -46,7 +46,7 @@ test("suggestions precede submission, reasons and custom group survive refresh, 
     .fill("How do I choose a life I can stand behind?");
   await page.getByRole("button", { name: "Find my philosophers" }).click();
   await expect(
-    page.getByRole("heading", { name: "Who should join the conversation?" }),
+    page.getByRole("heading", { name: "Meet your philosophers" }),
   ).toBeFocused();
   await expect(
     page.getByText(
@@ -60,7 +60,7 @@ test("suggestions precede submission, reasons and custom group survive refresh, 
     fullPage: true,
   });
   await page
-    .getByText("Change the group · All thinkers", { exact: true })
+    .getByText("Change philosophers", { exact: true })
     .click();
   await selection(page)
     .getByRole("checkbox", { name: "Nietzsche", exact: true })
@@ -235,13 +235,13 @@ test("article-only questions can reach suggestions and keep their article throug
     });
   });
   await page.goto("/");
-  await page.getByText("Article link & display name · optional", { exact: true }).click();
+  await page.getByText("Add a link", { exact: true }).click();
   await page
     .getByLabel("Share an article")
     .fill("https://example.com/local-review-article");
   await page.getByRole("button", { name: "Find my philosophers" }).click();
   await expect(
-    page.getByRole("heading", { name: "Who should join the conversation?" }),
+    page.getByRole("heading", { name: "Meet your philosophers" }),
   ).toBeVisible();
   expect(suggested?.question).toBe("What should we make of this?");
   expect(suggested?.article_url).toBe(
@@ -322,13 +322,12 @@ test("reviewed guest group and classification survive private sign-in and refres
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("radio", { name: "Public", exact: true }).check();
   await page
     .getByLabel("Your question for the philosophers")
     .fill("How can I choose a life with more room to think?");
   await page.getByRole("button", { name: "Find my philosophers" }).click();
   await expect(
-    page.getByRole("heading", { name: "Who should join the conversation?" }),
+    page.getByRole("heading", { name: "Meet your philosophers" }),
   ).toBeVisible();
   await page.getByRole("radio", { name: "Private", exact: true }).check();
   await page.getByRole("link", { name: "Sign in to ask privately" }).click();
@@ -365,12 +364,12 @@ test("suggested group at 320px and 200% text stays inside the viewport without c
     .fill("How do I decide which ambitions are worth keeping?");
   await page.getByRole("button", { name: "Find my philosophers" }).click();
   await expect(
-    page.getByRole("heading", { name: "Who should join the conversation?" }),
+    page.getByRole("heading", { name: "Meet your philosophers" }),
   ).toBeFocused();
   await page.evaluate(() => (document.documentElement.style.fontSize = "200%"));
   const bounds = await page
     .locator(
-      ".agora-composer, .agora-suggested-group, .agora-suggested-group label, .agora-suggested-group label > span",
+      ".agora-composer, .agora-matched-philosophers, .agora-matched-philosophers article, .agora-matched-philosophers article > span",
     )
     .evaluateAll((elements) =>
       elements.map((el) => ({

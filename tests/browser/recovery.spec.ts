@@ -76,6 +76,7 @@ test("rejected submissions retain editable text, group and private audience", as
     }),
   );
   await page.getByRole("button", { name: "Find my philosophers" }).click();
+  await page.getByRole("radio", { name: "Private", exact: true }).check();
   await page.getByRole("button", { name: "Ask the philosophers" }).click();
   await expect(page.locator("#question-error")).toContainText(
     "Daily question limit",

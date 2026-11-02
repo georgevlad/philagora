@@ -33,11 +33,9 @@ type Draft = {
 export function QuestionComposer({
   philosophers,
   viewerKey,
-  hidePublicPrivacyNote = false,
 }: {
   philosophers: Philosopher[];
   viewerKey: string;
-  hidePublicPrivacyNote?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -50,7 +48,6 @@ export function QuestionComposer({
     selectedIds: [],
   });
   const [draft, setDraft] = useState(initialDraft.current);
-  const showPrivacyNote = draft.visibility === "private" || !hidePublicPrivacyNote;
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
@@ -208,7 +205,7 @@ export function QuestionComposer({
   }
 
   async function suggest() {
-    if (suggesting || locked || !questionValid || needsSignIn) return;
+    if (suggesting || locked || !questionValid) return;
     const controller = new AbortController();
     const requestId = suggestionRequest.current.id + 1;
     suggestionRequest.current = { id: requestId, controller };
@@ -357,7 +354,7 @@ export function QuestionComposer({
 
   return (
     <section
-      className="agora-composer"
+      className="agora-composer agora-simple-composer"
       id="ask"
       aria-label="Ask the philosophers"
     >
@@ -368,62 +365,38 @@ export function QuestionComposer({
               <label htmlFor="question">
                 Your question<span className="sr-only"> for the philosophers</span>
               </label>
-              <span id="question-count" className="agora-count">
+              <span
+                id="question-count"
+                className={draft.question.length ? "agora-count" : "sr-only"}
+              >
                 {draft.question.length}/500
               </span>
             </div>
             <textarea
               ref={field}
               id="question"
-              placeholder="What are you trying to make sense of?"
-              rows={6}
+              placeholder="What’s on your mind?"
+              rows={3}
               maxLength={500}
               value={draft.question}
               onChange={(e) => update({ question: e.target.value })}
               disabled={!ready || locked}
-              aria-describedby={`${showPrivacyNote ? "question-privacy " : ""}question-count question-error`}
+              aria-describedby={`${reviewing && !suggesting ? "question-privacy " : ""}question-count question-error`}
             />
           </div>
           <div className="agora-composer-actions">
-            <fieldset
-              className={`agora-visibility${isGuest ? " agora-guest-visibility" : ""}`}
-              disabled={!ready || locked || suggesting}
-            >
-              <legend className="sr-only">Question visibility</legend>
-              {(["public", "private"] as const).map((value) => (
-                <label key={value}>
-                  <input
-                    type="radio"
-                    name="visibility"
-                    value={value}
-                    aria-label={value === "private" ? "Private" : "Public"}
-                    aria-describedby={isGuest ? `visibility-${value}-hint` : undefined}
-                    checked={draft.visibility === value}
-                    onChange={() => update({ visibility: value })}
-                  />
-                  {isGuest ? (
-                    <span>
-                      {value === "public" ? "Public" : "Private"}
-                      <small id={`visibility-${value}-hint`}>
-                        {value === "public" ? "No account needed" : "Account required"}
-                      </small>
-                    </span>
-                  ) : value === "private" ? "Private" : "Public"}
-                </label>
-              ))}
-            </fieldset>
-            {!reviewing &&
-              (needsSignIn && !isPending ? (
-                signInLink
-              ) : (
-                <button
-                  className="agora-button"
-                  type="submit"
-                  disabled={!ready || !questionValid || isPending}
-                >
-                  Find my philosophers →
-                </button>
-              ))}
+            <span className="agora-meta">
+              {reviewing ? "Your question" : "No account needed to get started."}
+            </span>
+            {!reviewing && (
+              <button
+                className="agora-button"
+                type="submit"
+                disabled={!ready || !questionValid || isPending}
+              >
+                Find my philosophers →
+              </button>
+            )}
             {reviewing && !locked && (
               <button
                 type="button"
@@ -435,13 +408,21 @@ export function QuestionComposer({
             )}
           </div>
         </div>
-        {showPrivacyNote && (
-          <p id="question-privacy" className="agora-meta agora-privacy">
-            {draft.visibility === "private"
-              ? "Only you and Philagora administrators can read this conversation."
-              : `Everyone can read this conversation. You’ll appear as ${draft.askedBy.trim() || "Anonymous"}.`}
-          </p>
-        )}
+        <details className="agora-options agora-article-option">
+          <summary>Add a link</summary>
+          <label className="agora-field-label" htmlFor="article-url">
+            Share an article
+          </label>
+          <input
+            id="article-url"
+            type="url"
+            placeholder="https://…"
+            value={draft.articleUrl}
+            disabled={locked}
+            onChange={(e) => update({ articleUrl: e.target.value })}
+          />
+          <p className="agora-meta">Add a question, or just share the article.</p>
+        </details>
         <p
           id="question-error"
           ref={errorMessage}
@@ -457,73 +438,59 @@ export function QuestionComposer({
             aria-labelledby="group-heading"
             aria-busy={suggesting}
           >
-            <p className="agora-eyebrow">
-              Next, choose your perspectives
-            </p>
+            <p className="agora-eyebrow">A little perspective</p>
             <h2 id="group-heading" ref={groupHeading} tabIndex={-1}>
               {suggesting
                 ? "Finding perspectives for your question…"
-                : "Who should join the conversation?"}
+                : "Meet your philosophers"}
             </h2>
             <p className="agora-meta" role="status">
               {suggesting
                 ? "We’re matching your question with different ways of thinking. Nothing has been submitted yet."
                 : draft.review?.error ||
-                  "Start with two perspectives. You can choose up to four thinkers."}
+                "Two minds to start with. Change the group if you like."}
             </p>
             {!suggesting && (
               <>
-                {draft.review?.suggestions.length ? (
-                  <fieldset className="agora-suggested-group" disabled={locked}>
-                    <legend className="sr-only">Suggested philosophers</legend>
-                    {draft.review.suggestions.map((suggestion) => {
-                      const p = philosophers.find(
-                        (p) => p.id === suggestion.id,
-                      )!;
+                {draft.selectedIds.length > 0 && (
+                  <div
+                    className="agora-matched-philosophers"
+                    role="group"
+                    aria-label="Your selected philosophers"
+                  >
+                    {draft.selectedIds.map((id) => {
+                      const p = philosophers.find((p) => p.id === id);
+                      if (!p) return null;
+                      const suggestion = draft.review?.suggestions.find(
+                        (s) => s.id === id,
+                      );
                       return (
-                        <label key={p.id}>
-                          <input
-                            type="checkbox"
-                            aria-label={p.name}
-                            aria-describedby={`suggestion-${p.id}`}
-                            checked={draft.selectedIds.includes(p.id)}
-                            disabled={
-                              !draft.selectedIds.includes(p.id) &&
-                              draft.selectedIds.length >= 4
-                            }
-                            onChange={() => toggleThinker(p.id)}
-                          />
+                        <article key={p.id}>
                           <PhilosopherAvatar
                             philosopherId={p.id}
                             name={p.name}
                             initials={p.initials}
                             color={p.color}
-                            size="sm"
+                            size="lg"
                           />
                           <span>
                             <strong>{p.name}</strong>
                             <small>{p.tradition}</small>
                           </span>
-                          <span
-                            className="agora-suggestion-reason"
-                            id={`suggestion-${p.id}`}
-                          >
-                            {suggestion.reason}
-                          </span>
-                        </label>
+                          {suggestion && <p>{suggestion.reason}</p>}
+                        </article>
                       );
                     })}
-                  </fieldset>
-                ) : null}
+                  </div>
+                )}
                 <details
                   className="agora-options"
                   open={!draft.review?.suggestions.length || undefined}
                 >
                   <summary>
                     {draft.review?.suggestions.length
-                      ? "Change the group"
-                      : "Choose your group"}{" "}
-                    · All thinkers
+                      ? "Change philosophers"
+                      : "Choose your philosophers"}
                   </summary>
                   <fieldset className="agora-thinker-picker" disabled={locked}>
                     <legend className="sr-only">All philosophers</legend>
@@ -561,11 +528,66 @@ export function QuestionComposer({
                     : "."}
                 </p>
                 <p className="agora-meta">
-                  Each thinker responds, followed by a synthesis when available.
-                  {isGuest
-                    ? " You can read and share your conversation without an account."
-                    : " A follow-up goes to the whole group."}
+                  Each thinker responds, with a shared reflection when available.
                 </p>
+                <div className="agora-review-privacy">
+                  <fieldset
+                    className={`agora-visibility${isGuest ? " agora-guest-visibility" : ""}`}
+                    disabled={!ready || locked}
+                    aria-describedby="question-privacy"
+                  >
+                    <legend>Who can read your conversation?</legend>
+                    {(["public", "private"] as const).map((value) => (
+                      <label key={value}>
+                        <input
+                          type="radio"
+                          name="visibility"
+                          value={value}
+                          aria-label={value === "private" ? "Private" : "Public"}
+                          aria-describedby={isGuest ? `visibility-${value}-hint` : undefined}
+                          checked={draft.visibility === value}
+                          onChange={() => update({ visibility: value })}
+                        />
+                        <span>
+                          {value === "public" ? "Public" : "Private"}
+                          {isGuest && (
+                            <small id={`visibility-${value}-hint`}>
+                              {value === "public" ? "No account needed" : "Account required"}
+                            </small>
+                          )}
+                        </span>
+                      </label>
+                    ))}
+                  </fieldset>
+                  <p id="question-privacy" className="agora-meta agora-privacy">
+                    {draft.visibility === "private"
+                      ? "Only you and Philagora administrators can read this conversation."
+                      : `Everyone can read this conversation. You’ll appear as ${draft.askedBy.trim() || "Anonymous"}.`}
+                  </p>
+                  {draft.visibility === "public" && (
+                    <details className="agora-options">
+                      <summary>Add a display name</summary>
+                      <label className="agora-field-label" htmlFor="asked-by">
+                        Public display name
+                      </label>
+                      <input
+                        id="asked-by"
+                        maxLength={40}
+                        value={draft.askedBy}
+                        disabled={locked}
+                        placeholder="Anonymous"
+                        onChange={(e) =>
+                          update({
+                            askedBy: e.target.value.replace(/[^a-zA-Z0-9\s\-_.]/g, ""),
+                          })
+                        }
+                      />
+                      <p className="agora-meta">
+                        Letters A–Z, numbers, spaces, hyphens, periods and underscores.
+                      </p>
+                    </details>
+                  )}
+                </div>
                 {isGuest && draft.visibility === "public" && (
                   <p className="agora-meta agora-followup-note">
                     Want to save it to your profile and ask a follow-up?{" "}
@@ -600,7 +622,7 @@ export function QuestionComposer({
                       className="agora-text-link"
                       type="button"
                       onClick={() => void suggest()}
-                      disabled={!questionValid || needsSignIn}
+                      disabled={!questionValid}
                     >
                       Try suggestions again
                     </button>
@@ -610,69 +632,29 @@ export function QuestionComposer({
             )}
           </section>
         )}
-        <details className="agora-options">
-          <summary>
-            Article link{draft.visibility === "public" ? " & display name" : ""}{" "}
-            · optional
-          </summary>
-          <label className="agora-field-label" htmlFor="article-url">
-            Share an article
-          </label>
-          <input
-            id="article-url"
-            type="url"
-            placeholder="https://…"
-            value={draft.articleUrl}
-            disabled={locked}
-            onChange={(e) => update({ articleUrl: e.target.value })}
-          />
-          <p className="agora-meta">
-            Add a question, or leave the question blank to discuss the article.
-          </p>
-          {draft.visibility === "public" && (
-            <>
-              <label className="agora-field-label" htmlFor="asked-by">
-                Public display name
-              </label>
-              <input
-                id="asked-by"
-                maxLength={40}
-                value={draft.askedBy}
-                disabled={locked || suggesting}
-                placeholder="Anonymous"
-                onChange={(e) =>
-                  update({
-                    askedBy: e.target.value.replace(/[^a-zA-Z0-9\s\-_.]/g, ""),
-                  })
-                }
-              />
-              <p className="agora-meta">
-                Letters A–Z, numbers, spaces, hyphens, periods and underscores.
-              </p>
-            </>
-          )}
-        </details>
       </form>
-      <div className="agora-suggestions">
-        <span>Try a question</span>
-        {[
-          "Is it okay to want a small life?",
-          "Do I owe the world my attention?",
-        ].map((q) => (
-          <button
-            key={q}
-            type="button"
-            disabled={!ready || locked || suggesting}
-            onClick={() => {
-              update({ question: q });
-              field.current?.focus();
-            }}
-          >
-            {q}
-          </button>
-        ))}
-      </div>
-      {quota && (
+      {!reviewing && (
+        <div className="agora-suggestions">
+          <span>Or try</span>
+          {[
+            "Is it okay to want a small life?",
+            "Do I owe the world my attention?",
+          ].map((q) => (
+            <button
+              key={q}
+              type="button"
+              disabled={!ready || locked || suggesting}
+              onClick={() => {
+                update({ question: q });
+                field.current?.focus();
+              }}
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+      )}
+      {quota && (reviewing || (quota.limit !== null && quota.used >= quota.limit)) && (
         <p className="agora-meta agora-quota">
           {quota.limit === null
             ? "Unlimited questions"
