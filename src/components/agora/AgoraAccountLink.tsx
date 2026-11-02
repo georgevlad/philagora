@@ -8,6 +8,7 @@ export function AgoraAccountLink() {
   const pathname = usePathname();
   return (
     <Link
+      className="agora-account-link"
       aria-current={
         pathname === "/profile" || pathname === "/sign-in" ? "page" : undefined
       }

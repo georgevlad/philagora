@@ -34,6 +34,7 @@ export default async function AgoraPage() {
               Different perspectives from AI interpretations of historical
               thinkers.
             </p>
+            <p className="agora-hero-invitation">Ask freely. No account needed.</p>
           </div>
           <QuestionComposer
             philosophers={getAllPhilosophers()}

@@ -42,7 +42,7 @@ export function QuestionComposer({
   const { data: session, isPending } = useSession();
   const initialDraft = useRef<Draft>({
     question: "",
-    visibility: "private",
+    visibility: "public",
     askedBy: "",
     articleUrl: "",
     selectedIds: [],
@@ -360,32 +360,34 @@ export function QuestionComposer({
     >
       <form onSubmit={submit}>
         <div className="agora-question-box">
-          <div className="agora-question-label">
-            <label htmlFor="question">
-              Your question<span className="sr-only"> for the philosophers</span>
-            </label>
-            <span id="question-count" className="agora-count">
-              {draft.question.length}/500
-            </span>
+          <div className="agora-question-writing">
+            <div className="agora-question-label">
+              <label htmlFor="question">
+                Your question<span className="sr-only"> for the philosophers</span>
+              </label>
+              <span id="question-count" className="agora-count">
+                {draft.question.length}/500
+              </span>
+            </div>
+            <textarea
+              ref={field}
+              id="question"
+              placeholder="What are you trying to make sense of?"
+              rows={6}
+              maxLength={500}
+              value={draft.question}
+              onChange={(e) => update({ question: e.target.value })}
+              disabled={!ready || locked}
+              aria-describedby="question-privacy question-count question-error"
+            />
           </div>
-          <textarea
-            ref={field}
-            id="question"
-            placeholder="What are you trying to make sense of?"
-            rows={3}
-            maxLength={500}
-            value={draft.question}
-            onChange={(e) => update({ question: e.target.value })}
-            disabled={!ready || locked}
-            aria-describedby="question-privacy question-count question-error"
-          />
           <div className="agora-composer-actions">
             <fieldset
               className={`agora-visibility${isGuest ? " agora-guest-visibility" : ""}`}
               disabled={!ready || locked || suggesting}
             >
               <legend className="sr-only">Question visibility</legend>
-              {(isGuest ? ["public", "private"] as const : ["private", "public"] as const).map((value) => (
+              {(["public", "private"] as const).map((value) => (
                 <label key={value}>
                   <input
                     type="radio"
@@ -398,9 +400,9 @@ export function QuestionComposer({
                   />
                   {isGuest ? (
                     <span>
-                      {value === "public" ? "Ask publicly" : "Ask privately"}
+                      {value === "public" ? "Public" : "Private"}
                       <small id={`visibility-${value}-hint`}>
-                        {value === "public" ? "No account needed" : "Sign in"}
+                        {value === "public" ? "No account needed" : "Account required"}
                       </small>
                     </span>
                   ) : value === "private" ? "Private" : "Public"}
@@ -433,18 +435,7 @@ export function QuestionComposer({
         <p id="question-privacy" className="agora-meta agora-privacy">
           {draft.visibility === "private"
             ? "Only you and Philagora administrators can read this conversation."
-            : `Your question, answers and follow-ups are public as ${draft.askedBy.trim() || "Anonymous"}.`}
-          {!session?.user && draft.visibility === "public" && (
-            <>
-              {" "}
-              <Link
-                onClick={signIn}
-                href={`/sign-in?returnTo=${encodeURIComponent(pathname + "#ask")}`}
-              >
-                Sign in to save and follow up.
-              </Link>
-            </>
-          )}
+            : `Everyone can read this conversation. You’ll appear as ${draft.askedBy.trim() || "Anonymous"}.`}
         </p>
         <p
           id="question-error"
@@ -566,8 +557,21 @@ export function QuestionComposer({
                 </p>
                 <p className="agora-meta">
                   Each thinker responds, followed by a synthesis when available.
-                  A follow-up goes to the whole group.
+                  {isGuest
+                    ? " You can read and share your conversation without an account."
+                    : " A follow-up goes to the whole group."}
                 </p>
+                {isGuest && draft.visibility === "public" && (
+                  <p className="agora-meta agora-followup-note">
+                    Want to save it to your profile and ask a follow-up?{" "}
+                    <Link
+                      onClick={signIn}
+                      href={`/sign-in?returnTo=${encodeURIComponent(pathname + "#ask")}`}
+                    >
+                      Sign in before submitting.
+                    </Link>
+                  </p>
+                )}
                 <div className="agora-group-submit">
                   {needsSignIn && !isPending ? (
                     signInLink

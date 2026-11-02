@@ -16,8 +16,26 @@ test("homepage at mobile, tablet and desktop sizes", async ({ page }) => {
       page.getByLabel("Your question for the philosophers"),
     ).toBeVisible();
     await expect(
-      page.getByRole("radio", { name: "Private", exact: true }),
+      page.getByRole("radio", { name: "Public", exact: true }),
     ).toBeChecked();
+    await expect(page.getByRole("link", { name: "Sign in to ask privately" })).toHaveCount(0);
+    const question = page.getByLabel("Your question for the philosophers");
+    await expect(question).toBeEnabled();
+    await page.evaluate(() => document.fonts.ready);
+    const before = await question.boundingBox();
+    expect(before!.height).toBeGreaterThanOrEqual(180);
+    await question.focus();
+    await expect(question).toBeFocused();
+    expect(await question.boundingBox()).toEqual(before);
+    expect(await question.evaluate((el) => getComputedStyle(el).outlineStyle)).toBe("none");
+    expect(await page.locator(".agora-question-writing").evaluate((el) => getComputedStyle(el).boxShadow)).not.toBe("none");
+    const overflow = await page.locator(".agora-composer").evaluate((root) =>
+      Array.from(root.querySelectorAll("*")).filter((el) => {
+        const rect = el.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0 && (rect.left < -1 || rect.right > innerWidth + 1);
+      }).map((el) => el.className),
+    );
+    expect(overflow).toEqual([]);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -40,6 +58,7 @@ test("guest draft survives sign-in navigation without entering the URL", async (
   page,
 }) => {
   await page.goto("/");
+  await page.getByRole("radio", { name: "Private", exact: true }).check();
   await page
     .getByLabel("Your question for the philosophers")
     .fill("PRIVATE_DRAFT: Should I change the way I live?");
@@ -101,6 +120,7 @@ test("real submission, incremental answers, return, refresh and whole-group foll
   await page
     .getByLabel("Your question for the philosophers")
     .fill("Should I choose a quieter life for myself?");
+  await page.getByRole("radio", { name: "Private", exact: true }).check();
   await page.getByRole("button", { name: "Find my philosophers" }).click();
   await page
     .getByRole("button", { name: "Ask the philosophers", exact: false })
@@ -260,7 +280,7 @@ test("public guest question, validation and one-follow-up ownership", async ({
   });
   expect(rejected.status()).toBe(401);
   await page.goto("/");
-  await page.getByRole("radio", { name: "Public", exact: true }).check();
+  await expect(page.getByRole("radio", { name: "Public", exact: true })).toBeChecked();
   await page.getByLabel("Your question for the philosophers").fill("short");
   await expect(
     page.getByRole("button", { name: "Find my philosophers" }),

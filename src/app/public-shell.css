@@ -65,13 +65,12 @@
   text-decoration-thickness: 2px;
   text-underline-offset: 8px;
 }
-.agora-design .agora-header nav a:last-child {
-  padding-inline: 14px;
-  border: 1px solid var(--line);
-  border-radius: 4px;
+.agora-design .agora-header nav .agora-account-link:not([aria-current="page"]) {
+  color: var(--muted);
+  font-weight: 400;
 }
-.agora-design .agora-header nav a:last-child:hover {
-  background: var(--soft);
+.agora-design .agora-header nav .agora-account-link:hover {
+  color: var(--clay-dark);
 }
 .agora-design .agora-button,
 .agora-design .agora-outline {
@@ -198,10 +197,6 @@
 @media (max-width: 480px) {
   .agora-design .agora-header nav {
     column-gap: 8px;
-  }
-  .agora-design .agora-header nav a:last-child {
-    border: 0;
-    padding-inline: 0;
   }
   .agora-design .agora-footer {
     flex-direction: column;

@@ -70,8 +70,10 @@ export default async function HomePage({
             </h1>
             <p className="agora-intro">Ask about your life or the world.</p>
             <p className="agora-meta">
-              Different perspectives from AI philosopher personas.
+              A decision, a doubt, a question about the world. From Cicero to
+              Nietzsche, history’s great thinkers offer different ways to see it.
             </p>
+            <p className="agora-hero-invitation">Ask freely. No account needed.</p>
           </div>
           <QuestionComposer philosophers={philosophers} viewerKey={viewerKey} />
         </section>

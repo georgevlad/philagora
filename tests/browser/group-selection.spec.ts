@@ -210,7 +210,7 @@ for (const status of [429, 500, 200]) {
     await expect(page.locator("#question-error")).toBeFocused();
     expect(submitted?.classification).toBeUndefined();
     expect(submitted?.philosopher_ids).toEqual(["seneca", "plato"]);
-    expect(submitted?.visibility).toBe("private");
+    expect(submitted?.visibility).toBe("public");
     await expect(
       page.getByLabel("Your question for the philosophers"),
     ).toHaveValue("How can I make a thoughtful decision today?");
@@ -235,7 +235,7 @@ test("article-only questions can reach suggestions and keep their article throug
     });
   });
   await page.goto("/");
-  await page.getByText("Article link · optional", { exact: true }).click();
+  await page.getByText("Article link & display name · optional", { exact: true }).click();
   await page
     .getByLabel("Share an article")
     .fill("https://example.com/local-review-article");
@@ -310,7 +310,7 @@ test("test mode is explicit and representative responses reflow at mobile and de
     .getByRole("link", { name: "Switch to guest", exact: true })
     .click();
   await expect(
-    page.getByRole("link", { name: "Sign in to ask privately" }),
+    page.getByRole("button", { name: "Find my philosophers" }),
   ).toBeVisible();
   await page.goto("/feed");
   await expect(
