@@ -38,6 +38,35 @@ describe("normalizeMessageParams", () => {
     expect(normalized.top_p).toBe(0.9);
     expect(normalized.top_k).toBe(40);
   });
+
+  it.each(["claude-opus-5-5", "claude-sonnet-5-5", "claude-fable-5-1", "claude-haiku-5-5"])(
+    "prepares %s for adaptive thinking without changing the caller's params", (model) => {
+      const params = baseParams(model);
+      const normalized = normalizeMessageParams(params);
+      expect(normalized).not.toHaveProperty("temperature");
+      expect(normalized).not.toHaveProperty("top_p");
+      expect(normalized).not.toHaveProperty("top_k");
+      expect(normalized.thinking).toEqual({ type: "adaptive" });
+      expect(normalized.output_config).toEqual({ effort: "medium" });
+      expect(normalized.max_tokens).toBe(8192);
+      expect(params.max_tokens).toBe(64);
+      expect(params).not.toHaveProperty("thinking");
+    },
+  );
+
+  it("preserves explicit effort, output format and larger token ceilings", () => {
+    const params = { ...baseParams("claude-opus-5-5"), max_tokens: 16000,
+      output_config: { effort: "high" as const, format: { type: "json_schema" as const, schema: { type: "object" } } } };
+    const normalized = normalizeMessageParams(params);
+    expect(normalized.output_config).toEqual(params.output_config);
+    expect(normalized.max_tokens).toBe(16000);
+  });
+
+  it("allows Haiku's explicitly disabled thinking without expanding its budget", () => {
+    const normalized = normalizeMessageParams({ ...baseParams("claude-haiku-5-5"), thinking: { type: "disabled" } });
+    expect(normalized.thinking).toEqual({ type: "disabled" });
+    expect(normalized.max_tokens).toBe(64);
+  });
 });
 
 describe("model JSON with literal string controls", () => {

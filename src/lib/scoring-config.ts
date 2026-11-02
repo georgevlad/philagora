@@ -11,14 +11,18 @@ import type { Stance } from "@/lib/types";
 export type ScoringModelName =
   | "claude-haiku-4-5-20251001"
   | "claude-sonnet-4-5-20250929"
-  | "claude-sonnet-4-6";
+  | "claude-sonnet-4-6"
+  | "claude-haiku-5-5"
+  | "claude-sonnet-5-5";
 
 export type GenerationModelName =
   | ScoringModelName
   | "claude-opus-4-5-20251101"
   | "claude-opus-4-6"
   | "claude-opus-4-7"
-  | "claude-opus-4-8";
+  | "claude-opus-4-8"
+  | "claude-opus-5-5"
+  | "claude-fable-5-1";
 
 export type ImageGenerationModelName =
   | "gemini-3.1-flash-image-preview";
@@ -58,7 +62,7 @@ export interface StanceGuidanceConfig {
 
 export const DEFAULT_SCORING_MODEL: ScoringModelName = "claude-haiku-4-5-20251001";
 export const DEFAULT_GENERATION_MODEL: GenerationModelName =
-  "claude-opus-4-8";
+  "claude-opus-5-5";
 export const DEFAULT_IMAGE_GENERATION_MODEL: ImageGenerationModelName =
   "gemini-3.1-flash-image-preview";
 
@@ -76,8 +80,10 @@ export const SCORING_MODEL_OPTIONS: Array<{
   },
   {
     value: "claude-sonnet-4-6",
-    label: "Sonnet 4.6 (current balanced)",
+    label: "Sonnet 4.6 (legacy balanced)",
   },
+  { value: "claude-haiku-5-5", label: "Haiku 5.5 (fast, economical)" },
+  { value: "claude-sonnet-5-5", label: "Sonnet 5.5 (balanced)" },
 ];
 
 export const GENERATION_MODEL_OPTIONS: Array<{
@@ -94,7 +100,7 @@ export const GENERATION_MODEL_OPTIONS: Array<{
   },
   {
     value: "claude-sonnet-4-6",
-    label: "Sonnet 4.6 (current balanced)",
+    label: "Sonnet 4.6 (legacy balanced)",
   },
   {
     value: "claude-opus-4-5-20251101",
@@ -110,8 +116,12 @@ export const GENERATION_MODEL_OPTIONS: Array<{
   },
   {
     value: "claude-opus-4-8",
-    label: "Opus 4.8 (current highest quality)",
+    label: "Opus 4.8 (previous default)",
   },
+  { value: "claude-haiku-5-5", label: "Haiku 5.5 (fast, economical)" },
+  { value: "claude-sonnet-5-5", label: "Sonnet 5.5 (balanced)" },
+  { value: "claude-opus-5-5", label: "Opus 5.5 (default writing model)" },
+  { value: "claude-fable-5-1", label: "Fable 5.1 (premium reasoning)" },
 ];
 
 export const IMAGE_GENERATION_MODEL_OPTIONS: Array<{

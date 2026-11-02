@@ -190,6 +190,22 @@ CREATE INDEX IF NOT EXISTS idx_admin_generation_runs_created ON admin_generation
       }
     },
   },
+  {
+    version: 24,
+    name: "upgrade_writing_default_to_opus_5_5",
+    migrate: (db) => db.transaction(() => {
+      // Fixed IDs keep this one-time upgrade independent of future defaults.
+      // Preserve explicit alternatives and allow editors to switch back later.
+      const insert = db.prepare("INSERT OR IGNORE INTO scoring_config (key, value) VALUES (?, ?)");
+      const upgrade = db.prepare("UPDATE scoring_config SET value = ?, updated_at = datetime('now') WHERE key = ? AND value = ?");
+      const next = JSON.stringify("claude-opus-5-5");
+      const previous = JSON.stringify("claude-opus-4-8");
+      for (const key of ["generation_model", "synthesis_model"]) {
+        insert.run(key, next);
+        upgrade.run(next, key, previous);
+      }
+    })(),
+  },
   // Future migrations go here
 ];
 

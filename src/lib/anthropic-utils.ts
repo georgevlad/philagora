@@ -18,6 +18,14 @@ const MODELS_WITHOUT_SAMPLING_PARAMS = new Set([
   "claude-opus-4-8",
 ]);
 
+// Verified current model IDs; avoid guessing capabilities of future releases.
+const ADAPTIVE_MODELS = new Set([
+  "claude-haiku-5-5",
+  "claude-sonnet-5-5",
+  "claude-opus-5-5",
+  "claude-fable-5-1",
+]);
+
 export function getAnthropicClient(): Anthropic | null {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || apiKey === "placeholder_key_here") return null;
@@ -27,6 +35,7 @@ export function getAnthropicClient(): Anthropic | null {
 export function omitsSamplingParameters(model: string): boolean {
   return (
     MODELS_WITHOUT_SAMPLING_PARAMS.has(model) ||
+    ADAPTIVE_MODELS.has(model) ||
     /^claude-opus-4-(?:[7-9]|\d{2})$/.test(model)
   );
 }
@@ -42,6 +51,16 @@ export function normalizeMessageParams(
   delete normalizedParams.temperature;
   delete normalizedParams.top_p;
   delete normalizedParams.top_k;
+
+  if (ADAPTIVE_MODELS.has(params.model)) {
+    normalizedParams.thinking = params.thinking ?? { type: "adaptive" };
+    normalizedParams.output_config = { effort: "medium", ...params.output_config };
+    // These models spend the output budget on reasoning as well as JSON/text.
+    // Keep editorial word limits in the prompts/validators, not in this ceiling.
+    if (normalizedParams.thinking.type !== "disabled") {
+      normalizedParams.max_tokens = Math.max(params.max_tokens, 8192);
+    }
+  }
 
   return normalizedParams;
 }

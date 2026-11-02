@@ -2,9 +2,22 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SCORE_TIERS, DEFAULT_STANCE_GUIDANCE, DEFAULT_TENSION_VOCABULARY,
   parseScoreTiers, parseStanceGuidance, parseTensionVocabulary,
+  parseGenerationModel, parseScoringModel, DEFAULT_GENERATION_MODEL,
 } from "./scoring-config";
 
 describe("stored scoring configuration", () => {
+  it.each(["claude-opus-5-5", "claude-sonnet-5-5", "claude-fable-5-1", "claude-haiku-5-5"])(
+    "round-trips the selected generation model %s", (model) => {
+      expect(parseGenerationModel(JSON.stringify(model))).toBe(model);
+    },
+  );
+  it.each(["claude-sonnet-5-5", "claude-haiku-5-5"])("accepts the scoring model %s", (model) => {
+    expect(parseScoringModel(JSON.stringify(model))).toBe(model);
+  });
+  it("defaults to Opus 5.5 and rejects unknown model IDs", () => {
+    expect(DEFAULT_GENERATION_MODEL).toBe("claude-opus-5-5");
+    expect(parseGenerationModel('"unknown-model"')).toBe(DEFAULT_GENERATION_MODEL);
+  });
   it.each(["null", "[]", "false", "42", '"text"', "{"])(
     "uses defaults for invalid object configuration: %s", (raw) => {
       expect(parseScoreTiers(raw)).toEqual(DEFAULT_SCORE_TIERS);

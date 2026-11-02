@@ -42,6 +42,57 @@ describe("migration system", () => {
     db = createFreshDb();
   });
 
+  describe("Opus 5.5 deployment upgrade", () => {
+    const put = (key: string, model: string) => db.prepare(
+      "INSERT INTO scoring_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+    ).run(key, JSON.stringify(model));
+    const model = (key: string) => (db.prepare("SELECT value FROM scoring_config WHERE key = ?").get(key) as { value: string } | undefined)?.value;
+
+    it.each([[true, true], [true, false], [false, true], [false, false]])(
+      "upgrades saved defaults and fills missing settings (generation=%s synthesis=%s)", (hasGeneration, hasSynthesis) => {
+        setSchemaVersion(db, 23);
+        if (hasGeneration) put("generation_model", "claude-opus-4-8");
+        if (hasSynthesis) put("synthesis_model", "claude-opus-4-8");
+        put("scoring_model", "claude-sonnet-4-6");
+        runMigrations(db);
+        expect(model("generation_model")).toBe('"claude-opus-5-5"');
+        expect(model("synthesis_model")).toBe('"claude-opus-5-5"');
+        expect(model("scoring_model")).toBe('"claude-sonnet-4-6"');
+        expect(getSchemaVersion(db)).toBe(24);
+      },
+    );
+
+    it("preserves explicitly selected alternative models", () => {
+      setSchemaVersion(db, 23);
+      put("generation_model", "claude-sonnet-5-5");
+      put("synthesis_model", "claude-fable-5-1");
+      runMigrations(db);
+      expect(model("generation_model")).toBe('"claude-sonnet-5-5"');
+      expect(model("synthesis_model")).toBe('"claude-fable-5-1"');
+    });
+
+    it("allows an editor to switch back after deployment without restart overriding it", () => {
+      setSchemaVersion(db, 23);
+      runMigrations(db);
+      put("generation_model", "claude-opus-4-8");
+      put("synthesis_model", "claude-opus-4-8");
+      runMigrations(db);
+      expect(model("generation_model")).toBe('"claude-opus-4-8"');
+      expect(model("synthesis_model")).toBe('"claude-opus-4-8"');
+    });
+
+    it("rolls back both settings and leaves the upgrade pending if a write fails", () => {
+      setSchemaVersion(db, 23);
+      put("generation_model", "claude-opus-4-8");
+      put("synthesis_model", "claude-opus-4-8");
+      db.exec("CREATE TRIGGER fail_synthesis_upgrade BEFORE UPDATE ON scoring_config WHEN NEW.key = 'synthesis_model' BEGIN SELECT RAISE(ABORT, 'test write failure'); END");
+      expect(() => runMigrations(db)).toThrow("test write failure");
+      expect(model("generation_model")).toBe('"claude-opus-4-8"');
+      expect(model("synthesis_model")).toBe('"claude-opus-4-8"');
+      expect(getSchemaVersion(db)).toBe(23);
+    });
+  });
+
   it("adds synthesis revision context to existing steps without changing budgets or snapshots", () => {
     db.exec("ALTER TABLE agora_job_steps DROP COLUMN rejected_output");
     db.prepare("INSERT INTO agora_threads (id, question) VALUES (?, ?)").run("revision", "Question");
@@ -145,8 +196,8 @@ describe("migration system", () => {
         .all() as Array<{ key: string; value: string }>;
       const valuesByKey = new Map(rows.map((row) => [row.key, row.value]));
 
-      expect(valuesByKey.get("generation_model")).toBe('"claude-opus-4-8"');
-      expect(valuesByKey.get("synthesis_model")).toBe('"claude-opus-4-8"');
+      expect(valuesByKey.get("generation_model")).toBe('"claude-opus-5-5"');
+      expect(valuesByKey.get("synthesis_model")).toBe('"claude-opus-5-5"');
       expect(valuesByKey.get("scoring_model")).toBe('"claude-haiku-4-5-20251001"');
 
       legacyDb.close();

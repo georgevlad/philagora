@@ -18,6 +18,7 @@
     "review:agora": "tsx scripts/agora-review.ts",
     "review:snapshot": "tsx scripts/snapshot-review.ts",
     "review:admin": "tsx scripts/admin-ux-preview.ts",
+    "compare:writing": "tsx scripts/compare-writing-models.ts",
     "test:browser": "playwright test"
   },
   "dependencies": {
