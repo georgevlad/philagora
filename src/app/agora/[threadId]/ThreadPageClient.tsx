@@ -4,6 +4,7 @@ import { getReadingPreview } from "@/lib/reading-preview";
 import { countSynthesisWords } from "@/lib/content-lengths";
 import { ExpandableContent } from "@/components/public/ExpandableContent";
 import { AgoraRecoveryControls } from "@/components/agora/AgoraRecoveryControls";
+import { ActivityDots, ConversationProgress } from "@/components/agora/AgoraProgress";
 import {
   useCallback,
   useEffect,
@@ -112,14 +113,16 @@ function Round({
   group,
   onCheck,
   label,
+  connectionIssue,
 }: {
   round: Pick<
     AgoraThreadFollowUp,
     "id" | "status" | "responses" | "synthesis" | "createdAt" | "recovery"
   >;
   group: Philosopher[];
-  onCheck: () => void;
+  onCheck: () => Promise<unknown>;
   label: string;
+  connectionIssue: boolean;
 }) {
   const [longWait, setLongWait] = useState(false);
   useEffect(() => {
@@ -184,8 +187,12 @@ function Round({
         </article>
       ))}
       {round.synthesis && <Synthesis synthesis={round.synthesis} />}
-      {round.recovery ? <AgoraRecoveryControls id={round.id} recovery={round.recovery} onCheck={onCheck} /> : !settled(round.status) ? (
+      {round.recovery ? <AgoraRecoveryControls
+        id={round.id} recovery={round.recovery} onCheck={onCheck} longWait={longWait}
+        progress={{ group, responses: round.responses, hasSynthesis: !!round.synthesis, connectionIssue }}
+      /> : !settled(round.status) ? (
         <section className="agora-wait">
+          <p className="agora-eyebrow agora-activity-label"><ActivityDots />Conversation in progress</p>
           <h3>
             {longWait
               ? "This is taking a little longer."
@@ -195,24 +202,7 @@ function Round({
             Your question is saved. Responses appear here as they arrive,
             followed by a synthesis.
           </p>
-          <ul>
-            {missing.map((p) => (
-              <li key={p.id}>
-                <span>{p.name}</span>
-                <span>Awaiting response</span>
-              </li>
-            ))}
-            {!round.synthesis && (
-              <li>
-                <span>Synthesis</span>
-                <span>
-                  {missing.length
-                    ? "After the responses"
-                    : "Awaiting synthesis"}
-                </span>
-              </li>
-            )}
-          </ul>
+          <ConversationProgress group={group} responses={round.responses} hasSynthesis={!!round.synthesis} state="running" connectionIssue={connectionIssue} />
           <p className="agora-meta">
             You can browse and return using this conversation’s link.
           </p>
@@ -452,10 +442,13 @@ export function ThreadPageClient({
     .map((id) => philosophers.find((p) => p.id === id))
     .filter((p): p is Philosopher => !!p);
   const roundState = (round: AgoraThreadDetail | AgoraThreadFollowUp) => {
-    if (round.recovery?.state === "complete") return "Conversation complete.";
+    if (round.recovery?.state === "complete" || (round.responses.length === group.length && round.synthesis)) return "Conversation complete.";
     if (round.recovery?.state === "available") return "Recovery is available for the missing work.";
     if (["exhausted", "blocked", "unavailable"].includes(round.recovery?.state ?? "")) return "Generation interrupted. Editorial help is needed.";
-    return "Waiting for missing work.";
+    if (networkError) return "Checking connection. Received answers are saved.";
+    if (round.recovery?.state === "retry_wait") return "Waiting to resume automatically.";
+    if (round.responses.length === group.length) return "Bringing the perspectives together.";
+    return "The philosophers’ responses are on their way.";
   };
   const status = thread.followUp
     ? `Follow-up: ${thread.followUp.responses.length} of ${group.length} responses. ${roundState(thread.followUp)}`
@@ -542,7 +535,8 @@ export function ThreadPageClient({
           <Round
             round={thread}
             group={group}
-            onCheck={() => void poll()}
+            onCheck={poll}
+            connectionIssue={!!networkError}
             label="First responses"
           />
         </section>
@@ -562,7 +556,8 @@ export function ThreadPageClient({
             <Round
               round={thread.followUp}
               group={group}
-              onCheck={() => void poll()}
+              onCheck={poll}
+              connectionIssue={!!networkError}
               label="The group responds"
             />
           </section>
@@ -607,6 +602,7 @@ export function ThreadPageClient({
                   className="agora-button"
                   disabled={busy || followUp.trim().length < 10}
                 >
+                  {busy && <ActivityDots />}
                   {busy
                     ? "Confirming your follow-up…"
                     : uncertain
@@ -614,6 +610,7 @@ export function ThreadPageClient({
                       : "Ask the whole group →"}
                 </button>
               </div>
+              {busy && <p className="agora-meta agora-enter" role="status">Sending your follow-up to the same group. Their responses will appear below.</p>}
               <p
                 id="follow-up-error"
                 className={followError ? "agora-error" : "sr-only"}

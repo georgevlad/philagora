@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import { PhilosopherAvatar } from "@/components/PhilosopherAvatar";
+import { ActivityDots, MatchingProgress } from "@/components/agora/AgoraProgress";
 import {
   clearAgoraDraft,
   readAgoraDraft,
@@ -50,6 +51,7 @@ export function QuestionComposer({
   const [draft, setDraft] = useState(initialDraft.current);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [navigating, setNavigating] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
   const [error, setError] = useState("");
   const [uncertain, setUncertain] = useState(false);
@@ -68,6 +70,20 @@ export function QuestionComposer({
     controller?: AbortController;
   }>({ id: 0 });
   const groupHeading = useRef<HTMLHeadingElement>(null);
+  function focusGroup() {
+    requestAnimationFrame(() => {
+      const heading = groupHeading.current;
+      if (!heading) return;
+      heading.focus({ preventScroll: true });
+      const bounds = heading.getBoundingClientRect();
+      if (bounds.top < 24 || bounds.bottom > window.innerHeight - 80) {
+        heading.scrollIntoView({
+          block: "start",
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+        });
+      }
+    });
+  }
   useEffect(() => () => suggestionRequest.current.controller?.abort(), []);
   const key = `agora:draft:${viewerKey}`;
   useEffect(() => {
@@ -127,7 +143,7 @@ export function QuestionComposer({
     draft.question.trim().length <= 500;
   const groupValid =
     draft.selectedIds.length >= 2 && draft.selectedIds.length <= 4;
-  const locked = busy || uncertain;
+  const locked = busy || navigating || uncertain;
   const reviewing = !!draft.review || !!draft.requestId || suggesting;
 
   async function submit(event: FormEvent) {
@@ -137,7 +153,7 @@ export function QuestionComposer({
       return;
     }
     if (
-      sending.current ||
+      sending.current || navigating ||
       !questionValid ||
       !groupValid ||
       needsSignIn ||
@@ -192,6 +208,7 @@ export function QuestionComposer({
           `agora:article-warning:${result.threadId}`,
           result.articleWarning,
         );
+      setNavigating(true);
       router.push(`/agora/${result.threadId}`);
     } catch {
       setUncertain(true);
@@ -214,6 +231,7 @@ export function QuestionComposer({
     writeAgoraDraft(key, submitted);
     setSuggesting(true);
     setError("");
+    focusGroup();
     let review: GroupReview = { suggestions: [] };
     try {
       const response = await fetch("/api/agora/suggest", {
@@ -308,7 +326,7 @@ export function QuestionComposer({
     setDraft(next);
     writeAgoraDraft(key, next);
     setSuggesting(false);
-    requestAnimationFrame(() => groupHeading.current?.focus());
+    focusGroup();
   }
 
   function toggleThinker(id: string) {
@@ -438,23 +456,27 @@ export function QuestionComposer({
             aria-labelledby="group-heading"
             aria-busy={suggesting}
           >
-            <p className="agora-eyebrow">A little perspective</p>
+            <p className="agora-eyebrow agora-activity-label">
+              {suggesting && <ActivityDots />}
+              {suggesting ? "Matching your question" : "A little perspective"}
+            </p>
             <h2 id="group-heading" ref={groupHeading} tabIndex={-1}>
               {suggesting
                 ? "Finding perspectives for your question…"
                 : "Meet your philosophers"}
             </h2>
-            <p className="agora-meta" role="status">
+            <p className="agora-meta">
               {suggesting
                 ? "We’re matching your question with different ways of thinking. Nothing has been submitted yet."
                 : draft.review?.error ||
                 "Two minds to start with. Change the group if you like."}
             </p>
+            {suggesting && <MatchingProgress />}
             {!suggesting && (
               <>
                 {draft.selectedIds.length > 0 && (
                   <div
-                    className="agora-matched-philosophers"
+                    className="agora-matched-philosophers agora-enter"
                     role="group"
                     aria-label="Your selected philosophers"
                   >
@@ -607,10 +629,13 @@ export function QuestionComposer({
                       className="agora-button"
                       type="submit"
                       disabled={
-                        !questionValid || !groupValid || busy || isPending
+                        !questionValid || !groupValid || busy || navigating || isPending
                       }
                     >
-                      {busy
+                      {(busy || navigating) && <ActivityDots />}
+                      {navigating
+                        ? "Opening your conversation…"
+                        : busy
                         ? "Confirming your question…"
                         : uncertain
                           ? "Check the same submission →"
@@ -628,6 +653,13 @@ export function QuestionComposer({
                     </button>
                   )}
                 </div>
+                {(busy || navigating) && (
+                  <p className="agora-meta agora-enter" role="status">
+                    {navigating
+                      ? "Your question is saved. Let’s hear what your philosophers have to say."
+                      : "Sending your question to the group. Your conversation will open automatically."}
+                  </p>
+                )}
               </>
             )}
           </section>
