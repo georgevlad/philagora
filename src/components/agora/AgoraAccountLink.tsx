@@ -16,6 +16,7 @@ export function AgoraAccountLink() {
   return (
     <Link
       className="agora-account-link"
+      aria-label={data?.user ? "Your library" : "Sign in"}
       aria-current={
         pathname === "/profile" || pathname === "/sign-in" ? "page" : undefined
       }
@@ -31,7 +32,7 @@ export function AgoraAccountLink() {
           : `/sign-in?returnTo=${encodeURIComponent(pathname)}`
       }
     >
-      {data?.user ? "Your profile" : "Sign in"}
+      {data?.user ? <><span className="agora-library-full">Your library</span><span className="agora-library-short" aria-hidden="true">Library</span></> : "Sign in"}
     </Link>
   );
 }

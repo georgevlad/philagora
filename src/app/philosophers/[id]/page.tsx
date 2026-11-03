@@ -86,8 +86,8 @@ export default async function PhilosopherProfileDynamic({
     <AgoraShell>
       <main id="main" className="public-page">
         <JsonLd data={philosopherJsonLd} />
-        <Link href="/schools" className="agora-text-link">
-          ← Schools of thought
+        <Link href="/philosophers" className="agora-text-link">
+          ← All philosophers
         </Link>
         <header className="public-heading public-profile-intro">
           <p className="agora-eyebrow">Meet the philosopher</p>

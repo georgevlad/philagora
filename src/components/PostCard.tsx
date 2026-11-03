@@ -384,7 +384,7 @@ function ActionButtons({ post }: { post: FeedPost }) {
       />
       <ActionButton
         label="Bookmark"
-        hint={bookmarked ? "Remove from your saved posts" : session?.user ? "Save to your profile for later" : "Sign in to save this post"}
+        hint={bookmarked ? "Remove from your saved posts" : session?.user ? "Save to your library for later" : "Sign in to save this post"}
         pending={bookmarkPending || sessionPending}
         icon={<BookmarkIcon fill={bookmarked ? "currentColor" : "none"} />}
         count={bookmarkCount > 0 ? bookmarkCount : undefined}

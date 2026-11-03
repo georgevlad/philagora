@@ -207,7 +207,7 @@ function Round({
             You can browse and return using this conversation’s link.
           </p>
           <div className="agora-actions">
-            <Link className="agora-text-link" href="/">
+            <Link className="agora-text-link" href="/agora">
               Browse the Agora while you wait →
             </Link>
             <button className="agora-text-link" onClick={onCheck}>
@@ -431,7 +431,7 @@ export function ThreadPageClient({
             >
               Sign in
             </Link>
-            <Link className="agora-text-link" href="/">
+            <Link className="agora-text-link" href="/agora">
               Return to the Agora →
             </Link>
           </div>
@@ -457,7 +457,7 @@ export function ThreadPageClient({
     <AgoraShell>
       <main id="main" className="agora-reading agora-conversation">
         <div className="agora-thread-top">
-          <Link className="agora-text-link" href="/">
+          <Link className="agora-text-link" href="/agora">
             ← Back to the Agora
           </Link>
           <span className="agora-badge">

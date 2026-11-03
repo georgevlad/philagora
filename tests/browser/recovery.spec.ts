@@ -35,7 +35,7 @@ test("lost submission response reconciles the original ID without duplicate gene
   });
   await page.getByLabel("Your question for the philosophers").fill(question);
   await page.getByRole("button", { name: "Find my philosophers" }).click();
-  await page.getByRole("button", { name: "Ask the philosophers" }).click();
+  await page.getByRole("button", { name: /Ask (publicly|privately)/ }).click();
   await expect(page.locator("#question-error")).toContainText(
     "may already be saved",
   );
@@ -77,7 +77,7 @@ test("rejected submissions retain editable text, group and private audience", as
   );
   await page.getByRole("button", { name: "Find my philosophers" }).click();
   await page.getByRole("radio", { name: "Private", exact: true }).check();
-  await page.getByRole("button", { name: "Ask the philosophers" }).click();
+  await page.getByRole("button", { name: /Ask (publicly|privately)/ }).click();
   await expect(page.locator("#question-error")).toContainText(
     "Daily question limit",
   );
@@ -112,7 +112,7 @@ test("local generation partial failures retain first answer and explain missing 
     .getByLabel("Your question for the philosophers")
     .fill("How can I make room for a different perspective?");
   await page.getByRole("button", { name: "Find my philosophers" }).click();
-  await page.getByRole("button", { name: "Ask the philosophers" }).click();
+  await page.getByRole("button", { name: /Ask (publicly|privately)/ }).click();
   await expect(page.locator(".agora-answer")).toHaveCount(1);
   await expect(
     page.getByRole("heading", {
@@ -198,7 +198,7 @@ test("feed pagination keeps personalized likes and bookmarks", async ({
   await expect(
     page
       .getByRole("navigation", { name: "Main navigation" })
-      .getByRole("link", { name: "Your profile", exact: true }),
+      .getByRole("link", { name: "Your library", exact: true }),
   ).toBeVisible();
   const bookmarkResponse = page.waitForResponse(
     (r) =>

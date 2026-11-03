@@ -1,0 +1,74 @@
+/* Discovery pages share the same paper, type, and controls as the reading views. */
+.public-explore-features {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 48px;
+  margin-block: 36px 48px;
+}
+.public-explore-features > section + section { padding-left: 40px; border-left: 1px solid var(--line); }
+.public-explore-features .agora-question-list { grid-template-columns: 1fr; gap: 20px; }
+.public-explore-paths {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  border-top: 1px solid var(--ink);
+  padding-top: 28px;
+}
+.public-explore-paths > a {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 12px;
+  padding: 24px;
+  background: var(--soft);
+  border: 1px solid transparent;
+  border-radius: var(--radius-panel);
+}
+.public-explore-paths > a:hover { border-color: var(--line); color: var(--ink); }
+.public-explore-paths h2 { font-size: 1.5rem; }
+.public-explore-paths p { color: var(--muted); font-size: 0.9375rem; }
+.public-explore-paths .agora-text-link { margin-top: auto; padding-top: 8px; }
+.public-conversation-browse { margin-top: 32px; }
+.public-conversation-browse .agora-section-heading { align-items: center; }
+.public-directory-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; margin: 28px 0 12px; }
+.public-thinker-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; }
+.public-thinker-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px 16px;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--line);
+  align-content: start;
+  align-items: center;
+}
+.public-thinker-card h2 { font-size: 1.5rem; }
+.public-thinker-card .agora-meta { margin-top: 4px; }
+.public-thinker-card:hover { color: var(--ink); }
+.public-thinker-card:hover h2 { color: var(--clay-dark); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 5px; }
+.public-thinker-bio, .public-thinker-card > .agora-text-link { grid-column: 1 / -1; }
+.public-thinker-bio {
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.public-focus-list article { padding-block: 32px; border-bottom: 1px solid var(--line); }
+.public-focus-list h2 { font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.35; margin-top: 12px; }
+.public-focus-list h2 a:hover { text-decoration: underline; text-decoration-thickness: 1px; }
+.public-focus-list article > p:not(:first-child) { margin-top: 16px; }
+.public-focus-list article > .agora-text-link { margin-top: 20px; }
+@media (max-width: 760px) {
+  .public-explore-features, .public-thinker-grid, .public-explore-paths { grid-template-columns: 1fr; }
+  .public-explore-features { margin-block: 24px 32px; gap: 32px; }
+  .public-explore-features > section + section { padding: 0; border: 0; }
+  .public-explore-paths { gap: 12px; }
+  .public-explore-paths > a { padding: 20px; }
+  .public-thinker-card { padding-block: 24px; }
+}
+@media (max-width: 480px) {
+  .agora-audience-options label { padding: 10px; gap: 8px; }
+  .agora-composer-steps { gap: 10px 20px; margin-bottom: 20px; }
+}

@@ -16,6 +16,7 @@ import "./agora-design.css";
 import "./in-focus.css";
 import "./public-design.css";
 import "./public-shell.css";
+import "./public-discovery.css";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",

@@ -1760,11 +1760,56 @@
   padding-top: 24px;
   border-top: 1px solid var(--line);
 }
-.agora-review-privacy legend {
+.agora-audience legend {
   margin-bottom: 10px;
   font-size: 0.875rem;
   font-weight: 600;
 }
+.agora-composer-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  padding: 0;
+  margin: 0 0 24px;
+  list-style: none;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.agora-composer-steps li { display: flex; align-items: center; gap: 8px; }
+.agora-composer-steps li > span {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  font-size: 0.75rem;
+}
+.agora-composer-steps [aria-current="step"] { color: var(--ink); font-weight: 600; }
+.agora-composer-steps [aria-current="step"] > span { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.agora-audience { min-width: 0; margin-bottom: 20px; }
+.agora-audience-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.agora-audience-options label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  min-height: 64px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.agora-audience-options label:has(input:checked) { background: var(--soft); border-color: #a7a89c; }
+.agora-audience-options label:hover:has(input:enabled) { border-color: var(--clay); }
+.agora-audience-options label:has(input:disabled) { cursor: not-allowed; }
+.agora-audience-options strong { display: block; font-size: 0.875rem; font-weight: 600; }
+.agora-audience-options small { display: block; font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+.agora-audience > p { margin-top: 10px; }
+.agora-audience-summary { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 8px 20px; }
+.agora-audience-summary > div { flex: 1 1 220px; }
+.agora-audience-summary strong { font-size: 0.875rem; font-weight: 600; }
+.agora-audience-summary .agora-meta { margin-top: 4px; }
+.agora-audience-summary button { min-height: 44px; }
 .agora-simple-composer .agora-selected-group {
   padding-top: 0;
   border: 0;

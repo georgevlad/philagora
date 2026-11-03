@@ -2,24 +2,25 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AgoraAccountLink } from "./AgoraAccountLink";
+import { isExplorePath } from "@/lib/public-navigation";
 
 export function AgoraNavigation() {
   const pathname = usePathname();
   return (
     <nav aria-label="Main navigation">
       {[
-        ["/agora", "The Agora"],
-        ["/feed", "Feed"],
-        ["/debates", "Debates"],
+        ["/", "Ask"],
+        ["/explore", "Explore"],
+        ["/philosophers", "Philosophers"],
       ].map(([href, label]) => (
         <Link
           key={href}
-          href={href}
+          href={href === "/" ? "/#ask" : href}
           aria-current={
             pathname === href ||
-            (href === "/agora" && pathname === "/") ||
-            pathname.startsWith(`${href}/`) ||
-            (href === "/feed" && pathname.startsWith("/post/"))
+            (href === "/explore" && isExplorePath(pathname)) ||
+            (href === "/philosophers" &&
+              (pathname.startsWith("/philosophers/") || pathname === "/schools"))
               ? "page"
               : undefined
           }

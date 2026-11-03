@@ -39,7 +39,7 @@ test("suggestions precede submission, reasons and custom group survive refresh, 
   });
   await page.goto("/");
   await expect(
-    page.getByRole("button", { name: "Ask the philosophers" }),
+    page.getByRole("button", { name: /Ask (publicly|privately)/ }),
   ).toHaveCount(0);
   await page
     .getByLabel("Your question for the philosophers")
@@ -83,7 +83,7 @@ test("suggestions precede submission, reasons and custom group survive refresh, 
   const before = await (
     await page.request.get(`http://127.0.0.1:${review.stubPort}/health`)
   ).json();
-  await page.getByRole("button", { name: "Ask the philosophers" }).click();
+  await page.getByRole("button", { name: /Ask (publicly|privately)/ }).click();
   await expect(page).toHaveURL(/\/agora\/[a-f0-9-]+$/);
   expect(submitted?.classification).toEqual(classification);
   expect(submitted?.philosopher_ids).toEqual(["camus", "nietzsche", "plato"]);
@@ -155,7 +155,7 @@ test("editing cancels stale suggestions and invalidates the previous group and c
     .fill("What do we owe to future generations instead?");
   await expect(page.locator(".agora-group-review")).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Ask the philosophers" }),
+    page.getByRole("button", { name: /Ask (publicly|privately)/ }),
   ).toHaveCount(0);
   const saved = await page.evaluate(() =>
     JSON.parse(sessionStorage.getItem("agora:draft:owner") || "null"),
@@ -198,12 +198,12 @@ for (const status of [429, 500, 200]) {
       .getByRole("checkbox", { name: "Seneca", exact: true })
       .check();
     await expect(
-      page.getByRole("button", { name: "Ask the philosophers" }),
+      page.getByRole("button", { name: /Ask (publicly|privately)/ }),
     ).toBeDisabled();
     await selection(page)
       .getByRole("checkbox", { name: "Plato", exact: true })
       .check();
-    await page.getByRole("button", { name: "Ask the philosophers" }).click();
+    await page.getByRole("button", { name: /Ask (publicly|privately)/ }).click();
     await expect(page.locator("#question-error")).toContainText(
       "Submission retained",
     );
@@ -248,7 +248,7 @@ test("article-only questions can reach suggestions and keep their article throug
     "https://example.com/local-review-article",
   );
   await expect(
-    page.getByRole("button", { name: "Ask the philosophers" }),
+    page.getByRole("button", { name: /Ask (publicly|privately)/ }),
   ).toBeEnabled();
   await page
     .getByLabel("Share an article")
@@ -267,7 +267,7 @@ test("test mode is explicit and representative responses reflow at mobile and de
     .getByRole("link", { name: "Use test account", exact: true })
     .click();
   await expect(
-    page.getByRole("link", { name: "Your profile", exact: true }),
+    page.getByRole("link", { name: "Your library", exact: true }),
   ).toBeVisible();
   await page.goto("/agora/review-public");
   for (const width of [320, 390, 1440]) {

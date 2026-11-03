@@ -22,7 +22,7 @@ import { SignOutButton } from "./SignOutButton";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Your profile",
+  title: "Your library",
   robots: {
     index: false,
     follow: false,
@@ -66,7 +66,7 @@ export default async function ProfilePage() {
   return (
     <AgoraShell>
       <main id="main" className="public-page public-reading">
-        <PageHeading eyebrow="Your conversations & reading" title="Your profile">
+        <PageHeading title="Your library">
           <p>A place to return to your questions and the ideas you’ve saved.</p>
         </PageHeading>
         <div className="public-account">

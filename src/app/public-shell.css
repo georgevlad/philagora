@@ -85,6 +85,7 @@
   min-width: 104px;
   min-height: 44px;
 }
+.agora-library-short { display: none; }
 .agora-account-loading > span {
   width: 56px;
   height: 12px;
@@ -94,6 +95,31 @@
 .agora-design .agora-header nav .agora-account-link:hover {
   color: var(--clay-dark);
 }
+.public-explore-nav {
+  display: flex;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  max-width: 1240px;
+  margin: auto;
+  padding: 10px 40px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.8125rem;
+}
+.public-explore-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 4px;
+  color: var(--muted);
+}
+.public-explore-nav a[aria-current="page"] {
+  color: var(--clay-dark);
+  text-decoration: underline;
+  text-underline-offset: 6px;
+  font-weight: 600;
+}
+.public-explore-nav a:hover { color: var(--ink); }
 .agora-design .agora-button,
 .agora-design .agora-outline {
   max-width: 100%;
@@ -270,6 +296,7 @@
   }
 }
 @media (max-width: 760px) {
+  .public-explore-nav { padding: 6px 24px; gap: 0 16px; }
   .agora-design .agora-header {
     gap: 4px 20px;
     padding-block: 10px;
@@ -289,6 +316,8 @@
   }
 }
 @media (max-width: 600px) {
+  /* The main Explore link already returns to the overview. */
+  .public-explore-nav a[href="/explore"] { display: none; }
   .agora-design .agora-header nav {
     width: 100%;
     margin-left: 0;
@@ -298,9 +327,13 @@
   }
 }
 @media (max-width: 480px) {
+  .public-explore-nav { padding-inline: 20px; gap: 0 8px; }
   .agora-design .agora-header nav {
     column-gap: 4px;
+    font-size: 0.8125rem;
   }
+  .agora-library-full { display: none; }
+  .agora-library-short { display: inline; }
   .agora-design .agora-footer {
     flex-direction: column;
   }
@@ -308,11 +341,11 @@
     padding-top: 0;
   }
   .agora-design .agora-header nav .agora-account-link {
-    padding-inline: 10px;
-    min-width: 90px;
+    padding-inline: 8px;
+    min-width: 66px;
   }
   .agora-account-loading {
-    min-width: 90px;
+    min-width: 66px;
   }
   .agora-design .public-post-actions .public-action-label {
     position: absolute;

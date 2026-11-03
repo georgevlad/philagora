@@ -15,7 +15,7 @@ export default function SignInPage() {
     const candidate =
       new URLSearchParams(window.location.search).get("returnTo") ?? "/";
     const callbackURL =
-      /^\/(?:agora(?:\/[a-zA-Z0-9-]+)?|feed|profile|post\/[a-zA-Z0-9-]+|philosophers\/[a-zA-Z0-9-]+|debates(?:\/[a-zA-Z0-9-]+)?|schools|about)?(?:\?type=(?:all|reactions|reflections|replies|recommends))?(?:#ask)?$/.test(
+      /^\/(?:agora(?:\/[a-zA-Z0-9-]+)?|explore|feed|profile|post\/[a-zA-Z0-9-]+|philosophers(?:\/[a-zA-Z0-9-]+)?|in-focus(?:\/[a-zA-Z0-9-]+)?|debates(?:\/[a-zA-Z0-9-]+)?|schools|about)?(?:\?type=(?:all|reactions|reflections|replies|recommends))?(?:#ask)?$/.test(
         candidate,
       )
         ? candidate
@@ -95,7 +95,7 @@ export default function SignInPage() {
           </div>
 
           <p className="public-sign-in-guest">
-            <Link href="/" className="agora-text-link">
+            <Link href="/explore" className="agora-text-link">
               &larr; Explore without signing in
             </Link>
           </p>

@@ -3,6 +3,7 @@ import { AgoraShell } from "@/components/agora/AgoraShell";
 import { PageHeading } from "@/components/public/PageHeading";
 import { PhilosopherLink } from "@/components/public/PhilosopherLink";
 import { EmptyState } from "@/components/public/PageState";
+import Link from "next/link";
 
 const schools = [
   {
@@ -111,6 +112,7 @@ export function SchoolsPageClient({
   return (
     <AgoraShell>
       <main id="main" className="public-page">
+        <Link href="/philosophers" className="agora-text-link">← All philosophers</Link>
         <PageHeading
           eyebrow="Different ways of seeing"
           title="Schools of Thought"

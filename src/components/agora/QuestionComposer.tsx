@@ -49,6 +49,8 @@ export function QuestionComposer({
     selectedIds: [],
   });
   const [draft, setDraft] = useState(initialDraft.current);
+  const audience = useRef(initialDraft.current.visibility);
+  const audienceChoices = useRef<HTMLFieldSetElement>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [navigating, setNavigating] = useState(false);
@@ -98,6 +100,7 @@ export function QuestionComposer({
     }
     // Restore external tab storage after hydration, before accepting edits.
     if (saved) {
+      audience.current = saved.visibility;
       setDraft(saved);
       setUncertain(!!saved.requestId);
     }
@@ -116,6 +119,7 @@ export function QuestionComposer({
   }, [key, viewerKey]);
 
   function update(patch: Partial<Draft>) {
+    if (patch.visibility) audience.current = patch.visibility;
     const changesQuestion =
       (patch.question !== undefined && patch.question !== draft.question) ||
       (patch.articleUrl !== undefined && patch.articleUrl !== draft.articleUrl);
@@ -320,6 +324,8 @@ export function QuestionComposer({
       return;
     const next = {
       ...submitted,
+      // Matching can finish after the reader changes the audience.
+      visibility: audience.current,
       review,
       selectedIds: review.suggestions.slice(0, 2).map((s) => s.id),
     };
@@ -377,6 +383,45 @@ export function QuestionComposer({
       aria-label="Ask the philosophers"
     >
       <form onSubmit={submit}>
+        <ol className="agora-composer-steps" aria-label="Question steps">
+          <li aria-current={!reviewing ? "step" : undefined}><span>1</span> Your question</li>
+          <li aria-current={reviewing ? "step" : undefined}><span>2</span> Your philosophers</li>
+        </ol>
+        <fieldset
+          ref={audienceChoices}
+          id="question-audience"
+          className="agora-audience"
+          disabled={!ready || locked}
+          aria-describedby="question-privacy"
+        >
+          <legend>Who can read your conversation?</legend>
+          <div className="agora-audience-options">
+            {(["public", "private"] as const).map((value) => (
+              <label key={value}>
+                <input
+                  type="radio"
+                  name="visibility"
+                  value={value}
+                  aria-label={value === "private" ? "Private" : "Public"}
+                  aria-describedby={`visibility-${value}-hint`}
+                  checked={draft.visibility === value}
+                  onChange={() => update({ visibility: value })}
+                />
+                <span>
+                  <strong>{value === "public" ? "Public" : "Private"}</strong>
+                  <small id={`visibility-${value}-hint`}>
+                    {value === "public" ? "Appears in the Agora" : isGuest ? "Sign-in required" : "Saved to your account"}
+                  </small>
+                </span>
+              </label>
+            ))}
+          </div>
+          <p id="question-privacy" className="agora-meta" aria-live="polite">
+            {draft.visibility === "private"
+              ? "Only you and Philagora administrators can read your question and responses."
+              : "Anyone can read your question, responses, and any follow-up."}
+          </p>
+        </fieldset>
         <div className="agora-question-box">
           <div className="agora-question-writing">
             <div className="agora-question-label">
@@ -400,7 +445,7 @@ export function QuestionComposer({
               value={draft.question}
               onChange={(e) => update({ question: e.target.value })}
               disabled={!ready || locked}
-              aria-describedby={`${reviewing && !suggesting ? "question-privacy " : ""}question-count question-hint question-error`}
+              aria-describedby="question-privacy question-count question-hint question-error"
             />
           </div>
           <div className="agora-composer-actions">
@@ -413,7 +458,11 @@ export function QuestionComposer({
                     ? "A little more detail — at least 10 characters."
                     : reviewing
                       ? "You can still refine your question."
-                      : "No account needed to get started."}
+                      : needsSignIn
+                        ? "You can choose your group before signing in."
+                        : isGuest
+                          ? "No account needed for a public question."
+                          : "Choose your group before submitting."}
             </span>
             {!reviewing && (
               <button
@@ -566,39 +615,20 @@ export function QuestionComposer({
                   Each thinker responds, with a shared reflection when available.
                 </p>
                 <div className="agora-review-privacy">
-                  <fieldset
-                    className={`agora-visibility${isGuest ? " agora-guest-visibility" : ""}`}
-                    disabled={!ready || locked}
-                    aria-describedby="question-privacy"
-                  >
-                    <legend>Who can read your conversation?</legend>
-                    {(["public", "private"] as const).map((value) => (
-                      <label key={value}>
-                        <input
-                          type="radio"
-                          name="visibility"
-                          value={value}
-                          aria-label={value === "private" ? "Private" : "Public"}
-                          aria-describedby={isGuest ? `visibility-${value}-hint` : undefined}
-                          checked={draft.visibility === value}
-                          onChange={() => update({ visibility: value })}
-                        />
-                        <span>
-                          {value === "public" ? "Public" : "Private"}
-                          {isGuest && (
-                            <small id={`visibility-${value}-hint`}>
-                              {value === "public" ? "No account needed" : "Account required"}
-                            </small>
-                          )}
-                        </span>
-                      </label>
-                    ))}
-                  </fieldset>
-                  <p id="question-privacy" className="agora-meta agora-privacy">
-                    {draft.visibility === "private"
-                      ? "Only you and Philagora administrators can read this conversation."
-                      : `Everyone can read this conversation. You’ll appear as ${draft.askedBy.trim() || "Anonymous"}.`}
-                  </p>
+                  <div className="agora-audience-summary">
+                    <div>
+                      <strong>{draft.visibility === "private" ? "Private conversation" : "Public conversation"}</strong>
+                      <p className="agora-meta">
+                        {draft.visibility === "private"
+                          ? "Visible to you and Philagora administrators."
+                          : `Visible to everyone. You’ll appear as ${draft.askedBy.trim() || "Anonymous"}.`}
+                      </p>
+                    </div>
+                    <button type="button" className="agora-text-link" disabled={locked}
+                      onClick={() => audienceChoices.current?.querySelector<HTMLInputElement>("input:checked")?.focus()}>
+                      Change audience ↑
+                    </button>
+                  </div>
                   {draft.visibility === "public" && (
                     <details className="agora-options">
                       <summary>Add a display name</summary>
@@ -627,7 +657,7 @@ export function QuestionComposer({
                 </div>
                 {isGuest && draft.visibility === "public" && (
                   <p className="agora-meta agora-followup-note">
-                    Want to save it to your profile and ask a follow-up?{" "}
+                    Want to keep it in your library and ask a follow-up?{" "}
                     <Link
                       onClick={signIn}
                       href={`/sign-in?returnTo=${encodeURIComponent(pathname + "#ask")}`}
@@ -654,7 +684,9 @@ export function QuestionComposer({
                         ? "Confirming your question…"
                         : uncertain
                           ? "Check the same submission →"
-                          : "Ask the philosophers →"}
+                          : draft.visibility === "private"
+                            ? "Ask privately →"
+                            : "Ask publicly →"}
                     </button>
                   )}
                   {!locked && (

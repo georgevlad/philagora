@@ -4,6 +4,7 @@ import Database from "better-sqlite3";
 const review = JSON.parse(fs.readFileSync(".local-review/active.json", "utf8"));
 
 test("homepage at mobile, tablet and desktop sizes", async ({ page }) => {
+  await page.route("**/api/agora/quota", (route) => route.fulfill({ json: { used: 0, limit: 3 } }));
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   for (const width of [320, 390, 768, 1440]) {
@@ -15,7 +16,7 @@ test("homepage at mobile, tablet and desktop sizes", async ({ page }) => {
     await expect(
       page.getByLabel("Your question for the philosophers"),
     ).toBeVisible();
-    await expect(page.getByRole("radio")).toHaveCount(0);
+    await expect(page.getByRole("radio")).toHaveCount(2);
     await expect(page.getByLabel("Public display name")).toHaveCount(0);
     await expect(page.locator(".agora-quota")).toHaveCount(0);
     await expect(page.locator(".agora-portrait-row img")).toHaveCount(5);
@@ -26,12 +27,16 @@ test("homepage at mobile, tablet and desktop sizes", async ({ page }) => {
     const question = page.getByLabel("Your question for the philosophers");
     await expect(question).toBeEnabled();
     await page.evaluate(() => document.fonts.ready);
-    const before = await question.boundingBox();
+    const fieldBounds = () => question.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return { x: bounds.x, y: bounds.y + window.scrollY, width: bounds.width, height: bounds.height };
+    });
+    const before = await fieldBounds();
     expect(before!.height).toBeGreaterThanOrEqual(112);
     expect(before!.height).toBeLessThan(180);
     await question.focus();
     await expect(question).toBeFocused();
-    expect(await question.boundingBox()).toEqual(before);
+    expect(await fieldBounds()).toEqual(before);
     expect(await question.evaluate((el) => getComputedStyle(el).outlineStyle)).toBe("none");
     expect(await page.locator(".agora-question-writing").evaluate((el) => getComputedStyle(el).boxShadow)).not.toBe("none");
     const overflow = await page.locator(".agora-composer").evaluate((root) =>
@@ -87,7 +92,7 @@ test("guest draft survives sign-in navigation without entering the URL", async (
   ]);
   await page.goto("/");
   await expect(
-    page.getByRole("button", { name: "Ask the philosophers" }),
+    page.getByRole("button", { name: /Ask (publicly|privately)/ }),
   ).toBeVisible();
   await expect(
     page.getByLabel("Your question for the philosophers"),
@@ -129,7 +134,7 @@ test("real submission, incremental answers, return, refresh and whole-group foll
   await page.getByRole("button", { name: "Find my philosophers" }).click();
   await page.getByRole("radio", { name: "Private", exact: true }).check();
   await page
-    .getByRole("button", { name: "Ask the philosophers", exact: false })
+    .getByRole("button", { name: /Ask (publicly|privately)/, exact: false })
     .click();
   await expect(page).toHaveURL(/\/agora\/[a-f0-9-]+$/);
   const threadURL = page.url();
@@ -286,7 +291,7 @@ test("public guest question, validation and one-follow-up ownership", async ({
   });
   expect(rejected.status()).toBe(401);
   await page.goto("/");
-  await expect(page.getByRole("radio")).toHaveCount(0);
+  await expect(page.getByRole("radio")).toHaveCount(2);
   await page.getByLabel("Your question for the philosophers").fill("short");
   await expect(
     page.getByRole("button", { name: "Find my philosophers" }),
@@ -296,8 +301,8 @@ test("public guest question, validation and one-follow-up ownership", async ({
     .fill("What does a good public life require of us?");
   await page.getByRole("button", { name: "Find my philosophers" }).click();
   await expect(page.getByRole("radio", { name: "Public", exact: true })).toBeChecked();
-  await expect(page.locator("#question-privacy")).toContainText("Everyone can read");
-  await page.getByRole("button", { name: "Ask the philosophers" }).click();
+  await expect(page.locator("#question-privacy")).toContainText("Anyone can read");
+  await page.getByRole("button", { name: /Ask (publicly|privately)/ }).click();
   await expect(page).toHaveURL(/\/agora\/[a-f0-9-]+$/);
   await expect(
     page.getByText("Public conversation", { exact: true }),
@@ -358,7 +363,8 @@ test("navigation, feed filters, debate and published issue", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Feed", exact: true }).click();
+  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Explore", exact: true }).click();
+  await page.getByRole("navigation", { name: "Explore Philagora" }).getByRole("link", { name: "Feed", exact: true }).click();
   await expect(page).toHaveURL(/\/feed$/);
   await page.locator('a[href*="/feed?type="]').first().click();
   await expect(page).toHaveURL(/\/feed\?type=/);

@@ -15,7 +15,7 @@ const destinations = [
   ["/debates", "Debates"],
   ["/debates/review-debate", "Does a good life need a public purpose?"],
   ["/philosophers/seneca", "Seneca"],
-  ["/profile", "Your profile"],
+  ["/profile", "Your library"],
   ["/schools", "Schools of Thought"],
   ["/about", "About Philagora"],
 ];
@@ -155,7 +155,7 @@ test("navigation, keyboard filters, full text and contextual links", async ({
   await page.getByRole("link", { name: "Replying to Marcus Aurelius" }).click();
   await expect(page).toHaveURL(/\/post\/review-reaction-0$/);
   await page
-    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("navigation", { name: "Explore Philagora" })
     .getByRole("link", { name: "Debates", exact: true })
     .click();
   await expect(

@@ -16,7 +16,7 @@ test("matching stays visibly active, respects reduced motion, and hands off to t
   await page.getByRole("button", { name: "Find my philosophers" }).click();
   const loading = page.locator(".agora-matching");
   await expect(loading).toBeVisible();
-  await expect(page.getByRole("button", { name: "Ask the philosophers" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Ask (publicly|privately)/ })).toHaveCount(0);
   for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     await expect(loading.locator(".agora-skeleton").first()).toHaveCSS("animation-name", "agora-shimmer");
@@ -33,7 +33,7 @@ test("matching stays visibly active, respects reduced motion, and hands off to t
   release();
   await expect(page.getByRole("heading", { name: "Meet your philosophers" })).toBeFocused();
   await expect(loading).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Ask the philosophers" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: /Ask (publicly|privately)/ })).toBeEnabled();
 });
 
 test("submission remains locked while navigation is pending", async ({ page }) => {
@@ -58,7 +58,7 @@ test("submission remains locked while navigation is pending", async ({ page }) =
   await page.goto("/");
   await page.getByLabel("Your question for the philosophers").fill("How can I make more room to think?");
   await page.getByRole("button", { name: "Find my philosophers" }).click();
-  await page.getByRole("button", { name: "Ask the philosophers" }).click();
+  await page.getByRole("button", { name: /Ask (publicly|privately)/ }).click();
   await expect(page.getByRole("button", { name: "Confirming your question" })).toBeDisabled();
   releaseSubmit();
   await expect(page.getByRole("button", { name: "Opening your conversation" })).toBeDisabled();

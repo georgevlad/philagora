@@ -100,7 +100,7 @@ export function FocusArticle({ edition }: { edition: FocusEdition }) {
             </div>
           </li>)}</ol>
         </section>
-        <div className="in-focus-end"><span>Old minds. Open questions.</span><Link href="/#world">Back to the Agora →</Link></div>
+        <div className="in-focus-end"><span>Old minds. Open questions.</span><Link href="/in-focus">More from In Focus →</Link></div>
       </div>
     </div>
   </article>;
