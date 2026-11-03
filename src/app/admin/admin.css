@@ -119,8 +119,8 @@
   gap: 10px;
   align-items: center;
   padding: 8px 10px;
-  min-height: 35px;
-  border-radius: 5px;
+  min-height: 40px;
+  border-radius: 8px;
   color: var(--admin-secondary);
 }
 .admin-nav a:hover {
@@ -142,6 +142,7 @@
   cursor: pointer;
   padding: 8px 10px;
   color: var(--admin-secondary);
+  min-height: 40px;
 }
 .admin-nav details[open] summary {
   font-weight: 600;
@@ -190,13 +191,13 @@
     textarea
   ) {
   font-size: var(--admin-input-font-size, 14px);
-  border-radius: 5px;
+  border-radius: 8px;
   border: 1px solid var(--admin-control-border);
   background: var(--admin-input);
   color: var(--admin-text);
 }
 .admin-theme :is(input:not([type="checkbox"]):not([type="radio"]), select) {
-  min-height: 36px;
+  min-height: 40px;
 }
 .admin-theme textarea {
   --admin-input-font-size: 15px;
@@ -213,7 +214,7 @@
   cursor: not-allowed;
 }
 .admin-shell button.rounded-full {
-  border-radius: 5px;
+  border-radius: 8px;
 }
 .admin-shell :is(button, a).font-mono {
   font-family: var(--font-dm-sans), sans-serif;
@@ -243,7 +244,7 @@
   background: var(--admin-raised);
 }
 .admin-shell .rounded-xl {
-  border-radius: 7px;
+  border-radius: 10px;
 }
 .admin-shell .shadow-sm {
   box-shadow: none;
@@ -253,6 +254,7 @@
 }
 .admin-page-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
@@ -267,17 +269,17 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 36px;
+  min-height: 40px;
   padding: 7px 13px;
   border: 1px solid var(--admin-border);
-  border-radius: 5px;
+  border-radius: 8px;
   background: var(--admin-surface);
   color: var(--admin-text);
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
 }
-.admin-button:hover {
+.admin-button:hover:not(:disabled) {
   background: var(--admin-raised);
 }
 .admin-button-primary {
@@ -285,7 +287,7 @@
   border-color: var(--admin-primary);
   color: #fff;
 }
-.admin-button-primary:hover {
+.admin-button-primary:hover:not(:disabled) {
   background: var(--admin-primary-hover);
 }
 .admin-button-danger {
@@ -300,10 +302,10 @@
   display: flex;
   flex-wrap: wrap;
   align-items: end;
-  gap: 10px;
-  padding: 14px 16px;
+  gap: 12px;
+  padding: 16px;
   border: 1px solid var(--admin-border);
-  border-radius: 7px;
+  border-radius: 10px;
   background: var(--admin-surface);
   margin-bottom: 16px;
 }
@@ -325,7 +327,7 @@
 }
 .admin-panel {
   border: 1px solid var(--admin-border);
-  border-radius: 7px;
+  border-radius: 10px;
   background: var(--admin-surface);
   overflow: hidden;
 }
@@ -393,7 +395,7 @@
   width: min(560px, 90vw);
   max-height: 85dvh;
   border: 1px solid var(--admin-border);
-  border-radius: 9px;
+  border-radius: 12px;
   color: var(--admin-text);
   background: var(--admin-surface);
   box-shadow: 0 24px 80px #0009;
@@ -428,6 +430,7 @@
 .admin-dialog > footer {
   border-top: 1px solid var(--admin-border);
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 .admin-dialog-body {
   padding: 20px;
@@ -449,6 +452,7 @@
 }
 .admin-tabs {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   margin-bottom: 18px;
@@ -459,6 +463,7 @@
   padding: 11px 15px;
   color: var(--admin-secondary);
   border-bottom: 2px solid transparent;
+  min-height: 44px;
 }
 .admin-tabs [aria-selected="true"],
 .admin-tabs [aria-current="page"] {
@@ -814,4 +819,39 @@ body:has(.admin-theme) {
 .admin-editor-body .admin-post-reading {
   font-size: 16px;
   line-height: 1.75;
+}
+
+.admin-theme :where(button, a, input, select, textarea, summary) {
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+.admin-theme :where(button, a, summary) {
+  touch-action: manipulation;
+}
+.admin-skip {
+  position: fixed;
+  top: 8px;
+  left: 16px;
+  z-index: 100;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  transform: translateY(-150%);
+}
+.admin-skip:focus {
+  transform: translateY(0);
+}
+@media (pointer: coarse) {
+  .admin-theme :is(.admin-button, .admin-nav a, .admin-nav summary, input:not([type="checkbox"], [type="radio"], [type="color"]), select) {
+    min-height: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-theme *,
+  .admin-theme *::before,
+  .admin-theme *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }

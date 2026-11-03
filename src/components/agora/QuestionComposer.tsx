@@ -386,6 +386,7 @@ export function QuestionComposer({
               <span
                 id="question-count"
                 className={draft.question.length ? "agora-count" : "sr-only"}
+                data-near-limit={draft.question.length >= 450 || undefined}
               >
                 {draft.question.length}/500
               </span>
@@ -399,12 +400,20 @@ export function QuestionComposer({
               value={draft.question}
               onChange={(e) => update({ question: e.target.value })}
               disabled={!ready || locked}
-              aria-describedby={`${reviewing && !suggesting ? "question-privacy " : ""}question-count question-error`}
+              aria-describedby={`${reviewing && !suggesting ? "question-privacy " : ""}question-count question-hint question-error`}
             />
           </div>
           <div className="agora-composer-actions">
-            <span className="agora-meta">
-              {reviewing ? "Your question" : "No account needed to get started."}
+            <span id="question-hint" className="agora-meta" role="status">
+              {uncertain
+                ? "Check your submission below."
+                : busy || navigating
+                  ? "Your question is on its way."
+                  : draft.question.trim().length > 0 && !questionValid
+                    ? "A little more detail — at least 10 characters."
+                    : reviewing
+                      ? "You can still refine your question."
+                      : "No account needed to get started."}
             </span>
             {!reviewing && (
               <button
@@ -434,12 +443,15 @@ export function QuestionComposer({
           <input
             id="article-url"
             type="url"
+            inputMode="url"
+            autoComplete="url"
+            aria-describedby="article-hint"
             placeholder="https://…"
             value={draft.articleUrl}
             disabled={locked}
             onChange={(e) => update({ articleUrl: e.target.value })}
           />
-          <p className="agora-meta">Add a question, or just share the article.</p>
+          <p id="article-hint" className="agora-meta">Add a question, or just share the article.</p>
         </details>
         <p
           id="question-error"
@@ -456,10 +468,11 @@ export function QuestionComposer({
             aria-labelledby="group-heading"
             aria-busy={suggesting}
           >
-            <p className="agora-eyebrow agora-activity-label">
-              {suggesting && <ActivityDots />}
-              {suggesting ? "Matching your question" : "A little perspective"}
-            </p>
+            {suggesting && (
+              <p className="agora-eyebrow agora-activity-label">
+                <ActivityDots /> Matching your question
+              </p>
+            )}
             <h2 id="group-heading" ref={groupHeading} tabIndex={-1}>
               {suggesting
                 ? "Finding perspectives for your question…"
@@ -595,6 +608,8 @@ export function QuestionComposer({
                       <input
                         id="asked-by"
                         maxLength={40}
+                        autoComplete="nickname"
+                        aria-describedby="display-name-hint"
                         value={draft.askedBy}
                         disabled={locked}
                         placeholder="Anonymous"
@@ -604,7 +619,7 @@ export function QuestionComposer({
                           })
                         }
                       />
-                      <p className="agora-meta">
+                      <p id="display-name-hint" className="agora-meta">
                         Letters A–Z, numbers, spaces, hyphens, periods and underscores.
                       </p>
                     </details>

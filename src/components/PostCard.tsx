@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -10,7 +10,7 @@ import { SourceCitation } from "./public/SourceCitation";
 import { BookmarkIcon, HeartIcon } from "./Icons";
 import { getReadingPreview } from "@/lib/reading-preview";
 import { ExpandableContent } from "./public/ExpandableContent";
-import { timeAgo } from "@/lib/date-utils";
+import { parseDateString, timeAgo } from "@/lib/date-utils";
 import { showToast } from "./ComingSoonToast";
 import { useSession } from "@/lib/auth-client";
 
@@ -18,6 +18,7 @@ function ActionButton({
   icon,
   count,
   label,
+  hint,
   active,
   pending,
   onClick,
@@ -25,23 +26,28 @@ function ActionButton({
   icon: React.ReactNode;
   count?: number;
   label: string;
+  hint: string;
   active?: boolean;
   pending?: boolean;
   onClick?: () => void;
 }) {
+  const hintId = useId();
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
-      title={label}
+      title={hint}
+      aria-describedby={hintId}
       aria-pressed={active}
+      aria-busy={pending || undefined}
       disabled={pending}
     >
       <span className="public-action-icon" aria-hidden="true">
         {icon}
       </span>
-      <span>{label}</span>
+      <span className="public-action-label">{label}</span>
+      <span id={hintId} className="sr-only">{hint}</span>
       {count !== undefined && (
         <span className="public-action-count" aria-hidden="true">{count}</span>
       )}
@@ -106,7 +112,9 @@ export function PostCard({
           detail={post.philosopherTradition}
         />
         <div className="public-post-meta">
-          <time dateTime={post.createdAt}>{timeAgo(post.createdAt)}</time>
+          <time dateTime={post.createdAt} title={parseDateString(post.createdAt)?.toUTCString()}>
+            {timeAgo(post.createdAt)}
+          </time>
           {isNew && <span className="agora-badge">New</span>}
           {post.likes >= 50 && <span className="agora-badge">Trending</span>}
         </div>
@@ -120,7 +128,7 @@ export function PostCard({
           {post.replyTargetThesis && <p>{post.replyTargetThesis}</p>}
         </div>
       )}
-      {!compact && post.citation && (
+      {!compact && post.citation && !(isArt && post.citation.imageUrl) && (
         <SourceCitation
           citation={post.citation}
           showImage={!isArt && !isHistorical}
@@ -153,8 +161,8 @@ export function PostCard({
               />
             </div>
           )}
-          <figcaption className="agora-meta">
-            {post.citation.title} · {post.citation.source}
+          <figcaption>
+            <SourceCitation citation={post.citation} showImage={false} />
           </figcaption>
         </figure>
       )}
@@ -193,7 +201,7 @@ export function PostCard({
       )}
       {(post.stance || post.tag) && (
         <p className="agora-meta public-post-topics">
-          {[post.stance, post.tag].filter(Boolean).join(" · ")}
+          {post.tag || post.stance}
         </p>
       )}
       <footer className="public-post-footer">
@@ -365,6 +373,7 @@ function ActionButtons({ post }: { post: FeedPost }) {
     <div className="public-post-actions" role="group" aria-label="Post actions">
       <ActionButton
         label="Like"
+        hint={liked ? "Remove your like" : session?.user ? "Like this post" : "Sign in to like this post"}
         pending={likePending || sessionPending}
         icon={<HeartIcon fill={liked ? "currentColor" : "none"} />}
         count={likeCount > 0 ? likeCount : undefined}
@@ -375,6 +384,7 @@ function ActionButtons({ post }: { post: FeedPost }) {
       />
       <ActionButton
         label="Bookmark"
+        hint={bookmarked ? "Remove from your saved posts" : session?.user ? "Save to your profile for later" : "Sign in to save this post"}
         pending={bookmarkPending || sessionPending}
         icon={<BookmarkIcon fill={bookmarked ? "currentColor" : "none"} />}
         count={bookmarkCount > 0 ? bookmarkCount : undefined}
@@ -385,6 +395,7 @@ function ActionButtons({ post }: { post: FeedPost }) {
       />
       <ActionButton
         label="Share"
+        hint="Share this post or copy its link"
         onClick={() => {
           void handleShare(post);
         }}

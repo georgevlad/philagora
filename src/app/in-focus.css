@@ -73,6 +73,10 @@
 .in-focus-admin-preview .in-focus-guide { display: none; }
 .in-focus-admin-preview .in-focus-hero { margin: auto; max-width: 720px; }
 .in-focus-admin-preview .in-focus-hero h1 { font-size: clamp(2.3rem, 4vw, 3.6rem); line-height: 1.1; }
+.agora-design :is(.in-focus-question, .in-focus-unresolved) { border-radius: var(--radius-control); }
+.agora-design .in-focus-guide a { border-radius: var(--radius-inset); padding: 8px; margin-inline: -8px; }
+.agora-design .in-focus-guide a:hover { background: var(--soft); }
+.agora-design .in-focus-end a { display: inline-flex; align-items: center; min-height: 44px; }
 .admin-shell .in-focus-article :is(h1, h2), .admin-shell .in-focus-contribution h3, .admin-shell .in-focus-background h3 { font-family: var(--font-lora), Georgia, serif; font-weight: 400; }
 @media (max-width: 1000px) {
   .in-focus-layout { grid-template-columns: 150px minmax(0, 1fr); gap: 32px; }

@@ -16,6 +16,9 @@
   --clay-dark: #803b28;
   --line: #d9d9d1;
   --soft: #f0eee8;
+  --radius-control: 8px;
+  --radius-panel: 12px;
+  --radius-inset: 6px;
   min-height: 100vh;
   background: var(--paper);
   color: var(--ink);
@@ -158,12 +161,12 @@
 }
 .agora-question-box {
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-panel);
   background: #fff;
   box-shadow: 0 4px 20px #28292306;
 }
 .agora-question-writing {
-  border-radius: 9px 9px 0 0;
+  border-radius: 11px 11px 0 0;
   transition: box-shadow 140ms ease;
 }
 /* Focus belongs to the writing surface, never a second ring around the textarea. */
@@ -190,7 +193,7 @@
   background: #fff;
   color: var(--ink);
   border: 1px solid #bbbcb2;
-  border-radius: 5px;
+  border-radius: var(--radius-control);
   padding: 16px;
 }
 .agora-question-box textarea {
@@ -208,7 +211,7 @@
   min-width: 0;
   min-height: 48px;
   border: 1px solid #bbbcb2;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   background: #fff;
   padding: 10px 12px;
   font-size: 1rem;
@@ -251,8 +254,8 @@
   align-items: center;
   justify-content: center;
   min-height: 48px;
-  padding: 12px 18px;
-  border-radius: 4px;
+  padding: 12px 20px;
+  border-radius: var(--radius-control);
   font-size: 0.875rem;
   line-height: 1.5;
   text-align: center;
@@ -295,6 +298,7 @@
   padding: 12px 16px;
   color: var(--clay-dark);
   background: var(--soft);
+  border-radius: 0 var(--radius-inset) var(--radius-inset) 0;
   font-size: 0.9375rem;
 }
 .agora-options {
@@ -476,6 +480,7 @@
   line-height: 1.7;
   color: var(--muted);
   margin: 20px 0;
+  border-radius: 0 var(--radius-inset) var(--radius-inset) 0;
 }
 .agora-actions {
   display: flex;
@@ -601,7 +606,7 @@
 .agora-reading {
   max-width: 820px;
   margin: auto;
-  padding: 24px 32px 64px;
+  padding: 32px 40px 80px;
 }
 .agora-reading h1 {
   font-size: clamp(1.875rem, 3.2vw, 2.5rem);
@@ -698,8 +703,9 @@
 .agora-synthesis {
   background: var(--soft);
   border-left: 2px solid var(--clay);
-  padding: 24px;
-  margin: 24px 0;
+  padding: 28px 32px;
+  margin: 32px 0;
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
 }
 .agora-synthesis p:not(.agora-eyebrow),
 .agora-synthesis li {
@@ -729,7 +735,7 @@
   padding: 24px;
   border: 1px solid var(--line);
   background: #fff;
-  border-radius: 6px;
+  border-radius: var(--radius-panel);
   margin-top: 24px;
 }
 .agora-wait h3 {
@@ -1072,7 +1078,7 @@
   border-top: 1px solid var(--line);
   padding: 16px;
   background: #faf9f680;
-  border-radius: 0 0 9px 9px;
+  border-radius: 0 0 11px 11px;
 }
 .agora-visibility label {
   border: 1px solid transparent;
@@ -1139,6 +1145,7 @@
   min-width: 0;
   padding: 12px;
   cursor: pointer;
+  border-radius: var(--radius-control);
 }
 .agora-thinker-picker label > span {
   min-width: 0;
@@ -1196,7 +1203,7 @@
 
 /* Full saved answers use a quieter measure than the homepage previews. */
 .agora-conversation {
-  max-width: 780px;
+  max-width: 820px;
 }
 .agora-thread-heading > .agora-meta {
   max-width: 68ch;
@@ -1236,6 +1243,7 @@
 }
 .agora-recommendation {
   border-left: 2px solid var(--line);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
   padding: 16px 20px;
   line-height: 1.75;
 }
@@ -1416,11 +1424,11 @@
 .agora-welcome {
   max-width: 760px;
   margin-inline: auto;
-  padding: 44px 0 52px;
+  padding: 48px 0 56px;
 }
 .agora-welcome-intro {
   text-align: center;
-  margin-bottom: 26px;
+  margin-bottom: 32px;
 }
 .agora-portrait-row {
   display: grid;
@@ -1436,7 +1444,7 @@
   min-width: 0;
 }
 .agora-portrait-mat {
-  padding: 8px;
+  padding: 6px;
   border-radius: 50%;
   background: #dce5d7;
 }
@@ -1488,19 +1496,19 @@
 }
 .agora-simple-composer .agora-question-box {
   border-color: #cfc6b8;
-  box-shadow: 0 6px 24px #503b2410;
+  box-shadow: 0 2px 4px #503b2404, 0 12px 32px #503b2409;
 }
 .agora-simple-composer .agora-question-box textarea {
   min-height: 112px;
   padding-bottom: 12px;
 }
 .agora-simple-composer .agora-composer-actions {
-  background: #f5f0e7;
-  padding: 12px 16px;
+  background: #f7f4ee;
+  padding: 14px 20px;
 }
 .agora-simple-composer .agora-article-option {
   border: 0;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 .agora-article-option summary {
   width: fit-content;
@@ -1508,24 +1516,22 @@
 }
 .agora-simple-composer .agora-suggestions {
   justify-content: center;
-  gap: 0 16px;
-  margin: 2px 0 0;
+  gap: 4px 12px;
+  margin: 8px 0 0;
 }
 .agora-simple-composer .agora-suggestions > span {
   flex-basis: auto;
 }
 .agora-simple-composer .agora-suggestions button {
-  border: 0;
-  border-radius: 0;
-  padding: 8px 0;
-  color: var(--clay-dark);
-  text-decoration: underline;
-  text-decoration-color: #cdb09b;
-  text-underline-offset: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  padding: 10px 14px;
+  color: var(--muted);
 }
 .agora-simple-composer .agora-suggestions button:hover {
-  background: transparent;
-  text-decoration-color: var(--clay-dark);
+  background: var(--soft);
+  border-color: #b8b5aa;
+  color: var(--clay-dark);
 }
 .agora-matched-philosophers {
   display: grid;
@@ -1542,6 +1548,7 @@
   padding: 20px;
   background: #eaf0e5;
   border-top: 2px solid #9dab91;
+  border-radius: var(--radius-control);
 }
 .agora-matched-philosophers article:nth-child(even) {
   background: #eaf0f3;
@@ -1595,6 +1602,7 @@
   padding: 20px;
   border-top: 2px solid #cfc6b8;
   background: #f3f0e9;
+  border-radius: var(--radius-control);
 }
 .agora-skeleton {
   display: block;
@@ -1748,7 +1756,9 @@
   line-height: 1.7;
 }
 .agora-review-privacy {
-  margin-top: 24px;
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
 }
 .agora-review-privacy legend {
   margin-bottom: 10px;
@@ -1761,10 +1771,11 @@
   margin-top: 12px;
 }
 .agora-conversation-preview {
-  padding: 26px 32px 28px;
-  margin-bottom: 44px;
+  padding: 28px 36px 32px;
+  margin-bottom: 48px;
   background: #edf0e8;
   border-top: 2px solid #87967b;
+  border-radius: var(--radius-panel);
 }
 .agora-conversation-preview .agora-section-heading {
   border-bottom-color: #ced5c6;
@@ -1789,7 +1800,7 @@
 }
 @media (max-width: 760px) {
   .agora-welcome {
-    padding: 28px 0 32px;
+    padding: 32px 0 40px;
   }
   .agora-portrait-row {
     max-width: 420px;
@@ -1830,10 +1841,18 @@
   }
   .agora-simple-composer .agora-composer-actions {
     justify-content: center;
+    padding: 12px 16px 16px;
   }
   .agora-simple-composer .agora-suggestions {
-    align-items: center;
+    align-items: stretch;
     flex-direction: column;
-    margin-top: 8px;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .agora-simple-composer .agora-suggestions > span {
+    text-align: center;
+  }
+  .agora-simple-composer .agora-suggestions button {
+    text-align: center;
   }
 }

@@ -2,6 +2,7 @@
 .agora-design {
   --color-border: var(--line);
   -webkit-tap-highlight-color: #a34e3620;
+  min-height: 100dvh;
 }
 .agora-design :where(a, button, input, textarea, select, summary):focus-visible {
   outline: 2px solid var(--clay);
@@ -9,6 +10,15 @@
 }
 .agora-design :where(a, button, summary) {
   touch-action: manipulation;
+}
+.agora-design :where(a, button, summary, input, textarea) {
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+.agora-design :where(button, input, textarea):disabled {
+  cursor: not-allowed;
+}
+.agora-design :where(h1, h2) {
+  text-wrap: balance;
 }
 .agora-design :where(a, button) {
   text-underline-offset: 0.2em;
@@ -27,7 +37,7 @@
 .agora-design .agora-header {
   max-width: 1240px;
   gap: 24px;
-  padding-block: 14px;
+  padding-block: 16px;
 }
 .agora-design .agora-brand {
   letter-spacing: 0.12em;
@@ -40,25 +50,17 @@
   flex-shrink: 1;
   min-width: 0;
 }
-.agora-beta {
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  padding: 2px 6px;
-  background: var(--soft);
-  color: var(--clay);
-  font-size: 0.625rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 1.5;
-  text-transform: uppercase;
-}
 .agora-design .agora-header nav {
-  gap: 8px 24px;
+  gap: 8px 16px;
   line-height: 1.4;
 }
 .agora-design .agora-header nav a {
   position: relative;
-  padding-block: 10px;
+  padding: 10px 6px;
+  border-radius: var(--radius-inset);
+}
+.agora-design .agora-header nav a:hover {
+  background: var(--soft);
 }
 .agora-design .agora-header nav a[aria-current="page"] {
   font-weight: 600;
@@ -68,6 +70,26 @@
 .agora-design .agora-header nav .agora-account-link:not([aria-current="page"]) {
   color: var(--muted);
   font-weight: 400;
+}
+.agora-design .agora-header nav .agora-account-link {
+  padding-inline: 14px;
+  min-width: 104px;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+.agora-account-loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 104px;
+  min-height: 44px;
+}
+.agora-account-loading > span {
+  width: 56px;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--soft);
 }
 .agora-design .agora-header nav .agora-account-link:hover {
   color: var(--clay-dark);
@@ -90,6 +112,65 @@
 }
 .agora-design .agora-text-link:hover {
   text-decoration: underline;
+}
+.agora-design .agora-count[data-near-limit] {
+  color: var(--clay-dark);
+  font-weight: 600;
+}
+.agora-design .agora-composer-actions > .agora-meta {
+  flex: 1 1 180px;
+}
+.agora-design .agora-group-review {
+  padding-top: 24px;
+}
+.agora-design :is(.agora-options, .agora-my-threads, .public-context, .in-focus-background) > summary {
+  position: relative;
+  list-style: none;
+  padding-right: 32px;
+  border-radius: var(--radius-inset);
+  min-height: 44px;
+}
+.agora-design :is(.agora-options, .agora-my-threads, .public-context, .in-focus-background) > summary::-webkit-details-marker {
+  display: none;
+}
+.agora-design :is(.agora-options, .agora-my-threads, .public-context, .in-focus-background) > summary::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 18px;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 160ms ease;
+}
+.agora-design :is(.agora-options, .agora-my-threads, .public-context, .in-focus-background)[open] > summary::after {
+  transform: translateY(3px) rotate(225deg);
+}
+.agora-design :is(.agora-options, .agora-my-threads, .public-context, .in-focus-background) > summary:hover {
+  color: var(--clay-dark);
+}
+.agora-design .agora-article-option[open] {
+  padding: 0 20px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: #ffffff80;
+}
+.agora-design .agora-article-option[open] > summary {
+  width: 100%;
+}
+.agora-design .agora-visibility label {
+  border-radius: var(--radius-control);
+}
+.agora-design .agora-question-list > a:hover h3,
+.agora-design :is(.public-debate-card h2 a, .agora-feature-title a):hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+.agora-design .agora-question-list > a .agora-meta + .agora-meta {
+  margin-top: 6px;
 }
 .agora-design .agora-footer {
   align-items: start;
@@ -118,7 +199,10 @@
 .agora-design .public-sign-in-panel {
   width: 100%;
   border-top: 2px solid var(--clay);
-  padding-top: 28px;
+  padding: 32px;
+  border-radius: var(--radius-panel);
+  background: #fff;
+  box-shadow: 0 12px 36px #28292308;
 }
 .agora-design .public-sign-in-intro h1 {
   font-size: clamp(2rem, 4vw, 2.5rem);
@@ -178,6 +262,13 @@
 .public-toast {
   box-shadow: 0 8px 28px #28292320;
 }
+@media (min-width: 901px) {
+  .agora-design .public-aside section:first-child {
+    padding: 20px;
+    background: var(--soft);
+    border-radius: var(--radius-control);
+  }
+}
 @media (max-width: 760px) {
   .agora-design .agora-header {
     gap: 4px 20px;
@@ -193,10 +284,22 @@
   .agora-design .agora-footer {
     gap: 20px;
   }
+  .agora-design .public-sign-in-panel {
+    padding: 24px;
+  }
+}
+@media (max-width: 600px) {
+  .agora-design .agora-header nav {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+    gap: 4px;
+    padding-top: 6px;
+  }
 }
 @media (max-width: 480px) {
   .agora-design .agora-header nav {
-    column-gap: 8px;
+    column-gap: 4px;
   }
   .agora-design .agora-footer {
     flex-direction: column;
@@ -204,12 +307,37 @@
   .agora-design .agora-footer > p {
     padding-top: 0;
   }
+  .agora-design .agora-header nav .agora-account-link {
+    padding-inline: 10px;
+    min-width: 90px;
+  }
+  .agora-account-loading {
+    min-width: 90px;
+  }
+  .agora-design .public-post-actions .public-action-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .agora-design .public-post-actions {
+    margin-left: auto;
+  }
+  .agora-design .public-post-footer {
+    gap: 8px;
+  }
+  .agora-design .agora-simple-composer .agora-composer-actions > .agora-meta {
+    text-align: center;
+  }
+  .agora-design .public-sign-in-panel {
+    padding: 24px 20px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .agora-design .agora-button,
-  .agora-design .agora-outline,
-  .agora-design .public-question,
   .public-toast {
     transition: none !important;
+    animation: none !important;
   }
 }

@@ -29,6 +29,7 @@ export default async function AdminLayout({
   return (
     <div className="admin-theme admin-shell">
       <AdminUIProvider>
+      <a className="admin-skip" href="#admin-main">Skip to content</a>
       {/* Sidebar */}
       <aside className="admin-sidebar">
         <div className="admin-brand">

@@ -5,13 +5,13 @@ export function PageHeading({
   title,
   children,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   children?: ReactNode;
 }) {
   return (
     <header className="public-heading">
-      <p className="agora-eyebrow">{eyebrow}</p>
+      {eyebrow && <p className="agora-eyebrow">{eyebrow}</p>}
       <h1>{title}</h1>
       {children && <div className="public-deck">{children}</div>}
     </header>

@@ -4,8 +4,15 @@ import { usePathname } from "next/navigation";
 import { readAgoraDraft, writeAgoraDraft } from "@/lib/agora-draft";
 import { useSession } from "@/lib/auth-client";
 export function AgoraAccountLink() {
-  const { data } = useSession();
+  const { data, isPending } = useSession();
   const pathname = usePathname();
+  if (isPending) {
+    return (
+      <span className="agora-account-loading" aria-hidden="true">
+        <span />
+      </span>
+    );
+  }
   return (
     <Link
       className="agora-account-link"

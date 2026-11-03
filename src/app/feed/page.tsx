@@ -44,7 +44,7 @@ export default async function HomePage({
   return (
     <AgoraShell>
       <main id="main" className="public-page">
-        <PageHeading eyebrow="Ideas in the everyday" title="The feed">
+        <PageHeading title="The feed">
           <p>
             Philosophical perspectives on news, culture and everyday life.
           </p>

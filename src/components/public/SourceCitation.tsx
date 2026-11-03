@@ -29,7 +29,7 @@ export function SourceCitation({
         </div>
       )}
       {citation.source && (
-        <p className="agora-eyebrow">Source · {citation.source}</p>
+        <p className="public-source-label">{citation.source}</p>
       )}
       {citation.title && <p className="public-source-title">
         {linked ? (

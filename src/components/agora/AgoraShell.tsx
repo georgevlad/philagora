@@ -13,7 +13,6 @@ export function AgoraShell({ children }: { children: ReactNode }) {
           <Link className="agora-brand" href="/" aria-label="Philagora home">
             <span aria-hidden="true">φ</span> PHILAGORA
           </Link>
-          <span className="agora-beta">Beta</span>
         </div>
         <span className="agora-tagline">The philosophers are online.</span>
         <AgoraNavigation />
